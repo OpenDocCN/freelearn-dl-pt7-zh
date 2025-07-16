@@ -1,0 +1,1458 @@
+- en: 6\. Monte Carlo Methods
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Overview
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, you will learn about the various types of Monte Carlo methods,
+    including the first visit and every visit techniques. In the case, if the model
+    of the environment is not known, you can use Monte Carlo methods to learn the
+    environment by generating experience samples or by simulation. This chapter teaches
+    you importance sampling and how to apply Monte Carlo methods to solve the frozen
+    lake problem. By the end of this chapter, you will be able to identify problems
+    where Monte Carlo methods of reinforcement learning can be applied. You will be
+    able to solve prediction, estimation, and control problems using Monte Carlo reinforcement
+    learning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Introduction
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the previous chapter, we learned about dynamic programming. Dynamic programming
+    is a way of doing reinforcement learning where the model of the environment is
+    known beforehand. Agents in reinforcement learning can learn a policy, value function,
+    and/or model. Dynamic programming helps solve a known **Markov Decision Process**
+    (**MDP**). The probabilistic distribution for all possible transitions is known
+    in an MDP and is required for dynamic programming.
+  prefs: []
+  type: TYPE_NORMAL
+- en: But what happens when the model of the environment is not known? In many real-life
+    situations, the model of the environment is not known beforehand. Can the algorithm
+    learn the model of the environment? Can the agents in reinforcement learning still
+    learn to make good decisions?
+  prefs: []
+  type: TYPE_NORMAL
+- en: Monte Carlo methods are a way of learning when the model of the environment
+    is not known and so they are called model-free learning. We can make a model-free
+    prediction that estimates the value function of an unknown MDP. We can also use
+    model-free control, which optimizes the value functions of an unknown MDP. Monte
+    Carlo methods can also handle non-Markovian domains too.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The transition probabilities between one state and another are not known in
+    many cases. You need to play around and get a sense of the environment before
+    learning how to play the game well. Monte Carlo methods can learn a model of an
+    environment from experiencing the environment. Monte Carlo methods take actual
+    or stochastically simulated scenarios and get an average of the sample returns.
+    By using the sample sequence of states, actions, and rewards from actual or simulated
+    interactions with the environment, Monte Carlo methods can learn from experience.
+    A well-defined set of rewards is needed for Monte Carlo methods to work. This
+    criterion is met only for episodic tasks, where experience is divided into clearly
+    defined episodes, and episodes eventually terminate irrespective of the action
+    selected. An example application is AlphaGo, which is one of the most complex
+    games; the number of possible moves in any state is over 200\. One of the key
+    algorithms used to solve it was a tree search based on Monte Carlo.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we will first understand Monte Carlo methods of reinforcement
+    learning. We will apply them to the Blackjack environment in OpenAI. We will learn
+    about various methods, such as the first visit method and every visit method.
+    We will also learn about importance sampling and, later in the chapter, revisit
+    the frozen lake problem. In the next section, we will introduce the basic workings
+    of Monte Carlo methods.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Workings of Monte Carlo Methods
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Monte Carlo methods solve reinforcement problems by averaging the sample returns
+    for each state-action pair. Monte Carlo methods work only for episodic tasks.
+    This means the experience is split into various episodes and all episodes finally
+    terminate. Only after the episode is complete are the value functions recalculated.
+    Monte Carlo methods can be incrementally optimized episode by episode but not
+    step by step.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's take the example of a game like Go. This game has millions of states;
+    it is going to be difficult to learn all of those millions of states and their
+    transition probabilities beforehand. The other approach would be to play the game
+    of Go repeatedly and assign a positive reward for winning and a negative reward
+    for losing.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As we don't have information about the policy of the model, we need to use experience
+    samples to learn. This technique is also a sample-based model. We call this direct
+    sampling of episodes in Monte Carlo.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Monte Carlo is model-free. As no knowledge of MDP is required, the model is
+    inferred from the samples. You can perform model-free prediction or model-free
+    estimation. We can perform an evaluation, also called a prediction, on a policy.
+    We can also evaluate and improve a policy, which is often called control or optimization.
+    Monte Carlo reinforcement learning can learn only from episodes that terminate.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For example, if you have a game of chess, played by a set of rules or policies,
+    that would be playing several episodes according to those rules or policies and
+    evaluating the success rate of the policy. If we are playing a game according
+    to a policy and modifying the policy based on the game, then it would be a policy
+    improvement, optimization, or control.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding Monte Carlo with Blackjack
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Blackjack is a simple card game that is quite popular in casinos. It is a great
+    game, as it is simple to simulate and take samples, and lends itself to Monte
+    Carlo methods. Blackjack is also available as part of the OpenAI framework. Players
+    and the dealer are dealt two cards each. The dealer shows one card face up and
+    lays the other card face down. The players and the dealer have a choice of whether
+    to be dealt additional cards or not:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**The aim of the game**: To obtain cards whose sum is close to or equal to
+    21 but not greater than 21.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Players**: There are two players, called the player and the dealer.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**The start of the game**: The player is dealt with two cards. The dealer is
+    also dealt with two cards, and the rest of the cards are pooled into a stack.
+    One of the dealer''s cards is shown to the player.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Possible actions** – **stick or hit**: "Stick" is to stop asking for more
+    cards. "Hit" is to ask for more cards. The player will choose "Hit" if the sum
+    of their cards is less than 17\. If the sum of their cards is greater than or
+    equal to 17, the player will stick. This threshold of 17 to decide whether to
+    hit or stick can be changed if needed in various versions of Blackjack. In this
+    chapter, we will consistently keep the threshold at 17 to decide whether to hit
+    or stick.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Rewards**: +1 for a win, -1 for a loss, and 0 for a draw.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Strategy**: The player has to decide whether to stick or hit by looking at
+    the dealer''s cards. The ace can be considered to be 1 or 11, based on the value
+    of the other cards.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'We will explain the game of Blackjack in the following table. The table has
+    the following columns:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Game**: The game number and the sub-state of the game: i, ii, or iii'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Player Cards**: The cards the player has; for example, K♣, 8♦ means the player
+    has the King of clubs and the eight of diamonds.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Dealer Cards**: The cards the dealer gets. For example, 8♠, Xx means the
+    dealer has the eight of spades and a hidden card.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Action**: This is the action the player decides to choose.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Result**: The result of the game based on the player''s actions and the cards
+    the dealer gets.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Sum of Player Cards**: The sum of the player''s two cards. Please note that
+    the King (K), Queen (Q), and Jack (J) face cards are scored as 10.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Comments**: An explanation of why a particular action was taken or a result
+    was declared.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'In game 1, the player decided to stick as the sum of the cards was 18\. "Stick"
+    means the player will no longer receive cards. Now the dealer shows the hidden
+    card. It is a draw as both the dealer''s and player''s cards sum 18\. In game
+    2, the player''s cards sum 15, which is less than 17\. The player hits and gets
+    another card, which takes the sum to 17\. The player then sticks, which means
+    the player will no longer receive cards. The dealer shows the cards and as the
+    sum of the cards is less than 17, gets another card. With the dealer''s new card,
+    the sum is 25, which is greater than 21\. The game aims to get close to or equal
+    to 21 without the score becoming greater than 21\. The dealer loses and the player
+    wins the second game. The following figure presents a summary of this game:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.1: Explanation of a Blackjack game'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_06_01.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 6.1: Explanation of a Blackjack game'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, we will be implementing the game of Blackjack using the OpenAI framework.
+    This will serve as a foundation for the simulation and application of Monte Carlo
+    methods.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Exercise 6.01: Implementing Monte Carlo in Blackjack'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: We will learn how to use the OpenAI framework for Blackjack, and get to know
+    about observation space, action space, and generating an episode. The goal of
+    this exercise is to implement Monte Carlo techniques in the game of Blackjack.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Perform the following steps to complete the exercise:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Import the necessary libraries:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '`gym` is the OpenAI framework, `numpy` is the framework for data processing,
+    and `defaultdict` is for dictionary support.'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'We start the `Blackjack` environment with `gym.make()` and assign it to `env`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Find the number of observation spaces and action spaces:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You will get the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The number of observation spaces is the number of states. The number of action
+    spaces is the number of actions possible in each state. The output shows as discrete,
+    as the observation and action space in a Blackjack game is not continuous. For
+    example, there are other games in OpenAI, such as balancing a CartPole and pendulum
+    where the observation and action spaces are continuous.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Write a function to play the game. If the sum of the player''s cards is more
+    than or equal to 17, stick (don''t choose more cards); otherwise, hit (choose
+    more cards), as shown in the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Here, we are initializing the episode, choosing the initial state, and assigning
+    it to `player_score`, `dealer_score,` and `usable_ace`.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Add a dictionary, `action_text`, that has a key-value mapping for two action
+    integers to action text. Here''s the code to convert the integer value of the
+    action into text format:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Play the game in batches of 100 and calculate `state`, `reward`, and `action`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You will get the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 6.2: The output is the episode of the Blackjack game in progress'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_06_02.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 6.2: The output is the episode of the Blackjack game in progress'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Monte Carlo technique is based on generating random samples. As such, two
+    executions of the same code will not match in values. So, you might have a similar
+    output but not the same for all the exercises and activities.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the code, `done` has the value of `True` or `False`. If `done` is `True`,
+    the game stops, we note the value of the rewards and print the game result. In
+    the output, we simulated the game of Blackjack using the Monte Carlo method and
+    noted the various actions, states, and game completion. We were also able to simulate
+    the rewards when the game ends.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: To access the source code for this specific section, please refer to [https://packt.live/2XZssYh](https://packt.live/2XZssYh).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also run this example online at [https://packt.live/2Ys0cMJ](https://packt.live/2Ys0cMJ).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, we will describe the different types of Monte Carlo methods, namely, the
+    first visit and every visit method, which will be used to estimate the value function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Types of Monte Carlo Methods
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: We have implemented the game of Blackjack using Monte Carlo. Typically, a trajectory
+    of Monte Carlo is a sequence of state, action, and reward. In several episodes,
+    it is possible that the state repeats. For example, the trajectory could be S0,
+    S1, S2, S0, S3\. How do we handle the calculation of the reward function when
+    we have multiple visits to the states?
+  prefs: []
+  type: TYPE_NORMAL
+- en: Broadly, this highlights that there are two types of Monte Carlo methods – first
+    visit and every visit. We will understand the implications of both methods.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As stated previously, in Monte Carlo methods, we approximate the value function
+    by averaging the rewards. In the first visit Monte Carlo method, only the first
+    visit to a state in an episode is included to calculate the average reward. For
+    example, in a given game of traversing a maze, you could make several visits to
+    the sample place. In the first visit Monte Carlo method, only the first visit
+    is used for the calculation of the reward. When the agent revisits the same state
+    in the episode, the reward is not included for the calculation of the average
+    reward.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In every visit Monte Carlo, every time the agent visits the same state, the
+    rewards are included in the calculation of the average return. For example, let's
+    use the same game of maze. Every time the agent comes to the same point in the
+    maze, we include the rewards earned in that state for the calculation of the reward
+    function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Both first visit and every visit converge to the same value function. For a
+    smaller number of episodes, the choice between the first visit and every visit
+    is based on the particular game and the rules of the game.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's understand the pseudocode for first visit Monte Carlo prediction.
+  prefs: []
+  type: TYPE_NORMAL
+- en: First Visit Monte Carlo Prediction for Estimating the Value Function
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'In the pseudocode for first visit Monte Carlo prediction for estimating the
+    value function, the key is to calculate the value function *V(s)*. Gamma is the
+    discount factor. The discount factor is used to reward future rewards less than
+    immediate rewards:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.3: Pseudocode for first visit Monte Carlo prediction'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_06_03.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 6.3: Pseudocode for first visit Monte Carlo prediction'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'What we have done in the first visit is to generate an episode, calculate the
+    result value, and append the result to the rewards. We then calculate the average
+    returns. In the upcoming exercise, we will apply the first visit Monte Carlo prediction
+    to estimate the value function by following the steps detailed in the pseudocode.
+    The key block of code for the first visit algorithm is navigating the states only
+    through the first visit:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Consider the `states` that have not been visited. We increase the count for
+    the number of `states` by `1`, calculate the value function with the incremental
+    method, and return the value function. This is implemented as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: Let's understand it better through the next exercise.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Exercise 6.02: First Visit Monte Carlo Prediction for Estimating the Value
+    Function in Blackjack'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: This exercise aims to understand how to apply first visit Monte Carlo prediction
+    to estimate the value function in the game of Blackjack. We will apply the steps
+    outlined in the pseudocode step by step.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Perform the following steps to complete the exercise:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Import the necessary libraries:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '`gym` is the OpenAI framework, `numpy` is the framework for data processing,
+    and `defaultdict` is for dictionary support.'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Select the environment as `Blackjack` in OpenAI:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Write the `policy_blackjack_game` function, which takes the state as input
+    and returns the action `0` or `1` based on `player_score`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: In the function, if the player score is greater than or equal to `17`, it does
+    not take more cards. But if `player_score` is less than 17, it takes additional
+    cards.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Write a function to generate a Blackjack episode. Initialize `episode`, `states`,
+    `actions`, and `rewards`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Reset the environment and set the `state` value to `player_score`, `dealer_score`,
+    and `usable_ace`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Write a function that generates the action from the state. We then step through
+    the action and find `next_state` and `reward`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a list of `episode`, `state`, `action,` and `reward` by appending them
+    to the existing list:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'If the episode is complete (`done` is true), we `break` the loop. If not, we
+    update `state` to `next_state` and repeat the loop:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We return `episodes`, `states`, `actions`, and `rewards` from the function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Write the function for calculating the value function for Blackjack. The first
+    step is to initialize the value of `total_rewards`, `num_states`, and `value_function`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Generate an `episode`, and for an `episode`, we find the total `rewards` for
+    all the `states` in reverse order in the `episode`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Consider the `states` that have not been visited. We increase the count for
+    the number of `states` by `1` and calculate the value function using the incremental
+    method, and return the value function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now, execute first visit prediction 10,000 times:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You will get the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 6.4: First visit value function'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_06_04.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 6.4: First visit value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The value function for the first visit is printed. For all the states, a combination
+    of `player_score`, `dealer_score,` and `usable_space` has a value function value
+    from the first visit evaluation. Take the example output of `(16, 3, False): -0.625`.
+    This means that the value function for the state with player score `16`, dealer
+    score `3`, and a reusable ace as `False` is `-0.625`. The number of episodes and
+    batches are configurable.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: To access the source code for this specific section, please refer to [https://packt.live/37zbza1](https://packt.live/37zbza1).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also run this example online at [https://packt.live/2AYnhyH](https://packt.live/2AYnhyH).
+  prefs: []
+  type: TYPE_NORMAL
+- en: We have covered the first visit Monte Carlo in this section. In the next section,
+    we will understand every visit Monte Carlo prediction for estimating the value
+    function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Every Visit Monte Carlo Prediction for Estimating the Value Function
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'In every visit Monte Carlo prediction, every visit to the state is used for
+    the reward calculation. We have a gamma factor that is the discount factor, which
+    enables us to discount the rewards in the far future relative to rewards in the
+    immediate future:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.5: Pseudocode for every visit Monte Carlo prediction'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_06_05.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 6.5: Pseudocode for every visit Monte Carlo prediction'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The difference is primarily visiting every step instead of just the first to
+    calculate the rewards. The code remains similar to the first visit exercise, except
+    for the Blackjack prediction function where the rewards are calculated.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following line in the first visit implementation checks if the current
+    state has not been traversed before. This line is no longer in every visit algorithm:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The code for the calculation of the value function is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs: []
+  type: TYPE_PRE
+- en: In this exercise, we will use every visit Monte Carlo method to estimate the
+    value function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Exercise 6.03: Every Visit Monte Carlo Prediction for Estimating the Value
+    Function'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'This exercise aims to understand how to apply every visit Monte Carlo prediction
+    to estimate the value function. We will apply the steps outlined in the pseudocode
+    step by step. Perform the following steps to complete the exercise:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Import the necessary libraries:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Select the environment as `Blackjack` in OpenAI:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Write the `policy_blackjack_game` function that takes the state as input and
+    returns the action `0` or `1` based on `player_score`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: In the function, if the player score is greater than or equal to `17`, it does
+    not take more cards. But if `player_score` is less than `17`, it takes additional
+    cards.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Write a function to generate a Blackjack episode. Initialize `episode`, `states`,
+    `actions`, and `rewards`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We reset the environment and set the value of `state` to `player_score`, `dealer_score`,
+    and `usable_ace`, as shown in the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Write a function that generates `action` from `state`. We then step through
+    `action` and find `next_state` and `reward`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a list of `episode`, `state`, `action`, and `reward` by appending them
+    to the existing list:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE30]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'If the episode is complete (`done` is true), we `break` the loop. If not, we
+    update `state` to `next_state` and repeat the loop:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE31]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We return `episodes`, `states`, `actions`, and `rewards` from the function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE32]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Write the function for calculating the value function for Blackjack. The first
+    step is to initialize the values of `total_rewards`, `num_states`, and `value_function`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE33]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Generate an `episode` and for the `episode`, we find the total `rewards` for
+    all the `states` in reverse order in the `episode`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE34]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Consider every `state` visited. We increase the count for the number of `states`
+    by `1` and calculate the value function with the incremental method and return
+    the value function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE35]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now, execute every visit prediction 10,000 times:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE36]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You will get the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 6.6: Every visit value function'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_06_06.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 6.6: Every visit value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The value function for every visit is printed. For all the states, a combination
+    of `player_score`, `dealer_score,` and `usable_space` has a value function value
+    from every visit evaluation. We can increase the number of episodes and run this
+    again too. As the number of episodes is made larger and larger, the first visit
+    and every visit functions will converge.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: To access the source code for this specific section, please refer to [https://packt.live/2C0wAP4](https://packt.live/2C0wAP4).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also run this example online at [https://packt.live/2zqXsH3](https://packt.live/2zqXsH3).
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next section, we will talk about a key concept of Monte Carlo reinforcement
+    learning, which is the need to balance exploration and exploitation. This is also
+    the basis of the greedy epsilon technique of the Monte Carlo method. Balancing
+    exploration and exploitation helps us to improve the policy function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Exploration versus Exploitation Trade-Off
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Learning happens by exploring new things and exploiting or applying what has
+    been learned before. The right combination of these is the essence of any learning.
+    Similarly, in the context of reinforcement learning, we have exploration and exploitation.
+    **Exploration** is trying out different actions, while **exploitation** is following
+    an action that is known to have a good reward.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Reinforcement learning has to balance between exploration and exploitation.
+    Every agent can learn only from the experience of trying an action. Exploration
+    helps try new actions that might enable the agent to make better decisions in
+    the future. Exploitation is choosing actions that yield good rewards based on
+    experience. The agent needs to trade off gaining rewards by exploitation by experimenting
+    in exploration. If an agent exploits more, the agent might miss learning about
+    other policies with even greater rewards. If the agent explores more, the agent
+    might miss the opportunity to exploit a known path and lose out on rewards.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For example, think of a student who is trying to maximize their grades in college.
+    The student can either "explore" by taking courses with new subjects or "exploit"
+    by taking courses in their favorite subjects. If the student indexes towards "exploitation,"
+    the student might miss out on both getting good grades in new unexplored courses
+    and the overall learning. If the student explores too many diverse subjects by
+    taking courses in them, this might impact their grades and might make the learning
+    too broad.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Similarly, if you choose to read books, you could exploit by reading books belonging
+    to the same genre or author or explore by reading books across different genres
+    and authors. Similarly, while driving from one place to another, you could exploit
+    by following the same known route based on past experience or explore by taking
+    different routes. In the next section, we will get an understanding of the techniques
+    of on-policy and off-policy learning. We will then get an understanding of a key
+    factor called importance sampling, for off-policy learning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Exploration and exploitation are techniques used in reinforcement learning.
+    In off-policy learning, you can have an exploitation technique as the target policy
+    and an exploration technique as the behavior policy. We could have a greedy policy
+    as the exploitation technique and a random policy as the exploration technique.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Importance Sampling
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Monte Carlo methods can be on-policy or off-policy. In **on-policy** learning,
+    we learn from the agent experience of the following policy. In **off-policy**
+    learning, we learn how to estimate a target policy from the experience of following
+    a different behavioral policy. Importance sampling is a key technique for off-policy
+    learning. The following figure compares on-policy and off-policy learning:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.7: On-Policy versus Off-Policy comparison'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_06_07.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 6.7: On-Policy versus Off-Policy comparison'
+  prefs: []
+  type: TYPE_NORMAL
+- en: You might think that on-policy learning is learning while playing, while off-policy
+    learning is learning by watching someone else play. You could improve your cricket
+    game by playing cricket yourself. This will help you learn from your mistakes
+    and best actions. That would be on-policy learning. You could also learn by watching
+    others play the game of cricket and learning from their mistakes and best actions.
+    That would be off-policy learning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Human beings typically do both on-policy and off-policy learning. For example,
+    cycling is primarily on-policy learning. We learn to cycle by learning to balance
+    ourselves while cycling. Dancing is a kind of off-policy learning; you watch someone
+    else dance and learn the dance steps.
+  prefs: []
+  type: TYPE_NORMAL
+- en: On-policy methods are simple compared to off-policy methods. Off-policy methods
+    are more powerful due to the "transfer learning" effect. In off-policy methods,
+    you are learning from a different policy, the convergence is slower, and the variance
+    is higher.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The advantage of off-policy learning is that the behavior policy can be very
+    exploratory in nature, while the target policy can be deterministic and greedily
+    optimize the rewards.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Off-policy reinforcement methods are based on a concept called importance sampling.
+    This methodology helps estimate values under one policy probability distribution
+    given samples from another policy probability distribution. Let's understand Monte
+    Carlo off-policy evaluation by detailing the pseudocode. We'll then apply it to
+    the Blackjack game in the OpenAI framework.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Pseudocode for Monte Carlo Off-Policy Evaluation
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: What we see in the following figure is that we are estimating `Q(s,a)` by learning
+    from behavior policy `b`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.8: Pseudocode for Monte Carlo off-policy evaluation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_06_08.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 6.8: Pseudocode for Monte Carlo off-policy evaluation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The target policy is a greedy policy; hence we choose the action with the maximum
+    rewards by using `argmax Q(s,a)`. Gamma is the discount factor that allows us
+    to discount rewards in the distant future compared to immediate rewards in the
+    future. The cumulative value function `C(s,a)` is calculated by incrementing it
+    with weight `W`. Gamma is used to discount the rewards.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The essence of off-policy Monte Carlo is the loop through every episode:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE37]'
+  prefs: []
+  type: TYPE_PRE
+- en: Let's understand the implementation of the off-policy method of Monte Carlo
+    by using importance sampling. This exercise will help us learn how to set the
+    target policy and the behavior policy, and learn the target policy from the behavior
+    policy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Exercise 6.04: Importance Sampling with Monte Carlo'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: This exercise will aim to do off-policy learning by using a Monte Carlo method.
+    We have chosen a greedy target policy. We also have a behavior policy, which is
+    any soft, non-greedy policy. By learning from the behavior policy, we will estimate
+    the value function of the target policy. We will apply this technique of importance
+    sampling to the Blackjack game environment. We will apply the steps outlined in
+    the pseudocode step by step.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Perform the following steps to complete the exercise:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Import the necessary libraries:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE38]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Select the environment as `Blackjack` in OpenAI by using `gym.make`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE39]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create two policy functions. One of them is a random policy. The random policy
+    chooses a random action, which is a list of size n with 1/n probability where
+    n is the number of actions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE40]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Write a function to create a greedy policy:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE41]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The greedy policy chooses an action that maximizes the rewards. We first identify
+    the `best_possible_action`, that is, the maximum value of `Q` across states. We
+    then assign a value to the `Action` corresponding to the `best_possible_action`.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Define a function for Blackjack importance sampling that takes `env`, `num_episodes`,
+    `behaviour_policy`, and `discount_factor` as arguments:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE42]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: We initialize the value of `Q` and `C`, and set the target policy as a greedy
+    policy.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'We loop for the number of episodes, initialize the episodes list, and state
+    the initial set by doing `env.reset()`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE43]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'For a batch of 100, apply the behavior policy on a state to calculate the probability:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE44]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: We pick a random action from that list. The step is taken with the random action,
+    returning `next_state` and `reward`. The episode list is appended with the `state`,
+    `action`, and `reward`.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'If the `episode` is completed, we break the loop and assign `next_state` to
+    `state`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE45]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Initialize `G`, the results as `0` and `W`, and the weight as `1`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE46]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Perform the steps detailed in the pseudocode using a `for` loop, as shown in
+    the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE47]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Return `Q` and `target_policy`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE48]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a random policy:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE49]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The random policy is used as a behavior policy. We pass the behavior policy
+    and using the importance sampling method, get the `Q` value function or the target
+    policy.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Iterate through the items in `Q` and then find the action that has the maximum
+    value. This is then stored as the value function for the corresponding state:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE50]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You will get the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 6.9: Output of off-policy Monte Carlo evaluation'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_06_09.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 6.9: Output of off-policy Monte Carlo evaluation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The off-policy evaluation has calculated and returned the value function for
+    every state-action pair. In this exercise, we have applied the concept of importance
+    sampling using a behavior policy and applied the learning to a target policy.
+    The output is provided for every combination state and action pair. It has helped
+    us understand off-policy learning. We had two policies – a behavior policy and
+    a target policy. We learned the target policy by following the behavior policy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: To access the source code for this specific section, please refer to [https://packt.live/3hpOOKa](https://packt.live/3hpOOKa).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also run this example online at [https://packt.live/2B1GQGa](https://packt.live/2B1GQGa).
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next section, we will learn how to solve the frozen lake problem, available
+    in the OpenAI framework, using Monte Carlo techniques.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Solving Frozen Lake Using Monte Carlo
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Frozen Lake is another simple game found in the OpenAI framework. This is a
+    classic game where you can do sampling and simulations for Monte Carlo reinforcement
+    learning. We have already described and used the Frozen Lake environment in *Chapter
+    05*, *Dynamic Programming*. Here we shall quickly revise the basics of the game
+    so that we can solve it using Monte Carlo methods in the upcoming activity.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We have a 4x4 grid of cells, which is the entire frozen lake. It contains 16
+    cells (a 4x4 grid). The cells are marked as `S` – Start, `F` – Frozen, `H` – Hole,
+    and `G` – Goal. The player needs to move from the Start cell, `S`, to the Goal
+    cell, along with the Frozen areas (`F` cells), without falling into Holes (`H`
+    cells). The following figure visually presents the aforementioned information:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.10: The Frozen Lake game'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_06_10.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 6.10: The Frozen Lake game'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here are some basic details of the game:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`S`) to the Goal (cell `G`).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**States** = 16'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Actions** = 4'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Total state-action pairs** = 64'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`F`) without falling into the Holes in the lake (cells `H`). Reaching the Goal
+    (cell `G`) or falling into any Hole (cells `H`) ends the game.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Actions**: The actions that can be performed in any cell are left, down,
+    right, and up.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Players**: It is a single-player game.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`F`), +1 for reaching the Goal (cell `G`), and 0 for falling into a Hole (cells
+    `H`).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Configuration**: You can configure the frozen lake to be slippery or non-slippery.
+    If the frozen lake is slippery, then the intended action and the actual action
+    can vary, so if someone wants to move left, they might end up moving right or
+    down or up. If the frozen lake is non-slippery, the intended action and the actual
+    action are always aligned. The grid has 16 possible cells where the agent can
+    be at any point in time. The agent can take 4 possible actions in each of these
+    cells. So, there are 64 possibilities in the game, whose likelihood is updated
+    based on the learning. In the next activity, we will learn more about the Frozen
+    Lake game, and understand the various steps and actions.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Activity 6.01: Exploring the Frozen Lake Problem – the Reward Function'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Frozen Lake is a game in OpenAI Gym that's helpful to apply learning and reinforcement
+    techniques. In this activity, we will solve the Frozen Lake problem and determine
+    the various states and actions using Monte Carlo methods. We will track the success
+    rate through batches of episodes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Perform the following steps to complete the activity:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We import the necessary libraries: `gym` for the OpenAI Gym framework, `numpy`,
+    and `defaultdict` is required to process dictionaries.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The next step is to select the environment as `FrozenLake`. `is_slippery` is
+    set to `False`. The environment is reset with the line `env.reset()` and rendered
+    with the line `env.render()`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The number of possible values in the observation space is printed with `print(env.observation_space)`.
+    Similarly, the number of action values is printed with the `print(env.action_space)`
+    command.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The next step is to define a function to generate a frozen lake `episode`. We
+    initialize the episodes and the environment.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We simulate various episodes by using a Monte Carlo method. We then navigate
+    step by step and store `episode` and return `reward`. The action is obtained with
+    `env.action_space.sample()`. `next_state`, `action`, and `reward` are obtained
+    by calling the `env_step(action)` function. They are then appended to an episode.
+    The episode is now a list of states, actions, and rewards.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The key is now to calculate the success rate, which is the likelihood of success
+    for a batch of episodes. The way we do this is by calculating the total number
+    of attempts in a batch of episodes. We calculate how many of them successfully
+    reached the goal. The ratio of the agent successfully reaching the goal to the
+    number of attempts made by the agent is the success ratio. First, we initialize
+    the total rewards.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We generate `episode` and `reward` for every iteration and calculate the total
+    `reward`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The success ratio is calculated by dividing `total_reward` by `100` and is printed.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The frozen lake prediction is calculated using the `frozen_lake_prediction`
+    function. The final output will demonstrate the default success ratio of the game
+    without any reinforcement learning when the game is played randomly.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'You will get the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 6.11: Output of Frozen Lake without learning'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_06_11.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 6.11: Output of Frozen Lake without learning'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: The solution to this activity can be found on page 719.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next section, we detail how we can enable improvement by balancing exploration
+    and exploitation, by using the epsilon soft policy and greedy policy. This ensures
+    that we balance exploration and exploitation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Pseudocode for Every Visit Monte Carlo Control for Epsilon Soft
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'We have previously implemented every visit Monte Carlo algorithm for estimating
+    the value function. In this section, we will briefly describe every visit Monte
+    Carlo control for epsilon soft so that we can use this in our final activity of
+    this chapter. The following figure shows the pseudo-code for every visit for Epsilon
+    soft by balancing exploration and exploitation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.12: Pseudocode for Monte Carlo every visit for epsilon soft'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_06_12.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 6.12: Pseudocode for Monte Carlo every visit for epsilon soft'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following code picks a random action with epsilon probability and picks
+    an action that has a maximum `Q(s,a)` with 1-epsilon probability. So, we can choose
+    between exploration with epsilon probability and exploitation with 1-epsilon probability:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE51]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the next activity, we will evaluate and improve the policy for Frozen Lake
+    by implementing the Monte Carlo control every visit for the epsilon soft method.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Activity 6.02 Solving Frozen Lake Using Monte Carlo Control Every Visit Epsilon
+    Soft
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: The activity aims to evaluate and improve the policy for the Frozen Lake problem
+    by using every visit epsilon soft method.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'You can launch the Frozen Lake game by importing `gym` and executing `gym.make()`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE52]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Perform the following step to complete the activity:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Import the necessary libraries.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select the environment as `FrozenLake`. `is_slippery` is set to `False`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Initialize the `Q` value and `num_state_action` to zeros.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Set the value of `num_episodes` to `100000` and create `rewardsList`. Set epsilon
+    to `0.30`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Run the loop till `num_episodes`. Initialize the environment, `results_List`,
+    and `result_sum` to zero. Also, reset the environment.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We need to now have both exploration and exploitation. Exploration will be a
+    random policy with epsilon probability and exploitation will be a greedy policy
+    with 1-epsilon. We start a `while` loop and check whether we need to pick a random
+    value with probability epsilon or a greedy policy with a probability of 1-epsilon.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Step through the `action` and get `new_state` and `reward`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The result list is appended, with the state and action pair. `result_sum` is
+    incremented by the value of the result.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '`new_state` is assigned to `state` and `result_sum` is appended to `rewardsList`.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Calculate `Q[s,a]` using the incremental method, as `Q[s,a] + (result_sum –
+    Q[s,a]) / N(s,a)`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Print the value of the success rate in batches of `1000`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Print the final success rate.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'You will get the following output initially:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 6.13: Initial output of the Frozen Lake success rate'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_06_13.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 6.13: Initial output of the Frozen Lake success rate'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'You will get the following output finally:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.14: Final output of the Frozen Lake success rate'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_06_14.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 6.14: Final output of the Frozen Lake success rate'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: The solution to this activity can be found on page 722.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Monte Carlo methods learn from experience in the form of sample episodes. Without
+    having a model of the environment, by interacting with the environment, the agent
+    can learn a policy. In several cases of simulation or sampling, an episode is
+    feasible. We learned about the first visit and every visit evaluation. Also, we
+    learned about the balance between exploration and exploitation. This is achieved
+    by having an epsilon soft policy. We then learned about on-policy and off-policy
+    learnings, and how importance sampling plays a key role in off-policy methods.
+    We learned about the Monte Carlo methods by applying them to Blackjack and the
+    Frozen Lake environment available in the OpenAI framework.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will learn about temporal learning and its applications.
+    Temporal learning combines the best of dynamic programming and the Monte Carlo
+    methods. It can work where the model is not known, like the Monte Carlo methods,
+    but can provide incremental learning instead of waiting for the episode to end.
+  prefs: []
+  type: TYPE_NORMAL

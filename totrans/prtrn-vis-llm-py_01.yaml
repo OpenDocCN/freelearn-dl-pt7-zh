@@ -1,0 +1,813 @@
+- en: '1'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: An Introduction to Pretraining Foundation Models
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The biggest lesson that can be read from 70 years of AI research is that general
+    methods that leverage computation are ultimately the most effective, and by a
+    large margin … The only thing that matters in the long run is the leveraging of
+    computation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: – Richard Sutton, “The Bitter Lesson,” 2019 (1)
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, you’ll be introduced to foundation models, the backbone of
+    many artificial intelligence and machine learning systems today. In particular,
+    we will dive into their creation process, also called pretraining, and understand
+    where it’s competitive to improve the accuracy of your models. We will discuss
+    the core transformer architecture underpinning state-of-the-art models such as
+    Stable Diffusion, BERT, Vision Transformers, OpenChatKit, CLIP, Flan-T5, and more.
+    You will learn about the encoder and decoder frameworks, which work to solve a
+    variety of use cases.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, we will cover the following topics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The art of pretraining and fine-tuning
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The Transformer model architecture
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: State-of-the-art vision and language models
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Encoders and decoders
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The art of pretraining and fine-tuning
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Humanity is one of Earth’s most interesting creatures. We are capable of producing
+    the greatest of beauty and asking the most profound questions, and yet fundamental
+    aspects about us are, in many cases, largely unknown. What exactly is consciousness?
+    What is the human mind, and where does it reside? What does it mean to be human,
+    and how do humans learn?
+  prefs: []
+  type: TYPE_NORMAL
+- en: While scientists, artists, and thinkers from countless disciplines grapple with
+    these complex questions, the field of computation marches forward to replicate
+    (and in some cases, surpass) human intelligence. Today, applications from self-driving
+    cars to writing screenplays, search engines, and question-answering systems have
+    one thing in common – they all use a model, and sometimes many different kinds
+    of models. Where do these models come from, how do they acquire intelligence,
+    and what steps can we take to apply them for maximum impact? Foundation models
+    are essentially compact representations of massive sets of data. The representation
+    comes about through applying a *pretraining objective* onto the dataset, from
+    predicting masked tokens to completing sentences. Foundation models are useful
+    because once they have been created, through the process called pretraining, they
+    can either be deployed directly or fine-tuned for a downstream task. An example
+    of a foundation model deployed directly is **Stable Diffusion**, which was pretrained
+    on billions of image-text pairs and generates useful images from text immediately
+    after pretraining. An example of a fine-tuned foundation model is **BERT**, which
+    was pretrained on large language datasets, but is most useful when adapted for
+    a downstream domain, such as classification.
+  prefs: []
+  type: TYPE_NORMAL
+- en: When applied in natural language processing, these models can complete sentences,
+    classify text into different categories, produce summarizations, answer questions,
+    do basic math, and generate creative artifacts such as poems and titles. In computer
+    vision, foundation models are useful everywhere from image classification to generation,
+    pose estimation to object detection, pixel mapping, and more.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This comes about because of defining a **pretraining objective**, which we’ll
+    learn about in detail in this book. We’ll also cover its peer method, **fine-tuning**,
+    which helps the model learn more about a specific domain. This more generally
+    falls under the category of **transfer learning**, the practice of taking a pretrained
+    neural network and supplying it with a novel dataset with the hope of enhancing
+    its knowledge in a certain dimension. In both vision and language, these terms
+    have some overlap and some clear distinctions, but don’t worry, we’ll cover them
+    more throughout the chapters. I’m using the term *fine-tuning* to include the
+    whole set of techniques to adapt a model to another domain, outside of the one
+    where it was trained, not in the narrow, classic sense of the term.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fundamentals – pretraining objectives
+  prefs: []
+  type: TYPE_NORMAL
+- en: The heart of large-scale pretraining revolves around this core concept. A `[MASK]`
+    token in place of certain words, and training the model to fill in those words.
+    Others take a different route, using the left-hand side of a given text string
+    to attempt to generate the right-hand side.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The training process happens through a **forward pass**, sending your raw training
+    data through the neural network to produce some output word. The loss function
+    then computes the difference between this predicted word and the one found in
+    the data. This difference between the predicted values and the actual values then
+    serves as the basis for the **backward pass**. The backward pass itself usually
+    leverages a type of stochastic gradient descent to update the parameters of the
+    neural network with respect to that same loss function, ensuring that, next time
+    around, it’s more likely to get a lower loss function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the case of BERT*(2)*, the pretraining objective is called a **masked token
+    loss**. For generative textual models of the GPT *(3)* variety, the pretraining
+    objective is called **causal language loss**. Another way of thinking about this
+    entire process is **self-supervised learning**, utilizing content already available
+    in a dataset to serve as a signal to the model. In computer vision, you’ll also
+    see this referred to as a **pretext task**. More on state-of-the-art models in
+    the sections ahead!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Personally, I think pretraining is one of the most exciting developments in
+    machine learning research. Why? Because, as Richard Sutton suggests controversially
+    at the start of the chapter, it’s computationally efficient. Using pretraining,
+    you can build a model from massive troves of information available on the internet,
+    then combine all of this knowledge using your own proprietary data and apply it
+    to as many applications as you can dream of. On top of that, pretraining opens
+    the door for tremendous collaboration across company, country, language, and domain
+    lines. The industry is truly just getting started in developing, perfecting, and
+    exploiting the pretraining paradigm.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We know that pretraining is interesting and effective, but where is it competitive
+    in its own right? Pretraining your own model is useful *when your own proprietary
+    dataset is very large and different from common research datasets, and primarily
+    unlabeled*. Most of the models we will learn about in this book are trained on
+    similar corpora – Wikipedia, social media, books, and popular internet sites.
+    Many of them focus on the English language, and few of them consciously use the
+    rich interaction between visual and textual data. Throughout the book, we will
+    learn about the nuances and different advantages of selecting and perfecting your
+    pretraining strategies.
+  prefs: []
+  type: TYPE_NORMAL
+- en: If your business or research hypothesis hinges on non-standard natural languages,
+    such as financial or legal terminology, non-English languages, or rich knowledge
+    from another domain, you may want to consider pretraining your own model from
+    scratch. The core question you want to ask yourself is, *How valuable is an extra
+    one percentage point of accuracy in my model?* If you do not know the answer to
+    this question, then I strongly recommend spending some time getting yourself to
+    an answer. We will spend time discussing how to do this in [*Chapter 2*](B18942_02.xhtml#_idTextAnchor034).
+    Once you can confidently say an increase in the accuracy of my model is worth
+    at least a few hundred thousand dollars, and even possibly a few million, then
+    you are ready to begin pretraining your own model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we have learned about foundation models, how they come about through
+    a process called pretraining, and how to adapt them to a specific domain through
+    fine-tuning, let’s learn more about the Transformer model architecture.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Transformer model architecture and self-attention
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The Transformer model, presented in the now-famous 2017 paper *Attention is
+    all you need*, marked a turning point for the machine learning industry. This
+    is primarily because it used an existing mathematical technique, self-attention,
+    to solve problems in NLP related to sequences. The Transformer certainly wasn’t
+    the first attempt at modeling sequences, previously, **recurrent neural networks**
+    (**RNNs**) and even **convolutional neural networks** (**CNNs**) were popular
+    in language.
+  prefs: []
+  type: TYPE_NORMAL
+- en: However, the Transformer made headlines because its training cost was a small
+    fraction of the existing techniques. This is because the Transformer is fundamentally
+    easier to parallelize, due to its core self-attention process, than previous techniques.
+    It also set new world records in machine translation. The original Transformer
+    used both an encoder and decoder, techniques we will dive into later throughout
+    this chapter. This joint encoder-decoder pattern was followed directly by other
+    models focused on similar text-to-text tasks, such as T5.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In 2018, Alex Radford and his team presented **Generative Pretrained Transformers**,
+    a method inspired by the 2017 Transformer, but using only the decoder. Called
+    **GPT**, this model handled large-scale unsupervised pretraining well, and it
+    was paired with supervised fine-tuning to perform well on downstream tasks. As
+    we mentioned previously, this *causal language modeling* technique optimizes the
+    log probability of tokens, giving us a left-to-right ability to find the most
+    probable word in a sequence.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In 2019, Jacob Devlin and his team presented *BERT: Pretraining of Deep Bidirectional
+    Transformers*. BERT also adopted the pretraining, fine-tuning paradigm, but implemented
+    a masked language modeling loss function that helped the model learn the impact
+    of tokens both before and after them. This proved useful in disambiguating the
+    meaning of words in different contexts and has aided encoder-only tasks such as
+    classification ever since.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Despite their names, neither GPT nor BERT uses the full encoder-decoder as presented
+    in the original Transformer paper but instead leverages the **self-attention mechanism**
+    as core steps throughout the learning process. Thus, it is in fact the self-attention
+    process we should understand.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, remember that each word, or token, is represented as an embedding. This
+    embedding is created simply by using a **tokenizer**, a pretrained data object
+    for each model that maps the word to its appropriate dense vector. Once we have
+    the embedding per token, we use **learnable weights** to generate three new vectors:
+    **key**, **query**, and **value**. We then use matrix multiplication and a few
+    steps to interact with the key and the query, using the value at the very end
+    to determine what was most informative in the sequence overall. Throughout the
+    training loop, we update these weights to get better and better interactions,
+    as determined by your pretraining objective.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Your pretraining objective serves as a directional guide for how to update the
+    model parameters. Said another way, your pretraining objective provides the primary
+    signal to your stochastic gradient descent updating procedure, changing the weights
+    of your model based on how incorrect your model predictions are. When you train
+    for long periods of time, the parameters should reflect a decrease in loss, giving
+    you an overall increase in accuracy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Interestingly, the type of transformer heads will change slightly based on
+    the different types of pretraining objectives you’re using. For example, a normal
+    self-attention block uses information from both the left- and right-hand sides
+    of a token to predict it. This is to provide the most informative contextual information
+    for the prediction and is useful in masked language modeling. In practice, the
+    self-attention heads are stacked to operate on full matrices of embeddings, giving
+    us multi-head attention. Casual language modeling, however, uses a different type
+    of attention head: masked self-attention. This limits the scope of predictive
+    information to only the left-hand side of the matrix, forcing the model to learn
+    a left-to-right procedure. This is in contrast to the more traditional self-attention,
+    which has access to both the left and right sides of the sequence to make predictions.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Most of the time, in practice, and certainly throughout this book, you won’t
+    need to code any transformers or self-attention heads from scratch. Through this
+    book, we will, however, be diving into many model architectures, so it’s helpful
+    to have this conceptual knowledge as a base.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'From an intuitive perspective, what you’ll need to understand about transformers
+    and self-attention is fewfold:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**The transformer itself is a model entirely built upon a self-attention function**:
+    The self-attention function takes a set of inputs, such as embeddings, and performs
+    mathematical operations to combine these. When combined with token (word or subword)
+    masking, the model can effectively learn how significant certain parts of the
+    embeddings, or the sequence, are to the other parts. This is the meaning of self-attention;
+    the model is trying to understand which parts of the input dataset are most relevant
+    to the other parts.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Transformers perform exceedingly well using sequences**: Most of the benchmarks
+    they’ve blown past in recent years are from NLP, for a good reason. The pretraining
+    objectives for these include token masking and sequence completion, both of which
+    rely on not just individual data points but the stringing of them together, and
+    their combination. This is good news for those of you who already work with sequential
+    data and an interesting challenge for those who don’t.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Transformers operate very well at large scales**: The underlying attention
+    head is easily parallelizable, which gives it a strong leg-up in reference to
+    other candidate sequence-based neural network architectures such as RNNs, including
+    **Long Short-Term Memory** (**LSTM**) based networks. The self-attention head
+    can be set to trainable in the case of pretraining, or untrainable in the case
+    of fine-tuning. When attempting to actually train the self-attention heads, as
+    we’ll do throughout this book, the best performance you’ll see is when the transformers
+    are applied on large datasets. How large they need to be, and what trade-offs
+    you can make when electing to fine-tune or pretrain, is the subject of future
+    chapters.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Transformers are not the only means of pretraining. As we’ll see throughout
+    the next section, there are many different types of models, particularly in vision
+    and multimodal cases, which can deliver state-of-the-art performance.
+  prefs: []
+  type: TYPE_NORMAL
+- en: State-of-the-art vision and language models
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: If you’re new to machine learning, then there is a key concept you will eventually
+    want to learn how to master, that is, **state of the art**. As you are aware,
+    there are many different types of machine learning tasks, such as object detection,
+    semantic segmentation, pose detection, text classification, and question answering.
+    For each of these, there are many different research datasets. Each of these datasets
+    provides labels, frequently for train, test, and validation splits. The datasets
+    tend to be hosted by academic institutions, and each of these is purpose-built
+    to train machine learning models that solve each of these types of problems.
+  prefs: []
+  type: TYPE_NORMAL
+- en: When releasing a new dataset, researchers will frequently also release a new
+    model that has been trained on the train set, tuned on the validation set, and
+    separately evaluated on the test set. Their evaluation score on a new test set
+    establishes a new state of the art for this specific type of modeling problem.
+    When publishing certain types of papers, researchers will frequently try to improve
+    performance in this area – for example, by trying to increase accuracy by a few
+    percentage points on a handful of datasets.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The reason state-of-the-art performance matters for you is that it is a strong
+    indication of how well your model is likely to perform in the best possible scenario.
+    It isn’t easy to replicate most research results, and frequently, labs will have
+    developed special techniques to improve performance that may not be easily observed
+    and replicated by others. This is especially true when datasets and code repositories
+    aren’t shared publicly, as is the case with GPT-3\. This is acutely true when
+    training methods aren’t disclosed, as with GPT-4.
+  prefs: []
+  type: TYPE_NORMAL
+- en: However, given sufficient resources, it is possible to achieve similar performance
+    as reported in top papers. An excellent place to find state-of-the-art performance
+    at any given point in time is an excellent website, *Papers With Code*, maintained
+    by Meta and enhanced by the community. By using this free tool, you can easily
+    find top papers, datasets, models, and GitHub sites with example code. Additionally,
+    they have great historical views, so you can see how the top models in different
+    datasets have evolved over time.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In later chapters on preparing datasets and picking models, we’ll go into more
+    detail on how to find the right examples for you, including how to determine how
+    similar to and different from your own goals they are. Later in the book, we’ll
+    also help you determine the optimal models, and sizes for them. Right now, let’s
+    look at some models that, as of this writing, are currently sitting at the top
+    of their respective leaderboards.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Top vision models as of April 2023
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: First, let’s take a quick look at the models performing the best today within
+    image tasks such as classification and generation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '| **Dataset** | **Best model** | **From Transformer** | **Performance** |'
+  prefs: []
+  type: TYPE_TB
+- en: '| ImageNet | Basic-L (Lion fine-tuned) | Yes | 91.10% top 1% accuracy |'
+  prefs: []
+  type: TYPE_TB
+- en: '| CIFAR-10 | ViT-H/14 *(1)* | Yes | 99.5% correct |'
+  prefs: []
+  type: TYPE_TB
+- en: '| COCO | InternImage-H (M3I Pre-training: [https://paperswithcode.com/paper/internimage-exploring-large-scale-vision](https://paperswithcode.com/paper/internimage-exploring-large-scale-vision))
+    | No | 65.0 Box AP |'
+  prefs: []
+  type: TYPE_TB
+- en: '| STL-10 | Diffusion ProjectedGAN | No | 6.91 FID (generation) |'
+  prefs: []
+  type: TYPE_TB
+- en: '| ObjectNet | CoCa | Yes | 82.7% top 1% accuracy |'
+  prefs: []
+  type: TYPE_TB
+- en: '| MNIST | Heterogeneous ensemble with simple CNN *(1)* | No | 99.91% accuracy
+    (0.09% error) |'
+  prefs: []
+  type: TYPE_TB
+- en: Table 1.1 – Top image results
+  prefs: []
+  type: TYPE_NORMAL
+- en: At first glance, these numbers may seem intimidating. After all, many of them
+    are near or close to 99% accurate! Isn’t that too high of a bar for beginning
+    or intermediate machine learning practitioners?
+  prefs: []
+  type: TYPE_NORMAL
+- en: Before we get too carried away with doubt and fear, it’s helpful to understand
+    that most of these accuracy scores came at least five years after the research
+    dataset was published. If we analyze the historical graphs available on *Paper
+    With Code*, it’s easy to see that when the first researchers published their datasets,
+    initial accuracy scores were closer to 60%. Then, it took many years of hard work,
+    across diverse organizations and teams, to finally produce models capable of hitting
+    the 90s. So, don’t lose heart! If you put in the time, you too can train a model
+    that establishes a new state-of-the-art performance in a given area. This part
+    is science, not magic.
+  prefs: []
+  type: TYPE_NORMAL
+- en: You’ll notice that while some of these models do in fact adopt a Transformer-inspired
+    backend, some do not. Upon closer inspection, you’ll also see that some of these
+    models rely on the pretrain and fine-tune paradigm we’ll be learning about in
+    this book, but not all of them. If you’re new to machine learning, then this discrepancy
+    is something to start getting comfortable with! Robust and diverse scientific
+    debate, perspectives, insights, and observations are critical aspects of maintaining
+    healthy communities and increasing the quality of outcomes across the field as
+    a whole. This means that you can, and should, expect some divergence in methods
+    you come across, and that’s a good thing.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now that you have a better understanding of top models in computer vision these
+    days, let’s explore one of the earliest methods combining techniques from large
+    language models with vision: contrastive pretraining and natural language supervision.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Contrastive pretraining and natural language supervision
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: What’s interesting about both modern and classic image datasets, from Fei-Fei
+    Li’s 2006 ImageNet to the LAION-5B as used in 2022 Stable Diffusion, is that the
+    labels themselves are composed of natural language. Said another way, because
+    the scope of the images includes objects from the physical world, the labels necessarily
+    are more nuanced than single digits. Broadly speaking, this type of problem framing
+    is called **natural** **language supervision**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Imagine having a large dataset of tens of millions of images, each provided
+    with captions. Beyond simply naming the objects, a caption gives you more information
+    about the content of the images. A caption can be anything from *Stella sits on
+    a yellow couch* to *Pepper, the Australian pup*. In just a few words we immediately
+    get more context than simply describing the objects. Now, imagine using a pretrained
+    model, such as an encoder, to process the language into a dense vector representation.
+    Then, combine this with another pretrained model, this time an image encoder,
+    to process the image into another dense vector representation. Combine both of
+    these in a learnable matrix, and you are on your way to contrastive pretraining!
+    Also presented by Alex Radford and the team, just a few years after their work
+    on GPT, this method gives us both a way to jointly learn about the relationship
+    between both images and language and a model well suited to do so. The model is
+    called **Contrastive Language-Image** **Pretraining** (**CLIP**).
+  prefs: []
+  type: TYPE_NORMAL
+- en: CLIP certainly isn’t the only vision-language pretraining task that uses natural
+    language supervision. One year earlier, in 2019, a research team from China proposed
+    a **Visual-Linguistic BERT** model attempting a similar goal. Since then, the
+    joint training of vision-and-language foundation models has become very popular,
+    with Flamingo, Imagen, and Stable Diffusion all presenting interesting work.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we’ve learned a little bit about joint vision-and-language contrastive
+    pretraining, let’s explore today’s top models in language.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Top language models as of April 2023
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Now, let’s evaluate some of today’s best-in-class models for a task extremely
+    pertinent to foundation models, and thus this book: language modeling. This table
+    shows a set of language model benchmark results across a variety of scenarios.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '| **Dataset** | **Best model** | **From Transformer** | **Performance** |'
+  prefs: []
+  type: TYPE_TB
+- en: '| --- | --- | --- | --- |'
+  prefs: []
+  type: TYPE_TB
+- en: '| WikiText-103 | Hybrid H3 (2.7B params) | No | 10.60 test perplexity |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Penn Treebank (Word Level) | GPT-3 (Zero-Shot) *(1)* | Yes | 20.5 test perplexity
+    |'
+  prefs: []
+  type: TYPE_TB
+- en: '| LAMBADA | PaLM-540B (Few-Shot) *(1)* | Yes | 89.7% accuracy |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Penn Treebank (Character Level) | Mogrifer LSTM + dynamic eval *(1)* | No
+    | 1.083 bit per character |'
+  prefs: []
+  type: TYPE_TB
+- en: '| C4 (Colossal Clean Crawled Corpus) | Primer | No | 12.35 perplexity |'
+  prefs: []
+  type: TYPE_TB
+- en: Table 1.2 – Top language modeling results
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, let’s try to answer a fundamental question. What is language modeling,
+    and why does it matter? Language modeling as known today appears to have been
+    formalized in two cornerstone papers: BERT *(9)* and GPT *(10)*. The core concept
+    that inspired both papers is deceptively simple: how do we better use unsupervised
+    natural language?'
+  prefs: []
+  type: TYPE_NORMAL
+- en: As is no doubt unsurprising to you, the vast majority of natural language in
+    our world has no direct digital label. Some natural language lends itself well
+    to concrete labels, such as cases where objectivity is beyond doubt. This can
+    include accuracy in answering questions, summarization, high-level sentiment analysis,
+    document retrieval, and more.
+  prefs: []
+  type: TYPE_NORMAL
+- en: But the process of finding these labels and producing the datasets necessary
+    for them can be prohibitive, as it is entirely manual. At the same time, many
+    unsupervised datasets get larger by the minute. Now that much of the global dialog
+    is online, datasets rich in variety are easy to access. So, how can ML researchers
+    position themselves to benefit from these large, unsupervised datasets?
+  prefs: []
+  type: TYPE_NORMAL
+- en: This is exactly the problem that language modeling seeks to solve. Language
+    modeling is a process to apply mathematical techniques on large corpora of unlabelled
+    text, relying on a variety of pretraining objectives to enable the model to *teach
+    itself* about the text. Also called **self-supervision**, the precise method of
+    learning varies based on the model at hand. BERT applies a mask randomly throughout
+    the dataset and learns to predict the word hidden by the mask, using an encoder.
+    GPT uses a decoder to predict left-to-right, starting at the beginning of a sentence,
+    for example, and learning how to predict the end of the sentence. Models in the
+    T5 family use both encoders and decoders to learn text-to-text tasks, such as
+    translation and search. As proposed in ELECTRA *(11)*, another alternative is
+    a **token replacement** objective, which opts to inject new tokens into the original
+    text, rather than masking them.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fundamentals – fine-tuning
+  prefs: []
+  type: TYPE_NORMAL
+- en: Foundational language models are only useful in applications when paired with
+    their peer method, fine-tuning. The intuition behind fine-tuning is very understandable;
+    we want to take a foundational model pretrained elsewhere and apply a much smaller
+    set of data to make it more focused and useful for our specific task. We can also
+    call this **domain adaptation** – adapting a pretrained model to an entirely different
+    domain that was not included in its pretraining task.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fine-tuning tasks are everywhere! You can take a base language model, such as
+    BERT, and fine-tune it for text classification. Or question answering. Or named
+    entity recognition. Or you could take a different model, GPT-2 for example, and
+    fine-tune it for summarization. Or you could take something like T5 and fine-tune
+    it for translation. The basic idea is that you are leveraging the intelligence
+    of the foundation model. You’re leveraging the compute, the dataset, the large
+    neural network, and ultimately, the distribution method the researchers leveraged
+    simply by inheriting their pretrained artifact. Then, you can optionally add extra
+    layers to the network yourself, or more likely, use a software framework such
+    as Hugging Face to simplify the process. Hugging Face has done an amazing job
+    building an extremely popular open source framework with tens of thousands of
+    pretrained models, and we’ll see in future chapters how to best utilize their
+    examples to build our own models in both vision and language. There are many different
+    types of fine-tuning, from parameter-efficient fine-tuning to instruction-fine-tuning,
+    chain of thought, and even methods that don’t strictly update the core model parameters
+    such as retrieval augmented generation. We’ll discuss these later in the book.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As we will discover in future chapters, foundational language and vision models
+    are not without their negative aspects. For starters, their extremely large compute
+    requirements place significant energy demands on service providers. Ensuring that
+    energy is met through sustainable means and that the modeling process is as efficient
+    as possible are top goals for the models of the future. These large compute requirements
+    are also obviously quite expensive, posing inherent challenges for those without
+    sufficient resources. I would argue, however, that the core techniques you’ll
+    learn throughout this book are relevant across a wide spectrum of computational
+    needs and resourcing. Once you’ve demonstrated success at a smaller scale of pretraining,
+    it’s usually much easier to justify the additional ask.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Additionally, as we will see in future chapters, large models are infamous for
+    their ability to inherit social biases present in their training data. From associating
+    certain employment aspects with gender to classifying criminal likelihood based
+    on race, researchers have identified hundreds *(9)* of ways bias can creep into
+    NLP systems. As with all technology, designers and developers must be aware of
+    these risks and take steps to mitigate them. In later chapters, I’ll identify
+    a variety of steps you can take today to reduce these risks.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Next, let’s learn about a core technique used in defining appropriate experiments
+    for language models: the scaling laws!'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Language technique spotlight – causal modeling and the scaling laws
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: You’ve no doubt heard of the now-infamous model **ChatGPT**. For a few years,
+    a San Francisco-based AI firm, OpenAI, developed research with a mission to improve
+    humanity’s outcomes around artificial intelligence. Toward that end, they made
+    bold leaps in scaling language models, deriving formulas as one might in physics
+    to explain the performance of LLMs at scale. They originally positioned themselves
+    as a non-profit, releasing their core insights and the code to reproduce them.
+    Four years after its founding, however, they pivoted to cutting exclusive billion-dollar
+    deals with Microsoft. Now, their 600-strong R&D teams focus on developing proprietary
+    models and techniques, and many open source projects attempt to replicate and
+    improve on their offerings. Despite this controversial pivot, the team at OpenAI
+    gave the industry a few extremely useful insights. The first is GPT, and the second
+    is the scaling laws.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As mentioned previously, GPT-based models use **causal language modeling**
+    to learn how best to complete text. This means using a left-to-right completion
+    learning criteria, which updates the model’s learnable parameters until the text
+    is completely accurate. While the first GPT model of 2018 was itself useful, the
+    real excitement came years later in two phases. First, Jared Kaplan lead a team
+    at OpenAI to suggest a novel concept: using formulas inspired by his work in physics
+    to estimate the impact the size of the model, dataset, and overall compute environment
+    will have on the loss of the model. These *Scaling Laws for Neural Language Models*
+    *(9)* suggested that the optimal model size for a given compute environment was
+    massive.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The original GPT model of 2018 was only 117 million parameters, and its second
+    version, aptly named GPT-2, increased the model size by up to 10x. This increase
+    in parameter size more than doubled the overall accuracy of the model. Encouraged
+    by these results, and fuelled by Kaplan’s theoretical and empirical findings,
+    OpenAI boldly increased the model parameter size by another 10x, giving us GPT-3.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As the model increased in size, from 1.3 billion parameters to 13 billion,
+    ultimately hitting 175 billion parameters, accuracy also took a huge leap! This
+    result catalyzed the field of NLP, unleashing new use cases and a flurry of new
+    work exploring and extending these impacts. Since then, new work has explored
+    both larger (PaLM *(9)*) and smaller (Chinchilla *(10)*) models, with Chinchilla
+    presenting an update to the scaling laws entirely. Yann LeCunn’s team at Meta
+    has also presented smaller models that outperform the larger ones in specific
+    areas, such as question-answering (Atlas *(9)*). Amazon has also presented two
+    models that outperform GPT-3: the AlexaTM and MM-COT. Numerous teams have also
+    undertaken efforts to produce open source versions of GPT-3, such as Hugging Face’s
+    BLOOM, EleutherAI’S GPT-J, and Meta’s OPT.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The rest of this book is dedicated to discussing these models – where they come
+    from, what they are good for, and especially how to train your own! While much
+    excellent work has covered using these pretrained models in production through
+    fine-tuning, such as Hugging Face’s own *Natural Language Processing with Transformers*
+    (Tunstall et al., 2022), I continue to believe that pretraining your own foundation
+    model is probably the most interesting computational intellectual exercise you
+    can embark on today. I also believe it’s one of the most profitable. But more
+    on that ahead!
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Next, let’s learn about two key model components you’ll need to understand
+    in detail: encoders and decoders.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Encoders and decoders
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Now, I’d like to briefly introduce you to two key topics that you’ll see in
+    the discussion of transformer-based models: encoders and decoders. Let’s establish
+    some basic intuition to help you understand what they are all about. An encoder
+    is simply a computational graph (or neural network, function, or object depending
+    on your background), which takes an input with a larger feature space and returns
+    an object with a smaller feature space. We hope (and demonstrate computationally)
+    that the encoder is able to learn what is most essential about the provided input
+    data.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Typically, in large language and vision models, the encoder itself is composed
+    of a number of multi-head self-attention objects. This means that in transformer-based
+    models, an encoder is usually a number of self-attention steps, learning what
+    is most essential about the provided input data and passing this onto the downstream
+    model. Let’s look at a quick visual:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: "![Figure 1.1 – \uFEFFEncoders and decoders](img/B18942_01_01.jpg)"
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 1.1 – Encoders and decoders
+  prefs: []
+  type: TYPE_NORMAL
+- en: Intuitively, as you can see in the preceding figure, the encoder starts with
+    a larger input space and iteratively compresses this to a smaller latent space.
+    In the case of classification, this is just a classification head with output
+    allotted for each class. In the case of masked language modeling, encoders are
+    stacked on top of each other to better predict tokens to replace the masks. This
+    means the encoders output an embedding, or a numerical representation of that
+    token, and after prediction, the tokenizer is reused to translate that embedding
+    back into natural language.
+  prefs: []
+  type: TYPE_NORMAL
+- en: One of the earliest large language models, BERT, is an encoder-only model. Most
+    other BERT-based models, such as DeBERTa, DistiliBERT, RoBERTa, DeBERTa, and others
+    in this family use encoder-only model architectures. Decoders operate exactly
+    in reverse, starting with a compressed representation and iteratively recomposing
+    that back into a larger feature space. Both encoders and decoders can be combined,
+    as in the original Transformer, to solve text-to-text problems.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To make it easier, here’s a short table quickly summarizing the three types
+    of self-attention blocks we’ve looked at, encoders, decoders, and their combination.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '| Size of inputs and outputs | Type of self-attention blocks | Machine learning
+    tasks | Example models |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Long to short | Encoder | Classification, any dense representation | BERT,
+    DeBERTa, DistiliBERT, RoBERTa, XLM, AlBERT, CLIP, VL-BERT, Vision Transformer
+    |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Short to long | Decoder | Generation, summarization, question-answering,
+    any sparse representation | GPT, GPT-2, GPT-Neo, GPT-J, ChatGPT, GPT-4, BLOOM,
+    OPT |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Equal | Encoder-decoder | Machine translation, style translation | T5, BART,
+    BigBird, FLAN-T5, Stable Diffusion |'
+  prefs: []
+  type: TYPE_TB
+- en: Table 1.3 – Encoders, decoders, and their combination
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that you have a better understanding of encoders, decoders, and the models
+    they create, let’s close out the chapter with a quick recap of all the concepts
+    you just learned about.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: We’ve covered a lot in just this first chapter! Let’s quickly recap some of
+    the top themes before moving on. First, we looked at the art of pretraining and
+    fine-tuning, including a few key pretraining objects such as masked language and
+    causal language modeling. We learned about the Transformer model architecture,
+    including the core self-attention mechanism with its variant. We looked at state-of-the-art
+    vision and language models, including spotlights on contrastive pretraining from
+    natural language supervision, and scaling laws for neural language models. We
+    learned about encoders, decoders, and their combination, which are useful throughout
+    the vision and language domains today.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now that you have a great conceptual and applied basis to understand pretraining
+    foundation models, let’s look at preparing your dataset: part one.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: References
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Please go through the following content for more information on a few topics
+    covered in the chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*The Bitter Lesson*, Rich Sutton, March 13, 2019: [http://www.incompleteideas.net/IncIdeas/BitterLesson.html](http://www.incompleteideas.net/IncIdeas/BitterLesson.html)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. 2019\. *BERT:
+    Pre-training of Deep Bidirectional Transformers for Language Understanding*: [https://aclanthology.org/N19-1423/](https://aclanthology.org/N19-1423/).
+    In *Proceedings of the 2019 Conference of the North American Chapter of the Association
+    for Computational Linguistics: Human Language Technologies, Volume 1 (Long and
+    Short Papers)*, pages 4171–4186, Minneapolis, Minnesota. Association for Computational
+    Linguistics.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Brown, Tom and Mann, Benjamin and Ryder, Nick and Subbiah, Melanie and Kaplan,
+    Jared D and Dhariwal, Prafulla and Neelakantan, Arvind and Shyam, Pranav and Sastry,
+    Girish and Askell, Amanda and Agarwal, Sandhini and Herbert-Voss, Ariel and Krueger,
+    Gretchen and Henighan, Tom and Child, Rewon and Ramesh, Aditya and Ziegler, Daniel
+    and Wu, Jeffrey and Winter, Clemens and Hesse, Chris and Chen, Mark and Sigler,
+    Eric and Litwin, Mateusz and Gray, Scott and Chess, Benjamin and Clark, Jack and
+    Berner, Christopher and McCandlish, Sam and Radford, Alec and Sutskever, Ilya
+    and Amodei, Dario. 2020\. *Language Models are Few-Shot Learners*. In *Advances
+    in Neural Information Processing Systems, Volume 33*. Pages 1877-1901\. Curran
+    Associates, Inc.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*AN IMAGE IS WORTH 16X16 WORDS: TRANSFORMERS FOR IMAGE RECOGNITION AT* *SCALE*:
+    [https://arxiv.org/pdf/2010.11929v2.pdf](https://arxiv.org/pdf/2010.11929v2.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*AN ENSEMBLE OF SIMPLE CONVOLUTIONAL NEURAL NETWORK MODELS FOR MNIST DIGIT*
+    *RECOGNITION*: [https://arxiv.org/pdf/2008.10400v2.pdf](https://arxiv.org/pdf/2008.10400v2.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Language Models are Few-Shot* *Learners*: [https://arxiv.org/pdf/2005.14165v4.pdf](https://arxiv.org/pdf/2005.14165v4.pdf
+    )'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*PaLM: Scaling Language Modeling with* *Pathways*: [https://arxiv.org/pdf/2204.02311v3.pdf](https://arxiv.org/pdf/2204.02311v3.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*MOGRIFIER* *LSTM*: [https://arxiv.org/pdf/1909.01792v2.pdf](https://arxiv.org/pdf/1909.01792v2.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*BERT: Pre-training of Deep Bidirectional Transformers for Language* *Understanding*:
+    [https://arxiv.org/pdf/1810.04805.pdf](https://arxiv.org/pdf/1810.04805.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Improving Language Understanding by Generative* *Pre-Training*: [https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*ELECTRA: PRE-TRAINING TEXT ENCODERS AS DISCRIMINATORS RATHER THAN* *GENERATORS*:
+    [https://arxiv.org/pdf/2003.10555.pdf](https://arxiv.org/pdf/2003.10555.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Language (Technology) is Power: A Critical Survey of “Bias” in* *NLP*: [https://arxiv.org/pdf/2005.14050.pdf](https://arxiv.org/pdf/2005.14050.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Scaling Laws for Neural Language* *Models*: [https://arxiv.org/pdf/2001.08361.pdf](https://arxiv.org/pdf/2001.08361.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*PaLM: Scaling Language Modeling with* *Pathways*: [https://arxiv.org/pdf/2204.02311.pdf](https://arxiv.org/pdf/2204.02311.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Training Compute-Optimal Large Language* *Models*: [https://arxiv.org/pdf/2203.15556.pdf](https://arxiv.org/pdf/2203.15556.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Atlas: Few-shot Learning with Retrieval Augmented Language* *Models*:[https://arxiv.org/pdf/2208.03299.pdf](
+    https://arxiv.org/pdf/2208.03299.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL

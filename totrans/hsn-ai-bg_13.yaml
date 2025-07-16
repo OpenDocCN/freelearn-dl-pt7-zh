@@ -1,0 +1,604 @@
+- en: Deploying and Maintaining AI Applications
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Throughout this book, we've learned all about how to create **Artificial Intelligence**
+    (**AI**) applications to perform a variety of tasks. While writing these applications
+    has been a considerable feat in itself, it's often only a small portion of what
+    it takes to turn your model into a serviceable production system. For many practitioners,
+    the workflow for deep learning models often ends at the validation stage. You've
+    created a network that performs extremely well; We're done, right?
+  prefs: []
+  type: TYPE_NORMAL
+- en: It's becoming increasingly common for data scientists and machine learning engineers
+    to handle their applications from the discovery to deployment stages. According
+    to Google, more than 60-70% of the time it takes to build ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'While this chapter will contain some materials that are typically part of the
+    job of a DevOps engineer, we''ll touch on these tools and topics on a need-to-know
+    basis, and refer to other resources and tools that can help you learn about the
+    topics in more depth. In this chapter, we''ll be utilizing the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: TensorFlow
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: PyTorch
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Docker, a containerization service for deploying our models
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Amazon Web Services or Google Cloud Platform as a cloud provider
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Introductory knowledge of Kubernetes
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Introduction
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The deployment and maintenance of AI applications is more than just a single
+    action; it's a process. In this section, we will work through creating sustainable
+    applications in the cloud by creating a **deep learning deployment architecture**.These
+    architectures will help us create end-to-end systems: **deep learning systems**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In many machine learning/AI applications, the typical project pipeline and
+    workflow might look something like the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/43eaa596-8282-48b3-bd65-a7f5273c2e90.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The training processes are strictly offline, and serialized models are pushed
+    to the cloud and interact with a user through an API. These processes often leave
+    us with several different ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Deploying your applications
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: So, what does it mean to deploy a model? Deployment is an all-encompassing term
+    that covers the process of taking a tested and validated model from your local
+    computer, and setting it up in a sustainable environment where it's accessible.
+    Deployment can be handled in a myriad of ways; in this chapter, we'll focus on
+    the knowledge and best practices that you should know about to get your models
+    up into production.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Your choice of deployment architecture depends on a few things:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Is your model being trained in one environment and productionalized in another?
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: How many times are you expecting your model to be called predictions to be made
+    from it?
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Is your data changing over time or is it static? Will you need to handle large
+    inflows of data?
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Each of these questions can be answered by breaking down our model selection
+    options into two buckets. We can break down our models by the location from which
+    they are served, as well as the way in which they are trained. The following figure
+    shows these options in a matrix, as well as the costs and benefits of each method:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/b900735b-b3a0-486f-a85e-4244fb800d8c.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Models that are trained on a specific piece of data, in a separate environment
+    from where they are deployed, are called **offline models**, whereas models that
+    actively learn from new data in their deployment environment are called **online
+    models**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The simplest form of serving for offline models is called **batch serving**.
+    If you are a data scientist or come from academia, you're probably very familiar
+    with this model. Batch serving involves simply taking a static dataset, feeding
+    it to your model, and receiving predictions back. Typically, you'll probably do
+    this on your local machine, perhaps with a Jupyter Notebook or simply by running
+    a script from your terminal or Command Prompt. In the majority of cases, we want
+    our models to be accessible to larger groups of users so that we encase them in
+    a **web service**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Online models are more difficult to manage due to the complications that can
+    arise from the handling of data flows and potentially bad input data. Microsoft's
+    fated Tay Twitter bot was an example of a Fully online learning model which took
+    tweets as input, and quickly became racist and crude. Managing these models can
+    become complicated because of the open training process, and many safeguards must
+    be put in place to ensure that your model does not deviate too far from its desired
+    output.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Automated machine learning models, on the other hand, are becoming increasingly
+    popular. They have controlled input, but are actively retraining to consider new
+    data. Think about Netflix's recommendation system – it actively responds to your
+    behavior by training on the data you generate based on your browsing and viewing
+    activity.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we have a grasp of our ecosystem, let's get started by learning how
+    to set up a common web service deployment architecture with TensorFlow. If you
+    are not interested in learning about manual deployment processes, and only wish
+    to use deployment service, please feel free to skip the next section.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Deploying models with TensorFlow Serving
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In general, when deploying models, we want the inner machinations of the model
+    to be isolated from the public behind an HTTP interface. With a traditional machine
+    learning model, we would wrap this serialized model in a deployment framework
+    such as Flask to create an API, and serve our model from there. This could lead
+    us to a myriad of issues with dependencies, versioning, and performance, so instead,
+    we are going to use a tool provided to us by the TensorFlow authors called **TensorFlow
+    Serving**. This spins up a small server that runs a TensorFlow model and provides
+    access to it.
+  prefs: []
+  type: TYPE_NORMAL
+- en: TensorFlow Serving implements a specific type of remote procedure call known
+    as **GPRC**.In computer science, remote procedure ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Utilizing docker
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Since we'll be deploying our model to the cloud, we'll need some type of mechanism
+    to run the model itself. While we could spin up a virtual machine on AWS, it's
+    a bit overkill for what we need and there are many simpler (and cheaper) processes
+    that can help us.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Instead, we will utilize a tool known as a **container**. Containers are a lightweight
+    virtualization technique that contain all of the necessary runtime packages and
+    methods for running an application. The most popular container service is called
+    **Docker**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'While we won''t cover the Docker installation process here, you can install
+    Docker by following the official installation guidelines:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Create a **Docker image**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Create a **container from** the Docker image
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Build TensorFlow Serving on the container
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The configuration of a Docker image is defined in something called a **Docker
+    file**. TensorFlow Serving gives these files to us, one for utilizing CPUs and
+    one for utilizing GPUs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Google''s TensorFlow team maintains a Docker image that is ready to use for
+    TensorFlow Serving:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Once you have Docker installed, you can grab it easily with the `docker pull`
+    command in your terminal or command prompt:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'You should see a series of messages that look something as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/b62de008-df45-4acb-a98d-01528bbfe313.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Once you''ve downloaded the Docker image, you can move on to creating a container
+    on the image. We can easily do that by running the build command:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: Building the docker container can take a while—don't worry, this is normal.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Once the container is built, go ahead and run the container:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'You should now have shell access to your Docker container. Next, we''ll download
+    the actual TensorFlow serving files into the container:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Lastly, we''ll need to install the TensorFlow modelserver on the container.
+    Modelserver will be doing the actual serving for our model:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: Once we have a container, our environment is configured. The next thing to do
+    is place our saved model inside the docker container.
+  prefs: []
+  type: TYPE_NORMAL
+- en: When you exit the shell of a Docker container, the container shuts down. If
+    you'd like to start the container again, you can do so by running `docker start
+    -i nn_container` in the container's directory.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s create a directory to place our model in. While you are still in the
+    command line for the container, create a new directory with:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: Next, we'll upload our saved model to this directory. From wherever you saved
+    the classifier from previously, run the following commend. You'll replace `output_directory`
+    with whatever the sub-folder is that the TensorFlow SavedModel binaries are saved
+    in.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s try serving our model. Run the following command inside the docker container:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: Your model should now be running locally with TensorFlow serving. We're not
+    done, however, as we need to create a way that the model can interact with requests
+    once it is deployed in the cloud. For that, we'll need to create something called
+    a **client**, which is a small program that acts as a gatekeeper for the model
+    to talk with the outside world.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Building a TensorFlow client
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Lastly, we need to build a client to interact with our TensorFlow model. Building
+    a custom client to interact with your model is a bit beyond the scope of this
+    book, so we''ve provided this in the corresponding GitHub repository:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Go ahead and download it with the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s try using the client to send a request to the model:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: What's happening here?
+  prefs: []
+  type: TYPE_NORMAL
+- en: The first line imports the client itself, ...
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Training and deploying with the Google Cloud Platform
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: For a much simpler deployment procedure, we can deploy a TensorFlow SavedModel
+    to production with the **Google Cloud Platform** (**GCP**). In this section, we'll
+    cover the basics of how to both train and deploy a model using GCP.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The GCP currently provides one of the most straightforward and easy interfaces
+    for training and deploying models. If you are interested in getting your model
+    up to production as quickly as possible, GCP is often your answer. Specifically,
+    we'll be using the Cloud ML service, which is a compliment to AWS SageMaker that
+    we just learned previously. Cloud ML is enabled currently enabled to run TensorFlow,
+    Scikit-learn, and XGBoost right out of the box, although you can add your own
+    packages manually. Compared to SageMaker, Cloud ML receives updates automatic
+    updates to TensorFlow much at a rapid speed due to the library's Google integration,
+    and hence it is recommended to use it for TensorFlow-based applications.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Before we get started, let''s set up a new Google Cloud Storage Bucket that
+    will be the basis for our application. Go ahead and log onto your GCP account,
+    look for Cloud Storage, and click Create bucket. You should see a screen that
+    looks like the one as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/173abe83-964f-4d1a-b7a4-55dec4314d84.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: This bucket will act as the staging ground for our data, model, training checkpoints,
+    and model binaries. Go ahead and upload the `creditcard.csv` file that we've been
+    using to the bucket , we'll be using it soon!
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Next, let''s make our model ready for training on GCP, we''ll have to give
+    it a couple lines of code so that it can run from the command line. In a script
+    that contains the model code from previously, we''ll add this to the bottom:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: This script will enable us to pass in the only parameter for the model, `job_dir`,
+    from the command line. For the full GCP-ready code, check out the `simple_classifier.py`
+    script in this chapter's GitHub. Once you have your Cloud Storage and script set
+    up, we're ready to start our training and deployment!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Training on GCP
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Google has made the entire deep learning training / deployment process streamlined
+    and simple by allowing us to train models, store them, and deploy them with minimal
+    code. Before we start training in the cloud, let's train our model locally to
+    ensure that everything is working as intended. First, we need to set some environment
+    variables. First and foremost, we'll have to put our files in a particular structure
+    to train with Cloud ML. Look for the training folder in the chapter `GitHub` folder,
+    and you will find the correct file structure. The `__init__.py` file that you
+    see there will simply tell GCP that our file is an executable Python program.
+  prefs: []
+  type: TYPE_NORMAL
+- en: First we'll define a job directory, which should be the folder where your `simple_classifier.py
+    ...`
+  prefs: []
+  type: TYPE_NORMAL
+- en: Deploying for online learning on GCP
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: When we deploy a TensorFlow SavedModel to the GCP platform, we either need to
+    upload the entire SavedModel directory to a storage location on GCP or train in
+    the cloud as we did previously. Regardless of what method you main use, your TensorFlow
+    model's binaries should be stored in a Google Cloud Storage location.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Your model binaries will be the final that was created after training, and will
+    have the extension `.pb`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To start our deployment process, we first need to create a deployed model object.
+    You can create it with the command as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we''ll create an environment variable that will let GCP know where our
+    saved model binaries are:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'All we have to do now is run the command as follows, and our classifier will
+    be deployed! Keep in mind that deployment will take a few minutes to configure:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: As you see, we've done with a few lines of code what took us an entire section
+    precedingly; platforms as services like AWS SageMaker and Google Cloud ML are
+    extreme time savers in the modeling process.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let''s try getting predictions from our model. Before we try asking for
+    a prediction, we''ll need to go ahead and setups a few variables. The input data
+    file will be a json file that contains a single line of data. To make it easy,
+    we''ve included a line from the dataset as `test.json` in the `GitHub` folder:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Lastly, go ahead and run the prediction request:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: Congratulations! Your model is now hosted in the cloud. You should see a returned
+    json object, with probabilities for both of the potential classifications, fraud
+    or not-fraud. While the `gcloud` command previously is great for issuing individual
+    requests, we often want to return requests as part of a web application. In the
+    next segment, we'll run through a simple example of how we can do this with a
+    simple Flask application.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Using an API to Predict
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'To get started, you''ll have to create a Google Cloud service account key so
+    that your application can access the model. Navigate to the link [https://console.cloud.google.com/apis/credentials/serviceaccountkey](https://console.cloud.google.com/apis/credentials/serviceaccountkey),
+    and create a new account. Be sure to download the key as a JSON file. To connect
+    to GCP, you''ll need to setup your account credentials as an environment variable
+    that GCP can access. Go ahead and set it''s location as an environment variable:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: Let's create a script called `predict.py` (you can find the completed script
+    in the `chapter` folder). First, we'll import the Google libraries that will allow
+    our program to connect to the API. `GoogleCredidentials` will discover ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Scaling your applications
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Scalability is the capacity for a system to handle greater and greater workloads.
+    When we create a system or program, we want to make sure that it is scalable so
+    that it doesn''t crash upon receiving too many requests. Scaling can be done in
+    one of two ways:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Scaling up**: Increasing the hardware of your existing workers, such as upgrading
+    from CPUs to GPUs.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Scaling out**: Distributing the workload among many workers. Spark is a common
+    framework for doing this.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Scaling up can be as easy as moving your model to a larger cloud instance. In
+    this section, we'll be focus on how to distribute TensorFlow to scale out our
+    applications.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Scaling out with distributed TensorFlow
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: What if we'd like to scale out our compute resources? We can distribute our
+    TensorFlow processes over multiple workers to make training faster and easier.
+    There are actually three frameworks for distributing TensorFlow: *native distributed
+    TensorFlow*, *TensorFlowOnSpark*, and *Horovod*. In this section, we will be exclusively
+    focusing on native distributed TensorFlow.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the world of distributed processing, there are two approaches that we can
+    take to distribute the computational load of our model, that is, **model parallelism**
+    and **data parallelism**:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Model parallelism**: The distribution of the training layers of a model across
+    various devices.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Data parallelism**: The distribution of the entire model across various ...'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Testing and maintaining your applications
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: With either online or offline learning, we should always institute systems and
+    safety checks that will tell us when our model's predictions, or even its critical
+    deployment architecture, are out of whack. By testing, we are referring to the
+    hard-coded checking of inputs, outputs, and errors to ensure that our model is
+    performing as intended. In standard software testing, for every input, there should
+    be a defined output. This becomes difficult in the field of machine learning,
+    where models will have variable outputs depending on a host of factors - not the
+    great for standard testing procedures, is it? In this section, we'll talk about
+    the process of testing machine learning code, and discuss best practices.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once deployed, AI applications also have to be maintained. DevOps tools like
+    Jenkins can help ensure that tests pass before new versions of a model are pushed
+    to production. While we certainly aren't expecting you as a machine learning engineer
+    to create development pipelines, we'll review their principals in this section
+    so that you can be familiar with best practices.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Testing deep learning algorithms
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The AI community is severely behind on adopting appropriate testing procedures.
+    Some of the most advanced AI companies rely on manual checks instead of automating
+    tests on their algorithms. You've already done a form of a test throughout this
+    book; cross-validating our models with training, testing, and validation sets
+    helps to verify that everything is working as intended. In this section, we'll
+    instead focus on **unit tests**, which seek to test software at the smallest computational
+    level possible. In other words, we want to test the little parts of our algorithms,
+    so we can ensure the larger platform is running smoothly.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Testing our algorithms helps us keep track of **non**-**breaking bugs**, which
+    have become ubiquitous ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Building AI applications goes beyond the basics of model construction – it takes
+    deploying your models to a production environment in the cloud where they persist.In
+    this chapter, we've discussed how to take a validated TensorFlow model and deploy
+    it to production in the cloud. We also discussed ways that you can scale these
+    models, and how you can test your applications for resiliency.
+  prefs: []
+  type: TYPE_NORMAL
+- en: When taking a TensorFlow application from development to production, the first
+    step is to create a TensorFlow SavedModel that can be stored in the cloud. From
+    here, there are several services, including AWS Lambda and Google Cloud ML Engine,
+    that can help make your deployment process easily.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Applications can be scaled up or out for more computing power and faster processing.
+    By scaling up, we provide our algorithms with a larger computing resource. By
+    scaling out, we provide our application with more resources at once. Remember,
+    models that are deployed to production should also be tested, and basic tests
+    like unit tests can help prevent your entire application from crashing!
+  prefs: []
+  type: TYPE_NORMAL
+- en: We've now reached the end of the book. As you've worked through the content
+    in the chapters, I hope you have been enlightened to the exciting possibilities
+    that deep learning is creating for the artificial intelligence field. While there
+    is no doubt that research will continue into many of these topics, and that new
+    methods will we be created and used, the fundamental concepts that you've learned
+    throughout these chapters will hold steady, and provide the basis for groundbreaking
+    work going forward. Who knows, the person doing that groundbreaking work could
+    be you!
+  prefs: []
+  type: TYPE_NORMAL
+- en: References
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Mention Quora
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Tensorflow client citation
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL

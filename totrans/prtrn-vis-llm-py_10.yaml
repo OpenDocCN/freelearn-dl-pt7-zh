@@ -1,0 +1,872 @@
+- en: '10'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Fine-Tuning and Evaluating
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, you’ll learn how to fine-tune your model on use case-specific
+    datasets, comparing its performance to that of off-the-shelf public models. You
+    should be able to see a quantitative and qualitative boost from your pretraining
+    regime. You’ll dive into some examples involving language, text, and everything
+    in between. You’ll also learn how to think about and design a human-in-the-loop
+    evaluation system, including the same RLHF that makes ChatGPT tick! This chapter
+    focuses on updating the trainable weights of the model. For techniques that mimic
+    learning but don’t update the weights, such as prompt tuning and standard retrieval
+    augmented generation, see [*Chapter 13*](B18942_13.xhtml#_idTextAnchor198) on
+    prompt engineering.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We are going to cover the following topics in this chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fine-tuning for language, text, and everything in between
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: LLM fine-tuning breakdown – instruction fine-tuning, parameter efficient fine-tuning,
+    and reinforcement learning with human feedback
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Vision fine-tuning
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Evaluating foundation models in vision, language, and joint tasks
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Fine-tuning for language, text, and everything in between
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'At this point in the book, we’ve already covered a lot of ground. We’ve focused
+    primarily on the pretraining aspect, looking at everything from finding the right
+    use cases and datasets to defining your loss functions, preparing your models
+    and datasets, defining progressively larger experiments, parallelization basics,
+    working with GPUs, finding the right hyperparameters, advanced concepts, and more!
+    Here, we’ll explore how to make your models even more targeted to a specific application:
+    **fine-tuning**.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Presumably, if you are embarking on a large-scale training project, you might
+    have one of the following goals:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: You might be pretraining your own foundation model
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: You might be designing a novel method for autonomous vehicles
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: You might be classifying and segmenting 3D data, such as in real estate or manufacturing
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: You might be training a large text classification model or designing a novel
+    image-text generation model
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: You might be building a text-to-music generator, or working on a completely
+    new jointly trained modality, as yet undiscovered by the machine learning community
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: You might be training a large language model to solve general-purpose search
+    and qquestion and answering for the entire world, or for specific communities,
+    languages, organizations, and purposes
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: All these use cases have something in common; they use one large-scale model
+    that achieves general-purpose intelligence through learning patterns in extreme-scale
+    datasets and model sizes. In many cases, however, *these models only become extraordinarily
+    useful when fine-tuned to solve a specific problem*. This is not to say that you
+    cannot simply deploy one of them and use specialized *prompt engineering* to immediately
+    get useful results, because you can. In fact, we will dive into that later in
+    this book. But prompt engineering alone can only get you so far. It is much more
+    common to *combine prompt engineering with fine-tuning* to both focus your model
+    on a target application and use all your creativity and skill to solve the actual
+    human problem.
+  prefs: []
+  type: TYPE_NORMAL
+- en: I like to think about this pretraining and fine-tuning paradigm almost like
+    the difference between general and specialized education, whether that is in a
+    formal undergraduate and graduate program, online coursework, or on-the-job training.
+    General education is broad. When done well, it encompasses a broad array of skills
+    across many disciplines. Arguably, the primary output of generalized education
+    is critical thinking itself.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Specialized training is very different; it is hyper-focused on excellence in
+    a sometimes narrow domain. Examples of specialized training include a master’s
+    degree, a certificate, a seminar, or a boot camp. Its output is usually critical
+    thinking applied to one specific vertical.
+  prefs: []
+  type: TYPE_NORMAL
+- en: While this intuitive difference is easy to grasp, in practice, it is less obvious
+    how to design machine learning applications and experiments that are gracefully
+    optimized for both kinds of knowledge and keep this up to date. Personally, I
+    would argue that a combination of pretrained and fine-tuned models presents the
+    best solution for this to date. It is possible this will be how we continue to
+    deal with ML for years, if not decades, to come.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you should start to feel quite comfortable with by this point in the book,
+    *the art of building a fantastic machine learning application or effective experiment
+    lies in using the best of both general and specialized models*. Do not limit yourself
+    to just a single model; this is not terribly different from limiting yourself
+    to a single world view or perspective. Increasing the number of types of models
+    you use has the possibility to increase the overall intelligence of your application.
+    Just make sure you are phasing each experiment and sprint with clear objectives
+    and deliverables.
+  prefs: []
+  type: TYPE_NORMAL
+- en: You might use one single pretrained model, such as GPT-2, then fine-tune it
+    to generate text in your vernacular. Or you might use a pretrained model to featurize
+    your input text, such as in Stable Diffusion, and then pass it to a downstream
+    model such as KNN.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Hint
+  prefs: []
+  type: TYPE_NORMAL
+- en: This is a great way to solve an image search! Or you might use any of the following
+    fine-tuning regimes outlined.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fine-tuning a language-only model
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: If your model is a language-only project – something inspired by BERT or GPT
+    – then once you’ve either finished pretraining or have reached a significant milestone
+    (maybe a few hundred steps or so), you’ll want to fine-tune that pretrained base
+    model on a more specific dataset. I would start to think about which use case
+    to apply my model to – likely wherever I have the most supervised training data.
+    This will also likely be a part of my business that has the strongest customer
+    impact – from customer support to search, question answering to translation. You
+    might also explore product ideation, feature request prioritization, documentation
+    generation, text autocompletion, and so on.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Collect your supervised data and follow the steps in the previous chapter about
+    analyzing your data. I would have many notebooks comparing the datasets, running
+    summary statistics, and comparing distributions on key characteristics. After
+    this basic analysis, I’d run some training jobs! These could be full-fledged SageMaker
+    training jobs, or just using your notebook instances or Studio resources. Usually,
+    fine-tuning jobs are not huge; it’s more common to fine-tune only a few GBs or
+    so. If you have significantly more than this, I would probably consider just adding
+    this to my pretraining dataset altogether.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Your final model should combine both the output from your pretraining project
+    and the generalized data with your target use case. If you’ve done your job right,
+    you should have many use cases lined up, so fine-tuning will let you use your
+    pretrained model with all of them!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Personally, I would use Hugging Face for a language-only project, pointing to
+    my new pretrained model as the base object. You can follow steps from its SDK
+    to point to different *downstream tasks*. What’s happening is that we’re using
+    the pretrained model as the base of the neural network, then simply adding extra
+    layers at the end to render the output tokens in a format that more closely resembles
+    and solves the use case you want to handle.
+  prefs: []
+  type: TYPE_NORMAL
+- en: You’ll get to choose all the hyperparameters again. This is another time hyperparameter
+    tuning is extremely useful; make it your friend to easily loop through tens to
+    hundreds of iterations of your model and find the best version.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, let’s break down different fine-tuning strategies for language that explicitly
+    update the model parameters. Please note that the commentary that follows simply
+    describes common scenarios for these techniques; I have no doubt that there are
+    better ways of approaching these in development today.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '| **Name** | **Method** | **Result** |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Classic fine-tuning | This takes a set of supervised text pairs and a pretrained
+    foundation model and adds a new downstream head to the model. The new head, and
+    possibly a few layers of the original model, is updated. | The new model performs
+    well on the given task and dataset but fails outside of this. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Instruction fine-tuning | This technique is essentially normal fine-tuning,
+    but the crux is using a dataset with explicit instructions and the desired response
+    provided. For a sample dataset, see Stanford’s Alpaca project *(1)*. The instructions
+    are commands such as “tell me a story,” “create a plan,” or “summarize an article.”
+    | A base generative model produces arbitrary text and performs well only in few-shot
+    learning cases with complex prompt engineering. Once the instructions have been
+    fine-tuned, the model can respond well in zero-shot cases without any examples
+    in the prompt itself. Naturally, humans strongly prefer this, as it is much easier
+    and faster to use. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| **Parameter-efficient** **fine-tuning** (**PEFT**) | Instead of updating
+    all the weights of the original model, PEFT-based techniques, as inspired by LoRA
+    *(2)*, inject new trainable matrices into the original model. This makes training
+    and storage much more efficient and cost-effective, as much as three times so
+    | For similar datasets, PEFT-based methods seem to meet accuracy levels of full
+    fine-tuning, while requiring an order of magnitude less computation. The newly
+    trained layers can be reused similarly to a classically fine-tuned model. Personally,
+    I wonder whether this method could unlock hyperparameter tuning at scale for foundation
+    models! |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Domain adaptation | Using largely unsupervised data, in language, this technique
+    lets you continue pretraining the model. This is most relevant for focusing the
+    performance of the model on a new domain, such as a particular industry vertical
+    or proprietary dataset. | This results in an updated foundation model that should
+    know new vocabulary and terminology based on its updated domain. It will still
+    require task-specific fine-tuning to achieve the best performance on a specific
+    task. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| **Reinforcement learning with human** **feedback** (**RLHF**) | This technique
+    lets you quantify human preferences on generated content at scale. The process
+    puts multiple model responses in front of human labelers and asks them to rank
+    them. This is used to train a reward model, which serves as the guide for a reinforcement
+    learning procedure to train a new LLM. We discuss this in detail shortly. | OpenAI
+    shows *(3)* that models trained with RLHF are consistently preferred by humans,
+    even over instruction fine-tuning. This is because the reward model learns what
+    a group of humans sees, on average, as better-generated content. This preference
+    is then incorporated into an LLM through RL. |'
+  prefs: []
+  type: TYPE_TB
+- en: If you’d like to jump straight into these techniques, including how they work
+    with examples, then head straight over to the repository. You can also jump right
+    to [*Chapter 15*](B18942_15.xhtml#_idTextAnchor229) for a deeper dive on parameter
+    efficient fine tuning Remember, in [*Chapter 13*](B18942_13.xhtml#_idTextAnchor198),
+    we’ll learn all about techniques that mimic learning but do so without updating
+    any parameters in the model itself. This includes prompt-tuning, prompt engineering,
+    prefix tuning, and more. For now, let’s learn about fine-tuning vision-only models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fine-tuning vision-only models
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Vision is a completely different world than language in terms of fine-tuning.
+    In language, it’s a somewhat reliable practice to take a large pretrained model,
+    such as BERT or GPT, add an extra dataset, fine-tune it, and get reasonably good
+    performance out of the box. This isn’t to say that there aren’t countless other
+    nuances and issues in language, because there are, but the general likelihood
+    of getting pretty good performance with simple fine-tuning is high.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In vision, the likelihood of getting good performance right away is not as high.
+    You might have a model from ImageNet that you’d like to use as your base model,
+    then pair with a different set of labeled images. If your images already look
+    like they came from ImageNet, then you are in good shape. However, if your images
+    are completely different, with a different style, tone, character, nuance, or
+    mode, then it’s likely your model won’t perform as well immediately. This is an
+    age-old problem in vision that predates foundation models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 10.1 – From Kate Saenko’s WACV Pretrain Workshop 2023 Keynote (4)](img/B18942_Figure_10_01.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 10.1 – From Kate Saenko’s WACV Pretrain Workshop 2023 Keynote (4)
+  prefs: []
+  type: TYPE_NORMAL
+- en: Leading vision researcher Kate Saenko pioneered approaches to solving this problem,
+    which she calls **distribution bias**. As she identified in her first paper on
+    this in 2010 *(5)*, the core issue is the massive gap between the **domains**.
+    What happens in computer vision is that using a pretrained model, focused on one
+    particular dataset, doesn’t translate as well to the downstream task. Even after
+    fine-tuning the pretrained base model on a new set of labeled samples, the model
+    is likely to simply overfit or not even learn the new domain well.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Kate’s work identified that, in fact, using a more recently pretrained foundation
+    model is very helpful in overcoming this domain adaptation problem *(6)*. She
+    found that “*simply using a state-of-the-art backbone outperforms existing state-of-the-art
+    domain adaptation baselines and sets new baselines on OfficeHome and DomainNet
+    improving by 10.7% and 5.5%*”. In this case, *backbone* refers to the model, here
+    ConvNext-T, DeiT-S, and Swin-S.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the same work, Kate also found that larger models tended to perform better.
+    In the following visual, you can see that by increasing the model size by tens
+    of millions of parameters, she was also able to increase accuracy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 10.2 – Saenko’s results on the impact of increasing model size in
+    vision](img/B18942_Figure_10_02.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 10.2 – Saenko’s results on the impact of increasing model size in vision
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we’ve learned about some fine-tuning regimes relating to vision-only,
+    let’s explore fine-tuning regimes in the combination of vision and language!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fine-tuning vision-language models
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: First, let’s recap a few interesting tasks that are unique to the explicit combination
+    of vision and language. These include visual question-answering, text-to-image,
+    text-to-music, and as Allie Miller likes to say, “text-to-everything”. They also
+    include image captioning, video captioning, visual entailment, grounding, and
+    more. You might use vision-language models in an e-commerce application to make
+    sure the right product is on the page, or even in the film industry to generate
+    new points on a storyboard.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fine-tuning a pretrained vision-language model, at the most basic level, should
+    follow the same pattern as we discussed for each of the other paradigms. You need
+    a base model, then you need a set of data that follows the same labeling schema.
+    If you’ve used the *Lensa* app, then you’ll already be somewhat familiar with
+    fine-tuning a vision-language model! Lensa asks you to upload photos of yourself
+    to its app. Just hypothesizing here, I would guess that it takes these photos
+    and quickly fine-tunes Stable Diffusion on these new images of you. Then, it probably
+    uses a prompting tool along with a content filter to send images back to you.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Another recent case study of vision-language fine-tuning I’m really impressed
+    by is *Riffusion* *(7)*. As of right now, you can use their free website to listen
+    to music generated from text, and it’s pretty good! They built an open source
+    framework that takes audio clips and converts them into images. The images are
+    called **spectrograms**, which are the result of using a *Short-time Fourier transform*,
+    which is an approximation for converting the audio into a two-dimensional image.
+    This then serves as a visual signature for the sound itself. Spectrograms can
+    also be transformed back into the audio itself, producing the sound.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Naturally, they used short textual descriptions of the audio clips as the textual
+    label for each image, and voila! They had a labeled dataset to fine-tune Stable
+    Diffusion. Using the spectrograms and textual descriptions of these, they fine-tuned
+    the model and hosted it. Now you can quite literally write a textual prompt such
+    as “Jamaican dancehall vocals” or “Sunrise DJ Set”, and their model will generate
+    that audio for you!
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'I love this project because the authors went a step further: they designed
+    a novel smoothing function to seamlessly transition from one spectrogram to another.
+    This means when you’re using their website, you can very naturally transition
+    from one musical mode to another. All of this was made possible by using the large
+    pretrained Stable Diffusion base model and fine-tuning it with their novel image/text
+    dataset. For the record, there are quite a few other music generation projects,
+    including MusicLM *(8)*, DiffusionLM *(9)*, MuseNet *(10)*, and others.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that you’ve learned about the great variety of pretraining and fine-tuning
+    regimes, you should be getting pretty excited about identifying ways to use the
+    model you’ve been working on training until now. Let’s learn how to compare performance
+    with open source models!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Evaluating foundation models
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'As we’ve discussed many times in this book so far, the primary reason to engage
+    in large-scale training is that open source models aren’t cutting it for you.
+    Before you start your own large-scale training project, you should have already
+    completed the following steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Tested an open source model on your specific use case
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Identified performance gaps
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Fine-tuned that same open source model on a *small* subset of your data
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Identified *smaller* performance gaps
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The point is that you should have some empirical reason to believe that the
+    open source model solves *some* of your business problem but not *all* of it.
+    You need to also empirically prove that small-scale fine-tuning is in the same
+    boat; it should increase system performance but still leave room for improvement.
+    This entire next section is about evaluating that room for improvement. Let’s
+    try to understand how we can evaluate foundation models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you are no doubt suspecting, evaluating foundation models falls into two
+    phases. First, we care about the pretraining performance. You want to see the
+    pretraining loss drop, be that masked language modeling loss, causual modeling
+    loss, diffusion loss, perplexity, FID, or anything else. Second, we care about
+    the downstream performance. That can be classification, named entity recognition,
+    recommendation, pure generation, question answering, chat, or anything else. We
+    covered evaluating the pretraining loss function in earlier chapters. In the following
+    section, we’ll mostly cover the evaluation of downstream tasks. Let’s start with
+    some top terms in vision models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Model evaluation metrics for vision
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In vision projects, as in all machine learning, evaluation completely depends
+    on the task at hand. Common vision tasks include image classification, object
+    detection, classification, segmentation, facial recognition, pose estimation,
+    segmentation maps, and more. For an image classification problem, you’ll be happy
+    to know the primary evaluation metric tends to be accuracy! Precision and recall
+    also continue to be relevant here, as they are with any classification task.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For object detection, as you can see in the figure, the question is much harder.
+    It’s not enough to know whether the given class is in the image anywhere; you
+    need the model to also know which part of the image includes the object.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 10.3 – Intersection over union](img/B18942_Figure_10_03.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 10.3 – Intersection over union
+  prefs: []
+  type: TYPE_NORMAL
+- en: Object detection is useful in self-driving, manufacturing, security, retail,
+    and other applications. Usually, it’s not enough to just identify an object; you
+    want to jointly minimize the amount of incorrect pixels your box consumes while
+    maximizing the amount of correct pixels.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Here, we are using a term called **IOU**, which literally means **intersection
+    over union**. As you can see, the term corresponds to the area of the overlap
+    of the two bounding boxes, divided by the area of the union of the two. As you
+    might imagine, a larger IOU is better, because it means your bounding boxes are
+    more consistent. A smaller IOU means there is still a wide degree of difference
+    between the two, and your classifiers may not be capturing similar amounts of
+    information. You might find this interesting if your object detector has many
+    different classes and you want to compare these. You can also take the weighted
+    average IOU of all classes, giving you the **mean** **IOU** (**mIOU**).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Another common way of aggregating the overall performance of the many classifiers
+    in your object detection algorithm is **mAP**, or **mean average precision**.
+    For a single model, you’d call this the average precision, because it’s an average
+    of the results across all classification thresholds. For multiple models, you’d
+    take the average of each class, hence **mean average** **precision** (**mAP**).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Another really interesting vision solution in the foundation model space is
+    **Segment** **Anything Model** (**SAM**) by Meta *(9)*. As shown in the following
+    figure from its work, it presents a novel task, dataset, and model to *enable
+    prompt-driven mask generation*. A segmentation map is a helpful construct in computer
+    vision to identify pixels of an image that belong to a certain class. In this
+    work, SAM learns how to generate new segmentation maps from both a given image
+    and a natural language prompt. It then isolates pixels provided in the image that
+    solve the question posed by the natural language prompt.
+  prefs: []
+  type: TYPE_NORMAL
+- en: "![Figure 10.4 – Meta’s \uFEFFSAM](img/B18942_Figure_10_04.jpg)"
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 10.4 – Meta’s SAM
+  prefs: []
+  type: TYPE_NORMAL
+- en: To evaluate the segmentation maps generated by the model, the Meta team randomly
+    sampled 50,000 masks and asked their professional annotators to improve the quality
+    of these masks using image-editing tools, such as “brush” and “eraser”. Then,
+    they computed the IoU between the original and the final map.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we’ve looked at a few evaluation examples in vision, let’s do the same
+    for language.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Model evaluation metrics in language
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: While many of the classification-type metrics still apply to language, the question
+    of how to evaluate generated language is inherently challenging. One could argue
+    that many disciplines within the humanities, such as literary criticism, history,
+    and philosophy, come down to evaluating a given corpora of written text. It’s
+    not immediately obvious how to apply all this learning to improve the outputs
+    of large language models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: One attempt at providing a standardized framework for this is the *HELM* *(12)*
+    project from Stanford’s Center for Research on Foundation Models. **HELM** stands
+    for **Holistic Evaluation of Language Models**. It provides an incredibly rich
+    taxonomy of multiple evaluation metrics, including accuracy, fairness, bias, toxicity,
+    and so on, along with results from nearly 30 LLMs available today. The following
+    is a short example of this from their work *(13)*. It standardizes metrics evaluated
+    across models and datasets.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 10.5 – Taxonomy of multiple metrics from HELM](img/B18942_Figure_10_05.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 10.5 – Taxonomy of multiple metrics from HELM
+  prefs: []
+  type: TYPE_NORMAL
+- en: The HELM ratings are open sourced and available both in a web interface *(14)*
+    and a GitHub repository *(15)*. In many cases, when you are hunting for the best
+    model to use as your base, HELM is a great starting point. Now, let’s explore
+    a few more of these evaluation metrics in detail. We’ll start with translation,
+    then move on to summarization, question answering, and finally, pure generation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: One of the first applications for natural language processing was translation,
+    also known as *machine translation*. Quite literally, this means training a large
+    language model to learn the relationships between strings you provide in pairs,
+    such as translations across natural languages, such as English into German. One
+    early metric used to compare the quality of the generated translations is **bleu**,
+    which was proposed at the ACL conference in 2002 by a team from IBM *(16)*. They
+    called their approach a **bilingual evaluation understudy**, hence **bleu**. Generally,
+    this refers to comparing the precise words generated by the model, and whether
+    or not that exact same set of words appears in the target sentence.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Bleu has many drawbacks, however, such as not being able to adequately handle
+    synonyms, small variants of the same word, the importance of words, or their order.
+    For those reasons, many practitioners use more recently developed evaluation metrics,
+    such as rouge *(17)*. Rather than anticipating a literal translation, as bleu
+    does, rouge anticipates a summary of a text. This counts the number of lapping
+    sub-words, word sequences, and word pairs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Evaluation in question answering is interesting because, fundamentally, you
+    can break the problem into two parts. First, based on a provided question, usually,
+    you want to retrieve a document that relates to that question. Years ago, this
+    was commonly solved with term frequency/inverse document frequency terms (TF-IDF
+    scoring), which of course was famously ousted by Google’s page rank, which up-voted
+    pages based on how many times they were linked by pages that linked other high-quality
+    sites. Today, the NLP start-up deepset has an interesting solution, called **haystack**,
+    which provides a convenient wrapper around your own pretrained NLP models to retrieve
+    the document most relevant to the question.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The second part of evaluating a question-answering system is really the quality
+    of your rendered text as the answer. You might simply try to find the part of
+    the original document that most relates to the question, using techniques from
+    information retrieval. Or you might try to summarize the document, or some part
+    of the document, that most closely resembles the question. If you have large amounts
+    of labeled data, such as clickstream data, you can actually point exactly to the
+    part of the document that receives the most click-through data and provide that
+    as the answer. Obviously, this appears to be what Google does today.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Evaluating the quality of generated text is especially challenging. While classification
+    and some other ML problems have an inherently objective answer, where the human
+    label is clearly right or wrong, this really isn’t the case in literary analysis.
+    There are many right answers, because reasonable people have different perspectives
+    on how they interpret a given story or text. This is an example of subjectivity.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'How do we handle this discrepancy between subjectivity and objectivity in evaluating
+    generated text? I can think of at least three ways. First, I’m quite fond of training
+    a discriminator. This could be a classifier trained with positive and negative
+    samples in cases where that is accurate, such as trying to mimic a certain author’s
+    style. You can easily fine-tune a BERT-based model with a small sample of an author’s
+    work, as compared with random outputs from GPT-3, for example, and get a very
+    reliable way to evaluate generated text. Another interesting project is GPTScore,
+    which uses zero-shot prompting to test other LLMs: [https://arxiv.org/pdf/2302.04166.pdf](https://arxiv.org/pdf/2302.04166.pdf)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: You might also have humans label the responses, and then simply aggregate the
+    labels. Personally, I am really impressed by ChatGPT’s interesting approach to
+    this problem. They simply asked humans to rank the responses from their GPT-3
+    model, and then trained the model to be optimized for the best of all responses
+    using reinforcement learning! We’ll dive into that in the last section of this
+    chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that you’ve learned about a few evaluation metrics in language, let’s explore
+    the same in jointly trained vision-language tasks.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Model evaluation metrics in joint vision-language tasks
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: As you’ve no doubt witnessed since their release, diffusion-based models are
+    a fascinating space to watch. These models typically are jointly trained vision-and-language
+    models that learn how to generate images using a process called **diffusion**.
+    This process learns about the relationship between the provided words and the
+    image itself, enabling the consumer to then easily produce a new image simply
+    by providing a new set of words. After achieving a low loss during training on
+    the validation set, evaluation is typically done manually by the consumer offline.
+    Most people simply guess and check, testing the model with a few different hyperparameters
+    and ultimately just picking their favorite picture. An ambitious team might train
+    a discriminator, similar to what I mentioned previously for evaluating generated
+    text.
+  prefs: []
+  type: TYPE_NORMAL
+- en: But what if you wanted to focus on a specific object, and simply put that object
+    onto a different background? Or stylize that object? Or change its emotion or
+    pose? Fortunately, now you can! Nataniel Ruiz from Boston University, while interning
+    at Google, developed a project to do just that called **DreamBooth** *(18)*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 10.6 – Preserving loss with DreamBooth fine-tuning](img/B18942_Figure_10_06.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 10.6 – Preserving loss with DreamBooth fine-tuning
+  prefs: []
+  type: TYPE_NORMAL
+- en: DreamBooth accomplishes this through custom tokens and a *specialized loss function*.
+    The loss function is called a **prior preservation**, and it’s built to counter
+    the overfitting that can commonly happen in vision fine-tuning, along with the
+    *language-drift* issue that is known to happen in language fine-tuning. I’ll spare
+    you the mathematical details of the loss function, but if you’re curious, please
+    feel free to read the paper directly! Generally speaking, this new loss function
+    retains its own generated samples during the fine-tuning process and uses these
+    during supervision. This helps it retain the prior. They found that roughly 200
+    epochs and just 3-5 input training images were enough to deliver excellent images
+    as a result. You could consider this custom loss function another type of evaluation
+    for image-text models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we’ve explored a large variety of evaluation methods for vision and
+    language models, let’s learn about ways to keep humans in the loop!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Incorporating the human perspective with labeling through SageMaker Ground Truth
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Obviously, a critical way to incorporate the human perspective into your work
+    is with labeling! At AWS, we have both a low-level labeling service called **Mechanical
+    Turk** (**MTurk**) and a more managed feature called **SageMaker Ground Truth**.
+    As we’ve discussed, MTurk has already impacted the ML domain by being used to
+    create datasets as famous as ImageNet! Personally, I’m a fan of SageMaker Ground
+    Truth because it’s much easier to use for pre-built image labeling tasks such
+    as object detection, image classification, and semantic segmentation. It comes
+    with tasks for NLP, such as text classification and named entity recognition,
+    tasks for video, and tasks for 3D point clouds.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 10.7 – Manage data labeling with SageMaker Ground Truth](img/B18942_Figure_10_07.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 10.7 – Manage data labeling with SageMaker Ground Truth
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can bring your own HTML frame to any arbitrary ML task and even make use
+    of the *active labelling* *(19)* feature to dynamically train a model using records
+    you’ve already labeled and speed up the whole labeling process. For supported
+    built-in tasks such as image classification, semantic segmentation, object detection,
+    and text classification, this means you will actually train an ML model on the
+    data you’ve already labeled, then run inference against the unlabeled data. When
+    the model is at least 80% confident in its response, it’s considered a labeled
+    sample. When it’s not, it’s routed to the manual teams to label. Overall, this
+    can dramatically reduce the cost of your project.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Another nice feature of SageMaker Ground Truth is that it automatically consolidates
+    any discrepancies in labelers on your behalf. You can define how many people you
+    want to label your objects, and it will look at, on average, how accurate each
+    of those labelers is. Then, it’ll use that per-person average accuracy to consolidate
+    the votes per object.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For hosted models, you can also connect them to SageMaker Ground Truth via the
+    *augmented artificial intelligence* solution. This means you can set a trigger
+    to route model inference responses to a team of manual labelers, via SageMaker
+    Ground Truth, to audit the response and ensure it’s accurate and not harmful to
+    humans.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that you have some idea of how to incorporate human labeling across your
+    ML projects, let’s break down the method that makes ChatGPT tick!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Reinforcement learning from human feedback
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: At least two things are undeniable about ChatGPT. First, its launch was incredibly
+    buzzy. If you follow ML topics on social and general media, you probably remember
+    being overloaded with content about people using it for everything from writing
+    new recipes to start-up growth plans, and from website code to Python data analysis
+    tips. However, there’s a good reason for the buzz. It’s actually so much better
+    in terms of performance than any other prompt-based NLP solution the world has
+    seen before. It establishes a new state of the art in question answering, text
+    generation, classification, and so many other domains. It’s so good, in some cases
+    it’s even better than a basic Google search! How did they do this? **RLHF** is
+    the answer!
+  prefs: []
+  type: TYPE_NORMAL
+- en: While RLHF is not a new concept in and of itself, certainly the most obviously
+    successful application of RLHF in the large language model domain is ChatGPT.
+    The predecessor to ChatGPT was InstructGPT *(20)*, where OpenAI developed a novel
+    framework to improve the model responses from GPT-3\. Despite being 100x smaller
+    in terms of parameters, InstructGPT actually outperforms GPT-3 in many text-generation
+    scenarios. ChatGPT takes this a step further by adding an explicit dialogue framework
+    to the training data. This dialogue helps maintain the context of the entire chat,
+    referring the model back to the top data points provided by the consumer.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 10.8 – Reinforcement learning from human feedback](img/B18942_Figure_10_08.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 10.8 – Reinforcement learning from human feedback
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let’s break down the reinforcement learning! To simplify the process, we can
+    break it down into three key steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, collect data from a pretrained model hosted live with humans. From actual
+    questions provided by humans, OpenAI sends these same questions to a team of manual
+    labelers. This set of labeled data is then used to fine-tune the large GPT-3 type
+    model – in this case, it was GPT-3.5 specifically.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Next, take the fine-tuned model and submit prompts. After this, OpenAI asks
+    the human labelers to *simply rank the outputs*. I love this approach because
+    it does a good job of bridging the inherently subjective task of labeling freeform
+    generated tasks, with the objective goal of producing a better ML model. When
+    humans rank the responses from best to worst, it avoids the subjective question
+    *“Is this good or not?”* and replaces it with an objective question, *“Which is
+    your favourite?”* Armed with these ranked responses, it trains a *reward model*,
+    which is just an ML model that takes a given prompt and rates it based on human
+    responses. I’d imagine this is a regression model, though classification would
+    also work.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Finally, OpenAI uses a reinforcement learning algorithm, PPO specifically, to
+    connect the dots. It generates a prompt response from the LLM, and in the reinforcement
+    learning literature, we’d call that *takes an action*. The reward for this response
+    is produced by running it against the reward model we just trained in the previous
+    step. That reward is used to update the PPO algorithm, which in turn ensures that
+    the next response it provides is closer to the highest reward it can get.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: And that is RLHF in a nutshell! I think it’s a brilliant way of integrating
+    nuanced human preferences with machine learning models, and I can’t wait to try
+    it in my next project.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Before we move on to the next chapter, in which we will detect and mitigate
+    bias, let’s do a quick recap of all the concepts we’ve covered in this chapter.
+    Hint: there are a lot!'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The goal of this chapter was to give you a better understanding of fine-tuning
+    and evaluating ML models overall, comparing them with open source options, and
+    ultimately keeping humans in the loop.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We started with a recap of fine-tuning for language, text, and everything in
+    between, discussing the benefits of both general and specialized knowledge. We
+    learned about fine-tuning a language-only model, and how generally this is possible
+    with even a small amount of data. We also talked about fine-tuning vision-only
+    models, and how generally it is much more likely to overfit, making it a challenging
+    proposition. We looked at fine-tuning jointly trained vision-language models,
+    including Stable Diffusion and an interesting open source project called Riffusion.
+    We talked about comparing performance with off-the-shelf public models. We learned
+    about model evaluation metrics for vision specifically, along with language, and
+    the emerging joint vision-language space. We also looked at a variety of ways
+    to keep humans in the loop across this entire spectrum, culminating in a discussion
+    about RLHF as used in ChatGPT!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, you’re ready to learn about detecting and mitigating bias in your ML projects
+    in the next chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: References
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'tatsu-lab/stanford_alpaca: [https://github.com/tatsu-lab/stanford_alpaca](https://github.com/tatsu-lab/stanford_alpaca)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'LORA: LOW-RANK ADAPTATION OF LARGE LANGUAGE MODELS: [https://arxiv.org/pdf/2106.09685.pdf](https://arxiv.org/pdf/2106.09685.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Training language models to follow instructions with human feedback: [https://arxiv.org/pdf/2203.02155.pdf](https://arxiv.org/pdf/2203.02155.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Keynote Speakers: [https://sites.google.com/view/wacv2023-workshop/speakers](https://sites.google.com/view/wacv2023-workshop/speakers)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Adapting Visual Category Models to New Domains: [https://link.springer.com/content/pdf/10.1007/978-3-642-15561-1_16.pdf?pdf=inline%20link](https://link.springer.com/content/pdf/10.1007/978-3-642-15561-1_16.pdf?pdf=inline%20link)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'A Broad Study of Pre-training for Domain Generalization and Adaptation: [https://arxiv.org/pdf/2203.11819.pdf](https://arxiv.org/pdf/2203.11819.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'RIFFUSION: [https://www.riffusion.com/about](https://www.riffusion.com/about)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'MusicLM: Generating Music From Text: [https://arxiv.org/pdf/2301.11325.pdf](https://arxiv.org/pdf/2301.11325.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Diffusion-LM on Symbolic Music Generation with Controllability: [http://cs230.stanford.edu/projects_fall_2022/reports/16.pdf](http://cs230.stanford.edu/projects_fall_2022/reports/16.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'OpenAI: [https://openai.com/research/musenet](https://openai.com/research/musenet)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Segment Anything [https://arxiv.org/pdf/2304.02643.pdf](https://arxiv.org/pdf/2304.02643.pdf)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'HELM: [https://crfm.stanford.edu/helm/latest/](https://crfm.stanford.edu/helm/latest/)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Holistic Evaluation of Language Models: [https://arxiv.org/pdf/2211.09110.pdf](https://arxiv.org/pdf/2211.09110.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'HELM: [https://crfm.stanford.edu/helm/latest/?groups=1](https://crfm.stanford.edu/helm/latest/?groups=1)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'stanford-crfm/helm: [https://github.com/stanford-crfm/helm](https://github.com/stanford-crfm/helm)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'BLEU: a Method for Automatic Evaluation of Machine Translation: [https://aclanthology.org/P02-1040.pdf](https://aclanthology.org/P02-1040.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'ROUGE: A Package for Automatic Evaluation of Summaries: [https://aclanthology.org/W04-1013.pdf](https://aclanthology.org/W04-1013.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'DreamBooth: Fine Tuning Text-to-Image Diffusion Models for Subject-Driven Generation:
+    [https://arxiv.org/pdf/2208.12242.pdf](https://arxiv.org/pdf/2208.12242.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Automate Data Labeling: [https://docs.aws.amazon.com/sagemaker/latest/dg/sms-automated-labeling.html](https://docs.aws.amazon.com/sagemaker/latest/dg/sms-automated-labeling.html)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Training language models to follow instructions with human feedback: [https://arxiv.org/pdf/2203.02155.pdf](https://arxiv.org/pdf/2203.02155.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL

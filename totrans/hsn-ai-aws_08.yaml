@@ -1,0 +1,1440 @@
+- en: Building a Voice Chatbot with Amazon Lex
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we will build a chatbot that allows the user to search for
+    information and perform actions using voice or text conversations. This chatbot
+    offers a more intuitive interface for humans to interact with computers. We will
+    use Amazon Lex to build a custom AI capability to understand requests in natural
+    language, to ask for missing inputs, and to fulfill tasks. We will provide guidance
+    on the Amazon Lex development paradigm, including its conventions and norms.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, we will cover the following topics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Building conversational interfaces with Amazon Lex
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Implementing task fulfillment logics with AWS Lambda
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Adding a RESTful API in front of Amazon Lex custom AI capability
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Discussing design concerns for conversational interfaces
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Understanding the friendly human-computer interface
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The intelligent personal assistant, sometimes called the **chatbot**, is rapidly
+    appearing in more and more products with which we interact. The most prominent
+    of these products are smart speakers, such as Amazon Echo and Google Home. Interacting
+    with machines using your voice used to be the stuff of science fiction. Nowadays,
+    fun facts and jokes are just an *Alexa* or *Hey Google* away. The tasks we can
+    ask these intelligent assistants to perform include media control, information
+    search, home automation, and administrative tasks, such as emails, to-dos, and
+    reminders.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The capability of the intelligent personal assistant can be integrated into
+    many more types of devices and platforms than just smart speakers. These include
+    mobile operating systems such as Android and iOS, instant messaging apps such
+    as Facebook Messenger, and company websites such as restaurants (to take orders)
+    and banks (to check account balances). There are two main methods of interaction:
+    through text or voice. This intelligent assistant capability is a combination
+    of several AI technologies. For both interaction methods, **Natural Language Processing**
+    (**NLP**) is needed to interpret and match the text to supported questions or
+    commands. For voice interaction, speech-to-text and text-to-speech are needed
+    to enable voice communication, which is something we have had hands-on experience
+    with in Amazon Transcribe and Amazon Polly, respectively.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: It may appear that these intelligent assistants are performing tasks such as
+    getting answers to questions, placing orders, and automating our homes. But behind
+    the scenes, these tasks are almost always fulfilled by traditional APIs and services.
+    What we actually get with the intelligent assistant capability is a more flexible
+    human-computer interface. Leveraging this new capability is not simply slapping
+    a fancy voice interface on top of an existing application. When designing intelligent
+    assistants, it's important to understand the use cases and operating environments
+    where the intelligent assistant can provide a better user experience. Not all
+    applications should have such interfaces; for example, use cases requiring precise
+    inputs or dense outputs, noisy operating environments, and workflows that are
+    long and complex.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we will be implementing an intelligent assistant, called Contact
+    Assistant, for searching contact information. The contact assistant will work
+    with the same contact data store we created for the contact organizer project
+    in [Chapter 5](cffd245d-bee7-40bc-a64f-e108c039a8ec.xhtml), *Extracting Information
+    from Text with Amazon Comprehend*. We will also add a RESTful API in front of
+    the contact assistant, giving us multiple applications to leverage its capabilities.
+    The way this intelligent assistant is designed makes it most useful out in the
+    field, for example, when a traveling salesman is driving to a client and needs
+    to get the client's contact information verbally. Instead of performing the searches
+    through a web application running in a browser, this use case is better suited
+    to be a mobile application with a driver-friendly user interface. This mobile
+    application and its user interface are beyond the scope of this book, but may
+    turn out to be interesting hands-on projects for some of you.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Contact assistant architecture
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The architecture for the contact assistant project includes the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: An orchestration layer
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: A service implementation layer
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The following architecture does not include the user interface layer, since
+    we will not be implementing the mobile or web application that connects to the
+    contact assistant. Instead, we will be focusing our efforts on developing a custom
+    AI capability, an intelligent assistant bot, using the Amazon Lex platform. Let''s
+    have a look at a screenshot of the following architecture:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/591fce9b-cdb7-4636-b130-7bd852ac3ff9.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The contact assistant architecture includes the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the orchestration layer, we will build a **Contact Assistant Endpoint** that
+    provides a RESTful interface to access our contact assistant's capabilities.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In the service implementation layer, we will build a service, called the **intelligent
+    assistant service**, that shields implementation details of our custom AI capability,
+    including its Amazon Lex implementation details. This way, when we want to reimplement
+    the contact assistant bot with a different chatbot technology, only the intelligent
+    assistant service needs to be modified.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In previous chapters, we built our own services, such as Recognition Service
+    and Speech Service, that connect to AWS AI capabilities such as Rekognition and
+    Polly, respectively. Just like these services are shielding implementation details
+    of the AWS AI services, the intelligent assistant service is shielding implementation
+    details of our custom AI capability built on top of Amazon Lex.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The contact assistant bot will be able to perform two tasks, `LookupPhoneNumberByName`
+    and `MakePhoneCallByName`. This bot leverages Amazon Lex's underlying AI capabilities
+    to interpret the user's verbal commands, and then performs the tasks using AWS
+    Lambda functions. These Lambda functions implement the fulfillment of the tasks,
+    looking up phone numbers and making phone calls.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Contact Assistant will be looking up contact information stored in the same
+    DynamoDB table that we used in [Chapter 5](https://cdp.packtpub.com/hands_on_artificial_intelligence_on_amazon_web_services/wp-admin/post.php?post=527&action=edit#post_301),
+    *Extracting Information from Text with Amazon Comprehend*, in the contact organizer
+    application. In the spirit of reuse, we will be reusing the contact store implementation
+    that connects to the DynamoDB table. More specifically, the Lambda functions will
+    delegate the contact searches to the contact store. The fact that the contact
+    information is stored in a DynamoDB table is transparent to the contact assistant.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Understanding the Amazon Lex development paradigm
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Amazon Lex is a development platform for building intelligent assistants or
+    chatbots. With Amazon Lex, we are building our own custom intelligent assistant
+    capabilities. Lex itself provides many AI capabilities, including **Automatic
+    Speech Recognition** (**ASR**) and **Natural Language Understanding** (**NLU**),
+    that are useful for building conversational interfaces. However, developers must
+    follow Lex's development constructs, conventions, and norms to leverage these
+    underlying AI capabilities.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'These Amazon Lex conversational interfaces are built from Lex''s specific building
+    blocks:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Bot**: A Lex bot can perform a set of related tasks through the custom conversational
+    interfaces. A bot organizes the related tasks into a unit for development, deployment,
+    and execution.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For example, to make the tasks available to the applications, they are deployed
+    or published as a bot and the application must specify the bot name in order to
+    access the available tasks.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Intent**: An intent represents an automated task the users want to perform.
+    An intent belongs to a specific AWS account rather than a specific bot and can
+    be used by different bots in the same AWS account. This design decision makes
+    them more reusable.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Sample utterance**: An utterance is a typed or spoken phrase in natural language
+    that the user might say to invoke an automated task. Amazon Lex encourages developers
+    to provide multiple utterances to make the conversational interface more flexible
+    for the users.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For example, a user might either say *What's the weather like today?*, or *Tell
+    me about the weather today?* to check the weather report. Amazon Lex uses advanced
+    NLU to understand the intent of the user.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Given the previous two sample utterances, Amazon Lex also uses the NLU capability
+    to handle variations of the utterances. Lex can understand *Tell me what the weather's
+    like today?* even if the exact phrase is not provided.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Slot**: An automated task may require zero or more slots (parameters) to
+    complete. For example, the date and the location are parameters used to fetch
+    the weather report the user is interested in. In the conversational interface,
+    Lex asks the user to provide all of the required slots.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For example, the location can be defaulted to the user's home address if not
+    specified.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Slot type**: Each slot has a type. Similar to a parameter type in programming
+    languages, a slot type restricts input space and simplifies verification to make
+    the conversational interface more user friendly. In verbal communication in particular,
+    knowing the types of slots can help the AI technologies more accurately determine
+    the typed or spoken texts.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: There are numerous built-in slot types, such as Number, City, Airport, Language,
+    and Musician, to name but a few. Developers can also create custom slot types
+    specific to their applications.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Prompt and response**: A prompt is a question in which Lex asks the users
+    to either provide input to a slot, or to confirm the input provided. A response
+    is a message to inform the user about the result of the task, such as the weather
+    report.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The design of prompts and responses for conversational interfaces should take
+    into account the use case, communication modality (text or speech), and the operating
+    environment. The design should get user confirmation while not overburdening users
+    with unnecessary communication.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Session attributes**: Amazon Lex provides mechanisms to keep contextual data
+    that can be shared across intents in the same session.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For example, if a user just asked for the weather report for a city and then
+    follows up with a question, *How's the traffic there?*, the session context should
+    be able to infer that *there* means the city reference in the previous intent.
+    This type of contextual information can be stored in Lex's session attributes
+    for developers to build smarter bots.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The Amazon Lex platform focuses on building conversational interfaces; fulfillment
+    of the automated tasks is delegated to AWS Lambda. There are two built-in hook
+    types for developers to integrate lambda functions:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Lambda initialization and validation**: This hook allows developers to write
+    AWS Lambda functions to validate the user inputs. For example, the lambda function
+    can verify a user''s inputs from a data source and with more complex business
+    logic.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**The fulfillment lambda function**: This hook allows developers to write AWS
+    Lambda code that performs the task. With this lambda hook, developers can tap
+    into AWS services, API endpoints, and much more to write the business logic for
+    tasks such as checking the weather, ordering a pizza, and sending messages.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Setting up the contact assistant bot
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Now that we understand the Amazon Lex''s development paradigm and terminology,
+    let''s put them to use by building a bot with both the conversational interface
+    and the fulfillment business logic. We will be building the contact assistant
+    using the AWS Console. Observe the following steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Navigate to the Amazon Lex page and click on the Create button.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: On the Create your bot page, select Custom bot to create our own bot instead
+    of building from a sample bot.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: For the Bot name field, enter `ContactAssistant`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: For the Output voice, select Joanna. Currently, Lex only supports US English.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: For the Session timeout, enter 5 min. This is the maximum idle time before the
+    contact assistant closes a session.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: For the IAM role, leave it as the default AWSServiceRoleForLexBots.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select No for COPPA; the contact assistant is designed for a traveling salesman,
+    not children.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click on the Create button.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The Create your bot page should have the following settings after the preceding
+    steps have been carried out:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/21e9c9e0-a17f-45da-997a-94c55c901931.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Once the contact assistant has been created, you will be taken to the development
+    console for Lex, similar to the one shown in the following screenshot:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/acd2c4db-1656-478e-8eed-b95f5befab22.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Let''s familiarize ourselves with the Lex development console:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The bot's name can be found in the top-left corner, Contact_Assistant.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: There are a pair of disabled buttons for Build and Publish in the top-right
+    corner.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Below the bot name and buttons are the tabs for Editor, Settings, Channels,
+    and Monitoring screens. We will perform most of our bot development in the Editor
+    tab.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: With the Editor tab selected, we see that no Intents or Slot types have been
+    added to the contact assistant.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In the top-right corner of the screen, there is a Test bot sidebar that can
+    be expanded (shown in the diagram) to reveal a chat interface. This chat interface
+    is used to issue verbal commands to the bot under development. The chat interface
+    is currently disabled. The bot needs to be built, with at least one intent created.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Finally, Click on the Create Intent button to build our first intent.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The LookupPhoneNumberByName intent
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Our first intent allows the user to look up a contact's phone number by stating
+    the contact's first and last names. This intent is essentially a search feature
+    built on top of the contact store, but with a conversational interface.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We recommend designing each intent to focus on a narrow use case, and building
+    up multiple intents to expand the bot's use cases.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `LookupPhoneNumberByName` intent has very focused inputs and outputs, but
+    we can build many related intents, such as `LookupAddressByName` and `LookupContactNamesByState`.
+    Even though we can consider the `LookupPhoneNumberByName` intent as a search feature
+    to a data source, it requires a different design thinking.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s highlight a few design differences when comparing this intent to a more
+    conventional search feature on a web application:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In a web interface, we would provide the user with several search parameters,
+    such as name, organization, and location. In a conversational interface, we would
+    want to limit the number of search parameters, or inputs, for each intent. In
+    a voice chatbot in particular, prompting and confirming all of the inputs might
+    be cumbersome.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In a web interface, we would return many pieces of information about the contact
+    and display them on the screen. In a conversational interface, we need to consider
+    the modality. If this is a text chatbot, we might be able to get away with displaying
+    multiple pieces of information. But, if this is a voice chatbot, then reading
+    a long list of information to the user might create a cognitive burden.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Sample utterances and slots for LookupPhoneNumberByName
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: When designing a new intent, all stakeholders, not just developers, must carefully
+    think through the conversational flow between the user and the bot. Let's start
+    with the sample utterances.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The intelligent assistant is a likely replacement for existing communication
+    channels to users, such as phone calls to customer representatives, inquiry emails
+    for product issues, and text chats with technical agents. It's common practice
+    to use recordings of user conversations from these existing channels to design
+    the conversational flow of the intelligent assistant. These recordings provide
+    the most accurate reflection of your users' interactions with the products; they
+    are a good starting point for designing the utterances and the prompts.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Sample utterances are phrases that invoke the intent to perform an automated
+    task. Here are a few sample utterances for our `LookupPhoneNumberByName` intent:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/083c2cef-cd8d-4b05-b86c-e29d1b7ff0de.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: As we can see in the preceding screenshot, two of the sample utterances naturally
+    included slots or input parameters, {FirstName} and {LastName}, in the conversation
+    flow. This way users can provide some or all of the inputs needed to fulfill the
+    task when it is invoked.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For `LookupPhoneNumberByName`, we need both the {FirstName} and {LastName}
+    to look up a phone number as they are both required. Let''s have a look at the
+    following screenshot of slots:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/76967ad7-b5f4-4041-b538-14cd4945d233.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: As shown in the preceding screenshot, for the slot types, there are built-in
+    AMAZON.US_FIRST_NAME and AMAZON.US_LAST_NAME types. As we noted previously, specifying
+    the most relevant and specific types for the inputs makes natural language understanding
+    and value validation much easier for the underlying AI technologies.
+  prefs: []
+  type: TYPE_NORMAL
+- en: What if the user did not provide the inputs to the slots? For example, what
+    if the user spoke the first sample utterance, *I would like to look up a phone
+    number*. Each slot must have one or more prompts to ask the user for the input
+    value if it was not provided in the invoking utterance. For `{FirstName}` and
+    `{LastName}`, we used `What's the contact's first name?` and `What's the {FirstName}'s
+    last name?`, respectively. Notice that the prompt for `{LastName}` included the
+    slot value for `{FirstName}`. This can make the conversation flow more natural
+    and human-like.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To add more than one prompt for a slot, click on the gear icon to edit the
+    slot''s settings. Here, you can add additional prompts, set the Maximum number
+    of retries to elicit this input, and corresponding utterances, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/a022eb63-88f9-415f-8a07-9f18b0f1c149.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The bot will select from this list of prompts to ask the user for the slot.
+    The bot will attempt the prompts up to two times before giving up.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Confirmation prompt and response for LookupPhoneNumberByName
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: To complete the conversational flow design, let's move on to the confirmation
+    prompt and response. Both of these are optional, but they can greatly improve
+    the behavior and user experience of the intelligent assistant.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following is a screenshot of a confirmation prompt. A confirmation prompt
+    is an opportunity to inform the user about the action about to be taken. At this
+    point, values for all of the required slots and potentially optional slots have
+    been elicited:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/490f4b0f-bc09-4245-ae2c-316db9a0005a.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'We are able to use `{FirstName}` and `{LastName}` in the confirmation message.
+    It''s a good design to read or display back the values for the `{FirstName}` and
+    `{LastName}` slots; this confirms with the user that the bot understood the inputs
+    correctly. Natural language conversations can be ambiguous at times. Let''s take
+    a look at this example conversation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/34de4f55-b6d6-4fbc-9193-a053f19ec030.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Do you spot the issue? One of our sample utterances is What's {FirstName} {LastName}
+    phone number. However, the user invoked the intent without providing a `{LastName}`.
+    Our bot interpreted *what's* as the `{FirstName}`, and `John` as the `{LastName}`.
+    By reading back the input values with the confirmation prompt, the user can notice
+    and correct the input error before the action is taken.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will skip fulfillment of the task for now and move on to the response. In
+    the following screenshot, the response for the `LookupPhoneNumberByName` intent
+    closes out the task by displaying or reading the phone number for the contact:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/4109580b-2e25-4014-abb8-7b17302d4131.png)`[Phone]` is a session attribute
+    that is holding the phone number for the contact. It will be set in the fulfillment
+    lambda function. We will cover how that''s implemented later in the chapter.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: This intent is used to query for information. Providing the information in the
+    response will feel natural to users. There are also intents that will perform
+    a task without the need to provide information back to the users. In such cases,
+    it is still a good idea to respond to the users of the outcome of the task.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, we have completed the conversational interface for our first intent. Next,
+    we will implement the AWS Lambda function that will perform the task asked of
+    our intelligent assistant.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fulfillment for LookupPhoneNumberByName using AWS Lambda
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: To perform any fulfillment action with the intelligent assistant, developers
+    need to invoke AWS Lambda functions. The *Fulfillment* section provides a hook
+    to an existing lambda function. Let's implement a lambda function called **LookupPhoneNumberByName**
+    to search for the phone number of a contact by his or her first and last names.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In contrast to previous projects, where we used AWS Chalice to develop and
+    deploy the lambda code and AWS permissions, we will be using the AWS Lambda console
+    page to create the `LookupPhoneNumberByName` function. Here are the steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Navigate to the AWS Lambda service from AWS Console, and then click on the Create
+    function button.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select Author from scratch. We will implement the lambda function without any
+    blueprints or sample applications.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Name the function `LookupPhoneNumberByName`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select the Python 3.7 runtime to match the language version for our other hands-on
+    projects.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Choose Create a new role with basic Lambda permissions to create a role. We
+    will need to add additional policies later to connect to additional AWS services.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click the Create function button.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The settings on the Create function page should look similar to the following
+    screenshot:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/ef9490a5-90a4-40a7-ba82-b3e1870a3135.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'After the lambda function and its execution role have been created, you will
+    see a development console similar to this one:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/1e628f19-1f6a-4d78-bb33-78311efbafed.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The preceding screenshot demonstrates the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the Designer section, we can add triggers to invoke this lambda function.
+    For Lex bots, we do not need to select a trigger.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We also see that the `LookupPhoneNumberByName` function has access to CloudWatch
+    logs. Any outputs or error messages from the execution of this function will be
+    written to CloudWatch, and we can view those logs from the CloudWatch console
+    page. This will be useful while developing and debugging the function.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In the Function code section, we can choose Edit code inline, modify the function
+    runtime, and change the Handler function name. The handler function specifies
+    the Python file and function name that constitute the entry point to our lambda
+    function.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Beneath the three lambda configuration fields, we have the inline code editor.
+    Here, we can create additional source files and edit the code for each source
+    file.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Our lambda function will need to interact with the same DynamoDB that stores
+    the contact information from the contact organizer application. We can leverage
+    the existing contact store and then add a new function to query for contact information
+    with the help of the following steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Right-click within the left panel of the inline editor and then select New File.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Name the file `contact_store.py`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Replace the content of `contact_store.py` with the contact store implementation
+    from [Chapter 5](https://cdp.packtpub.com/hands_on_artificial_intelligence_on_amazon_web_services/wp-admin/post.php?post=527&action=edit#post_301),
+    *Extracting Information from Text with Amazon Comprehend*.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Add `get_contact_by_name()` after the existing function implementation:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The preceding code includes the following elements:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `get_contact_by_name()` method retrieves a single contact by its unique
+    identifier, which is the name. In this method, we are calling DynamoDB's `get_item()`
+    function. The response from `get_item()` contains a dictionary. If the item key
+    exists, then we get a return value containing the contact information.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Here, we are getting an item from the DynamoDB table by key. The key is the
+    name of the contact, first name, and last name, separated by a space. This code
+    will be executed in the Python 3.7 lambda runtime environment. In this environment,
+    the `boto3` package is already installed.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: DynamoDB IAM role for LookupPhoneNumberByName
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Since this code will need to connect to DynamoDB, we need to add a policy to
+    our lambda function''s execution role:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Navigate to the IAM page from AWS Console.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click on Roles on the left-hand panel.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: From the list of roles, find and click on the LookupPhoneNumberByName-role-<unique
+    id> role for our lambda function.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click on the Attach policies button.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Find and select the AmazonDynamoDBFullAccess policy, and then click on the Attach
+    policy button.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Now, let''s have a look at the following screenshot:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/17d6d4d5-449a-4a18-a3b6-eaebb7749df6.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Now, our `LookupPhoneNumberByName` lambda function can access DynamoDB. The
+    `AmazonDynamoDBFullAccess` policy is fine for our hands-on projects, but, for
+    real production application, you should fine-tune the policy to limit the number
+    of permissions granted.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fulfillment lambda function for LookupPhoneNumberByName
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In the lambda editor window, open the existing `lambda_function.py` file and
+    replace its content with the following implementation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, the following takes place:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We first initialize the contact store with the DynamoDB table contacts.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In the `lambda_handler()` function, we are extracting the intent name, the slots,
+    and the attributes from the event object passed in. The event object is passed
+    in to our Amazon Lex bot when the fulfillment hook is triggered. All of the slot
+    input values, as well as the session attributes, will be included in this event
+    object.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`lambda_handler()` then calls the `lookup_phone()` function that uses the contact
+    store to retrieve the contact information.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In the `lookup_phone()` function, we are constructing the item key from the
+    `FirstName` and `LastName` slot values. The item key must be `FirstName` and `LastName`
+    separated by a space, with the correct capitalization.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For example, the first name `john` and the last name `smith` will result in
+    the item key `John Smith`; the first letter of each part of the name is capitalized.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We are using the `title()` function to ensure correct capitalization, irrespective
+    of how the user inputs the names.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: If we are able to retrieve a contact with those names, we will save the contact's
+    phone number, first name, and last name in the session attributes. This is how
+    the phone number is passed back to be displayed or spoken in this intent's response.
+    We will cover why the first name and last name are saved in the session attributes
+    in a later section of this chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: If we are successful at fulfilling the lookup, we respond with `intent_success()`,
+    otherwise, we respond with `intent_failure()` with an explanation message. These
+    are helper functions that encapsulate some of Amazon Lex's specific response formats.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Amazon Lex helper functions
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The Amazon Lex helper functions format the responses to what Lex is expecting.
+    We have four helper functions here:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`intent_success()` indicates that the intent has been successfully fulfilled,
+    and any session attributes are passed back to Lex as `sessionAttributes`.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`intent_failure()` indicates that the intent was not fulfilled successfully.
+    This response also includes an explanation message.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`intent_elicitation()` asks the Lex bot to elicit a value for the specified
+    parameter name. This elicitation might be due to missing slot values or invalid
+    slot values. This helper function is useful when we create custom `Lambda initialization
+    and validation` logic.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`intent_delegation()` indicates that the lambda function has completed its
+    obligation and directs Lex to choose the next course of action based on the bot''s
+    configuration.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'We only used the first two helper functions for this `LookupPhoneNumberByName`
+    intent. Here is the code implementation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: Even though the `lambda_function.py` file is relatively short, we still applied
+    a few clean code practices. We organized all of the AWS Lambda- and Amazon Lex-specific
+    implementation details into the `lambda_handler()` function and the Amazon Lex
+    helper functions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For example, how are the slots from the Lambda event object and the response
+    format to Amazon Lex to be retrieved? This way, the `lookup_phone()` function
+    is free from those platform specific details and, hence, is more likely to be
+    reusable on other platforms. The `lookup_phone()` function only requires `intent_name`
+    to be a string, and the parameters and attributes to be dictionaries.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Save the lambda function implementation by clicking on the Save button in the
+    top-right corner of the lambda development console.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The intent fulfillment for LookupPhoneNumberByName
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Now, let''s add this lambda function to the fulfillment hook:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Go to the Amazon Lex development console and, under Fulfillment, select LookupPhoneNumberByName
+    from the Lambda function list, as shown in the following screenshot:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/4001a0dc-1c8a-42e0-80cd-056493ab3b12.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'As shown in the following screenshot, Amazon Lex will ask for permission to
+    invoke this lambda function. Click OK to grant permission:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/79ab4701-6483-4a7d-9e22-b18056a1db37.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: In the Lex development console, click on the Save Intent button at the bottom
+    of the page, and then click on the Build button in the top-right corner of the
+    page. It will take a few seconds for our first Lex bot to build.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Test conversations for LookupPhoneNumberByName
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Now, we are ready to build and test our first intent. In the Test bot panel
+    on the right of the page, issue a few variations of the sample utterances and
+    follow the conversation with the contact assistant. Here is a sample conversation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/8512b6bf-4b0b-4d9a-98a8-8a061da526e4.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'In the preceding conversation, the following happened:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The utterance did not include the slots, and our contact assistant prompted
+    for the first and last names
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The assistant confirmed the lookup for John Smith before proceeding with fulfillment
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The response included the contact's first name and the phone number
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Now, think through how this conversation plays out, both as a text chat and
+    as a voice conversation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here is another sample conversation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/aecd439d-51e2-4a4f-a1a1-61271779447c.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'In the preceding conversation, the following happened:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The utterance included both of the required slots
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This time, our contact assistant only had to confirm the lookup before proceeding
+    with the fulfillment and response
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The user can also respond **no** to the confirmation prompt to cancel the fulfillment
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Congratulations! You just completed your first intelligent assistant with a
+    conversation interface and AWS Lambda fulfillment implementation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The test bot panel's chat interface also supports voice inputs. You can use
+    the microphone icon to issue the utterances and responses via voice.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/7da95da6-551a-4e10-a08d-30da7c48b114.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: In the test bot chat interface, the response from Lex will always be in text.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The MakePhoneCallByName intent
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Next, we will create a second intent for our contact assistant, called **MakePhoneCallByName**.
+    The task performed by this intent should be obvious from its name; it can phone
+    the contacts. However, we will not be implementing the phone call functionality
+    in this project.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The goal as regards implementing this second intent is to demonstrate how multiple
+    intents of an intelligent assistant can interact and collaborate. We want to design
+    the conversational interface of `MakePhoneCallByName` to be able to function independently,
+    but also to be able to function in conjunction with the `LookupPhoneNumberByName`
+    intent.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To make this intent collaboration concrete, imagine that the user just looked
+    up the phone number of a contact and then decided to make a call to this contact.
+    Should the second intent start over with the first name and last name slot elicitations?
+    Or would it be more fluid and natural to know that the user wants to call the
+    same contact that the assistant just looked up? Of course, the latter. After `LookupPhoneNumberByName`
+    was fulfilled successfully, and then the user utters `Call him` or `Call her`,
+    `MakePhoneCallByName` should just know who `him` or `her` is referring to based
+    on the context of prior conversations. This is where session attributes can help
+    to maintain the context.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Sample utterances and lambda initialization/validation for MakePhoneCallByName
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'We''ll start by adding a new intent from the Lex development console by clicking
+    on the blue plus button next to Intents on the left-hand panel, as shown in the
+    following screenshot:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Select Create intent, name it `MakePhoneCallByName`, and then click on Add.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Let''s create a few sample utterances for this intent. The first utterance
+    **Call** {FirstName} {LastName} provides the values for the two required slots.
+    For the other utterances, the intent should try its best to get the slot values
+    from the conversation context if possible:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/53a0464f-1811-4fb1-9092-0ed84692cb74.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'To do this, we will use the second type of AWS Lambda hook from Amazon Lex,
+    lambda initialization and validation. The following steps will create the hook:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the Lambda initialization and validation section, check the box for Initialization
+    and validation code hook.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Go to the AWS Lambda page from AWS Console and create a lambda function named
+    `InitContact` from scratch for Python 3.7.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Create a new default lambda execution role. We do not need the AmazonDynamoDBFullAccess
+    policy for this lambda function.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'In the inline function code editor, replace the `lambda_function.py` file contact
+    with the following implementation:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, the following takes place:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the `init_contact()` function, we check whether `FirstName` and `LastName`
+    are missing from the slots coming from the utterance. If so, we then check whether
+    `FistName` and `LastName` exist in the session attributes.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Do you recall that we saved `FirstName` and `LastName` to the session attributes
+    in the fulfillment implementation for the `LookupPhoneNumberByName` intent? We
+    are retrieving those saved values here.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: If both `FirstName` and `LastName` are set, then we respond back to Lex with
+    a delegation response.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The delegation response tells Lex that initialization and validation are complete,
+    and that the bot should continue with its execution based on its configuration,
+    including fulfillment.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: If either `FirstName` or `LastName` is still missing its value, then we respond
+    back with an elicitation response.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The elicitation response will trigger the prompt for the missing slot that was
+    configured for the bot.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Save the lambda function, and then go back to the Amazon Lex development console:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/add41d5e-43f0-4d83-8926-fb1400099d1b.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Select InitContact for the Lambda initialization and validation function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Slots and confirmation prompt for MakePhoneCallByName
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The slots configuration for the `MakePhoneCallByName` intent can be exactly
+    the same as the configuration for `LookupPhoneNumberByName`. See the details in
+    the following screenshot:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/1c949a72-d569-4606-97c4-41def12adabd.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Both slots are required, and are set to the built-in `AMAZON.US_FIRST_NAME`
+    and `AMAZON.US_LAST_NAME` types.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The Confirmation prompt can be tailored for making phone calls, as shown in
+    the following screenshot:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/bcb3bbfd-52df-4527-aa68-ae348b7d5e3c.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Both the Confirm and Cancel messages are tailored to the `MakePhoneCallByName`
+    intent.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fulfillment and response for MakePhoneCallByName
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: We could implement a new lambda function to fulfill the contact lookup and phone
+    call functionalities. But, since we are not actually making phone calls in this
+    project, the business logic of the fulfillment lambda function will be the same
+    as the contact lookup function we already implemented.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In fact, for this project, Fulfillment can be handled by the LookupPhoneNumberByName
+    lambda function, as shown in the following screenshot:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/924d3c1f-1518-4ffb-bd79-da9ed740fe6b.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Finally, the Response configuration can also be tailored to make phone calls,
+    as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/8ab7aef8-01b9-4d5a-8eab-fe0c94983ecb.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Now, click on the Save Intent button on the bottom of the Lex development console,
+    and then click on the Build button in the top-right corner of the development
+    console.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Test conversations for MakePhoneCallByName
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In the Test bot panel on the right-hand side of the page, issue a few variations
+    of the sample utterances and follow the conversation with the contact assistant.
+    Here is a sample conversation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/1a69bccd-6e5f-4bb3-ac49-4ccdaf7e5d92.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The preceding conversation demonstrates that the `MakePhoneCallByName` intent
+    can function independently without running the `LookupPhoneNumberByName` intent
+    first.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here is another sample conversation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/8516bcf7-f1e5-4af9-88be-eed12ee104ad.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The preceding conversation shows the power of context:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The user first asked for John Smith's phone number with the `LookupPhoneNumberByName`
+    intent.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Then, the user requested to `call him`.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: At this point, our `InitContact` lambda function grabbed the `FirstName` and
+    `LastName` from the session attributes and confirmed whether John Smith is the
+    contact to call.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The confirmation prompt is important here, since the contact assistant is inferring
+    the contact. We do not want to automatically make awkward calls to the wrong contact;
+    it is better to confirm with the user first before taking action.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Click on Clear chat history before issuing the next utterance. This will clear
+    the session and its stored attributes. Continue the sample conversation with the
+    following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/33f380a8-2482-48fe-941e-f7c2e588521e.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'In this conversation, the following took place:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The user started with an utterance without any slots. On this occasion, however,
+    there was no previous conversational context saved in the session attributes.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `InitContact` lambda function was not able to retrieve a first and last
+    name; therefore, it responds with intent elicitations.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: It's important to test our intelligent assistant to handle all possible orders
+    and combinations of intents and utterances. This quality assurance becomes more
+    difficult as more intents share the session attributes.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Congratulations! Our contact assistant just became more intelligent with context
+    awareness.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Deploying the contact assistant bot
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: We can now publish the contact assistant as a custom intelligent assistant capability.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Click on the Publish button on the top right of the Lex development console
+    and set Alias to Production:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/5ef89a4d-2cbb-4659-9f03-9468b4fff2c4.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The preceding screenshot shows that the contact assistant is now published.
+    Once the contact assistant is published, the applications can start to leverage
+    it through various integration methods, including the boto3 SDK.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Integrating the contact assistant into applications
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Next, we will create the layers to integrate the contact assistant capability
+    into applications. As mentioned at the beginning of this chapter, we will not
+    implement any application; we will only implement the service and RESTful endpoint
+    layers.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As with previous hands-on projects, we will be using Python, Pipenv, Chalice,
+    and boto3 as part of the technology stack. Let's create a project structure first.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the terminal, we will create the `root` project directory and enter it with
+    the following commands:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will create a Python 3 virtual environment with `Pipenv` in the project''s
+    `root` directory. Our Python portion of the project requires two packages, `boto3`
+    and `chalice`. We can install them with the following commands:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Remember that the Python packages installed via `pipenv` are only available
+    if we activate the virtual environment. One way to do this is by means of the
+    following command:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, while still in the virtual environment, we will create the orchestration
+    layer as an AWS Chalice project named `Capabilities` with the following commands:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'To create the `chalicelib` Python package, issue the following commands:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The initial project structure should look like the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: The project structure is slightly different to those structures created in previous
+    chapters. This project structure contains the orchestration and service implementations
+    layers, but does not include a web user interface.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Intelligent assistant service implementation
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The contact assistant is backed by a Lex bot in the current implementation,
+    but good architecture design should have the flexibility to change implementations
+    easily. The service implementation serves to shield the Lex implementation details
+    from the client applications.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Create a Python file in `chalicelib` with the name `intelligent_assistant_service.py`,
+    as shown in the following screenshot:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, the following takes place:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`IntelligentAssistantService` is a generic implementation that can be configured
+    to work with different intelligent assistants, and not just the contact assistant.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `__init__()` constructor takes in the assistant name to configure itself
+    for a particular intelligent assistant at creation time. The constructor creates
+    a `boto3` client for `lex-runtime`, which can communicate with published Lex bots.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`IntelligentAssistantService` implements the `send_user_text()` method to send
+    text chat messages to the assistants. This method takes in a `user_id` and the
+    `input_text` from the application, and uses the `post_text()` function from `lex-runtime`
+    to send the input text.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`user_id` is an ID created by the client application. A Lex bot can have multiple
+    conversations with different users at once. This `user_id` identifies a user;
+    in other words, it identifies a chat session.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: There is also a `post_content()` function from `lex-runtime` for sending both
+    text and speech inputs. In addition to `botName`, `botAlias`, and `userId`, the
+    `post_content()` function also requires the `contentType` and `inputStream` parameters
+    to be set. `contentType` can be either audio or text, with a few supported audio
+    formats. `inputStream` contains the byte stream for the audio or text contents.
+  prefs: []
+  type: TYPE_NORMAL
+- en: If the application would like to receive an audio response from the Lex bot,
+    the `accept` parameter should be set to one of the audio output formats supported.
+    The supported audio input and output formats are implementation details of Lex.
+    Any format conversions for the audio inputs and outputs should be performed in
+    this service implementation to hide those details from the client applications.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Contact assistant RESTful endpoint
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Let''s have a look at the following steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let''s build a quick RESTful endpoint to the contact assistant in `app.py`.
+    This way, we can test our `IntelligentAssistantService` with `curl` commands:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The RESTful endpoint implementation is short and simple:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The initialization code binds our generic `IntelligentAssistantService` implementation
+    to the contact assistant
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The RESTful endpoint itself takes in the `user_id` through the URL and the input
+    text as JSON in the request body
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Start the `chalice local` environment with the following command in the terminal:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, we can have a conversation with our contact assistant using the `curl`
+    commands:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding conversation, the following takes place:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The first `curl` command issues the intent `Call John Smith`, which includes
+    both slots required for the first and last names of the contact.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The response is a confirmation from the contact assistant, *Would you like me
+    to call John Smith?*
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The second `curl` command continues the conversation by replying, *Yes*.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The contact assistant then responds with, *Calling John Smith at (202) 123-4567*.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The applications that will leverage the capabilities of the contact assistant
+    will provide the appropriate user interface to best facilitate the conversation,
+    for example, a mobile app for a traveling salesman. The application will pass
+    the verbal communication between the users and the contact assistant using the
+    RESTful endpoint.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we built the contact assistant, a chatbot that allows the user
+    to search for contact information using a voice or text conversational interface.
+    We built the contact assistant's conversational interface using Amazon Lex. We
+    learned the development paradigm of Amazon Lex to build a custom AI capability,
+    including concepts such as intents, utterances, prompts, and confirmations. The
+    contact assistant supports two intents, `LookupPhoneNumberByName` and `MakePhoneCallByName`.
+    The task fulfillment of these intents is implemented using AWS Lambda. We also
+    designed these two intents to be context aware by using Amazon Lex's session attributes;
+    being context aware reduces the cognitive burden of the user and makes the chatbot
+    smarter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Amazon Lex is the last of the AWS AI services that we will cover in this book.
+    In the next part of the book, we will cover AWS ML services to train customer
+    AI capabilities using machine learning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Further reading
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'For more information on building a voice chatbot with Amazon Lex, you can refer
+    to the following links:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[https://restechtoday.com/smart-speaker-industry/](https://restechtoday.com/smart-speaker-industry/)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[https://www.lifewire.com/amazon-alexa-voice-assistant-4152107](https://www.lifewire.com/amazon-alexa-voice-assistant-4152107)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[https://www.nngroup.com/articles/intelligent-assistants-poor-usability-high-adoption/](https://www.nngroup.com/articles/intelligent-assistants-poor-usability-high-adoption/)'
+  prefs: []
+  type: TYPE_NORMAL

@@ -1,0 +1,694 @@
+- en: '6'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Dataset Preparation: Part Two, the Data Loader'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '*Become one with the data. – Andrej Karpathy*'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, you’ll learn how to prepare your dataset to immediately use
+    it with your chosen models. You’ll master the concept of a data loader, learning
+    why it’s a common source of errors in training large models. You’ll learn about
+    creating embeddings, using tokenizers, and other methods to featurize your raw
+    data for your preferred neural network. Following these steps, you’ll be able
+    to prepare your entire dataset, using methods for both vision and language. Finally,
+    you’ll learn about data optimization on AWS and Amazon SageMaker to efficiently
+    send datasets large and small to your training cluster. Throughout this chapter,
+    we’ll work backward through the training loop, incrementally giving you all the
+    steps you need to have functional deep neural networks training at scale. You’ll
+    also follow a case study on how I trained on 10 TB for Stable Diffusion on SageMaker!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Never underestimate the power of data. Whether it’s getting the highest quality
+    samples and labels you can, failing to catch subtle corruptions, or optimizing
+    your compute selections, data can truly make or break the success of your project.
+    Many top deep learning models actually came about through the development of a
+    novel dataset, from MNIST to AlexNet, and from GPT-3 to Stable Diffusion! When
+    we think big in machine learning, frequently that means thinking big about your
+    dataset.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'You can’t have a functional training loop without a functional data loader,
+    so let’s unpack it! In this chapter, we’re going to cover the following main topics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Introducing the data loader through key concepts in Python
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Building and testing your own data loader: a case study from Stable Diffusion'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Embeddings and tokenizers
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Optimizing your data pipeline on AWS
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Transforming deep learning datasets at scale on AWS
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Introducing the data loader in Python
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The data loader is a concept that is fairly unique to deep learning. In statistical
+    machine learning, you still see many models using gradient updating, which requires
+    mini-batches, but the *loading* aspect is more hidden – more integrated with the
+    algorithm itself. PyTorch leaned into this concept from the early days, explicitly
+    offering a `data loader` object and exposing the entire training loop to the developer.
+    While somewhat more complex than early TensorFlow, this actually enabled developers
+    to have a lot more flexibility and control over the training process, which helped
+    them more easily develop custom solutions. This was a part of the reason more
+    and more research projects eventually embraced PyTorch over TensorFlow as their
+    deep learning framework of choice. Now, the majority of models I encounter are
+    first implemented in PyTorch, and occasionally in TensorFlow.
+  prefs: []
+  type: TYPE_NORMAL
+- en: What is a data loader? A data loader *hydrates your training loop with data*.
+    Most PyTorch training loops are actually just nested loops. First, there’s an
+    outer loop through the number of epochs. Each epoch is a full pass through the
+    dataset. This means – you guessed it – *the inner loop is just a pass through
+    your data loader*. This means that your data loader needs to use, under the hood,
+    a really useful object in Python known as an **iterator**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, let’s take a quick look at objects in Python, and build up to the data
+    loader.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.1 – Classes in Python](img/B18942_Figure_6.1.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.1 – Classes in Python
+  prefs: []
+  type: TYPE_NORMAL
+- en: Remember, Python is an **object-oriented** language. This means that, most of
+    the time, when you’re working in Python you’re working with objects. A class is
+    then just a convenient way of building, maintaining, and using objects.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Most of the time, in the real world, you won’t be building objects, unless you’re
+    building a new software SDK. Usually, as a service consumer, you’re just using
+    an object someone else has built, and developing a script to integrate it into
+    your tasks. This is also true in deep learning; most of our objects are already
+    written in software packages such as PyTorch, pandas, sklearn, and so on.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, what if I wanted to point to a really large list all at once, but have
+    it return only a predefined number of objects every time I call that function?
+    Would I have to build this entire construct myself? Now that I’m not in grad school
+    anymore, I can happily say no way! I’d just use an iterator, as shown in the following
+    screenshot.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.2 – A simple iterator class in Python](img/B18942_Figure_6.2.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.2 – A simple iterator class in Python
+  prefs: []
+  type: TYPE_NORMAL
+- en: Python iterators are purpose-built for scenarios like this, calling an object
+    multiple times but retrieving a different item each time. Many objects in Python
+    support iterators, such as lists and dictionaries. Turning one of them into an
+    iterator is usually pretty simple. You’ll do it in two steps, first when you define
+    the core object as an iterator, here with the `iter()` syntax. Second, when you
+    call the iterator to provide you with the next batch of items, here with `next()`.
+    Expect the syntax to change, but most of the concepts to stay the same.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Your job in building a data loader is *not* to necessarily build a class from
+    scratch. It’s to use some software framework, such as NumPy, Hugging Face, PyTorch,
+    or TensorFlow, to accept the data you want to work with. Then, you need to use
+    that pre-built data loader to walk through your batches and populate your training
+    loop with them.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that you know what a data loader is supposed to do, let’s explore how to
+    build your own data loader.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Building and testing your own data loader – a case study from Stable Diffusion
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The syntax for data loaders is guaranteed to change, so I don’t want to rely
+    on PyTorch’s current implementation too heavily. However, let me provide you with
+    one simple screenshot:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.3 – Using data loaders in PyTorch](img/B18942_Figure_6.3.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.3 – Using data loaders in PyTorch
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This is actually from my re:Invent demo on large-scale training in 2022, with
+    Gal Oshri from SageMaker and Dan Padnos from AI21: [https://medium.com/@emilywebber/how-i-trained-10tb-for-stable-diffusion-on-sagemaker-39dcea49ce32](https://medium.com/@emilywebber/how-i-trained-10tb-for-stable-diffusion-on-sagemaker-39dcea49ce32).
+    Here, I’m training Stable Diffusion on 10 TB of data, using SageMaker and FSx
+    for Lustre, which is a distributed file system built for high-performance computing.
+    More on that and related optimizations later in the chapter!'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As you can see, really the only hard part about this is building the input
+    training dataset. Once you have a valid dataset object, getting a valid data loader
+    is as simple as copying the latest syntax into your script and ensuring it’s valid.
+    So, you ask, how do we get our own training dataset? One word: dictionaries!'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In my setup right now, I have a Jupyter notebook running on Studio. I upgrade
+    and downgrade the instance running my kernel gateway application, or ephemeral
+    notebook, continuously based on whether and when I need to do some large- or small-scale
+    processing. In this notebook, I have developed scripts and functions that I’m
+    sure will work, then I copied them into the main script that runs on my SageMaker
+    training jobs. This is where I built out a custom data loading function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Hugging Face provides a nice `load_dataset()` function from its dataset library,
+    but after more than a few hours of searching and testing, I wasn’t able to get
+    this to work with my custom dataset. So, I ended up building my own data loader
+    backend, which I then pointed to the `DatasetDict()` object. In my notebook, it
+    looks like this:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.4 – Create your own DatasetDict object in Hugging Face](img/B18942_Figure_6.4.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.4 – Create your own DatasetDict object in Hugging Face
+  prefs: []
+  type: TYPE_NORMAL
+- en: Pretty simple, right? You can see I clearly have a training set, which itself
+    is just the word `train` pointing to a Hugging Face `Dataset` object. You can
+    also see that I only have 1,736 objects in this dataset, which is good, because
+    I’m only using an `ml.t3.medium` instance to run my notebook, and it’s tiny. When
+    I need to point to and test a larger dataset, then in Studio, I upgrade my instance
+    in a few clicks and suddenly I have hundreds of GB of instance memory with tens
+    of CPU cores at my fingertips!
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'When it’s simple, that is due to elegant design decisions. Your code should
+    be like poetry: short, simple, effective, and evocative. Powerful. This goes all
+    the way back to Shakespeare:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Brevity is the soul of wit.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For my Stable Diffusion dataset, I downloaded 50 million image and caption pairs.
+    More on how I did that is presented later in the chapter!
+  prefs: []
+  type: TYPE_NORMAL
+- en: After this, I realized that it would be extremely inefficient to waste expensive
+    GPU time loading that entire dataset into memory. This is because my implementation,
+    which no doubt could be improved, lazily lists all of the images, walks through
+    them one by one, reads the caption, and stores it with the pointer.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, fortunately, I could at least use Python’s multiprocessing package to list
+    the images concurrently, one per CPU core, but for 50 million images that could
+    easily take 24 hours to do. On top of that, I only needed one machine to execute
+    this task. My training cluster has 24 `ml.p4d.24xlarge` machines, so I was not
+    going to let all of those hosts sit idle while I listed the images and walked
+    through them. So, I built an index!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Here, the index is simply a JSON Lines object. Let’s inspect it!
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.5 – Inspect the data index](img/B18942_Figure_6.5.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.5 – Inspect the data index
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'I spent a few days building this whole process end to end:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, I tested my training script with some toy data on SageMaker to make sure
+    it worked properly.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Then, I downloaded a new dataset using more than a few large CPU machines on
+    SageMaker.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Next, I put the dataset onto FSx for Lustre. I tested this on SageMaker, pointing
+    to the relevant **Virtual Private Cloud** (**VPC**) location.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Then I replicated a tiny version of this, with just a few objects, in Studio.
+    I built some scripts to parse these objects, ensuring they scaled and were operational
+    as I went. I moved those scripts onto my SageMaker training jobs and executed
+    a run on a large-CPU machine overnight.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The next morning, I built and tested my index loader, moving it onto SageMaker
+    training as it worked. Now I am running on 16 `ml.p4d.24xlarge` instances, or
+    128 A100 GPUs. Tomorrow, I’ll do the full run for one full epoch with 50 million
+    images on 24 `ml.p4d.24xlarge` instances, or 192 GPUs. If I could do this end
+    to end, so can you!
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Throughout this chapter, I’ll share optimizations about that entire pipeline
+    with you, but for now, let’s unpack one key aspect of this training flow that
+    is critical to preparing your data for your chosen model: tokenizers.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating embeddings – tokenizers and other key steps for smart features
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Now that you have your data loader tested, built, and possibly scaled, you’re
+    thinking to yourself, what do I do with all of these raw images and/or natural
+    language strings? Do I throw them straight into my neural network? Actually, the
+    last five years of learning representations have proven this definitively: no,
+    you should not put raw images or text into your neural network right off the bat.
+    You should convert your raw inputs to embeddings by using another model.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The intuition for this is simple: before you teach your model how to recognize
+    relationships in your dataset, you first have to introduce it to the concept of
+    a dataset. Creating embeddings is basically a way of doing this; you use a data
+    structure that has been trained from another process to create vector representations
+    of your data. That is to say, you provide your raw text and images as input, and
+    you get high-dimensional vectors as output. Those vectors are produced through
+    what you hope is a valid process that should catch nuanced details in their inter-relationship.
+    Commonly in multimodal settings, such as with Stable Diffusion, you will actually
+    use different processes for the vision and language embeddings, putting them into
+    your model and integrating them through the learning loop distinctly.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Natural language tends to use a process called **tokenization**. Each model
+    has a unique tokenizer that was trained on a specific vocabulary. If you want
+    to pretrain or finetune a GPT-3 type model, you’ll need to download the tokenizer
+    that ships with the model and apply that tokenizer to your dataset. This will
+    have a unique way of breaking down strings into words, subwords, or characters
+    depending on the model. Eventually, each token is converted to a high-dimensional
+    vector, or in more simple terms, a really long list of numbers. We call them **vector
+    embeddings**. Many word embeddings also include **positional encoding**, a numerical
+    way of representing to the neural network where that specific word, or token,
+    sits in the sentence relative to other words. This positional encoding helps your
+    transformer-based model pick up on the meaning of words in that specific dataset.
+    If you are pretraining a net new model or dataset, you will likely end up needing
+    to train your own tokenizer.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In computer vision, a common way of creating embeddings for images is *using
+    a pretrained vision model to create features*. This means you can use a fully-trained
+    computer vision model, such as **Contrastive Language-Image Pretraining** (**CLIP**),
+    while setting the weights to inference only. This is the same as freezing the
+    weights. That means as images pass through this network, the network creates a
+    dense representation of the image, without actually formally producing a prediction.
+    This dense representation then interacts with your trainable model, the one you
+    actually are running gradient descent against.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, let’s make these ideas more concrete through our example training Stable
+    Diffusion on SageMaker.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.6 – Importing libraries](img/B18942_Figure_6.6.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.6 – Importing libraries
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, you’ll see I’m pointing to two critical libraries: `diffusers` and `transformers`.
+    Both of them are from our friends over at Hugging Face!'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `transformers` library provides a lot of helpful methods and techniques
+    for working with natural language. The `diffusers` library does the same, just
+    for models based on diffusion. Diffusion models tend to enable high-quality image
+    generation, commonly by providing a prompt from natural language. This means you
+    can provide a natural language prompt and have the model generate an image for
+    you!
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the preceding code snippet, we’re just pointing to the base models and tokenizers
+    we’ll use to featurize the image and text pairs we need to train a Stable Diffusion
+    model. After that, we need to download them properly.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.7 – Importing models to train Stable Diffusion](img/B18942_Figure_6.7.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.7 – Importing models to train Stable Diffusion
+  prefs: []
+  type: TYPE_NORMAL
+- en: To save time on my massive GPU cluster, I downloaded each of these models ahead
+    of time. I saved them in my S3 bucket, then created a *training channel* to point
+    to that S3 path when I run my SageMaker training job. The script then reads them
+    from the path on the training cluster where they’ve been downloaded at the start
+    of the job.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A channel is just a pointer from your SageMaker training job to any supported
+    data input. That can be an S3 path, an FSx for Lustre mount, or an EFS volume.
+    Channels are handy ways to organize different inputs for your job. You can create
+    them for pointing to different splits in your data, such as training and validation,
+    base models, scripts, or anything else you want. These are tracked for you as
+    job parameters, so you can see them stored with the rest of the job metadata.
+    They’re also searchable. SageMaker will copy, stream, or mount your channels after
+    the instances start, so make sure you keep the copy time to a minimum, as this
+    will reduce costs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, we need to *freeze the weights*. This is the same as setting them to “untrainable,”
+    or “inference only.” It means we only want the result of data passing through
+    this model, not a prediction. Fortunately for us, the syntax for this is dead
+    simple.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.8 – Freezing parameters for the non-trainable models](img/B18942_Figure_6.8.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.8 – Freezing parameters for the non-trainable models
+  prefs: []
+  type: TYPE_NORMAL
+- en: After this, we need to process our raw data to feed it into our neural network.
+    This is where tokenization and featurization come into play.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.9 – Preprocessing the images](img/B18942_Figure_6.9.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.9 – Preprocessing the images
+  prefs: []
+  type: TYPE_NORMAL
+- en: This snippet should be fairly understandable. We pass in our training set. This
+    function is explicitly expecting two columns, one with a path to images and one
+    with captions. Then it uses a Python `Image` object to simply read all the images
+    from disk and convert them into a machine-readable format. Typically this is three
+    channels, one each for red, green, and blue. Each channel is a two-dimensional
+    array or a simple list of lists of floating-point pixel values. After reading
+    the images, the function next tokenizes the captions. This script uses `ClipTokenizer`
+    to parse the provided natural text.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This function is then applied after we’ve created the `DataSetDict()` object,
+    as in the notebook earlier in this chapter. We point to the training set, apply
+    the transformation, and we are ready to finally pass this into our data loader!
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.10 – Pointing to the training dataset](img/B18942_Figure_6.10.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.10 – Pointing to the training dataset
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we’ve learned how to build, test, and scale our data loader, let’s
+    learn about different optimizations for the entire data flow available on AWS.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Optimizing your data pipeline on Amazon SageMaker
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Remember that we’ve learned about ephemeral training on Amazon SageMaker, where
+    you can seamlessly spin up anywhere from a few to hundreds, to thousands of GPUs
+    on remote instances that are fully managed. Now, let’s learn about different options
+    to optimize sending data to your SageMaker Training instances.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'If you’ve worked with SageMaker Training, you’ll remember the different stages
+    your job moves through: starting the instances, downloading your data, downloading
+    your training image and invoking it, then uploading the finished model.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Here’s a screenshot from my 2022 re:Invent demo, featuring Stable Diffusion.
+    You might ask yourself, how is it that I’m downloading 50 million image/text pairs
+    in only two minutes? The answer is an optimized data pipeline. In this case, I
+    used FSx for Lustre.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.11 – Training job status](img/B18942_Figure_6.11.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.11 – Training job status
+  prefs: []
+  type: TYPE_NORMAL
+- en: For much smaller datasets, such as those that are only a few tens of GB, it’s
+    fine to simply point to S3 as your input training channel. When you use S3 as
+    your training input, SageMaker can either *copy* (File Mode) or *stream* (Pipe
+    Mode or Fast File Mode) your files during training. Moving data around is generally
+    a slow process, and here it’s bottlenecked by the bandwidth of your lead training
+    machine. Using File Mode with S3 as your input can easily add tens of minutes
+    to your training time, and possibly hours or more as your dataset scales. When
+    I train on 100 GB, for example, using S3 as my input data mode without streaming
+    would add a solid 20 minutes to my training time. Sadly, I am paying for that
+    wait time, because the instances have already initialized, so it’s in my best
+    interest to optimize my data pipeline.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In some cases, a simple and cost-effective alternative to the S3 copy option
+    is **streaming**, using either Pipe Mode or Fast File Mode. Pipe Mode requires
+    some scripting modifications on your end, but happily, Fast File Mode does not!
+    However, Fast File Mode is known to have some scaling issues when you work with
+    a larger number of files. To solve this issue, and to handle data loading at scale
+    for hundreds to thousands of GPUs, we typically recommend FSx for Lustre.
+  prefs: []
+  type: TYPE_NORMAL
+- en: FSx for Lustre is a distributed file system that easily connects to a data repository
+    in S3, mounts to your SageMaker Training jobs, and executes a high throughput
+    training loop on your behalf. This is because it reads the data from S3 once,
+    then stores it in a cache and *scales reads horizontally with your mounts*. Said
+    another way, once your data is loaded into Lustre, the training loop throughput
+    reads and writes scale linearly as a function of your accelerators.
+  prefs: []
+  type: TYPE_NORMAL
+- en: You’ll need to create Lustre in a VPC, that is to say, in your virtual private
+    cloud, on AWS. This is good news for those who work with personally identifiable
+    information or in heavily regulated industries. Using VPCs, you can build and
+    maintain a private network on the cloud, using security and networking controls
+    to manage traffic and secure access to your highly restricted content.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Honestly, manage traffic and secure access from an S3 data repository is pretty
+    straightforward. It usually takes me about twenty minutes, with a few of my own
+    hiccups along the road, and that includes the volume creation time.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here’s how to establish the data repository when you are creating Lustre:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, point to your S3 path with all of the data.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Second, determine what type of policies you’d like to set. An import policy
+    will determine how Lustre automatically grabs data from S3, and an export policy
+    determines how Lustre automatically pushes data to S3.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Lastly, here’s a view of my volume after I loaded it with 9.5 TB of Stable
+    Diffusion image/text pairs:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/B18942_Figure_6.12.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.12 – My FSx for Lustre volume
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Once you have Lustre created, you’ll need to spend another thirty minutes or
+    so testing and perfecting the connection from SageMaker to Lustre. This entails
+    configuring the VPC and its relevant subnet. Currently, these are the key steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Make sure you have an internet gateway in your target VPC.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Make sure the subnet where you created Lustre has a route to that gateway.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Ensure the security group for that subnet allows inbound and outbound traffic,
+    defined in multiple ways.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Establish an S3 VPC endpoint for your target buckets to allow SageMaker to upload
+    the finished model artifacts to S3 on completion.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: I’ve seen some configurations with two subnets, one to interact with the actual
+    public internet to `pip install` new packages, and one to run the training jobs.
+    Personally, I skipped over this by building a Docker container with all my packages,
+    then loaded this to ECR, and pointed to it when starting my training job.
+  prefs: []
+  type: TYPE_NORMAL
+- en: When you run your training jobs, if you want to point to a specific VPC, make
+    sure you pass in the relevant credentials to the estimator. You’ll also need to
+    pass a few extra parameters to point to FSx for Lustre.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Lastly, you can also mount Lustre to your notebooks directly! In this setup,
+    you’ll need to *rebuild the notebook instance to connect to the same VPC credentials*.
+    That actually isn’t necessary to launch a job on Lustre, but it is required to
+    mount the volume directly. Here’s a nice script that helps you do this *(1)*.
+    For an even more detailed consideration of the pros and cons of each of these
+    options, see our blog post on the topic *(2)*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that you have a better idea of how to optimize your data pipeline options
+    to point to SageMaker for the training loop, let’s take a step back and evaluate
+    a few options for downloading and transforming datasets at scale on AWS!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Transforming deep learning datasets at scale on AWS
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: At this point, you must be thinking now I know how to build and test my data
+    loader, and even put my data on FSx for Lustre to integrate with SageMaker training,
+    but what if I need to do large-scale downloads or transformations ahead of time?
+    How can I do those at a large scale, in a cost-effective and simple way?
+  prefs: []
+  type: TYPE_NORMAL
+- en: While there are many different tools and perspectives for attacking this problem,
+    my personal favorite is always to take the simplest, least expensive, and most
+    scalable approach. To me, that’s actually with **job parallelism** on SageMaker
+    Training.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As it turns out, SageMaker Training is a very broad compute service offering
+    you can use to run essentially any type of script. In particular, you can use
+    it to run large CPU-based data transformation jobs in parallel. There’s no upper
+    limit on how many SageMaker Training jobs you can run, and we have customers who
+    run *thousands of jobs a day* in order to train models for their unique business
+    purposes. This might be training tiny models for advertising, personalized recommendations,
+    pricing, or other enhancements.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For my Stable Diffusion case study, I actually used 18 concurrent SageMaker
+    jobs to download all of my data! First, I used one large CPU job to download all
+    of the Parquet files included in the Laion-5B dataset. Then, I looped through
+    them, sending each Parquet file to its own job. It looked something like this:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.13 – Use job parallelism to transform data at scale](img/B18942_Figure_6.13.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.13 – Use job parallelism to transform data at scale
+  prefs: []
+  type: TYPE_NORMAL
+- en: See how I am actually running 18 different jobs? This way, you can easily track,
+    manage, and assess each job. All of the results are sent back to S3 – in this
+    case, by the tool itself, which writes to S3 on my behalf. Now I don’t even need
+    to use Spark! I can just run as many SageMaker jobs as I need to, using Python
+    and its `multiprocessing` package, to execute as many tasks as I need.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.14 – A data processing script](img/B18942_Figure_6.14.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.14 – A data processing script
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'How does `multiprocessing` with Python work, you ask? It’s simple. The lynchpin
+    is the critical `Pool.map()` process. First, you create the pool by providing
+    it with the number of available CPUs. You can look that up using the `multiprocess.cpu_count()`
+    method. Then you’ll bring two objects to `map()`: first, a list of objects you
+    want farmed out to all of the processes, and second, a function that you want
+    executed on each object in that list. It’s basically the concept of a `for`loop,
+    but here, instead of using only one process, you’re using as many processes as
+    are available on the instance. That means if you are going from 2 CPUs up to 96
+    CPUs, you can run more than 10x faster.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: It’s a great idea to offload as much data transformation to CPUs as you can
+    because CPUs are dirt cheap. In comparing the costs of my 192 GPUs per hour versus
+    18 CPU-based jobs, the CPU was about 13x cheaper than the GPUs!
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you also may have guessed, we have literally hundreds of other options for
+    manipulating data on AWS. I won’t go into detail on that here, but feel free to
+    explore for yourself.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: At this point in the book, and in your project, you should have a fully functional
+    data loader built, tested, and optimized on both your local notebook and your
+    SageMaker training instances. You should have your entire dataset identified,
+    downloaded, processed, and ready to run through your training loop. You should
+    have done at least one full pass through your training loop with a tiny sample
+    of your dataset – something as small as 100 samples would be fine. You should
+    have identified how you want to send your large dataset to your SageMaker training
+    instances, possibly by using FSx for Lustre, and you should have this built, tested,
+    and operational. You should also know a few other ways to store and process data
+    on AWS.
+  prefs: []
+  type: TYPE_NORMAL
+- en: You should be very comfortable making architectural decisions that reduce your
+    project costs, such as opting for CPU-based data downloading and processing, along
+    with the Python `multiprocessing` package to easily farm your tasks out to all
+    available CPUs. You should also be comfortable parallelizing jobs on SageMaker
+    training, such that you can run different jobs at the same time, each working
+    on different parts of your project.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now that you’ve fully prepared your dataset, in the next chapter, we’ll move
+    on to the main event: training your model!'
+  prefs: []
+  type: TYPE_NORMAL
+- en: References
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Please go through the following content for more information on a few topics
+    covered in the chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*amazon-sagemaker-notebook-instance-lifecycle-config-samples*: [https://github.com/aws-samples/amazon-sagemaker-notebook-instance-lifecycle-config-samples/blob/master/scripts/mount-fsx-lustre-file-system/on-start.sh](https://github.com/aws-samples/amazon-sagemaker-notebook-instance-lifecycle-config-samples/blob/master/scripts/mount-fsx-lustre-file-system/on-start.sh'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: )
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Choose the best data source for your Amazon SageMaker training* *job*: [https://aws.amazon.com/blogs/machine-learning/choose-the-best-data-source-for-your-amazon-sagemaker-training-job/](https://aws.amazon.com/blogs/machine-learning/choose-the-best-data-source-for-your-amazon-sagemaker-training-job/)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Part 3: Train Your Model'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In part 3, you’ll learn how to train your large-scale language and vision model.
+    You’ll learn how to find the right hyperparameters, ensure that loss decreases,
+    and troubleshoot ongoing performance issues.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This section has the following chapters:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[*Chapter 7*](B18942_07.xhtml#_idTextAnchor116), *Finding the Right Hyperparameters*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[*Chapter 8*](B18942_08.xhtml#_idTextAnchor127), *Large-Scale Training on SageMaker*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[*Chapter 9*](B18942_09.xhtml#_idTextAnchor138), *Advanced Training Concepts*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL

@@ -1,0 +1,1077 @@
+- en: '*Chapter 7*: Understanding the Voice of Your Customer Analytics'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the previous chapters, to see improving customer service in action, we built
+    an AI solution that uses the **AWS NLP** service **Amazon Comprehend** to first
+    analyze historical customer service records to derive key topics using Amazon
+    Comprehend Topic Modeling and train a custom classification model that will predict
+    routing topics for call routing using **Amazon Comprehend Custom Classification**.
+    Finally, we used **Amazon Comprehend detect sentiment** to understand the emotional
+    aspect of the customer feedback.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we are going to focus more on the emotional aspect of the customer
+    feedback, which could be an Instagrammer, Yelp reviewer, or your aunt posting
+    comments about your business on Facebook, and so on and so forth.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Twenty years back, it was extremely tough to find out as soon as possible what
+    people felt about your products and get meaningful feedback to improve them. With
+    globalization and the invention of social media, nowadays, everyone has social
+    media apps and people express their emotions more freely than ever before. We
+    all love tweeting about Twitter posts and expressing our opinions in happy, sad,
+    angry, and neutral modes. If you are a very popular person such as a movie star
+    or a business getting millions of such comments, the challenges become going through
+    large volumes of tweets posted by your fans and then quickly finding out whether
+    your movie did well or it was a flop. In the case of a business, a company, or
+    a start-up, people quickly know by reading comments whether your customer service
+    and product support are good or not.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Social media analytics is a really popular and challenging use case. In this
+    chapter, we will focus on text analytics use cases. We will talk about some of
+    the very common use cases where the power of NLP will be combined with analytics
+    to analyze unstructured data from chats, social media comments, emails, or PDFs.
+    We will show you how you can quickly set up powerful analytics for social media
+    reviews.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will navigate through the following sections:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Challenges of setting up a text analytics solution
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Setting up a Yelp review text analytics workflow
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'For this chapter, you will need access to an AWS account. Before getting started,
+    we recommend that you create an AWS account, and if you have not created one,
+    please refer to the previous chapter for sign-up details. You can skip signup
+    if you already have an existing AWS account and are following instructions from
+    past chapters for creating the AWS account. The Python code and sample datasets
+    for Amazon Textract examples are at the repository link here: [https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/tree/main/Chapter%2007](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/tree/main/Chapter%2007).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We will walk you through the setup steps on how you can set up the preceding
+    code repository on a Jupyter notebook with the correct IAM permissions in the
+    *Setting up to solve the use case* section.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Check out the following video to see the Code in Action at [https://bit.ly/3mfioWX](https://bit.ly/3mfioWX).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Challenges of setting up a text analytics solution
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: One of the challenges most organizations face is getting business insights from
+    unstructured data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This data can be in various formats, such as chats, PDF documents, emails, tweets,
+    and so on. Since this data does not have a structure, it's really challenging
+    for the traditional data analytics tool to perform analytics on it. This is where
+    Amazon Textract and Amazon Comprehend can help.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Amazon Textract can make this unstructured data structured by extracting text
+    and then Amazon Comprehend can extract insights. Once we have the data in text,
+    you can perform serverless **Extract, Transform, Load (ETL)** by using **Amazon
+    Glue** and convert it into a structured format. Moreover, you can use **Amazon
+    Athena** to perform serverless ad hoc SQL analytics on the unstructured text you
+    just extracted and transformed using Glue ETL. Amazon Glue can also crawl your
+    unstructured data or text extracted from Amazon Textract in Amazon S3 and store
+    it in a Hive metadata store.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Lastly, you can also analyze and visualize this data using **Amazon QuickSight**
+    to gain business insight.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Amazon QuickSight helps you create quick visualizations and dashboards to be
+    shared with your business or integrated into an application for your end users.
+    For example, you are using Instagram for business and want to analyze the comments
+    posted on your product pictures and create a real-time dashboard to know whether
+    people are posting positive or negative comments about them. You can use the components
+    mentioned to create a real-time social media analytics dashboard.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We all love eating out in a restaurant. The challenge is picking the best restaurant
+    based just on reviews.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We are going to show you how you can analyze Yelp reviews by using the succeeding
+    architecture:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.1 – Social media analytics serverless architecture'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_07_01.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 7.1 – Social media analytics serverless architecture
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The architecture in *Figure 7.1* walks you through how you take raw data and
+    transform it to provide new insights, optimize datasets in your data lake, and
+    visualize the serverless results. We will start by doing the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Getting the Yelp review dataset and uploading it to an Amazon S3 bucket using
+    the Jupyter notebook.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Registering the raw data in the AWS Glue Data Catalog by crawling it.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Performing AWS Glue ETL on this raw data cataloged in the AWS Glue Data Catalog.
+    Once registered in the AWS Glue Data Catalog, after crawling the Yelp reviews
+    data in AWS S3, this ETL will transform the raw data into Parquet format and enrich
+    it with Amazon Comprehend insights.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Now we can crawl and catalog this data again in the AWS Glue Data Catalog. Cataloging
+    adds the tables and metadata for Amazon Athena for ad hoc SQL analytics.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Lastly, you can quickly create visualizations on this transformed Parquet data
+    crawled in Amazon Athena using Amazon QuickSight. Amazon QuickSight integrates
+    directly with Amazon Athena as well as Amazon S3 as a data source for visualization.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: You can also convert this solution into a real-time streaming solution by using
+    Amazon Kinesis Data Firehose, which will call these Yelp reviews and Twitter APIs,
+    and directly store near real-time streaming data in Amazon S3, and from there
+    you can use AWS Glue ETL and cataloging with Amazon Comprehend to transform and
+    enrich with NLP. Then this transformed data can be directly visualized in QuickSight
+    and Athena. Moreover, you can use AWS Lambda functions and step functions to set
+    up a completely serverless architecture and automate these steps.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this section, we covered the challenges of setting up a text analytics workflow
+    with unstructured data and proposed architecture. In the next section, we will
+    walk you through how you can build this out for a Yelp reviews dataset or any
+    social media analytics dataset using a few lines of code through a Jupyter notebook.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Setting up a Yelp review text analytics workflow
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In this section, we will walk you through how you can build this out for a
+    Yelp reviews dataset or any social media analytics dataset by following the steps
+    using a Jupyter notebook and Python APIs:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Setting up to solve the use case
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Walking through the solution using a Jupyter notebook
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The setup steps will involve the steps to configure **Identity and Access Management
+    (IAM)** roles and the walkthrough notebook will walk you through the architecture.
+    So, let's get started.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Setting up to solve the use case
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'If you have not done so in the previous chapters, you will first have to create
+    an Amazon SageMaker Jupyter notebook and set up `Chapter 07` folder, and open
+    the `chapter07 social media text analytics.ipynb` notebook:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'You can refer to the Amazon SageMaker documentation to create a notebook instance:
+    [https://docs.aws.amazon.com/sagemaker/latest/dg/gs-setup-working-env.html](https://docs.aws.amazon.com/sagemaker/latest/dg/gs-setup-working-env.html).
+    To follow these steps, please sign in to the `Amazon SageMaker` in the search
+    window, select it, and navigate to the **Amazon SageMaker** console.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select **Notebook instances** and create a notebook instance by specifying an
+    instance type, storage, and an IAM role.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'When creating a SageMaker notebook for this setup, you will need IAM access
+    to the services that follow:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: AWS Glue to run ETL jobs and crawl the data
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: AWS Athena to call Athena APIs through the notebook
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: AWS Comprehend to perform sentiment analysis
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: AWS QuickSight for visualization
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: AWS S3 access
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Make sure your IAM for the notebook has the following roles:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 7.2 – Important IAM roles to run the notebook'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_07_02.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 7.2 – Important IAM roles to run the notebook
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can modify an existing notebook role you are using to add these permissions.
+    In *Figure 7.2* is the SageMaker IAM role that you used to create your notebook
+    instance. You can navigate to that role and click **Attach policies** to make
+    sure you have the necessary roles for your notebook to execute the service APIs
+    we are going to use.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Follow through the steps in this notebook that correspond to the next few subheadings
+    in this section, by executing one cell at a time. Please do read the descriptions
+    provided in each notebook cell.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Additional IAM pre-requisites for invoking AWS Glue from this notebook
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: In the previous section, we walked you through how to set up the notebook and
+    important IAM roles to run this notebook. In this section, we assume that you
+    are already in the notebook and we have added instructions in the notebook on
+    how you can get the execution role of the notebook and enable it to invoke AWS
+    Glue jobs from this notebook.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Go to the notebook and follow the *Finding out the current execution role of
+    the notebook* section by running the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: You will get the role associated with this notebook. Now, in the next section,
+    we will walk you through how you can add AWS Glue as an additional trusted entity
+    to this role.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Adding AWS Glue and Amazon Comprehend as an additional trusted entity to this
+    role
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'This step is needed if you want to pass the execution role of this notebook
+    while calling Glue APIs as well, without creating an additional role. If you have
+    not used AWS Glue before, then this step is mandatory. If you have used AWS Glue
+    previously, then you should have an already existing role that can be used to
+    invoke Glue APIs. In that case, you can pass that role while calling Glue (later
+    in this notebook) and skip this next step:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: On the IAM dashboard, click on **Roles** on the left-side navigation and search
+    for the **r****ole**. Once the role appears, click on **Role** to go to its **Summary**
+    page.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click on the **Trust relationships** tab on the **Summary** page to add AWS
+    Glue as an additional trusted entity.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Click on **Edit trust relationship** and replace the JSON with this JSON:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Once this is complete, click on **Update Trust Policy** and you are done.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 7.3 – Setting up trust with Glue in an IAM role'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_07_03.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 7.3 – Setting up trust with Glue in an IAM role
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this section, we covered how you can set up the Jupyter notebook and the
+    necessary IAM permissions to run the Jupyter notebook. In the next section, we
+    will walk you through the solution by the notebook setup you did.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Walking through the solution using Jupyter Notebook
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'In this section, we will walk you through how you can build this out for a
+    Yelp review dataset or any social media analytics dataset by following the given
+    steps using a Jupyter notebook and Python APIs:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Download the review dataset from Yelp Reviews NLP Fast.ai, which we have already
+    done for you in the notebook.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Register the raw dataset as a table with the AWS Glue Data Catalog.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Run PySpark (AWS Glue job) to convert the dataset into Parquet and get the review
+    sentiment with Amazon Comprehend.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Store the transformed results in a newly curated dataset.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Run a serverless query for the optimized dataset with Amazon Athena.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Provide visual insights of the results with Amazon QuickSight or Bokeh AWS Glue
+    Data Catalog.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Go to this notebook and run the following steps in the code block to set up
+    the libraries:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We have imported the necessary libraries for notebook setup and defined the
+    database name and table names for the AWS Glue Data Catalog. In the next step,
+    we will download the Yelp reviews dataset by running the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now, we will run the following code to untar or unzip this review dataset:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: There are two CSV files in the tarball. One is called `train.csv`, the other
+    is `test.csv`. For those interested, the `readme.txt` file describes the dataset
+    in more detail.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'We will use Python pandas to read the CSV files and view the dataset. You will
+    notice the data contains two unnamed columns for the rating and review. The rating
+    is between 1 and 5 and the review is a free-form text field:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: You get the following output:![Figure 7.4 – Raw Yelp review data
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_07_04.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 7.4 – Raw Yelp review data
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Now, we will upload the file created previously to S3 to be used later by executing
+    the following notebook code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: We downloaded the Yelp dataset and stored it in a raw S3 bucket. In the next
+    section, we will create the AWS Glue Data Catalog database.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating the AWS Glue Catalog database
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'In this section, we will walk you through how you can define a table and add
+    it to the Glue Data Catalog database. Glue crawlers automatically crawl your data
+    from Amazon S3 or from any on-premises database as it supports multiple data stores.
+    You can also bring your own Hive metadata store and get started with crawlers.
+    Once you have created a crawler, you can perform Glue ETL jobs as these jobs use
+    these Data Catalog tables as source data and target data. Moreover, the Glue ETL
+    job will read and write to the data stores that are specified in the source and
+    target Data Catalog tables in Glue crawlers. There is a central Glue Data Catalog
+    for each AWS account:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We are going to use the `glue.create_database` API ([https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/glue.html#Glue.Client.create_database](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/glue.html#Glue.Client.create_database))
+    to create a Glue database:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now we will create the raw table in Glue ([https://docs.aws.amazon.com/glue/latest/dg/tables-described.html](https://docs.aws.amazon.com/glue/latest/dg/tables-described.html)).
+    There is more than one way to create a table in Glue:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Using an AWS Glue crawler*: We have classifiers that automatically determine
+    the schema of the dataset while crawling using a built-in classifier. You can
+    also use a custom classifier if your data schema has a complicated nested JSON
+    structure.'
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Creating a table manually or using the APIs*: You create a table manually
+    in the console or by using an API. You specify the schema to be classified when
+    you define the table.'
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Note:'
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'For more information about creating a table using the AWS Glue console, see
+    *Working with Tables on the AWS Glue Console*: [https://docs.aws.amazon.com/glue/latest/dg/console-tables.html](https://docs.aws.amazon.com/glue/latest/dg/console-tables.html).'
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'We are using the `glue.create_table` API to create tables:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The preceding code will create tables in the AWS Glue Data Catalog.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Now we will visualize this data using the Amazon Athena `pyAthena` API. To
+    see the raw Yelp reviews, we will be installing this Python library for querying
+    the data in the Glue Data Catalog with Athena:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The following code will help us visualize the database and tables in Glue for
+    the raw dataset:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You will see the following table in the output:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 7.5 – Athena output for the raw dataset in Glue Data Catalog](img/B17528_07_05.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.5 – Athena output for the raw dataset in Glue Data Catalog
+  prefs: []
+  type: TYPE_NORMAL
+- en: So, we covered how you can create a Glue Data Catalog and crawl the raw Yelp
+    data we downloaded in Amazon S3\. Then we showed you how you can visualize this
+    data in Amazon Athena using `pyAthena` libraries. In the next section, we will
+    walk you through how you can transform this data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Transforming raw data to provide insights and visualization
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Now we will walk you through how you can transform the raw data using PySpark
+    in an AWS Glue job to call Amazon Comprehend APIs to get sentiment analysis on
+    the review, convert the data into Parquet, and partition by sentiment. This will
+    allow us to optimize analytics queries when viewing data by sentiment and return
+    just the values we need, leveraging the columnar format of Parquet.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We covered Comprehend's detect sentiment real-time API in [*Chapter 3*](B17528_03_Final_SB_ePub.xhtml#_idTextAnchor049),
+    *Introducing Amazon Comprehend*. In this job, we will use the real-time batch
+    detect sentiment APIs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will create a PySpark job to add a primary key and run a batch of reviews
+    through Amazon Comprehend to get a sentiment analysis of the reviews. The job
+    will limit the number of rows it converts, but this code could be modified to
+    run the entire dataset:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In order to run your code in AWS Glue, we will upload the code and dependencies
+    directly to S3 and pass those locations while invoking the Glue job. We will write
+    the ETL job using Jupyter Notebook''s cell magic `%%writefile`. We are using the
+    AWS Glue script next to transform or perform ETL on the Yelp reviews dataset by
+    using Glue transform and adding a sentiment column to the DataFrame by analyzing
+    sentiment using Amazon Comprehend:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We have imported the necessary APIs and now we will convert the Glue DynamicFrame
+    to a Spark DataFrame to read the data from our Glue Data Catalog. We will select
+    the review and rating columns from the database and the table we created in the
+    Glue Data Catalog:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We are defining some limits such as how many characters are to be sent for
+    batch detect sentiment – `MAX_SENTENCE_LENGTH_IN_CHARS` – `w`hat the batch size
+    of reviews sent for getting sentiment should be – `COMPREHEND_BATCH_SIZE` – and
+    how many batches are to be sent:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Each task handles 5*10 records and we are calling the Comprehend batch detect
+    sentiment API to get the sentiment and add that sentiment after the transformation
+    with AWS Glue. Creating a function where we are passing the text list and calling
+    the batch detect sentiment API was covered in [*Chapter 3*](B17528_03_Final_SB_ePub.xhtml#_idTextAnchor049),
+    *Introducing Amazon Comprehend*:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The following code will grab a sample set of records with a review size under
+    the Comprehend limits:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We are using the Glue DataFrame to concatenate the submission ID and body tuples
+    into arrays of a similar size and transforming the results:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We are converting the transformed DataFrame with sentiments into Parquet format
+    and saving it in our transformed Amazon S3 bucket:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The key point in this code is how easy it is to get access to the AWS Glue
+    Data Catalog leveraging the Glue libraries:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Write S3 using `glueContext.write_dynamic_frame. from_options` with the following
+    options:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Partition the data based on columns – `connection_options = {"path": parquet_output_path,
+    "partitionKeys": ["sentiment"]}`.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Convert data to a columnar format – `format="parquet"`.
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'We will be uploading the `github_etl.py` script to S3 now so that Glue can
+    use it to run the PySpark job. You can replace it with your own script if needed.
+    If your code has multiple files, you need to zip those files and upload them to
+    S3 instead of uploading a single file like is being done here:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Next, we''ll be creating a Glue client via Boto3 so that we can invoke the
+    `create_job` API of Glue. The `create_job` API will create a job definition that
+    can be used to execute your jobs in Glue. The job definition created here is mutable.
+    While creating the job, we are also passing the code location as well as the dependencies''
+    locations to Glue. The `AllocatedCapacity` parameter controls the hardware resources
+    that Glue will use to execute this job. It is measured in units of **DPU**. For
+    more information on **DPU**, please see [https://docs.aws.amazon.com/glue/latest/dg/add-job.html](https://docs.aws.amazon.com/glue/latest/dg/add-job.html):'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The aforementioned job will be executed now by calling the `start_job_run`
+    API. This API creates an immutable run/execution corresponding to the job definition
+    created previously. We will require the `job_run_id` value for the particular
+    job execution to check the status. We''ll pass the data and model locations as
+    part of the job execution parameters:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Note:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: This job will take approximately 2 minutes to run.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Now we will check the job status to see whether it is `SUCCEEDED`, `FAILED`,
+    or `STOPPED`. Once the job has succeeded, we have the transformed data in S3 in
+    Parquet format, which we will use to query with Athena and visualize with QuickSight.
+    If the job fails, you can go to the AWS Glue console, click on the **Jobs** tab
+    on the left, and from the page, click on this particular job and you will be able
+    to find the CloudWatch Logs link (the link under **Logs**) for these jobs, which
+    can help you to see what exactly went wrong in the job execution:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: In the next section, we will walk you through how to use a Glue crawler to discover
+    the transformed data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Using a Glue crawler to discover the transformed data
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'Most AWS Glue users use a crawler to populate the AWS Glue Data Catalog with
+    tables as a primary method. To do this, what you have to do is add a crawler within
+    your Data Catalog to traverse your data stores. The output of the crawler consists
+    of one or more metadata tables that are defined in your Data Catalog. **ETL**
+    jobs that you define in AWS Glue use these metadata tables as sources and targets:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'A crawler can crawl both file-based and table-based data stores. Crawlers can
+    crawl the data from various types of data stores, such as Amazon S3, RDS, Redshift,
+    DynamoDB, or on-premises databases:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '**Start the Glue Crawler**: You can use the Glue crawler to populate the AWS
+    Glue Data Catalog with tables. The crawler will automatically crawl your data
+    source, which can be an on-premises database or raw CSV files in Amazon S3, and
+    create a metadata table in the Glue Data Catalog, as well as inferring the schema.
+    Glue ETL jobs use these metadata tables in the Glue Data Catalog as sources and
+    targets. You can also bring your existing Hive data catalog to run Glue ETL:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Go to the link in the output to visualize your crawler in Amazon Athena:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![Figure 7.6 – Yelp curated crawler'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_07_06.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 7.6 – Yelp curated crawler
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`READY` state, meaning the crawler completed its crawl. You can also look at
+    the CloudWatch logs for the crawler for more details:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Once you get an output of `READY`, move on to the next step. In this section,
+    we showed you how you can crawl the transformed Parquet data for Yelp reviews,
+    which has sentiment scores from Amazon Comprehend in the AWS Glue Data Catalog.
+    In the next section, we will cover how you can visualize this data to gain meaningful
+    insights into the voice of customer analytics.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Viewing the transformed results
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'We will again use the PyAthena library to run queries against the newly created
+    dataset with sentiment results and in the Parquet format. In the interest of time,
+    we will be using the Bokeh AWS Glue Data Catalog within the notebook to visualize
+    the results instead of Amazon QuickSight:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'QuickSight is able to use the same Athena queries to visualize the results
+    as well as numerous built-in connectors to many data sources:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Here''s the output of querying the Glue Data Catalog via Amazon Athena to get
+    the rating, review, and sentiment from the Yelp reviews table:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![Figure 7.7 – Athena query to select rating and sentiment from the Yelp transformed
+    table in the Glue Data Catalog'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_07_07.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 7.7 – Athena query to select rating and sentiment from the Yelp transformed
+    table in the Glue Data Catalog
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`groupby` locally. Alternatively, we could have used the built-in SQL and aggregate
+    functions in Athena to achieve the same result:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Next, you will find the output of the `groupby` sentiment query:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 7.8 – Output of the groupby sentiment query'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_07_08.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 7.8 – Output of the groupby sentiment query
+  prefs: []
+  type: TYPE_NORMAL
+- en: We can see from the preceding output that we have more positive reviews than
+    negative ones for the Yelp reviews dataset.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Bokeh framework has a number of built-in visualizations. We will use Bokeh
+    to visualize reviews by sentiment and rating in subsequent code.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Visualize by rating*: We will now compare what the Comprehend API came up
+    with compared to the user rating in the dataset. We are changing `groupby` in
+    the DataFrame to change the dataset:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You will find the output of the query result grouped by rating in the following
+    screenshot:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 7.9 – Output of the query result grouped by rating](img/B17528_07_09.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.9 – Output of the query result grouped by rating
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, we will show you how you can plot this in Bokeh:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: You will find the bar graph showing the count of users with their ratings.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 7.10 – User rating by count'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_07_10.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 7.10 – User rating by count
+  prefs: []
+  type: TYPE_NORMAL
+- en: We can see that the most popular rating given is 1 and the least popular is
+    2\. We covered in this section how you can use simple queries in Amazon Athena
+    and visualization tools such as Bokeh to perform quick visualization and SQL analytics
+    on the Yelp reviews dataset enriched with the sentiment from Amazon Comprehend.
+    We got some cool insights, such as most of the reviews are positive, and also
+    the most popular rating given by users is 1\. You can further drill down and get
+    very specific insights into particular comments by using simple SQL. This helps
+    drive business outcomes very quickly. In the next section, we will walk you through
+    how you can easily create a QuickSight dashboard to gain some cool insights for
+    your business users.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Amazon QuickSight visualization
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'In this section, we will walk you through how you can set up or get started
+    with Amazon QuickSight and visualize the tables in Athena, which was transformed
+    with sentiments using AWS Glue and Comprehend:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'You can follow along with the `Getting Started` guide for QuickSight at [https://docs.aws.amazon.com/quicksight/latest/user/getting-started.html](https://docs.aws.amazon.com/quicksight/latest/user/getting-started.html)
+    to set up your account and then follow the code block to navigate to the QuickSight
+    console:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE30]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '**Manage S3 Access in QuickSight**: We need to do this mandatory step to make
+    sure we do not get an access denied exception while accessing Amazon Athena with
+    Amazon QuickSight.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Go to **Manage QuickSight | Security and permission | Add or remove | In S3\.
+    C**lick on **details** | select the bucket you want to query | **update**.![Figure
+    7.11 – Manage QuickSight access for the S3 data lake
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_07_11.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 7.11 – Manage QuickSight access for the S3 data lake
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Click on the **Create Dataset** option and you will see the following options:![Figure
+    7.12 – Amazon QuickSight setup with the Create a Dataset option
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_07_12.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 7.12 – Amazon QuickSight setup with the Create a Dataset option
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Choose **Athena** from the preceding options. Click the **New data set** button
+    and select **Athena data source**. Name the data source and choose the Yelp **Glue
+    database** and **reviews_parquet** table. Finish the creation by clicking the
+    **Create data source** button. QuickSight supports a number of data connectors.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In the `yelp_reviews` and click **Create data source**. Also, click on **validated**.![Figure
+    7.13 – Creating an Athena data source in QuickSight
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_07_13.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 7.13 – Creating an Athena data source in QuickSight
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Next, you will be selecting the **Yelp** database we created in the Glue Data
+    Catalog and the **reviews_parquet** table.![Figure 7.14 – Select the table to
+    visualize in QuickSight
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_07_14.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 7.14 – Select the table to visualize in QuickSight
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Click on **Save and Visualize**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In this section, we covered how you can create a QuickSight dashboard to analyze
+    Yelp reviews. In the next section, we will talk about deleting the resources you
+    created during this exercise to avoid incurring charges.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Cleaning up
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: In this section, we will walk you through code samples in the notebook to clean
+    up AWS resources created while going through the Yelp sentiment analysis solution
+    to avoid incurring a cost.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Run the cleanup steps to delete the resources you have created for this notebook
+    by running the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE31]'
+  prefs: []
+  type: TYPE_PRE
+- en: We deleted the Glue crawlers, Glue ETL jobs, and the database we created using
+    the notebook here. Let's move on to the next section to wrap it up.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we covered how you can set up a text analytics solution with
+    your existing social media analytics workflow. We gave a specific example of using
+    the Yelp reviews dataset and using serverless ETL with NLP using Amazon Comprehend
+    to set up a quick visual dashboard using Amazon QuickSight. We also covered ad
+    hoc SQL analytics using Amazon Athena to understand the voice or sentiment of
+    the majority of your users using some easy SQL queries. This solution can be implemented
+    with any social media integration, such as Twitter, Reddit, and Facebook, in batch
+    or real-time mode.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the case of a real-time setup, you would integrate Kinesis Data Firehose
+    to have near real-time streaming tweets or social media feeds in this proposed
+    workflow or architecture. Check out the *Further reading* section for a really
+    cool **AI-driven social media dashboard** to implement this architecture at scale.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Another approach you can take in terms of document automation is to have Amazon
+    Textract extract data from your PDFs in the case of RFPs or agreements, and this
+    pipeline can be used to gather sentiment quickly paragraph-wise after performing
+    Glue ETL on the extracted text.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will talk about how you can use AI to automate media
+    workflows to reduce costs and monetize content.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Further reading
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '*How to scale sentiment analysis using Amazon Comprehend, AWS Glue and Amazon
+    Athena* by Roy Hasson ([https://aws.amazon.com/blogs/machine-learning/how-to-scale-sentiment-analysis-using-amazon-comprehend-aws-glue-and-amazon-athena/](https://aws.amazon.com/blogs/machine-learning/how-to-scale-sentiment-analysis-using-amazon-comprehend-aws-glue-and-amazon-athena/))'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*AI-Driven Social Media Dashboard* ([https://aws.amazon.com/solutions/implementations/ai-driven-social-media-dashboard/](https://aws.amazon.com/solutions/implementations/ai-driven-social-media-dashboard/))'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Harmonize, Query, and Visualize Data from Various Providers using AWS Glue,
+    Amazon Athena, and Amazon QuickSight* by Ben Snively ([https://aws.amazon.com/blogs/big-data/harmonize-query-and-visualize-data-from-various-providers-using-aws-glue-amazon-athena-and-amazon-quicksight/](https://aws.amazon.com/blogs/big-data/harmonize-query-and-visualize-data-from-various-providers-using-aws-glue-amazon-athena-and-amazon-quicksight/))'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL

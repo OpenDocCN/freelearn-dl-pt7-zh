@@ -1,0 +1,1198 @@
+- en: Temporal Difference Learning
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '**Temporal difference** (**TD**) learning algorithms are based on reducing
+    the differences between estimates that are made by the agent at different times.
+    It is a combination of the ideas of the **Monte Carlo** (**MC**) method and **dynamic
+    programming** (**DP**). The algorithm can learn directly from raw data, without
+    a model of the dynamics of the environment (like MC). Update estimates are based,
+    in part, on other learned estimates, without waiting for the result (bootstrap,
+    like DP). In this chapter, we will learn how to use TD learning algorithms to
+    resolve the vehicle routing problem.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following topics will be covered in this chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding TD methods
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Introducing graph theory and its implementation in R
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Implementing TD methods to the vehicle routing problem
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: By the end of this chapter, you will have learned about the different types
+    of TD learning algorithms and how to use them to predict the future behavior of
+    a system. We will learn about the basic concepts of the Q-learning algorithm and
+    use them to generate system behavior through the current best policy estimate.
+    Finally, we will differentiate between SARSA and the Q-learning approach.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Check out the following video to see the Code in Action:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[http://bit.ly/2YTB7dD](http://bit.ly/2YTB7dD)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding TD methods
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: TD methods are based on reducing the differences between the estimates that
+    are made by the agent at different times. Q-learning, which we will learn about
+    in the following section, is a TD algorithm, but it is based on the difference
+    between states in immediate adjacent instants. TD is more generic and may consider
+    moments and states that are further away.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'TD methods are a combination of the ideas of the MC method and DP, which, as
+    you may recall, can be summarized as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: MC methods allow us to solve reinforcement learning problems based on the average
+    of the results obtained.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: DP represents a set of algorithms that can be used to calculate an optimal policy
+    when given a perfect model of the environment in the form of an MDP.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The TD methods, on the one hand, inherit the idea of learning directly from
+    the experience accumulated interacting with the system, without the dynamics of
+    the system itself, from the Monte Carlo method. While they inherit from the DP
+    methods, the idea is to update the estimate of functions in a state from the estimates
+    made in other states (bootstrap). TD methods are suitable for learning without
+    a model of dynamic environments. You need to converge using a fixed policy if
+    the time step is sufficiently small or if it reduces over time.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Such methods differ from other techniques because they try to minimize the error
+    of consecutive time forecasts. To achieve this goal, these methods rewrite the
+    update of the value function in the form of a Bellman equation, thereby improving
+    the prediction by bootstrapping. Here, the variance of the forecast is reduced
+    in each update step. To get a backpropagation of updates in order to save memory,
+    an eligibility vector is applied. Example trajectories are used more efficiently,
+    resulting in good learning rates.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The methods based on time differences allow us to manage the problem of control
+    (that is, to search for the optimal policy) by letting us update the value functions
+    based on the results of the transition to the next state. At every step, the function
+    *Q* (action-value function) is updated based on the value it has assumed for the
+    next state-action pair and the reward that''s obtained through the following equation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/4fc3644e-c504-4a0e-a6cb-af4305e45efe.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'By adopting a one-step look-ahead, it is clear that a two-step formula can
+    also be used, as shown in the following formula:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/099626e5-5156-4773-a468-7559189b2dab.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The term look-ahead specifies the procedure that tries to predict the effects
+    of choosing a branching variable in the evaluation of one of its values. This
+    procedure has the following purposes: to choose a variable to be evaluated later
+    and to evaluate the order of the values to be assigned to it.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'More generally, with *n*-step look-ahead, we obtain the following formula:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/6807f18d-87c3-400d-b7e9-3eb6a25f8909.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: An aspect of characterizing the different types of algorithms based on temporal
+    difference is the methodology of choosing an action. There are "on-policy" methods, in
+    which the update is made based on the results of actions that have been determined
+    by the selected policy, and "off-policy" methods, in which various policies can
+    be assessed through hypothetical actions, that aren't actually undertaken. Unlike
+    "on-policy" methods, the latter can separate the problem of exploration from that
+    of control, and learning tactics aren't necessarily applied during the learning
+    phase.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the following sections, we will learn how to implement TD methods through
+    two approaches: SARSA and Q-learning.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: SARSA
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: As we anticipated in [Chapter 1](2362715d-f8f2-435a-9c00-975ed61986a8.xhtml), *Overview
+    of Reinforcement Learning with R*, the SARSA algorithm implements an on-policy
+    TD method, in which the update of the action-value function (*Q*) is performed
+    based on the results of the transition from the state *s = s (t)* to the state
+    *s' = s (t + 1)* by the action *a (t)*, which is taken based on a selected policy
+    *π (s, a)*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Some policies always choose the action providing the maximum reward and nondeterministic
+    policies (ε-greedy, ε-soft, or softmax), which ensure an element of exploration
+    in the learning phase.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In SARSA, it is necessary to estimate the action-value function 𝑞 (𝑠, 𝑎) because
+    the total value of a state 𝑣 (𝑠) (value function) is not sufficient in the absence
+    of an environment model to allow the policy to determine, given a state, which
+    action is performed the best. In this case, however, the values are estimated
+    step by step by following the Bellman equation with the update parameter 𝑣 (𝑠),
+    while considering the state-action pair in place of a state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Due to its on-policy nature, SARSA estimates the action-value function based
+    on the behavior of the π policy, and at the same time, modifies the greedy behavior
+    of the policy with respect to the updated estimates from the action-value function.
+    The convergence of SARSA, and more generally of all TD methods, depends on the
+    nature of policies.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following code block shows the pseudo-code for the SARSA algorithm:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: The `update` rule of the action-value function uses all five elements (`s[t]`,
+    `a[t]`, `r[t + 1]`, `s[t + 1]`, and `a[t + 1]`)  and for this reason, it is called
+    **State-Action-Reward-State-Action** (**SARSA**).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Q-learning
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Q-learning is one of the most used reinforcement learning algorithms. This is
+    due to its ability to compare the expected utility of the available actions without
+    requiring an environment model. Thanks to this technique, it is possible to find
+    an optimal action for every given state in a finished MDP.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A general solution to the reinforcement learning problem is to estimate an evaluation
+    function during the learning process. This function must be able to evaluate the
+    convenience or otherwise of a particular policy through the sum of the rewards.
+    In fact, Q-learning tries to maximize the value of the Q function (action-value
+    function), which represents the maximum discounted future reward when we perform
+    actions *a* in the state *s*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Q-learning, like SARSA, estimates the function value 𝑞 (𝑠, 𝑎) incrementally,
+    updating the value of the state-action pair at each step of the environment, following
+    the logic of updating the general formula for estimating the values for the TD
+    methods. Q-learning, unlike SARSA, has off-policy characteristics. That is, while
+    the policy is improved according to the values estimated by 𝑞 (𝑠, 𝑎), the value
+    function updates the estimates following a strictly greedy secondary policy: given
+    a state, the chosen action is always the one that maximizes the value *max*𝑞 (𝑠,
+    𝑎). However, the π policy has an important role in estimating values because the
+    state-action pairs to be visited and updated are determined through it.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following code block shows pseudo-code for the Q-learning algorithm:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: Q-learning uses a table to store each state-action couple. At each step, the
+    agent observes the current state of the environment and using the π policy selects
+    and executes the action. By executing the action, the agent obtains the reward,
+    𝑅[𝑡+1], and the new state, 𝑆[𝑡+1]. At this point, the agent can calculate 𝑄 (s[𝑡],
+    a[𝑡]), updating the estimate.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the following section, the basis of graph theory will be given and how this
+    technology can be addressed in R.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Introducing graph theory and implementing it in R
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Graphs are data structures that are widely used in optimization problems. A
+    graph is represented by a vertex and an edge structure. The vertices can be events
+    from which different alternatives (the edges) depart. Typically, graphs are used
+    to represent a network unambiguously: vertices represent individual calculators,
+    road intersections, or bus stops, and edges are electrical connections or roads.
+    Edges can connect vertices in any way possible.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Graph theory is a branch of mathematics that allows you to describe sets of
+    objects together with their relationships; it was invented in 1700 by Leonhard
+    Euler.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A graph is indicated in a compact way with *G = (V, E)*, where *V* indicates
+    the set of vertices and *E* the set of edges that constitute it. The number of
+    vertices is *|V|* and the number of edges is *|E|*. The number of vertices of
+    the graph, or of a subpart of it, is obviously the fundamental quantity to define
+    its dimensions; the number and distribution of edges describe their connectivity.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'There are different types of edges: we are talking about undirected edges for
+    which the edges do not have a direction in comparison with those directed. A directed
+    edge is called an arc and the relative graph is called a **digraph**. For example,
+    undirected edges are used to represent computer networks with synchronous links
+    for data transmission (as shown in the following diagram), directed graphs can
+    represent road networks, allowing the representation of double-senses and unique
+    senses.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following diagram represents a simple graph:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/9f6d2eaf-d7ed-4e54-8342-da449764a46b.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: We say the graph is connected if we can reach all of the other vertices of the
+    graph from any given vertex. Weighted graphs are graphs if a weight is associated
+    with each edge, which is normally defined by a weight function (*w*). The weight
+    can be seen as a cost or the distance between the two knots that the bow unites.
+    The cost can be dependent on the flow that crosses the edge through a law. In
+    this sense, the function w can be linear or not and depends on the flow that crosses
+    the edge (non-congested networks) or also on the flow of nearby edges (congested
+    networks).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'A vertex is characterized by its degree, which is equal to the number of edges
+    that end on the vertex itself. Depending on the degree, the vertices are as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: A vertex of order 0 is called an isolated vertex.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: A vertex of order 1 is called a leaf vertex.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The following diagram shows a graph with vertices labeled by degree:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/62f921fa-7336-4572-b0dd-c3c5dc96e5f9.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: In a directed graph, we can distinguish the outdegree (number of outgoing edges)
+    from the indegree (number of incoming edges). Based on this assumption, a vertex
+    with an indegree of zero is called a source vertex and a vertex with an outdegree
+    of zero is called a sink vertex.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Finally, a simplicial vertex is one whose neighbors form a clique: every two
+    neighbors are adjacent. A universal vertex is a vertex that is adjacent to every
+    other vertex in the graph.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To represent a graph, different approaches are available, such as the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Graphic representation (as shown in the previous diagram)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Adjacency matrix
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: List of vertices *V* and of arcs *E*
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The first way to represent a graph was clearly introduced through a practical
+    example (see the previous diagram). In the graphical representation, circles are
+    used to represent the vertices and lines to indicate the connections between two
+    vertices if they are connected. If this connection has a direction, then it is
+    indicated by adding an arrow. In the following section, we will analyze the other
+    two ways of representing a graph.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Adjacency matrix
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: So far, we have represented a graph through vertices and edges. When the number
+    of vertices is small, this way of representing a graph is the best one because
+    it allows us to analyze its structure intuitively. When the number of vertices
+    becomes large, the graphic representation becomes confusing. In this case, it
+    is better to represent the graph through the adjacency matrix. By adjacency matrix
+    or connection matrix, we mean a data structure that's commonly used in graph representation.
+    It is widely used in the drafting of algorithms that operate on graphs and in
+    their computer representation. If it is a sparse matrix, the use of the adjacency
+    list is preferable to the matrix.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Given any graph, its adjacency matrix is ​​made up of a square binary matrix
+    that has the names of the vertices of the graph as rows and columns. In the place
+    (*i, j*) of the matrix, there is a 1 if and only if an edge that goes from the
+    vertex *i* to the vertex *j* exists in the graph; otherwise, there is a 0\. In
+    the case of the representation of undirected graphs, the matrix is symmetric with
+    respect to the main diagonal. For example, check out the graph represented in
+    the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/3d3da994-fab2-4b91-bb9e-a5e2d0417f04.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The preceding graph can be represented through the following adjacency matrix:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/dcd3ca6f-e442-4d4e-bebb-d73792d20ad0.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: As anticipated, the matrix is symmetric with respect to the main diagonal being
+    undirected. If instead of the 1 in the matrix, there are numbers; these are to
+    be interpreted as the weight attributed to each connection (edge). Here, the matrix
+    is called Markov's matrix, as it is applicable to a Markov process. For example,
+    if the set of vertices of the graph represents a series of points on a map, the
+    weight of the edges can be interpreted as the distance of the points that they
+    connect.
+  prefs: []
+  type: TYPE_NORMAL
+- en: One of the fundamental characteristics of this matrix is that it obtains the
+    number of paths from a node *i* to a node *j*, which must cross *n* vertices.
+    To obtain all of this, it is sufficient to make the *n* power of the matrix and
+    see the number that appears in place *i, j*. Another way of representing graphs
+    is using adjacency lists. Let's see how.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Adjacency list
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '**Adjacency lists** are a mode of graph representation in memory. This is probably
+    the simplest representation to implement, although, in general, it is not the
+    most efficient in terms of the space that''s occupied.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's analyze a simple graph; next to each vertex is its list of adjacencies.
+    The idea of representation is simply that every vertex *Vi* is associated with
+    a list containing all of the vertices *Vj* so that there is the edge from *Vi*
+    to *Vj*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Assuming that you memorize all of the pairs of the type (*Vi, L*), where *L*
+    is the adjacency list of the *Vi* vertex, we obtain a unique description of the
+    graph. Alternatively, if you decide to sort adjacency lists, you do not need to
+    explicitly store the vertexes as well.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s take an example—we will use the same graph adopted in the previous section,
+    which is represented in the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/30f10bb6-661c-4f8c-ab4a-031e07f376c2.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'From this, we will build the list of adjacencies according to what has been
+    said so far. The graph in the previous diagram can be represented as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '| 1 | adjacent to | 2,3 |'
+  prefs: []
+  type: TYPE_TB
+- en: '| 2 | adjacent to | 1,3 |'
+  prefs: []
+  type: TYPE_TB
+- en: '| 3 | adjacent to | 1,2,4 |'
+  prefs: []
+  type: TYPE_TB
+- en: '| 4 | adjacent to | 3 |'
+  prefs: []
+  type: TYPE_TB
+- en: An adjacency list is made up of pairs. There is a pair for each vertex in the
+    graph. The first element of the pair is the vertex that is being analyzed, and
+    the second is the set formed by all of the vertices adjacent to it, which is connected
+    to it by one side.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Assuming that we have a graph with *n* vertices and *m* edges (directed) that
+    unite them, and supposing the adjacency lists are memorized in the order (so as
+    not to explicitly memorize the indices), we will have each edge appear in one
+    and one list of adjacencies, and it appears as the number of the vertex to which
+    it points. Due to this, it's necessary to memorize a total of *m* numbers less
+    than or equal to *n*, for a total cost of *mlog2n*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'There is no obvious way to optimize this representation for non-oriented graphs;
+    each arc must be memorized in the adjacency lists of both vertices that it connects,
+    hence halving the efficiency. The same argument holds if the graph is oriented,
+    but we need an efficient method to know the arcs entering a certain vertex. In
+    this case, it is convenient to associate two lists to each vertex: that of the
+    incoming arcs and that of the outgoing arcs.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: As far as time efficiency is concerned, representation by adjacency lists behaves
+    quite well both in access and in insertion, carrying out the main operations in
+    time *O(n)*. So far, we have analyzed the graphic representation techniques. Now,
+    let's learn how to use them in the R environment.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Handling graphs in R
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In R, the set of nodes (*V*) and the set of arcs (*E*) are data structures of
+    different types. For *V*, once we assign a unique identifier to each node, then
+    we can access every node without ambiguity. Hence, it is like saying that the
+    data structure hosting the properties of the nodes is one-dimensional and, therefore,
+    is a vector.
+  prefs: []
+  type: TYPE_NORMAL
+- en: On the contrary, the data structure for the set of arcs (links between nodes)
+    *E* cannot be a vector and it does not express the characteristics of single objects
+    but expresses relations between pairs of objects (pairs of nodes in this case).
+    So if, for example, in *V* (the set of nodes) there are 10 nodes, then the dimensions
+    of *E* will be 10 × 10 or all of the relationships between all of the possible
+    pairs of nodes. Ultimately, *E* has not one but two dimensions and therefore it
+    is not a vector but a matrix.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the matrix *E*, we have several rows equal to the number of nodes present
+    in *V* and several columns equal to the number of nodes present in *V*. This represents
+    the adjacency matrix analyzed in detail in the *Adjacency matrix* section.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To address the graph in R, we can use the `igraph` package—this package contains
+    functions for simple graphs and network analysis. It can handle large graphs very
+    well and provides functions for generating random and regular graphs, graph visualization,
+    centrality methods, and much more.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following table gives some information about this package:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '| Package | `igraph` |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Date | 2019-22-04 |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Version | 1.2.4.1 |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Title | Network Analysis and Visualization |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Maintainer | Gábor Csárdi |'
+  prefs: []
+  type: TYPE_TB
+- en: 'To start using the available tools, we will analyze a simple example. Suppose
+    we have a graph consisting of four nodes and four edges. The first thing to do
+    is to define the links between the four nodes; to do this, we will use the `graph`
+    function (remember to load the `igraph` library after installing it):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The `graph` function is part of the `graph.constructors` methods that offer
+    various methods for creating graphs: empty graphs, graphs with the given edges,
+    graphs from adjacency matrices, star graphs, lattices, rings, and trees. The method
+    we used defines the graph by indicating edges using a numeric vector defining
+    the edges as follows: the first edge from the first element to the second, the
+    second edge from the third to the fourth, and so on.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In fact, we can see that four pairs of values have been passed: the first defines
+    the connection between nodes 1 and 2, the second between nodes 2 and 3, the third
+    between nodes 3 and 1, and finally, the fourth between nodes 4 and 2\. To better
+    understand the connections between the nodes of the graph, we will draw it:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following graph was plotted:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/529c85a6-f9a7-4819-a753-17a7dab6a4b4.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The graph we created is an object with features that we can analyze as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following results are returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The edges between the nodes are indicated. We then calculate the shortest path
+    between node 1 and node 4:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: '`get.shortest.paths() ` calculates a single shortest path between the source
+    vertex to the target vertices. This function uses a breadth-first search for unweighted
+    graphs and Dijkstra''s algorithm for weighted graphs. In our case, having added
+    the weight attribute, the Dijkstra algorithm was used.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following result is returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, calculate the distance between the two points for this path:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following result is returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The graph we have represented so far has limited usefulness to identify the
+    shortest path between two locations, which represents our goal. To calculate the
+    best route, it is necessary to introduce the concept of edge weight. In our case,
+    we can see this attribute as a measure of the length of the path between two nodes;
+    in this way, we can evaluate the distance between two nodes through a path. To
+    do this, we''ll use the attribute weights as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: First, we defined the weights with a vector, confirming the sequence of edges
+    defined in the creation of the graph. So, we added the weight attribute to the
+    previously created graph. Now, each edge has its own length. What happens if weights
+    are not defined? Simply, they are all set equal to 1; in this case, the shortest
+    path would be the one with the least number of nodes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let''s calculate again the shortest path between node 1 and node 4:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following result is returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We can see that the path now involves multiple nodes. We will verify the distance
+    between the two nodes:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following result is returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: In this way, we have verified that the indicated path is the shortest one since
+    the longest connection has been avoided. In the next section, we see how it is
+    possible to find the best route using Dijkstra's algorithm.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Dijkstra's algorithm
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Dijkstra's algorithm is used to solve the problem of finding the shortest path
+    from the source *s* to all of the nodes. The algorithm maintains a label *d(i)*
+    to the nodes representing an upper bound on the length of the shortest path of
+    the node *i*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'At each step, the algorithm partitions the nodes in *V* into two sets: the
+    set of permanently labeled nodes and the set of nodes that are still temporarily
+    labeled. The distance of permanently labeled nodes represents the shortest path
+    distance from the source to these nodes, whereas the temporary labels contain
+    a value that can be greater than or equal to the shortest path length.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The basic idea of the algorithm is to start from the source and try to permanently
+    label the successor nodes. In the beginning, the algorithm places the value of
+    the source distance to zero and initializes the other distances to an arbitrarily
+    high value (by convention, we will set the initial value of the distances *d[i]
+    = + ∞, ∀i ∈ V*). At each iteration, the node label *i* is the value of the minimum
+    distance along a path from the source that contains, apart from *i*, only permanently
+    labeled nodes. The algorithm selects the node whose label has the lowest value
+    among those labeled temporarily, labels it permanently, and updates all of the
+    labels of the nodes adjacent to it. The algorithm terminates when all of the nodes
+    have been permanently labeled.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'From the execution of this algorithm for each destination node *v* of *V*,
+    we obtain a shortest path *p* (from *s* to *v*) and we calculate the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*d [v]*: Distance of node *v* from source node *s* long *p*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*π [v]*: Predecessor of node *v* long *p*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'For the initialization of each node v of V, we will use the following procedure:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*d [v] = ∞ if v ≠ s*, otherwise *d [s] = 0*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*π [v] = Ø*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: During the execution, we use the relaxation technique of a generic edge *(u,
+    v)* of *E*, which serves to improve the estimation of *d*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The relaxation of an edge *(u, v)* of *E*, consists in evaluating whether,
+    using *u* as a predecessor of *v*, the current value of distance *d [v]* can be
+    improved and, in this case, they update *d [v]* and *π [v]*. The procedure is
+    as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: If *d[v]> d[u] + w (u, v)* then
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*d[v] = d[u] + w (u, v)*'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*π [v] = u*'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The algorithm basically performs two operations: a node selection operation
+    and an operation to update the distances. The first selects the node with the
+    value of the lowest label at each step; the other verifies the condition *d[v]>
+    d[u] + w(u, v)* and, if so, updates the value of the label placing *d[v] = d[u]
+    + w (u, v)*.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the following section, we will implement a TD method to address a real-life
+    application.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Implementing TD methods to the vehicle routing problem
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Given a weighted graph and a designated vertex *V*, it is often requested to
+    find the path from a node to each of the other vertices in the graph. Identifying
+    a path connecting two or more nodes of a graph is a problem that appears as a
+    subproblem of many other problems of discrete optimization and has numerous applications
+    in the real world.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Consider, for example, the problem of identifying a route between two locations
+    shown on a road map, where the vertices are the localities, while the edges are
+    the roads that connect them. In this case, each cost is associated with the length
+    in kilometers of the road or the average time needed to cover it. If instead of
+    any path, we want to identify one of the minimum total cost, then the resulting
+    problem is known as the problem of the shortest path in a graph. In other words,
+    the shortest path between two vertices of a graph is that path that connects these
+    vertices and minimizes the sum of the costs associated with crossing each edge.
+  prefs: []
+  type: TYPE_NORMAL
+- en: So, let's take a practical example—consider a tourist visiting Italy by car
+    who wants to reach Venice from Rome. Having a map of Italy available in which,
+    for each direct link between the cities, its length is marked, how can the tourist
+    find the shortest path?
+  prefs: []
+  type: TYPE_NORMAL
+- en: The system can be schematized with a graph in which each city corresponds to
+    a vertex, and the roads correspond to the connecting arcs between the vertices.
+    You need to determine the shortest path between the source vertex and the target
+    vertex of the graph.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A solution to the problem is to number all possible routes from Rome to Venice.
+    For each route, calculate the total length and then select the shortest. This
+    solution is not the most efficient because there are millions of paths to analyze.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In practice, we will model the map of Italy as a weighted oriented graph *G
+    = (V, E)*, where each vertex represents a city, each edge *(u, v)* represents
+    a direct path from *u* to *v* and each weight *w (u, v)* corresponding to an edge
+    *(u, v)* represents the distance between *u* and *v*. So, the problem to be solved
+    is that of finding the shortest path that connects the vertex corresponding to
+    Rome with that corresponding to Venice.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Given a weighted directed graph *G = (V, E)*, the weight of a path *p = (v0,
+    v1, ..., vk)* is given by the sum of the weights of the edges that constitute
+    it, as shown in the following formula:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/9e8dcd20-9e19-4a85-a2e6-2af524fe1dd3.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The shortest path from node *u* to node *v* of *V* is a path *p = (u, v1, v2,
+    ..., v)* so that *w(p)* is minimal, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/4cc61d83-cabb-4482-b856-f6fff9032a19.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The cost of the minimum path from *u* to *v* is denoted by *δ(u, v)*. If there
+    is no path from *u* to *v* then *δ (u, v) = ∞*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Given a connected weighted graph *G = (V, E)* and a source node *s* of *V*,
+    there are several algorithms to find a shortest path from *s* toward each other
+    node of *V*. In the previous section, we analyzed the Dijkstra algorithm, now
+    the time has come to tackle the problem using algorithms based on reinforcement
+    learning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As anticipated at the beginning of this chapter, the Vehicle Routing Problem
+    (VRP) is a typical distribution and transport problem, which consists of optimizing
+    the use of a set of vehicles with limited capacity to pick up and deliver goods
+    or people to geographically distributed stations. Managing these operations in
+    the best possible way can significantly reduce costs. Before tackling the problem
+    with Python code, let's analyze the basic characteristics of the topic to understand
+    possible solutions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Based on what has been said so far, it is clear that a problem of this type
+    is configured as a path optimization procedure that can be conveniently dealt
+    with using graph theory.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Suppose we have the following graph with the distances between vertices indicated
+    on the edges:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/cec69904-6c1f-479c-8e23-f1f49bcb12c0.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: It is easy to see that the shortest path from 1 to 6 is 1 – 2 – 5 – 4 - 6.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the *Understanding TD methods* section, we have seen that the method of choosing
+    an action diversifies the types of algorithms based on the TD. In on-policy based
+    methods (SARSA), the update is carried out based on the results of the actions
+    determined by the selected policy, while in the off-policy methods (Q-learning),
+    the policies are evaluated through hypothetical actions, not actually undertaken.
+    We will address the problem just introduced through both approaches, highlighting
+    the merits and defects of the solutions obtained. So, let's see how to deal with
+    the problem of vehicle routing using Q-learning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Q-learning approach
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: As we said in the *Q-learning* section, Q-learning tries to maximize the value
+    of the Q function (action-value function), which represents the maximum discounted
+    future reward when we perform actions *a* in the state *s*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following block is an implementation of R code that allows us to research
+    this path through the technique of Q-learning:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will analyze the code line by line, starting from the setting of the following
+    parameters:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Here, we have the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`N`: the number of episodes to iterate'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`gamma`: the discount factor'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`alpha`: the learning rate'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`FinalState`: the target node'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Let''s move on the reward matrix setting:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We see the matrix as it appears:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following matrix is printed:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s try to understand how we set this matrix. It''s all very simple: we
+    have associated a high reward at the most convenient edges, those with a lower
+    weight (which means shorter). We then associated the highest reward (100) to the
+    edge that leads us to the goal. Finally, we associated a negative reward to non-existent
+    links. The following chart shows how we set the rewards:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/637421dd-564f-49df-8343-4d268a577cb8.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: We have simply replaced the weight of the edges with the rewards set to the
+    value of the lengths. Edges with longer lengths return a low reward, edges with
+    smaller lengths return a high reward. Finally, the maximum reward is achieved
+    when the target is reached.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As we said in the *Q-learning* section, our goal is to estimate an evaluation
+    function that evaluates the convenience of a policy based on the sum of the rewards.
+    The Q-learning algorithm tries to maximize the value of the Q function (action-value
+    function), which represents the maximum discounted future reward when we perform
+    actions *a* in the state *s*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s analyze again the procedure that we have to implement using R:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs: []
+  type: TYPE_PRE
+- en: At each step, the agent observes the current state of the environment and using
+    the π policy selects and executes the action. By executing the action, the agent
+    obtains the reward 𝑅𝑡 *+ 1* and the new state 𝑆𝑡 *+ 1*. At this point, the agent
+    can calculate 𝑄 (*s*𝑡, *a*𝑡) updating the estimate.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Therefore, the Q function represents the essential element of the procedure;
+    it is a matrix of the same dimensions as the rewards matrix. First, let''s initialize
+    it with all zeros:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'At this point, we have to set up a cycle that will repeat the operations for
+    each episode:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The initial part of the cycle is used to set the initial state and the initial
+    policy; in our case, we will choose an initial state randomly:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'After setting the initial state, we must insert a cycle that will be repeated
+    until the final state, that is, our target, has been reached:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now we must choose the next state according to the possible actions available
+    in the current state. To move to the next node, what actions can we take? If only
+    one possible action is available, we will choose that one. Otherwise, we will
+    choose one at random, only to then analyze the others:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Based on the results obtained, we can update the action-value function (`QMatrix`):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The formula used for updating the Q function is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/49844e1b-bcec-4e0b-8109-ca1c62ad23b7.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Now, we will check the status achieved: if we have reached our target, then
+    we will exit the cycle with the break command; otherwise, we will set the next
+    status as the current one (`NextState`):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Once the procedure is finished, we will print the Q matrix:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following result is returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs: []
+  type: TYPE_PRE
+- en: Let's try to understand what this matrix tells us. To start, we can say that
+    this matrix allows us to calculate the shortest path starting from any state,
+    therefore, not necessarily from node 1\. In our case, we will start from node
+    1 in order to confirm what was obtained visually. Recall that each row of the
+    matrix represents a state and each value in the column tells us what the reward
+    is in the transition to the state marked by the column index.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the following flow path, we have the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Starting from the first line, we see that the maximum value is in correspondence
+    of the second column, so the best path takes us from state 1 to 2.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We then pass to the state 2 identified by the second row; here, we see that
+    the greatest value of reward is in correspondence of the fifth column, therefore,
+    the best path takes us from state 2 to 5.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Let's then move on to state 5 identified by the fifth line. Here, we see that
+    the greatest value of reward is in correspondence with the fourth column, therefore,
+    the best path takes us from state 5 to 4.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Finally, we pass to the state 4 identified by the fourth line. Here, we see
+    that the greatest value of reward is in correspondence with the sixth column,
+    therefore, the best path leads us from state 4 to 6.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'We have reached the target and by doing so we have traced the path shorter
+    from node 1 to 6, which is the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 1 – 2 - 5 – 4 – 6
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This path coincides with the one obtained visually at the beginning of the
+    section. The procedure for extracting the shortest path of the `QMatrix` matrix
+    can be easily automated as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE30]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following results are returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE31]'
+  prefs: []
+  type: TYPE_PRE
+- en: As we can see, the same result has been returned. Now, let's see what happens
+    if we try to tackle the same problem but with a different approach.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The SARSA approach
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: As we anticipated in SARSA, starting from the current state *St* an action *At*
+    is taken and the agent gets a reward R. In this way, the agent is transferred
+    to the next state *St + 1* and takes an action *At + 1* in *St + 1*. In fact,
+    SARSA is the acronym of the tuple (*S, A*, *R*, *St + 1*, *At + 1*).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following is the whole code for the SARSA approach:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE32]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'As you can see, much of the code is similar to the previous case (Q-learning),
+    as there are many similarities between the two approaches. We will only analyze
+    the differences between the two approaches. In the first part of the code, the
+    initial parameters are set and the rewards matrix is defined:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE33]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, let''s move on to initialize the matrix Q and set the cycle that will
+    allow us to update the action-value function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE34]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Up to this point, nothing has changed compared to the formulation analyzed
+    in the previous example. But now there are essential changes. In the *SARSA* section,
+    we saw the pseudo-code of the algorithm; for convenience, we repeat it here:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE35]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Comparing it with the one proposed in the previous section (the Q-learning
+    approach), we can see that the substantial difference between the two methods
+    lies in the formula used for updating the action-value function and in the calculation
+    of the action to be followed in the next state. The next action we will follow
+    in the next state is calculated as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE36]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The approach is used to evaluate the next state. The formula we will use will
+    be the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/d669691c-1ceb-4ff7-bd8e-1992a2684e0f.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'This formula in code R becomes this:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE37]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The rest of the code is similar to the previous section:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE38]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We can then analyze the results:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE39]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The shortest path is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE40]'
+  prefs: []
+  type: TYPE_PRE
+- en: The result is identical to the one obtained in the previous example. Let's understand
+    how the two approaches are different from each other.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Differentiating SARSA and Q-learning
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'From the algorithmic point of view, the substantial difference between the
+    two approaches we analyzed in the previous sections lies in the two equations
+    we used to update the action-value function. Let''s compare them to understand
+    them better:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/3feba7be-e270-4ece-af07-033418ce16e7.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: '![](img/ec0f3f35-3304-4f66-962f-8fcedf1701f1.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Q-learning calculates the difference between *Q (s, a)* and the maximum value
+    of the action, while SARSA calculates the difference between *Q (s, a)* and the
+    value of the next action. In doing this, you can highlight the following points:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: SARSA uses the policy used by the agent to generate experience in the environment
+    (such as epsilon-greedy), in order to select an additional action *A t + 1*. Then,
+    it uses *Q (S t + 1, A t +1)* to discount the gamma factor as expected future
+    returns in the calculation of the update target.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Q-learning does not use this policy to select an additional action *A t + 1*.
+    Instead, it estimates the expected future returns in the update rule as *max Q
+    (S t + 1, A)* for all actions.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The two approaches converge to different solutions:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: SARSA converges to the optimal solution by following the same policy that was
+    used to generate the experience. This will have elements of randomness to ensure
+    convergence.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Q-learning converges into an optimal solution after generating experience and
+    training by following a greedy policy.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: SARSA is advisable when we need to guarantee the agent's performance during
+    the learning process. This is where, in the learning process, we must guarantee
+    a low number of errors that are expensive for the equipment we are using. Hence,
+    we care about its performance during the learning process.
+  prefs: []
+  type: TYPE_NORMAL
+- en: An algorithm like Q-learning is advisable in cases where we do not care about
+    the agent's performance during the learning process and we only want the agent
+    to learn about an optimal greedy policy that we will adopt at the end of the process.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, TD learning algorithms were introduced. These algorithms are
+    based on reducing the differences between the estimates that are made by the agent
+    at different times. The SARSA algorithm implements an on-policy TD method, while
+    Q-learning has off-policy characteristics.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Then, the basics of graph theory were addressed—the adjacency matrix and adjacency
+    list topics were covered. We have seen how to represent graphs in R using the
+    `igraph` package. By doing this, we addressed the shortest path problem. We also
+    analyzed the Dijkstra algorithm in R.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Finally, the vehicle routing problem was resolved using the Q-learning and SARSA
+    algorithms. The differences between the two approaches to solve the problem were
+    analyzed in detail.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will about learn the fundamental concepts of game theory.
+    We will learn how to install and configure the OpenAI Gym library and understand
+    how it works. We will learn about the difference between the Q-learning and SARSA
+    algorithms and understand how to make a learning and a testing phase. Finally,
+    we will learn how to develop OpenAI Gym applications using R.
+  prefs: []
+  type: TYPE_NORMAL

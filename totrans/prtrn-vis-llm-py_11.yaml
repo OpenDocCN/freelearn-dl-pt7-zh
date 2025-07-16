@@ -1,0 +1,631 @@
+- en: '11'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Detecting, Mitigating, and Monitoring Bias
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we’ll analyze leading bias identification and mitigation strategies
+    for large vision, language, and multimodal models. You’ll learn about the concept
+    of bias, both in a statistical sense and how it impacts human beings in critical
+    ways. You’ll understand key ways to quantify and remedy this in vision and language
+    models, eventually landing on monitoring strategies that enable you to reduce
+    any and all forms of harm when applying your **machine learning** (**ML**) models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will cover the following topics in the chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Detecting bias in ML models
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Mitigating bias in vision and language models
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Monitoring bias in ML models
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Detecting, mitigating, and monitoring bias with SageMaker Clarify
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Detecting bias in ML models
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: At this point in the book, we’ve covered many of the useful, interesting, and
+    impressive aspects of large vision and language models. Hopefully, some of my
+    passion for this space has started rubbing off on you, and you’re beginning to
+    realize why this is as much of an art as it is a science. Creating cutting-edge
+    ML models takes courage. Risk is inherently part of the process; you hope a given
+    avenue will pay off, but until you’ve followed the track all the way to the end,
+    you can’t be positive. Study helps, as does discussion with experts to try to
+    validate your designs ahead of time, but personal experience ends up being the
+    most successful tool in your toolbelt.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This entire chapter is dedicated to possibly the most significant Achilles
+    heel in ML and **artificial intelligence** (**AI**): **bias**. Notably, here we
+    are most interested in bias toward and against specific groups of human beings.
+    You’ve probably already heard about **statistical bias**, an undesirable scenario
+    where a given model has a statistical preference for part of the dataset, and
+    thereby naturally against another part. This is an inevitable stage of every data
+    science project: you need to carefully consider which datasets you are using and
+    grapple with how that represents the world to your model. If you are over- or
+    under-representing any facets of your datasets, this will invariably impact your
+    model’s behavior. In the previous chapter, we looked at an example of credit card
+    fraud and began to understand how the simple act of extracting and constructing
+    your dataset can lead you in completely the wrong direction. Now, we’ll follow
+    a similar exercise but focus on people.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: When ML and data science started becoming popular in business leadership circles,
+    as with any new phenomena, there were naturally a few misunderstandings. A primary
+    one of these in terms of ML was the mistaken belief that computers would naturally
+    have fewer biased preferences than people. More than a few projects were inspired
+    by this falsity. From hiring to performance evaluations, credit applications to
+    background checks, and even for sentencing in the criminal justice system, countless
+    data science projects were started with an intention of reducing biased outcomes.
+    What these projects failed to realize is that *every dataset is limited by historical
+    records*. When we train ML models on these records naively, we necessarily introduce
+    those same limitations on the output space of the model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This means that records from criminal justice to human resources, financial
+    services, and imaging systems when naively used to train ML models codified that
+    bias and presented it in a digital format. When used at scale—for example, to
+    make hundreds to thousands of digital decisions—this actually increases the scale
+    of biased decision-making rather than reduces it. Classic examples of this include
+    large-scale image classification systems failing to detect African Americans *(1)*
+    or resume screening systems that developed a bias against anything female *(2)*.
+    While all of these organizations immediately took action to right their wrongs,
+    the overall problem was still shockingly public for the entire world to watch.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Detecting bias in large vision and language models
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: As you may already suspect, large models trained on massive datasets from internet
+    crawls are ripe with bias. This includes everything from types of people more
+    likely to produce or not to produce content on the internet, to languages and
+    styles, topics, the accuracy of the content, depth of analysis, personalities,
+    backgrounds, histories, interests, professions, educational levels, and more.
+    It includes visual representations of other people, modes, cultural styles, places,
+    events, perspectives, objects, sexuality, preferences, religion—the list goes
+    on and on.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In most projects, to use a phrase from Amazon, I find it helpful to *work backward*
+    from my final application. Here, that refers to some large vision-language model—for
+    example, **Stable Diffusion**. Then, I’ll ask myself: *Who* is likely to use this
+    model, and how? Try to write down a list of types of people you think might use
+    your model; in a bias context, you need to push yourself to think outside of your
+    comfort zone. This is another place where having diverse teams is incredibly useful;
+    ideally, ask someone with a background different from yours about their perspective.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Once you have a target list of types of people who might use your model, think
+    to yourself: Are these people represented in my dataset? How are they represented?
+    Are they represented in a full spectrum of different emotional states and outcomes,
+    or are they only represented in a tiny slice of humanity? If my dataset were the
+    sole input to a computational process designed to learn patterns—that is, an ML
+    algorithm—would many people from this group consider it a fair and accurate representation?
+    Or, would they get angry at me and say: That’s so biased!?'
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can get started with even one or two groups of people, and usually, you
+    want to think about certain scenarios where you know there’s a big gap in your
+    dataset. For me, I tend to look right at gender and employment. You can also look
+    at religion, race, socioeconomic status, sexuality, age, and so on. Try to stretch
+    yourself and find an intersection. An intersection would be a place where someone
+    from this group is likely to be, or not to be, within another category. This second
+    category can be employment, education, family life, ownership of specific objects,
+    accomplishments, criminal history, medical status, and so on.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A model is biased when it exhibits a clear “preference”, or measurable habit,
+    of placing or not placing certain types of people in certain types of groups.
+    Bias shows up when your model empirically places or does not place people from
+    one of your *A* categories into one of your *B* categories.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For example, let’s say you’re using a text generation model in the GPT family.
+    You might send your GPT-based model a prompt such as, “Akanksha works really hard
+    as a …”. A biased model might fill in the blank as “nurse”, “secretary”, “homemaker”,
+    “wife”, or “mother”. An unbiased model might fill in the blank as “doctor”, “lawyer”,
+    “scientist”, “banker”, “author”, or “entrepreneur”. Imagine using that biased
+    model for a resume-screening classifier, an employment chat helpline, or a curriculum-planning
+    assistant. It would unwittingly, but very measurably, continue to make subtle
+    recommendations against certain careers for women! Let’s look at a few more examples
+    in the context of language:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 11.1 – Biased inference results from GPT-J 6B](img/Figure_11.1_B18942.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.1 – Biased inference results from GPT-J 6B
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here, I simply used my own name as a prompt into the GPT-J 6B model, and it
+    thought I was a makeup artist. Alternatively, if I used the name “John”, it thought
+    I was a software developer:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 11.2 – Biased inference results from GPT-J 6B (continued)](img/Figure_11.2_B18942.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.2 – Biased inference results from GPT-J 6B (continued)
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once you try this again, however, the responses obviously change. This is because
+    the random seed isn’t set in the Hugging Face model playground, so the output
+    from the **neural network** (**NN**) can change. When I tried it again for John,
+    it still gave a response of “software developer”. When I tried it again for myself,
+    it responded with “a freelance social media consultant”.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Some of you might be wondering: Why is this biased? Isn’t this just holding
+    to the statistical representation in the dataset? The answer is that the dataset
+    itself is biased. There are more examples of male software engineers, fewer examples
+    of female entrepreneurs, and so on. When we train AI/ML models on these datasets,
+    we bring that bias directly into our applications. This means that if we use a
+    biased model to screen resumes, suggest promotions, stylize text, assign credit,
+    predict healthy indicators, determine criminal likelihoods, and more, we perpetuate
+    that same bias systematically. And that is a big problem—one we need to actively
+    fight against.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: This guess-and-check process we’re doing right now with the pretrained model
+    is called **detecting bias** or **identifying bias**. We are taking a pretrained
+    model and providing it with specific scenarios at the intersection of our groups
+    of interest defined previously, to empirically determine how well it performs.
+    Once you’ve found a few empirical examples of bias, it’s helpful to also run summary
+    statistics on this to understand how regularly this occurs in your dataset. Amazon
+    researchers proposed a variety of metrics to do so here *(3)*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: You might do a similar process with a pretrained vision model, such as **Stable
+    Diffusion**. Ask your Stable Diffusion model to generate images of people, of
+    workers, of different scenarios in life. Try phrasing your prompt to force the
+    model to categorize a person around one of the points of intersection, and these
+    days you are almost guaranteed to find empirical evidence of bias.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fortunately, more models are using “safety filters”, which explicitly bar the
+    model from being able to produce violent or explicit content, but as you’ve learned
+    in this chapter, that is far from being without bias.
+  prefs: []
+  type: TYPE_NORMAL
+- en: By now, you should have a good idea of what bias means in the context of your
+    application. You should know for which groups of people you want to design, and
+    in which categories you want to improve your model’s performance. Make sure you
+    spend a decent amount of time empirically evaluating bias in your model, as this
+    will help you demonstrate that the following techniques actually improve the outcomes
+    you care about.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Mitigating bias in vision and language models
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Now that you’ve learned about detecting bias in your vision and language models,
+    let’s explore methods to mitigate this. Generally, this revolves around updating
+    your dataset in various ways, whether through sampling, augmentation, or generative
+    methods. We’ll also look at some techniques to use during the training process
+    itself, including the concept of fair loss functions and other techniques.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you are well aware by now, there are two key training phases to stay on top
+    of. The first is the **pretraining process**, and the second is the **fine-tuning**
+    or **transfer** **learning** (**TL**). In terms of bias, a critical point is how
+    much bias transfer your models exhibit. That is to say, if your pretrained model
+    was built on a dataset with bias, does that bias then transfer into your new model
+    after you’ve done some fine-tuning?
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'A research team out of MIT delivered an interesting study on the effects of
+    bias transfer in vision as recently as 2022 *(4)*, where they concluded: “*bias
+    in pretrained models remained present even after fine-tuning these models on downstream
+    target tasks. Crucially these biases can persist even when the target dataset
+    used for fine-tuning did not contain such biases.*” This indicates that in vision,
+    it is critical to ensure that your upstream pretrained dataset is bias-free. They
+    found that the bias carried through into the downstream task.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'A similar study for language found exactly the opposite of this! (*11*) Using
+    a regression analysis in their work, the researchers realized that a better explanation
+    for the presence of bias *was in the fine-tuned dataset* rather than the pretrained
+    one. They concluded: “*attenuating downstream bias via upstream interventions—including
+    embedding-space bias mitigation—is mostly futile.*” In language, the recommendation
+    is to mostly mitigate bias in your downstream task, rather than upstream.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: How interesting is this?! Similar work in two different domains reached opposite
+    conclusions about the most effective place to focus for mitigating bias. This
+    means if you are working on a vision scenario, you should spend your time optimizing
+    your pretrained dataset to remove bias. Alternatively, if you’re on a language
+    project, you should focus on reducing bias in the fine-tuning dataset.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Perhaps this means that vision models on average carry more context and background
+    knowledge into their downstream performance, such as correlating objects with
+    nearby objects and patterns as a result of the convolution, while language only
+    applies this context learning at a much smaller sentence-level scope.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Bias mitigation in language – counterfactual data augmentation and fair loss
+    functions
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In language, many bias mitigation techniques center on *creating counterfactuals*.
+    Remember—a counterfactual is a hypothetical scenario that did not happen in the
+    real world but could have. For example, this morning you had many options for
+    eating breakfast. You might have had coffee with a muffin. You also might have
+    had breakfast cereal with orange juice. You might have gone out to a restaurant
+    for breakfast with a friend, or maybe you skipped breakfast entirely. One of them
+    really happened to you, but the other ones are completely fabricated. Possible,
+    but fabricated. Each of these different scenarios could be considered *counterfactual*.
+    They represent different scenarios and chains of events that did not actually
+    happen but are reasonably likely to occur.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, consider this: what if you wanted to represent each scenario as being
+    equally likely to occur? In the dataset of your life, you’ve established certain
+    habits of being. If you wanted to train a model to consider all habits as equally
+    likely, you’d need to create counterfactuals to equally represent all other possible
+    outcomes. This type of dataset-hacking is exactly what we’re doing when we try
+    to augment a dataset to debias it, or to mitigate the bias. First, we identify
+    the top ways that bias creeps into our models and datasets, and then we mitigate
+    that bias by creating more examples of what we don’t have enough examples for,
+    creating counterfactuals.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'One study presenting these methods is available in reference *(5)* in the *References*
+    section—it includes researchers from Amazon, UCLA, Harvard, and more. As mentioned
+    previously, they focused on the intersection of gender and employment. Let’s take
+    a look at an example:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 11.3 – Comparing responses from normal and debiased models](img/Figure_11.3_B18942.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.3 – Comparing responses from normal and debiased models
+  prefs: []
+  type: TYPE_NORMAL
+- en: To generate counterfactual samples for their fine-tuning dataset, the researchers
+    used a common technique of switching pronouns. In particular, they “*use a curated
+    dictionary of gender words with male <-> female mapping, for instance, father
+    -> mother, she-> he, him-> her, and so on*”. With this pronoun dictionary, they
+    generated new sequences and included these in the fine-tuning dataset.
+  prefs: []
+  type: TYPE_NORMAL
+- en: They also defined a fair knowledge distillation loss function. We’ll learn all
+    about knowledge distillation in the upcoming chapter, but at a high level, what
+    you need to know is that it’s the process of training a smaller model to mimic
+    the performance of a larger model. Commonly this is done to shrink model sizes,
+    giving you ideally the same performance as your large model, but on something
+    much smaller you can use to deploy in single-GPU environments.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here, the researchers developed a novel distillation strategy to *equalize
+    probabilities*. In generic distillation, you want the student model to learn the
+    same probabilities for a given pattern:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 11.4 – Equalizing distributions through distillation](img/Figure_11.4_B18942.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.4 – Equalizing distributions through distillation
+  prefs: []
+  type: TYPE_NORMAL
+- en: Here, the researchers knew this would lead to the student model learning exactly
+    the same biased behavior they wanted to avoid. In response, they developed a novel
+    distillation loss function to weight both the original and the counterfactual
+    distributions as the same. This equalizing loss function helped their model learn
+    to see both outcomes as equally likely and enabled the fair prompt responses you
+    just saw! Remember—in order to build AI/ML applications that do not perpetuate
+    the bias inherent in the datasets, we need to equalize how people are treated
+    in the model itself.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we’ve learned about a few ways to overcome bias in language, let’s
+    do the same for vision.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Bias mitigation in vision – reducing correlation dependencies and solving sampling
+    issues
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'In vision scenarios, you have at least two big problems to tackle, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, not having enough pictures of under-represented groups of people
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Second, realizing after it’s too late that your pictures are all correlated
+    with underlying objects or styles
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'In the first scenario, your model is likely to not learn that class at all.
+    In the second scenario, your model learns a correlated confounding factor. It
+    might learn more about objects in the background, overall colors, the overall
+    style of the image, and so much more than it does about the objects you think
+    it’s detecting. Then, it continues to use those background objects or traces to
+    make classification guesses, where it clearly underperforms. Let’s explore a 2021
+    study *(6)* from Princeton to learn more about these topics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 11.5 – Correct and incorrect vision classifications](img/Figure_11.5_B18942.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.5 – Correct and incorrect vision classifications
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fundamentally, what these images show is the correlation problem in computer
+    vision. Here the model is simply trying to classify males and females in images.
+    However, due to underlying correlations in these datasets, the model makes basic
+    mistakes. In terms of sports uniforms, the researchers found that “*males tend
+    to be represented as playing outdoor sports like baseball, while females tend
+    to be portrayed as playing an indoor sport like basketball or in a swimsuit*”.
+    This means the model thought everyone wearing a sports uniform indoors was female,
+    and everyone wearing a sports uniform outdoors was male! Alternatively, for flowers,
+    the researchers found a “*drastic difference in how males and females are portrayed,
+    where males pictured with a flower are in formal, official settings, whereas females
+    are in staged settings or paintings*." Hopefully, you can immediately see why
+    this is a problem; even the model thinks that everyone in a formal setting is
+    male, simply due to a lack of available training data!
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'How do we solve this problem? One angle the researchers explored was geography.
+    They realized that—consistent with previous analyses—the images’ countries of
+    origin were overwhelmingly the United States and European nations. This was true
+    across the multiple datasets they analyzed that are common in vision research.
+    In the following screenshot, you can see the model learns an association of the
+    word “dish” with food items from Eastern Asia while failing to detect plates or
+    satellite dishes, which were more common images from other regions:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 11.6 – Visual bias in the meaning of “dish” geographically](img/Figure_11.6_B18942.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.6 – Visual bias in the meaning of “dish” geographically
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The Princeton team developed and open sourced a tool called *REVISE: REvealing
+    VIsual biaSEs* *(7)* that any Python developer can use to analyze their own visual
+    datasets and identify candidate objects and problems that will cause correlation
+    issues. This actually uses Amazon’s Rekognition service in the backend to run
+    large-scale classification and object detection on the dataset! You can, however,
+    modify it to use open source classifiers if you prefer. The tool automatically
+    suggests actions to take to reduce bias, many of which revolve around searching
+    for additional datasets to increase the learning for that specific class. The
+    suggested actions can also include adding extra tags, reconciling duplicate annotations,
+    and more.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we’ve learned about multiple ways to mitigate bias in vision and language
+    models, let’s explore ways to monitor this in your applications.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Monitoring bias in ML models
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: At this point in the book, for beginners, you are probably starting to realize
+    that in fact, we are just at the tip of the iceberg in terms of identifying and
+    solving bias problems. Implications for this range from everything from poor model
+    performance to actual harm to humans, especially in domains such as hiring, criminal
+    justice, financial services, and more. These are some of the reasons Cathy O’Neil
+    raised these important issues in her 2016 book, *Weapons of Math Destruction*
+    *(8)*. She argues that while ML models can be useful, they can also be quite harmful
+    to humans when designed and implemented carelessly.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This raises core issues about ML-driven innovation. How good is good enough
+    in a world full of biases? As an ML practitioner myself who is passionate about
+    large-scale innovation, and also as a woman who is on the negative end of some
+    biases, while certainly on the positive side of others, I grapple with these questions
+    a lot.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Personally, there are some data science projects I just refuse to work on because
+    of bias. For me, this includes at least hiring and resume screening, performance
+    reviews, criminal justice, and some financial applications. Maybe someday we’ll
+    have balanced data and truly unbiased models, but based on what I can see, we
+    are far away from that. I encourage every ML practitioner to develop a similar
+    personal ethic about projects that have the potential for a negative impact on
+    humans. You can imagine that even something as seemingly innocuous as online advertising
+    can lead to large-scale discrepancies among people. Ads for everything from jobs
+    to education, networking to personal growth, products to financial tools, psychology,
+    and business advice, can in fact perpetuate large-scale social biases.
+  prefs: []
+  type: TYPE_NORMAL
+- en: At a higher level, I believe as an industry we can continue to evolve. While
+    some professions require third-party certification, such as medical, legal, and
+    education experts, ours still does not. Some service providers provide ML-specific
+    certification, which is certainly a step in the right direction but doesn’t fully
+    address the core dichotomy between pressure to deliver results from your employer
+    with potential unknown and unidentified harm to your customers. Certainly, I’m
+    not claiming to have any answers here; I can see the merits of both sides of this
+    argument and can sympathize with the innovators just as well as with the end consumers.
+    I’m just submitting that this is in fact a massive challenge for the entire industry,
+    and I hope we can develop better mechanisms for this in the future.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'On a more immediately actionable note, for those of you who have a project
+    to deliver on in the foreseeable future, I would suggest the following steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Identify a broad picture of your customer base, ideally with the help of a diverse
+    team.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Identify what outcomes your model will impose on your customer; push yourself
+    to think beyond the immediate impact on your business and your team. To use a
+    phrase from Amazon, think big!
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Try to find empirical examples of your best- and worst-case scenarios—best case
+    being where your model leads to win-wins, and worst case where it leads to lose-lose.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Use the techniques we learned throughout this book to make the win-wins more
+    common, and the lose-lose as infrequent as you can. Remember—this usually comes
+    down to analyzing your data, learning about its flaws and inherent perspectives,
+    and remedying these either through the data itself or through your model and learning
+    process.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Add transparency. As O’Neil points out in her book, part of the industry-wide
+    problem is applications that impact humans in major ways not explaining which
+    features actually drive their final classification. To solve this, you can add
+    simple feature importance testing through LIME *(9)*, or pixel and token mapping,
+    as we’ll see next with SageMaker Clarify.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Try to develop quantitative measures for especially your worst-case scenario
+    outcomes and monitor these in your deployed application.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: As it turns out, one way to detect, mitigate, and monitor bias in your models
+    is SageMaker Clarify!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Detecting, mitigating, and monitoring bias with SageMaker Clarify
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'SageMaker Clarify is a feature within the SageMaker service you can use for
+    bias and explainability across your ML workflows. It has a nice integration with
+    SageMaker’s Data Wrangler, a fully managed UI for tabular data analysis and exploration.
+    This includes nearly 20 bias metrics, statistical terms you can study and use
+    to get increasingly more precise about how your model interacts with humanity.
+    I’ll spare you the mathematics here, but feel free to read more about them in
+    my blog post on the topic here: [https://towardsdatascience.com/dive-into-bias-metrics-and-model-explainability-with-amazon-sagemaker-clarify-473c2bca1f72](https://towardsdatascience.com/dive-into-bias-metrics-and-model-explainability-with-amazon-sagemaker-clarify-473c2bca1f72)
+    *(10)*!'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Arguably more relevant for this book are Clarify’s *vision and language features*!
+    This includes explaining image classification and object detection, along with
+    language classification and regression. This should help you immediately understand
+    what is driving your discriminative models’ output, and help you take steps to
+    rectify any biased decisioning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Actually, the modularity of large pretrained models in combination with smaller
+    outputs, such as using Hugging Face to easily add a classification output to a
+    pretrained **large language model** (**LLM**), might be a way we could debias
+    pretrained models using Clarify, ultimately using them for generation. A strong
+    reason to use Clarify is that you can monitor both bias metrics and model explainability!
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next section of the book, *Part 5*, we will dive into key questions around
+    deployment. Particularly, in [*Chapter 14*](B18942_14.xhtml#_idTextAnchor217),
+    we’ll dive into ongoing operations, monitoring, and maintenance of models deployed
+    into production. We’ll cover SageMaker Clarify’s monitoring features extensively
+    there, especially discussing how you can connect these both to audit teams and
+    automatic retraining workflows.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we dove into the concept of bias in ML, and especially explored
+    angles in vision and language. We opened with a general discussion of human bias
+    and introduced a few ways these empirically manifest in technology systems, frequently
+    without intention. We introduced the concept of “intersectional bias”, and how
+    commonly your first job in detecting bias is listing a few common types of intersections
+    you want to be wary of, including gender or race and employment, for example.
+    We demonstrated how this can easily creep into large vision and language models
+    trained on datasets crawled from the internet. We also explored methods to mitigate
+    bias in ML models. In language, we presented counterfactual data augmentation
+    along with fair loss functions. In vision, we learned about the problem of correlational
+    dependencies, and how you can use open source tools to analyze your vision dataset
+    and solve sampling problems.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Finally, we learned about monitoring bias in ML models, including a large discussion
+    about both personal and professional ethics, and actional steps for your projects.
+    We closed out with a presentation of SageMaker Clarify, which you can use to detect,
+    mitigate, and monitor bias in your ML models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let’s dive into *Part Five: Deployment!*. In the next chapter, we will
+    learn about how to deploy your model on SageMaker.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: References
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Please go through the following content for more information on a few topics
+    covered in the chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Google apologises for Photos app’s racist* *blunder*: [https://www.bbc.com/news/technology-33347866](https://www.bbc.com/news/technology-33347866)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Amazon scraps secret AI recruiting tool that showed bias against* *women*:
+    [https://www.reuters.com/article/us-amazon-com-jobs-automation-insight/amazon-scraps-secret-ai-recruiting-tool-that-showed-bias-against-women-idUSKCN1MK08G](https://www.reuters.com/article/us-amazon-com-jobs-automation-insight/amazon-scraps-secret-ai-recruiting-tool-that-showed-bias-against-women-idUSKCN1MK08G)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*BOLD: Dataset and Metrics for Measuring Biases in Open-Ended Language Generation*:
+    [https://assets.amazon.science/bd/b6/db8abad54b3d92a2e8857a9a543c/bold-dataset-and-metrics-for-measuring-biases-in-open-ended-language-generation.pdf](https://assets.amazon.science/bd/b6/db8abad54b3d92a2e8857a9a543c/bold-dataset-and-metrics-for-measuring-biases-in-open-ended-language-generation.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*When does Bias Transfer in Transfer* *Learning?*: [https://arxiv.org/pdf/2207.02842.pdf](https://arxiv.org/pdf/2207.02842.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Mitigating Gender Bias in Distilled Language Models via Counterfactual Role*
+    *Reversal*: [https://aclanthology.org/2022.findings-acl.55.pdf](https://aclanthology.org/2022.findings-acl.55.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*REVISE: A Tool for Measuring and Mitigating Bias in Visual* *Datasets*: [https://arxiv.org/pdf/2004.07999.pdf](https://arxiv.org/pdf/2004.07999.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*princetonvisualai/revise-tool*: [https://github.com/princetonvisualai/revise-tool](https://github.com/princetonvisualai/revise-tool)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Weapons of Math Destruction: How Big Data Increases Inequality and Threatens
+    Democracy Hardcover – September 6,* *2016*: [https://www.amazon.com/Weapons-Math-Destruction-Increases-Inequality/dp/0553418815](https://www.amazon.com/Weapons-Math-Destruction-Increases-Inequality/dp/0553418815)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Why Should I Trust You?” Explaining the Predictions of Any* *Classifier*:
+    [https://www.kdd.org/kdd2016/papers/files/rfp0573-ribeiroA.pdf](https://www.kdd.org/kdd2016/papers/files/rfp0573-ribeiroA.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Dive into Bias Metrics and Model Explainability with Amazon SageMaker* *Clarify*:
+    [https://towardsdatascience.com/dive-into-bias-metrics-and-model-explainability-with-amazon-sagemaker-clarify-473c2bca1f72](https://towardsdatascience.com/dive-into-bias-metrics-and-model-explainability-with-amazon-sagemaker-clarify-473c2bca1f72)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Upstream Mitigation Is Not All You Need: Testing the Bias Transfer Hypothesis
+    in Pre-Trained Language* *Models:* [https://aclanthology.org/2022.acl-long.247.pdf](https://aclanthology.org/2022.acl-long.247.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL

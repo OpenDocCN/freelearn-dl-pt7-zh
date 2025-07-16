@@ -1,0 +1,1068 @@
+- en: '*Chapter 8*: Leveraging NLP to Monetize Your Media Content'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: As we have seen in this book so far, AI, and specifically NLP, has a wide range
+    of uses in areas hitherto considered traditional IT spurred on by the rapid proliferation
+    of data and the democratization of **machine learning** (**ML**) with cloud computing.
+    In the previous chapter, we saw a cool example of how you can bring color to social
+    media reviews and other forms of textual data by running voice of the customer
+    analytics with sentiment detection. We saw how you can use AWS Glue to crawl raw
+    data from Amazon S3, use Amazon Athena to interactively query this data, transform
+    the raw data using PySpark ([http://spark.apache.org/docs/latest/api/python/index.html](http://spark.apache.org/docs/latest/api/python/index.html))
+    in an AWS Glue job to call Amazon Comprehend APIs (which provide ready-made intelligence
+    with pre-trained NLP models) to get sentiment analysis on the review, convert
+    the data into Parquet, and partition it ([https://docs.aws.amazon.com/athena/latest/ug/partitions.html](https://docs.aws.amazon.com/athena/latest/ug/partitions.html))
+    by sentiment to optimize analytics queries. In this chapter, we will change gears
+    and look at a use case that has gained tremendous popularity in recent times due
+    to the increased adoption of streaming media content, specifically how to monetize
+    content.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The gap between online advertising and print media advertising is ever widening.
+    According to this article, [https://www.marketingcharts.com/advertising-trends-114887](https://www.marketingcharts.com/advertising-trends-114887),
+    quoting a PwC outlook report on global entertainment and media ([https://www.pwc.com/outlook](https://www.pwc.com/outlook)),
+    online advertising spend was estimated to be approximately $58 billion higher
+    than TV advertising, and $100 billion higher than magazine and newspaper advertising
+    in 2020 even with the COVID-19 pandemic considered.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This, of course, is also driven by the increased usage of smart consumer devices
+    and the explosion of the internet age consumer trends. Google Ads is one of the
+    most popular ad-serving platforms today, accounting for 80% of Alphabet''s (the
+    public holding company that owns Google) revenues, raking in $147 billion in 2020
+    according to this article: [https://www.cnbc.com/2021/05/18/how-does-google-make-money-advertising-business-breakdown-.html](https://www.cnbc.com/2021/05/18/how-does-google-make-money-advertising-business-breakdown-.html).
+    You read that right: online advertisements are indeed a big deal. So, when you
+    are next thinking of posting that cool travel video or your recipe for an awesome
+    chili con carne, you could actually be making money out of your content. You may
+    ask, this is all great but how does NLP help in this case? Read on to find out!'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The answer, as you probably already guessed, is context-based ad serving. Suppose
+    you have an intelligent solution that could listen to the audio/text in your content,
+    understand what is being discussed, identify topics that represent the context
+    of the content, look up ads related to the topic, and stitch these ads back into
+    your content seamlessly without having to train any ML models: wouldn''t that
+    be swell? Yes, that''s exactly what we will be building now.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will navigate through the following sections:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Introducing the content monetization use case
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Building the NLP solution for content monetization
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: For this chapter, you will need access to an AWS account. Please make sure to
+    follow the instructions specified in the *Technical requirements* section in [*Chapter
+    2*](B17528_02_Final_SB_ePub.xhtml#_idTextAnchor027), *Introducing Amazon Textract*,
+    to create your AWS account, and log in to the AWS Management Console before trying
+    the steps in the *Building the NLP solution for content monetization* section.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The Python code and sample datasets for our solution can be found here: [https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/tree/main/Chapter%2008](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/tree/main/Chapter%2008).
+    Please use the instructions in the following sections along with the code in the
+    repository to build the solution.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Check out the following video to see the Code in Action at [https://bit.ly/317mcSh](https://bit.ly/317mcSh).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Introducing the content monetization use case
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: We know NLP can help enhance the customer service experience and understand
+    better what our customers are telling us. We will now use NLP to determine the
+    context of our media content and stitch ads into the content relevant to that
+    context. To illustrate our example, let's go back to our fictitious banking corporation
+    called **LiveRight Holdings Private Limited**. LiveRight's management has decided
+    they now need to expand to more geographies as they are seeing a lot of demand
+    for their model of no-frills banking that cuts their operational costs and transfers
+    the savings back to their customers. They have decided to hire you as their marketing
+    technology architect, putting you in charge of all their content creation, but
+    challenge you to devise a way for the content to pay for itself due to their low-cost
+    policies. You come up with the idea of creating fun educational videos that show
+    the latest trends in the intersection of banking and technology. There is a lot
+    of demand for such videos since they are free to watch, you can intersperse them
+    with ads to get monetary returns, and they serve to raise awareness of the bank
+    in the process.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'You have thought through the solution design and decide to use the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**AWS Elemental MediaConvert** ([https://aws.amazon.com/mediaconvert/](https://aws.amazon.com/mediaconvert/)),
+    a managed video transcoding service that can convert and enhance your video content
+    to multiple versions for broadcasting'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Amazon Transcribe** ([https://aws.amazon.com/transcribe/](https://aws.amazon.com/transcribe/))
+    to get a transcript of the video content'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Amazon Comprehend** ([https://aws.amazon.com/comprehend/](https://aws.amazon.com/comprehend/))
+    to leverage its pre-trained ML model for topic modeling to determine common themes
+    in the textual content of the video that will, in turn, drive the ad selection
+    process'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**AWS Elemental MediaTailor** ([https://aws.amazon.com/mediatailor/](https://aws.amazon.com/mediatailor/)),
+    a managed service that can take as input media content, assemble this into an
+    online channel delivery, and stitch ads onto the video content'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The components of the solution we will build are as shown in the following
+    figure:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 8.1 – NLP solution build for content monetization](img/B17528_08_01.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 8.1 – NLP solution build for content monetization
+  prefs: []
+  type: TYPE_NORMAL
+- en: We will be walking through this solution using the AWS Management Console ([https://aws.amazon.com/console/](https://aws.amazon.com/console/))
+    and an Amazon SageMaker Jupyter notebook ([https://docs.aws.amazon.com/sagemaker/latest/dg/nbi.html](https://docs.aws.amazon.com/sagemaker/latest/dg/nbi.html)),
+    which will allow us to review the code and results as we execute it step by step.
+    If you do not have access to the AWS Management Console, please follow the detailed
+    instructions in the *Technical requirements* section in [*Chapter 2*](B17528_02_Final_SB_ePub.xhtml#_idTextAnchor027),
+    *Introducing Amazon Textract,* of this book.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As a first step, we will look at the sample video file provided in the GitHub
+    repository ([https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2008/media-content/bank-demo-prem-ranga.mp4](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2008/media-content/bank-demo-prem-ranga.mp4)).
+    The sample video is from a demonstration of AWS AI services for document processing.
+    For a full version of this video, please refer to [https://www.youtube.com/watch?v=vBtxjXjr_HA](https://www.youtube.com/watch?v=vBtxjXjr_HA).
+    We will upload this sample video to an S3 bucket:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: After the video is loaded to the S3 bucket, we will use AWS Elemental MediaConvert
+    to create the broadcast versions of our sample video content.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In parallel, we will open our Amazon SageMaker Jupyter notebook to run the code
+    to create an Amazon Transcribe transcription job to convert the audio track from
+    our sample video to text.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We will use Amazon Comprehend Topic Modeling to detect the topics from this
+    text.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We will then use the sample URL from the `'cmsid'` and a video content ID referred
+    by the tag `'vid'`, which we will populate to stitch in the ads specific to the
+    topic we detected from the transcribed text in the previous step
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We will then create an Amazon CloudFront distribution for the output video files
+    from the AWS Elemental MediaConvert job.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Finally, we will use **AWS Elemental MediaTailor** to create a new configuration
+    for broadcast-grade streaming content, which will take our MediaConvert output
+    files available via the CloudFront distribution and the ad decision server URL
+    we modified in the previous step to create a new video file with the ads inserted.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In this section, we introduced the content monetization requirement we are trying
+    to build with our NLP solution, reviewed the challenges faced by LiveRight, and
+    looked at an overview of the solution we will build. In the next section, we will
+    walk through the building of a solution step by step.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Building the NLP solution for content monetization
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the previous section, we introduced a requirement for content monetization,
+    covered the architecture of the solution we will be building, and briefly walked
+    through the solution components and workflow steps. In this section, we will start
+    executing the tasks to build our solution. But first, there are prerequisites
+    we will have to take care of.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Setting up to solve the use case
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'If you have not done so in the previous chapters, you will as a prerequisite
+    have to create an Amazon SageMaker Jupyter notebook instance and set up **Identity
+    and Access Management** (**IAM**) permissions for that notebook role to access
+    the AWS services we will use in this notebook. After that, you will need to clone
+    the GitHub repository ([https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services)),
+    create an Amazon S3 ([https://aws.amazon.com/s3/](https://aws.amazon.com/s3/))
+    bucket, and provide the bucket name in the notebook to start execution. Please
+    follow the next steps to complete these tasks before we can execute the cells
+    from our notebook:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: Please ensure you have completed the tasks mentioned in the *Technical requirements*
+    section. If you have already created an Amazon SageMaker notebook instance and
+    cloned the GitHub repository for the book in a previous chapter, you can skip
+    some of these steps. Please go directly to the step where you open the notebook
+    folder corresponding to this chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: If not already done, follow the instructions documented in the *Creating an
+    Amazon SageMaker Jupyter notebook instance* section in the *Setting up your AWS
+    environment* section in [*Chapter 2*](B17528_02_Final_SB_ePub.xhtml#_idTextAnchor027),
+    *Introducing Amazon Textract,* to create your Jupyter notebook instance.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: IAM role permissions while creating Amazon SageMaker Jupyter notebooks
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Accept the default option for the IAM role at notebook creation time to allow
+    access to any S3 bucket.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Once you create the notebook instance and its status is **InService**, click
+    on **Open Jupyter** in the **Actions** menu for the notebook instance.![Figure
+    8.2 – Opening the Jupyter notebook
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_08_02.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 8.2 – Opening the Jupyter notebook
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: This will take you to the home folder of your notebook instance.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Click on **New** as shown in the following figure and select **Terminal**:![Figure
+    8.3 – Opening the terminal in the Jupyter notebook](img/B17528_08_03.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 8.3 – Opening the terminal in the Jupyter notebook
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: In the terminal window, first type `cd SageMaker` and then type `git clone`
+    [https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services),
+    as shown in the following screenshot. If you have already done this in the previous
+    chapters, you don't have to clone the repository again.![Figure 8.4 – The git
+    clone command
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_08_04.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 8.4 – The git clone command
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Now, exit the terminal window and go back to the home folder and you will see
+    a folder called `Chapter 08`. Click the folder and you should see a notebook called
+    `contextual-ad-marking-for-content-monetization-with-nlp-github.ipynb`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Open this notebook by clicking it.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Leave the notebook open for now. We will first execute the steps in the *Uploading
+    the sample video and converting it for broadcast* section before executing the
+    steps in the notebook.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Now that we have set up our notebook and cloned the repository, let's now add
+    the permissions policies we need to successfully run our code sample.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Additional IAM prerequisites
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'To run the notebook, we have to enable additional policies and also update
+    the trust relationships for our SageMaker notebook role. Please complete the following
+    steps to do this:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: If not already done, please attach `ComprehendFullAccess` and `AmazonTranscribeFullAccess`
+    policies to your Amazon SageMaker notebook IAM role. To execute this step, please
+    refer to the *Changing IAM permissions and trust relationships for the Amazon
+    SageMaker notebook execution role* in the *Setting up your AWS environment* section
+    in [*Chapter 2*](B17528_02_Final_SB_ePub.xhtml#_idTextAnchor027), *Introducing
+    Amazon Textract*.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Your SageMaker execution role should have access to S3 already. If not, add
+    the following JSON statement as an inline policy. For instructions, please refer
+    to the *Changing IAM permissions and trust relationships for the Amazon SageMaker
+    notebook execution role* section in the *Setting up your AWS environment* section
+    in [*Chapter 2*](B17528_02_Final_SB_ePub.xhtml#_idTextAnchor027), *Introducing
+    Amazon Textract*:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Finally, update the trust relationships. For instructions, please refer to
+    the *Changing IAM permissions and trust relationships for the Amazon SageMaker
+    notebook execution role* section in the *Setting up your AWS environment* section
+    in [*Chapter 2*](B17528_02_Final_SB_ePub.xhtml#_idTextAnchor027), *Introducing
+    Amazon Textract*:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Now that we have set up our notebook and set up the IAM role to run the walk-through
+    notebook, in the next section, we will start with creating broadcast versions
+    of our sample video.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Uploading the sample video and converting it for broadcast
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'In this section we will create two S3 buckets and get the sample video uploaded
+    for processing. Please execute the following steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Navigate to our GitHub url - [https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2008/media-content/bank-demo-prem-ranga.mp4](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2008/media-content/bank-demo-prem-ranga.mp4)
+    and click on the **Download** button at the right middle of the page to download
+    the video file to your computer.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Now create two Amazon S3 buckets, one for our media input and the other for
+    media output. Follow the instructions detailed in the *Creating an Amazon S3 bucket,
+    a folder, and uploading objects* section in the *Setting up your AWS environment*
+    section in [*Chapter 2*](B17528_02_Final_SB_ePub.xhtml#_idTextAnchor027), *Introducing
+    Amazon Textract,* of this book. Ensure that the block public access is on for
+    both the buckets.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In the Amazon S3 media input bucket, create a folder or prefix called `chapter8`.
+    Within this folder, create a folder called `rawvideo`. Follow the instructions
+    detailed in the *Creating an Amazon S3 bucket, a folder, and uploading objects*
+    section in the *Setting up your AWS environment* section in [*Chapter 2*](B17528_02_Final_SB_ePub.xhtml#_idTextAnchor027),
+    *Introducing Amazon Textract*, of this book.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Now upload the `bank-demo-prem-ranga.mp4` file into the `rawvideo` folder. So,
+    within the S3 bucket, the video file should be present in the path `chapter8/rawvideo/bank-demo-prem-ranga.mp4`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Now, we will pivot to creating the broadcast version of the video using AWS
+    Elemental MediaConvert. In the AWS Management Console, in the search bar at the
+    top, type `Media`, select **AWS Elemental MediaConvert**, and in the console,
+    click on **Get started**.![Figure 8.5 – AWS Elemental MediaConvert
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_08_05.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 8.5 – AWS Elemental MediaConvert
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: In the `s3://<media-input-bucket>/chapter8/rawvideo/bank-demo-prem-ranga.mp4`.![Figure
+    8.6 – Providing a job input file URL](img/B17528_08_06.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 8.6 – Providing a job input file URL
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Now, click the **Add** button in **Output groups** in the left panel of the
+    screen, select **Apple HLS** as the option in **Add output group**, and click
+    **Select**. Output groups determine the types of content artifacts produced and
+    on what devices they can be played.![Figure 8.7 – Adding an output group for the
+    MediaConvert job
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_08_07.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 8.7 – Adding an output group for the MediaConvert job
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Now, let's fill in the Apple HLS group settings. Provide the custom group name
+    as `HLS`. In `s3://<media-output-bucket>/bankdemo`. The AWS Elemental MediaConvert
+    service will process the sample video file into Apple HLS content files for broadcasting.
+    In `10` for `3` for **Minimum segment length (sec)**.![Figure 8.8 – Adding output
+    group settings for the MediaConvert job](img/B17528_08_08.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 8.8 – Adding output group settings for the MediaConvert job
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Scroll down to `_720` for **Name modifier** for **Output 1**. Do *not* click
+    on **Create** yet.![Figure 8.9 – Adding outputs for the MediaConvert job](img/B17528_08_09.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 8.9 – Adding outputs for the MediaConvert job
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Now, click **Output 1**, as shown:![Figure 8.10 – Clicking Output 1
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_08_10.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 8.10 – Clicking Output 1
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: As shown in the following screenshot, type `$dt$` for `1280` and `720`. Type
+    `3000000` for **Bitrate (bits/s)**. Leave the rest of the fields as the default.![Figure
+    8.11 – Modifying the output and encoding settings
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_08_11.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 8.11 – Modifying the output and encoding settings
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: On the left panel, under **Job settings**, click **AWS integration**. On the
+    right, under **Service access**, for **Service role control**, select **Create
+    a new service role, full permissions**. Accept the default name populated in **New
+    role name**. Scroll down and click on **Create**.![Figure 8.12 – Adding service
+    access for the MediaConvert job
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_08_12.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 8.12 – Adding service access for the MediaConvert job
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: The job should complete in a couple of minutes. Click on the **Job ID** to review
+    the summary view of the job, as shown in the following screenshot:![Figure 8.13
+    – Job summary
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_08_13.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 8.13 – Job summary
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Once the status shows `S3` in the search bar at the top of the screen and go
+    to the S3 console. Under `bankdemo`, as shown in the following screenshot:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 8.14 – AWS Elemental MediaConvert Apple HLS output files'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_08_14.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 8.14 – AWS Elemental MediaConvert Apple HLS output files
+  prefs: []
+  type: TYPE_NORMAL
+- en: We have now successfully completed the steps required to convert our sample
+    video file into broadcast-enabled output files, which is required for us to insert
+    ads into the video. In the next section, we will run a transcription of the audio
+    content from our video, run topic modeling, create the **VAST** ad tag URL required
+    for ad insertion, and show how we can perform content monetization.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Running transcription, finding topics, and creating a VAST ad tag URL
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Open the notebook you cloned from the GitHub repository ([https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2008/contextual-ad-marking-for-content-monetization-with-nlp-github.ipynb](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2008/contextual-ad-marking-for-content-monetization-with-nlp-github.ipynb))
+    in the *Setting up to solve the use case* section and execute the cells step by
+    step, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: Please ensure you have executed the steps in the *Technical requirements*, *Setting
+    up to solve the use case*, and *Uploading the sample video and converting it for
+    broadcast* sections before you execute the cells in the notebook.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Execute the first three cells under the **Transcribe** section to ensure we
+    have the libraries we need for the notebook. Note that in the first cell you are
+    importing libraries, in the second cell you are creating folders needed for Topic
+    Modeling, and in the third cell you are specifying the S3 bucket and prefix. You
+    should have already created two S3 buckets prior to running this notebook, as
+    mentioned in the *Uploading the sample video and converting it for broadcast*
+    section. Please provide the media input bucket name in the line, type a prefix
+    of your choice, or you can accept what is already provided in the notebook. In
+    this cell, we also define the Python SDK handle for Amazon S3 using Boto3, an
+    AWS SDK for Python development ([https://boto3.amazonaws.com/v1/documentation/api/latest/index.html](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html)):'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Execute the next cell to define a method for running an Amazon Transcribe transcription
+    job to convert the audio content of our sample video file to text. Note that we
+    are setting MediaFormat as `mp4`. We will be using the original sample video file
+    from the GitHub repository ([https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2008/media-content/bank-demo-prem-ranga.mp4](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2008/media-content/bank-demo-prem-ranga.mp4))
+    as the input for the transcription job:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Provide a job name (a text string) for the transcription so we are able to
+    identify this job down the line. Get the Boto3 handle for the Amazon Transcribe
+    service, pass the S3 location of our sample video file we loaded in the media
+    input S3 bucket, and call the `transcribe_file` method to run the transcription
+    job:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Now, navigate to the AWS Management Console in a new tab, type `Amazon Transcribe`
+    in the search bar at the top, and open the Amazon Transcribe console. Click on
+    **Transcription jobs** in the left pane. You should see your transcription job
+    with the job name you specified earlier. When the job completes, the status should
+    change to **Complete**.![Figure 8.15 – Amazon Transcribe transcription job](img/B17528_08_15.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 8.15 – Amazon Transcribe transcription job
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Now come back to the notebook and execute the next cell to get the S3 location
+    of the transcription results:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We will now execute the code cells in the `transcript.csv`) to convert the
+    paragraph of text into individual lines (`transcript_formatted.csv`) to send as
+    input to the Amazon Comprehend Topic Modeling job. Execute the code in the notebook
+    cell as shown in the following code block:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We will run an Amazon Comprehend Topic Modeling job on this formatted CSV file
+    to extract a set of topics that are applicable for our transcript. These topics
+    represent and help us identify what the subject area or the theme for the related
+    text is and represent the common set of words with the same contextual reference
+    throughout the transcript. For more details, please refer to *Amazon Comprehend
+    Topic Modeling*: [https://docs.aws.amazon.com/comprehend/latest/dg/topic-modeling.html](https://docs.aws.amazon.com/comprehend/latest/dg/topic-modeling.html).'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: To get started, go to the AWS Management Console (please refer to *Technical
+    requirements* in [*Chapter 2*](B17528_02_Final_SB_ePub.xhtml#_idTextAnchor027),
+    *Introducing Amazon Textract,* of this book if you don't have access to the AWS
+    Management Console), type `Amazon Comprehend` in the `transcript_formatted.csv`
+    file that we uploaded to S3 in preceding steps) in your *S3 bucket* in the `2`,
+    as shown:![Figure 8.18 – Creating Topic Modeling job inputs 2
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_08_18.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 8.18 – Creating Topic Modeling job inputs 2
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Provide the **Output data** S3 location, as shown (you can use the same S3 bucket
+    you used for input), and then type a name suffix and click on **Create job**.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 8.19 – Creating Topic Modeling job inputs 3'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B17528_08_19.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 8.19 – Creating Topic Modeling job inputs 3
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: You should see a **job submitted** status after the IAM role propagation is
+    completed. After 30 minutes, the job status should change to **Completed**. Now
+    click on the job name and copy the S3 link provided in the **Output data location**
+    field and go back to your notebook. We will continue the steps in the notebook.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 8.20 – Topic Modeling job completed](img/B17528_08_20.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_IMG
+- en: Figure 8.20 – Topic Modeling job completed
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: We will now execute the cells in the `tpprefix` variable, specifically `<path-to-job-output-tar>`,
+    with the string highlighted in bold from the S3 URI you copied shown in the following
+    code block.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'for i,x in tt_df.iterrows():'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: print(str(x['topic'])+":"+x['term']+":"+str (x['weight']))
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: dt_df = dt_df.drop_duplicates(subset=['docname'])
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: ttdf_max = tt_df.groupby(['topic'], sort=False)['weight'].max()
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: newtt_df = pd.DataFrame()
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'for x in ttdf_max:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: newtt_df = newtt_df.append(tt_df.query('weight == @x'))
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: newtt_df = newtt_df.reset_index(drop=True)
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: newtt_df
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: adtopic = newtt_df.at[1,'term']
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: We will now use the topic to look up ad content and create a VAST ad tag URL
+    that will be used as an input to insert ads into the broadcast video files we
+    created using AWS Elemental MediaConvert. The authors have provided two sample
+    CSV files containing content metadata for looking up ads. `ad-index.csv` ([https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2008/media-content/ad-index.csv](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2008/media-content/ad-index.csv))
+    contains a list of topics as keys and sample `cmsid` and `vid` values. `cmsid`
+    indicates the content management source ID in Google Ad Server, which is what
+    we are using as the ad decision server for our example, and `vid` indicates the
+    video content ID in Google Ad Server. `adserver.csv` ([https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2008/media-content/adserver.csv](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2008/media-content/adserver.csv))
+    contains the sample Google ad decision server URL that we need to modify in this
+    step. For this example, we'll use the topic we discovered from our Topic Modeling
+    job as the key to fetch `cmsid` and `vid`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'We will then substitute these in the VAST ad marker URL before creating the
+    AWS Elemental MediaTailor configuration. Execute the code cells as shown in the
+    following code block:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'a.) Please note this is from the sample `ad-index.csv` file that the authors
+    created for this demo. When you use this solution for your use case, you will
+    need to create a Google Ads account to get the `cmsid` and `vid` values. For more
+    details, please see this link: [https://support.google.com/admanager/topic/1184139?hl=en&ref_topic=7506089](https://support.google.com/admanager/topic/1184139?hl=en&ref_topic=7506089).'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'b.) Run the code in the following snippet to select the `cmsid` and `vid` values
+    based on our topic:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'c.) We get the following response:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'd.) Now we will create the ad server URL to use with AWS Elemental MediaTailor.
+    Let''s first copy the placeholder URL available in our GitHub repo ([https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2008/media-content/adserver.csv](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2008/media-content/adserver.csv)),
+    which has pre-roll, mid-roll, and post-roll segments filled in:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'e.) We get the following response:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: ad_formattedurl = ''
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'for x in ad_rawurl:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'if ''cmsid'' in x:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: x = advalue[1]
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'if ''vid'' in x:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: x = advalue[2]
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: ad_formattedurl += x + '&'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: ad_formattedurl = ad_formattedurl.rstrip('&')
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: ad_formattedurl
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '''https://pubads.g.doubleclick.net/gampad/ads?sz=640x480&iu=/124319096/external/ad_rule_samples&ciu_szs=300x250&ad_rule=1&impl=s&gdfp_req=1&env=vp&output=vmap&unviewed_position_start=1&cust_params=deployment%3Ddevsite%26sample_ar%3Dpremidpost&cmsid=176&vid=short_tencue&correlator=[avail.random]'''
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Alright, that brings us to the end of this section. We successfully transcribed
+    our sample video file using Amazon Transcribe, ran an Amazon Comprehend Topic
+    Modeling job on the transcript, selected a topic, and stitched together an ad
+    server VAST tag URL with the ad content ID corresponding to the topic. In the
+    next section, we will use AWS Elemental MediaTailor to create new video output
+    with the ad segments inserted, and we will test it by playing the video.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Inserting ads and testing our video
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Before we can proceed forward, we need to create an Amazon CloudFront ([https://aws.amazon.com/cloudfront/](https://aws.amazon.com/cloudfront/))
+    content delivery distribution for the video output files we transcoded with AWS
+    Elemental MediaConvert in the *Uploading the sample video and converting it for
+    broadcast* section.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Amazon CloudFront is a managed content delivery network that can be used for
+    site hosting, APIs, and image, media, and video file delivery, with live or on-demand
+    streaming formats, configured for global distribution or based on the selected
+    price class. Please follow the next steps to set up the CloudFront distribution
+    for your transcoded video files:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the AWS Management Console, type `CloudFront` in the search bar at the top,
+    and then select **Amazon CloudFront** and click **Create Distribution**.![Figure
+    8.21 – Amazon CloudFront Create Distribution](img/B17528_08_21.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 8.21 – Amazon CloudFront Create Distribution
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: On the next page, click **Get Started** to proceed to the **Create Distribution**
+    page. Please note there are multiple sections to be filled. In the **Origin Settings**
+    part of the page, click the list box for **Origin Domain Name** and select the
+    media output bucket that contains the video output files from the AWS Elemental
+    MediaConvert job. Select **Yes** for **Restrict Bucket Access**, and select **Create
+    a New Identity** for **Origin Access Identity**. Select **Yes, Update Bucket Policy**
+    for **Grant Read Permissions on Bucket**.![Figure 8.22 – Origin Settings for Create
+    Distribution in Amazon CloudFront
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_08_22.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 8.22 – Origin Settings for Create Distribution in Amazon CloudFront
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Scroll down to the **Default Cache Behavior Settings** area and change **Viewer
+    Protocol Policy** to **Redirect HTTP to HTTPS**. For **Cache Policy**, click the
+    list box and select **Managed-Elemental-MediaPackage**.![Figure 8.23 – Default
+    Cache Behavior Settings](img/B17528_08_23.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 8.23 – Default Cache Behavior Settings
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Scroll down to the **Distribution Settings** area and select the price class
+    based on where you are located. Leave the rest of the settings as they are, scroll
+    down, and click **Create Distribution**.![Figure 8.24 – Distribution Settings
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_08_24.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 8.24 – Distribution Settings
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Once the distribution is created, the status will change to **Deployed** and
+    the state will change to **Enabled**. Copy the value of the domain name from the
+    distribution.![Figure 8.25 – Distribution is enabled](img/B17528_08_25.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 8.25 – Distribution is enabled
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: We will now use this distribution as a content source to create new video output
+    with the ads inserted. In the AWS Management Console, type `MediaTailor` in the
+    services search bar, and select it to go to the AWS Elemental MediaTailor console.
+    Click **Create configuration** to get started.![Figure 8.26 – AWS Elemental MediaTailor
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_08_26.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 8.26 – AWS Elemental MediaTailor
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: On the **Create configuration** page, under **Required settings**, provide an
+    ad campaign name. In the **Content source** field, paste the Amazon CloudFront
+    distribution domain name that you copied in the preceding steps. Finally, in the
+    **Ad decision server** field, type the modified VAST ad tag URL you created in
+    the last step of the *Running transcription, finding topics, and creating a VAST
+    ad tag URL* section. Scroll down and click **Create configuration**.![Figure 8.27
+    – Creating MediaTailor configuration](img/B17528_08_27.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 8.27 – Creating MediaTailor configuration
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: The created configuration is displayed as shown in the following screenshot.
+    Copy the HLS playback prefix as we need it in the next step.![Figure 8.28 – MediaTailor
+    playback endpoint prefixes
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_08_28.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 8.28 – MediaTailor playback endpoint prefixes
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Download the VLC media player ([https://www.videolan.org/](https://www.videolan.org/))
+    and open it. Click on `bankdemo.m3u8`. This is the manifest file for the MediaTailor
+    video output with the ads inserted. The full URL should look as follows (this
+    is an example representative URL): `https://<generated-hash-nr>.mediatailor.us-east-1.amazonaws.com/v1/master/<generated-hash-nr>/<chapter8-ad-campaign>/bankdemo.m3u8`.![Figure
+    8.29 – Testing the video output using the VLC media player](img/B17528_08_29.jpg)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 8.29 – Testing the video output using the VLC media player
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Click **Open**. The video will start playing momentarily. Please note it takes
+    a couple of minutes for the ad insertion to reflect in the video. You should see
+    a 10-second pre-roll, a 10-second mid-roll, and post-roll ad space in the video.
+    Since we used the sample ad server URL, we don't see actual ads here, but once
+    you register with an ad decision server, you can get the actual ad content included
+    by following the steps in this solution.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: And that concludes the solution build for this chapter. Please refer to the
+    *Further reading* section for more details on media content monetization with
+    AWS AI and media services.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we learned how to build an intelligent solution for media content
+    monetization using the AWS AI services Amazon Transcribe and Amazon Comprehend,
+    the Amazon CloudFront content delivery network, and the AWS media services Elemental
+    MediaConvert and Elemental MediaTailor by taking a sample MP4 video file. We covered
+    all this by first transcoding it into Apple HLS output files using MediaConvert,
+    then creating atranscription from the MP4 file using Amazon Transcribe, analyzing
+    the transcript, and detecting topics using Amazon Comprehend Topic Modeling, creating
+    a VAST ad decision server URL. We also covered creating a distribution for the
+    transcoded video content using Amazon CloudFront and using this distribution and
+    the ad decision server URL to insert ads into the transcoded video using MediaTailor.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For our solution, we started by introducing the content monetization use case
+    for LiveRight, the requirement for a cost-effective expansion resulting in using
+    content to pay for content creation. We then designed an architecture that used
+    AWS AI services, media services, and the content delivery network to assemble
+    an end-to-end walk-through of how to monetize content in video files. We assumed
+    that you, the reader, are the architect assigned to this project, and we reviewed
+    an overview of the solution components along with an architectural illustration
+    in *Figure 8.1*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We then went through the prerequisites for the solution build, set up an Amazon
+    SageMaker notebook instance, cloned our GitHub repository, and started executing
+    the steps using the AWS Management Console and the code in the notebook based
+    on instructions from this chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will look at an important use case, metadata extraction,
+    using named entity recognition. We will, as before, introduce the use case, discuss
+    how to design the architecture, establish the prerequisites, and walk through
+    in detail the various steps required to build the solution.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Further reading
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Monetizing your media workflows ([https://aws.amazon.com/media/resources/monetization/](https://aws.amazon.com/media/resources/monetization/))
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Announcing AWS Media Intelligence Solutions* by Vasi Philozelligence-solutions/)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL

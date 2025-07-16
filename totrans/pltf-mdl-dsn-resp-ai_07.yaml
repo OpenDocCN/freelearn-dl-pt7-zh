@@ -1,0 +1,2410 @@
+- en: '7'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Fairness Notions and Fair Data Generation
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we will first set an outline of how fairness has become important
+    in the world of predictive modeling by providing examples of different challenges
+    faced in society. We will then go deep into the taxonomies and types of fairness
+    to present a detailed description of the terms involved. Here, we will understand
+    the importance of the defined metrics by citing and substantiating open source
+    tools that help evaluate the metrics. Then, we will further emphasize the importance
+    of the quality of data as biased datasets can introduce hidden bias in ML models.
+    In this context, this chapter discusses different synthetic data generation techniques
+    that are available and how they can be effective in removing bias from ML models.
+    In addition, the chapter also emphasizes some of the best practices that can not
+    only generate synthetic private data but can also scale and fit different types
+    of problems well.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, these topics will be covered in the following sections:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding the impact of data on fairness
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Fairness definitions
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The role of data audits and quality checks in fairness
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Fair synthetic datasets
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'This chapter requires you to have Python 3.8 along with some necessary Python
+    packages:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`git clone https://github.com/yoshavit/fairml-farm.git` (works with TensorFlow-1.14.0
+    or TensorFlow-1.15.0'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`python` `setup.py install`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`%tensorboard --``logdir logs/gradient_tape`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`pip install fat-forensics[all]` ([https://github.com/fat-forensics/fat-forensics](https://github.com/fat-forensics/fat-forensics))'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`pip` `install fairlens`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`git` `clone` [https://github.com/amazon-research/minimax-fair.git](https://github.com/amazon-research/minimax-fair.git)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`python3 main_driver.py`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Understanding the impact of data on fairness
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In this first section, let''s understand what fairness is and how data plays
+    a part in making a dataset fair. *By fairness, we mean the absence of any prejudice
+    or favoritism toward an individual or group based on their inherent or acquired
+    characteristics* (A Survey on Bias and Fairness in Machine Learning, Ninareh Mehrabi,
+    Fred Morstatter, Nripsuta Saxena, Kristina Lerman, and Aram Galstyan: [https://arxiv.org/pdf/1908.09635.pdf](https://arxiv.org/pdf/1908.09635.pdf)).
+    The stated definition emphasizes the presence of certain biases, allowing preferential,
+    unfair treatment toward one individual/sub-group of a population section due to
+    certain attributes, such as gender, age, sex, race, or ethnicity. The goal of
+    the following sections is to avoid creating unfair algorithms that are biased
+    toward a section or group of people.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Real-world bias examples
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'To study the impact of datasets, let''s see some real-world examples of where
+    and how bias exists and the role of data in creating such biases. One of the most
+    prominent examples where bias is visible is the **Correctional Offender Management
+    Profiling for Alternative Sanctions** (**COMPAS**) software. This tool has been
+    used in many jurisdictions around the US to predict whether a convicted criminal
+    is likely to re-offend. The software revealed bias against African-Americans,
+    demonstrating a higher false positive rate for African-American offenders than
+    Caucasian offenders: the former group (African-Americans) exhibits a higher risk
+    of *falsely* being identified as offenders or repeat criminals than the latter.
+    One obvious reason is the absence of adequate data representations for minority
+    groups. The evidence of racial discrimination has been summarized by ProPublica
+    as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Black defendants were often predicted to be at a higher risk of recidivism than
+    they actually were. Our analysis found that black defendants who did not recidivate
+    over a two-year period were nearly twice as likely to be misclassified as higher
+    risk compared to their white counterparts (45 percent vs. 23 percent).
+  prefs: []
+  type: TYPE_NORMAL
+- en: White defendants were often predicted to be less risky than they were. Our analysis
+    found that white defendants who re-offended within the next two years were mistakenly
+    labeled low risk almost twice as often as black re-offenders (48 percent vs. 28
+    percent).
+  prefs: []
+  type: TYPE_NORMAL
+- en: The analysis also showed that even when controlling for prior crimes, future
+    recidivism, age, and gender, black defendants were 45 percent more likely to be
+    assigned higher risk scores than white defendants.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Black defendants were also twice as likely as white defendants to be misclassified
+    as being a higher risk of violent recidivism. And white violent recidivists were
+    63 percent more likely to have been misclassified as a low risk of violent recidivism,
+    compared with black violent recidivists.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The violent recidivism analysis also showed that even when controlling for prior
+    crimes, future recidivism, age, and gender, black defendants were 77 percent more
+    likely to be assigned higher risk scores than white defendants.
+  prefs: []
+  type: TYPE_NORMAL
+- en: (Quoted from *How We Analyzed the COMPAS Recidivism Algorithm* by Jeff Larson,
+    Surya Mattu, Lauren Kirchner, and Julia Angwin)
+  prefs: []
+  type: TYPE_NORMAL
+- en: The reports published by ProPublica give us a clear idea of the impact of racial
+    discrimination. As the tool is a clear demonstration of injustice against minorities,
+    the dataset present in COMPAS ([https://www.kaggle.com/code/danofer/compass-fairml-getting-started/data](https://www.kaggle.com/code/danofer/compass-fairml-getting-started/data))
+    is more often used for evaluating fairness in ML algorithms, to check the occurrence
+    of bias, if any.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This kind of bias is more evident in chatbots, employment matching, flight routing,
+    automated legal aid for immigration algorithms, and search and advertising placement
+    algorithms. We can also see such bias is present in AI and robotic systems, face
+    recognition applications, voice recognition, and search engines.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Bias has a detrimental impact on society when the outcomes of biased ML models
+    extend or withhold opportunities, resources, or information (such as hiring, school
+    admissions, and lending). Such issues are most visible in face recognition, document
+    search, and product recommendation, where system accuracy is impacted. End user
+    experiences are impacted when biased algorithmic outcomes generate a feedback
+    loop (due to repeated user interactions with the top items on the list) between
+    data, algorithms, and users, thereby increasing the number of sources yielding
+    further bias.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: What is most important for us to know is that when algorithms are trained on
+    biased data, the algorithm itself learns the bias during the training process
+    and reflects that in its predictions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now let''s look at *Table 7.1* and understand the different sources of bias.
+    Bias resulting from data may come in different forms: **data-to-algorithm** (**DA**)
+    bias, **algorithm-to-user** (**AU**) bias, and **user-to-data** (**UD**) bias.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '| **Bias name** | **Source of bias** | **Type** |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Measurement bias | Data selection, utilization, transformation, and measurement
+    of features. | DA |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Omitted variable bias | Important variables excluded from the model. | DA
+    |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Representation bias | Sampling bias from a population during data collection.
+    | DA |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Aggregation bias | False inferences drawn about individuals from the entire
+    population. Examples include Simpson’s paradox – an association in aggregated
+    source data disappears or changes when data gets disassembled into subgroups.
+    | DA |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Sampling bias | Sampling bias resembles representation bias, arising due
+    to the non-random sampling of subgroups. | DA |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Longitudinal data fallacy | Results from the aggregation of diverse cohorts
+    at a single point. Prominent due to temporal cross-sectional data analysis and
+    modeling. | DA |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Linking bias | Misinterpretation of true user behavior due to user connections,
+    activities, or interactions. | DA |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Algorithmic bias | The input data has no bias but it is added by the algorithm.
+    | AU |'
+  prefs: []
+  type: TYPE_TB
+- en: '| User interaction bias | Triggered from two sources: the user interface and
+    when the user imposes their self-selected biased behavior and interaction. | AU
+    |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Popularity bias | More popular items are exposed more, which often get manipulated
+    by fake reviews or social bots. | AU |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Emergent bias | Results from interaction with real users due to changes in
+    population, cultural values, or societal knowledge. | AU |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Evaluation bias | Occurs during model evaluation, due to inappropriate evaluation
+    techniques. | AU |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Historic bias | Socio-technical issues in the world can largely impact the
+    data generation process, even after the application of perfect sampling and feature
+    selection techniques. | UD |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Population bias | When statistics, demographics, representatives, and user
+    characteristics of the user population of the platform differ from the original
+    target population. | UD |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Self-selection bias | A subtype of selection bias where subjects of research
+    select themselves. | UD |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Social bias | Social bias happens when others’ actions affect our judgment.
+    | UD |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Behavioral bias | Behavioral bias arises from different user behavior across
+    platforms, contexts, or different datasets. | UD |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Temporal bias | Results from differences in populations and behaviors over
+    time. | UD |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Content production bias | Results from structural, lexical, semantic, and
+    syntactic differences in the content generated by users. | UD |'
+  prefs: []
+  type: TYPE_TB
+- en: Table 7.1 – Different types of bias and its sources
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, with our understanding of different types of bias, let's see in *Figure
+    7**.1* how they are dependent on each other and circulate in a loop. For example,
+    the involvement of user interaction, resulting in behavioral bias, sees its bias
+    amplified when fed with data. The input data adds to aggregation or longitudinal
+    bias. This in turn is processed by algorithms that add bias, termed ranking or
+    emergent bias.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.1 – Flow of different types of bias based on sources](img/B18681_07_001.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.1 – Flow of different types of bias based on sources
+  prefs: []
+  type: TYPE_NORMAL
+- en: Causes of bias
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'In the following list, we will look at exactly what causes bias:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Skewed dataset**: The dataset may display skewness toward the least-occurring
+    class. This kind of bias tends to increase at a compound rate with time. Crime
+    datasets exhibit this kind of skewness, as we see a very limited number of criminals
+    versus innocent people in any region. Once skewness is observed, detectives and
+    police departments also tend to be biased and dispatch more police professionals
+    to high-crime areas. This may tend to reveal high crime rates, having more police
+    professionals deployed compared to other regions.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Insufficient training data**: We observe that with only limited data for
+    certain demographic groups or other groups, an ML model tends to produce biased
+    outcomes. Such models fail to notice extraordinary characteristics that are available
+    with a very limited population. We saw such examples in [*Chapter 3*](B18681_03.xhtml#_idTextAnchor066),
+    with facial recognition technology having greater accuracy with images of white
+    males compared to images of black females.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Human bias**: Datasets often get corrupted due to human bias. One such example
+    can be seen when we collect real-world data on US employment. Women hardly account
+    for the CEOs in the data on the top 500 companies. This is due to the fact that
+    there are fewer female CEOs and we have failed to collect data where women are
+    CEOs. Models trained on such data would naturally predict that being female correlates
+    poorly with being a CEO.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Data de-biasing**: To remove bias from historical data, we have often seen
+    approaches such as removing sensitive attributes, but that does not completely
+    eliminate bias. Experimental studies reveal correlated attributes are often used
+    as proxies, even after the removal of sensitive attributes that pave the way for
+    the systematic discrimination of minorities. One example of this kind is when
+    a particular locality is predominantly resided in by black people and the removal
+    of the race column does not remove the bias due to the presence of the ZIP code
+    of that location. Possible recommendations to avoid this are to keep the sensitive
+    columns and directly monitor and remediate violations caused by the presence of
+    proxy features during model training.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Side-effects from data debiasing**: Techniques often applied to remove data
+    skewness and model bias sometimes result in undesired side-effects in the model
+    downstream. This has been observed when a speech recognition algorithm was fine-tuned
+    for males and females, with the results significantly worse for female speakers
+    compared to male ones. Researchers further observed that testing models for bias
+    with holdout samples did not solve this, as the test dataset was also biased.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Availability of limited features**: When features are less informative or
+    reliable for minority groups than the counterparts of a majority group, models
+    demonstrate much lower accuracy for the minority section compared to the majority
+    section of the population.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Diversity among data and AI professionals**: It has been found that the absence
+    of diversity has been one of the main causes of bias. Diversity in teams can help
+    to mitigate bias. One study put forward by Joy Buolamwini, founder of the Algorithmic
+    Justice League and past member of MIT Media Lab, demonstrates that certain discoveries
+    were made by her team when a Ghanaian-American computer scientist joined her research
+    group. The team together found out that facial recognition tools exhibited bias
+    and showcased poor performance on her darker skin tone – and only worked if she
+    wore a white mask.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Costs incurred in driving fairness algorithms**: Organizations that have
+    not invested in fairness have more biased ML models. Organizations need to invest
+    in human resource experts and in educating people to opt for fair ML model designs.
+    This may come at the cost of achieving the right trade-off between model accuracy
+    and fairness metrics, which can impact profit margins, revenue, or the number
+    of customers. Hence, it is necessary to balance the two objectives before enforcing
+    regulations.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**External audits**: Bias can also arise from the absence of proper external
+    audits. External audits, when put in place, can detect biased datasets or algorithmic
+    bias that’s in place. However, organizing such audits may violate GDPR, CCPA,
+    and other privacy regulations that strictly enforce the privacy of customers’
+    sensitive data. A workaround is to leverage the use of synthetic data tools that
+    allow you to generate fully anonymous, completely realistic, and representative
+    datasets. An organization can rely on synthetic datasets to train ML models without
+    violating privacy laws, as sharing the data does not disrespect individual privacy.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Fair models become biased**: It often happens in the absence of the constant
+    monitoring of incoming data and model metrics that fair models become biased.
+    One such example is the AI chatbot **Tay**, developed by Microsoft. Microsoft
+    had to withdraw Tay from the web as it become misogynistic and racist while learning
+    from the conversations of Twitter users. Continuous monitoring and evaluation
+    of model metrics can help to prevent bias from arising over time.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Biased AI and its vicious cycle**: If we fail to measure and assess bias
+    from AI algorithms, it will percolate deep within our society and will potentially
+    be more harmful. One such example was seen with Google’s search algorithm, which
+    displayed racist images on applying searches for terms such as **black hands**.
+    The searches, instead of perpetuating bias and displaying derogatory depictions,
+    could have showcased more neutral images if the initial search results and the
+    clicks on the search results were not pointed at biased images.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Now, we understand how we can introduce bias while training ML models. We should
+    also be aware of discrimination processes that also yield biased models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Discrimination** is another source of unfairness originating due to human
+    prejudice and stereotyping based on sensitive attributes present in the dataset.
+    Discrimination primarily originates from systems or statistics. **Systemic discrimination**
+    refers to existing policies, customs, or behaviors within an organization that
+    enhance discrimination against certain subgroups of the population. **Statistical
+    discrimination**, however, occurs when decision-makers use average group statistics
+    to judge an individual belonging to that group.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Hence, we can say in generating biased ML models that the dataset plays an important
+    role, as it provides the statistics, features, and patterns of data that are learned
+    during the model training phase.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this section, we studied different types of bias that exist and creep into
+    systems. To avoid bias, we need to incorporate fair treatment for everyone, and
+    in order to do that we need to define what it means to offer fair treatment. Let's
+    look at that in the next section.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Defining fairness
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this section, let's try to understand the different types of fairness that
+    researchers have described to avoid **discrimination** or the unfavorable treatment
+    of people. ML algorithms and practitioners are increasingly coming under scrutiny
+    on this subject to mitigate the risk of unfair treatment in areas such as credit,
+    employment, education, and criminal justice. The goal is to design ML algorithms
+    and pipelines that are not impacted by protected attributes (such as gender, race,
+    and ethnicity) but are still able to offer fair predictions. We’ll look at some
+    different fairness definitions with examples.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Numerical and binary attributes are most often used to state and test fairness
+    criteria. Categorical features can be converted to a set of binary features. Most
+    often, we use the terms protected and unprotected groups, advantaged and disadvantaged
+    groups, and majority and minority groups interchangeably to differentiate between
+    the demographic sections of the population and evaluate fairness for different
+    sections of the population. In the definitions discussed in this section, we will
+    primarily use married/divorced female entrants and married/divorced male entrants
+    to demonstrate how preferential treatment or mistreatment can be avoided, to ensure
+    fair and equitable model predictions. Here, *entrants* mean initial-stage job
+    applicants.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Types of fairness based on statistical metrics
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'The statistical measures of fairness are dependent on metrics, which can be
+    best explained by means of a confusion matrix – a table that is generated by running
+    predicted outcomes against ground truth data with an actual representation of
+    the different accuracy metrics of a classification model. The rows and columns
+    represent the predicted and the actual classes respectively. For a binary classifier,
+    both predicted and actual classes have two values: positive and negative, as shown
+    in the following figure. The following definitions further illustrate the metrics
+    that are situated in the four different quadrants of the matrix shown in *Figure
+    7**.2*:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.2 – Model classification metrics](img/B18681_07_002.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.2 – Model classification metrics
+  prefs: []
+  type: TYPE_NORMAL
+- en: True positive (TP)
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: The model’s predicted outcome and ground truth data are both in the positive
+    class (true, in binary classification).
+  prefs: []
+  type: TYPE_NORMAL
+- en: False positive (FP)
+  prefs: []
+  type: TYPE_NORMAL
+- en: The model’s predicted outcome is true, while the ground truth data is false
+    and belongs to the negative class.
+  prefs: []
+  type: TYPE_NORMAL
+- en: False negative (FN)
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: The model’s predicted outcome is false and lies in the negative class, while
+    the actual ground truth data is true, belonging to the positive class.
+  prefs: []
+  type: TYPE_NORMAL
+- en: True negative (TN)
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: The model’s predicted and ground truth data are both false and they lie in the
+    negative class.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Positive predictive value (PPV)/precision
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: This is the rate of positive cases accurately predicted to be true or lying
+    in the positive class out of all predicted positive cases. It represents the probability
+    of a subject with true as the predicted outcome truly belonging to the same class
+    (having true as the ground truth data), *P*(*Y =* 1*|d =* 1), where an entrant
+    with a good predicted qualifying score actually has a ground truth where the qualifying
+    score is also good.
+  prefs: []
+  type: TYPE_NORMAL
+- en: False discovery rate (FDR)
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: This is the rate of negative cases that were inaccurately predicted to be true.
+    The FDR represents the probability of false acceptance, *P*(*Y =* 0*|d =* 1),
+    where we observe that a job candidate with a good predicted qualifying score has
+    a ground truth where the person’s qualifying score is actually reported as low.
+  prefs: []
+  type: TYPE_NORMAL
+- en: False omission rate (FOR)
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: This is the rate of positive cases that were wrongly classified and predicted
+    to belong to the negative class. The FOR represents the probability of samples
+    having a true value being inaccurately rejected, *P*(*Y =* 1*|d =* 0). We observe
+    this most often when a job entrant has been evaluated to have a low predicted
+    qualifying score, but the same candidate in reality has a good score.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Negative predictive value (NPV)
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: This is the rate of negative samples that are accurately predicted to be in
+    the negative class out of all predicted negative cases. The NPV represents the
+    probability of a subject (or an entrant) with a negative prediction truly belonging
+    to the negative class, *P*(*Y =* 0*|d =* 0).
+  prefs: []
+  type: TYPE_NORMAL
+- en: True positive rate (TPR)
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: This is the rate of positive samples that are accurately predicted to be in
+    the positive class out of all actual positive cases. The TPR is often referred
+    to as sensitivity or recall; it represents the probability of a truly positive
+    subject being identified in the class it belongs to, *P*(*d =* 1*|Y =* 1). In
+    our example, it is the probability that a job entrant with ground truth data representing
+    a good qualifying score is accurately predicted by the model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: False positive rate (FPR)
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: This is the rate of negative samples inaccurately predicted by the model to
+    be true, out of all actual negative cases. The FPR represents the probability
+    of false alerts, *P*(*d =* 1*|Y =* 0). An example is when an entrant exhibiting
+    a low qualifying score in reality has been misclassified by the model and inaccurately
+    given a good qualifying score.
+  prefs: []
+  type: TYPE_NORMAL
+- en: False negative rate (FNR)
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: This is the rate of samples with true values that are mistakenly predicted to
+    be false, out of all actual positive cases. The FNR represents the probability
+    of a negative result given an actual outcome, *P*(*d =* 0*|Y =* 1). An example
+    is when the probability of an entrant having a good qualifying score happens to
+    be wrongly classified.
+  prefs: []
+  type: TYPE_NORMAL
+- en: True negative rate (TNR)
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: This is the rate of samples with a value of false that are accurately predicted
+    to be in the negative class, out of all actual negative cases. The TNR represents
+    the probability of an outcome being given a false value and actually belonging
+    to the negative class, *P*(*d =* 0*|Y =* 0). We observe this when the probability
+    of an entrant with a low qualifying score happens to be accurately classified.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let’s calculate these scores on the COMPAS dataset:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s first import the necessary Python libraries:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Next, we load the data:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We translate the dataset into a binary classification problem to evaluate whether
+    an individual has a high/medium/low risk of recidivism:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Next, we plot the model’s performance after normalizing by each row – we want
+    to see the PPV, FDR, FOR, and NPV:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This yields the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.3 – A confusion matrix using the COMPAS dataset](img/B18681_07_003.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.3 – A confusion matrix using the COMPAS dataset
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We can also print the values using an `sklearn` confusion matrix:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Then we concentrate on African-American or Caucasian defendants, since they
+    are the subject of the ProPublica claim:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This yields the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.4 – Fairness accuracy metrics for African-American and Caucasian](img/B18681_07_004.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.4 – Fairness accuracy metrics for African-American and Caucasian
+  prefs: []
+  type: TYPE_NORMAL
+- en: Here, we see that the fairness metric is not the same across both groups.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Types of fairness based on the metrics of predicted outcomes
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: The types of fairness listed in this section primarily focus on a predicted
+    outcome for various demographic segments of subjects involved in the problem under
+    consideration.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Group fairness/demographic parity
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'This is also commonly known as statistical parity or the equal acceptance rate.
+    This concerns whether subjects in both protected (race, gender, ethnicity, and
+    so on) and unprotected groups exhibit an equal probability of being represented
+    in the predicted class classified as true. For example, this condition will be
+    satisfied when there is an equal probability of male and female applicants achieving
+    an equally good predicted qualifying score: *P* (*d =*1*|G = m*) *= P* (*d =*
+    1*|G =* *f*).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: To illustrate this further, let's assume an ML model predicts that married/divorced
+    male and female entrants have scores of 0.81 and 0.75, respectively. Here, the
+    classifier can be said to have failed as it fails to satisfy the objective of
+    equal scores for both males and females.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Conditional statistical parity
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'This definition goes beyond the previous definition by allowing a set of attributes
+    that can influence the model’s predictions. To explain this further, this metric
+    can be satisfied only when both protected and unprotected groups have an equal
+    probability of being designated with the true class. This can be controlled by
+    a set of allowable factors, *L* (including the entrant’s credit history, employment,
+    and age). Hence, to explain mathematically that both female and male entrants
+    demonstrate an equal probability of achieving a good qualifying score, we state
+    it as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*P* (*d =* 1*|L = l, G = m*) *= P* (*d =* 1*|L = l, G =* *f*)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: However, scores for married/divorced male and female entrants can be found to
+    be very close; for example, they are 0.46 and 0.49, respectively. When we see
+    such a minor difference existing between two groups, we can allow a threshold
+    factor to permit this allowable difference.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Types of fairness based on the metrics of predicted and actual outcomes
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: The fairness concepts listed here go beyond consideration of what the model
+    predicts as its outcomes, *d*, for different demographic sections of subjects
+    involved in the process of classification. They go on to compute evaluation metrics
+    that are compared to the actual outcome, *Y* (as evident in the ground truth data),
+    and recorded in the dataset.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Predictive parity
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'This concept is very important, and it ensures that a classifier can satisfy
+    that both protected and unprotected groups demonstrate a measure of equal PPV
+    – ensuring that the probability of a subject exhibiting a true or positive predictive
+    value is actually included in the positive class. As an example, we would need
+    to have both male and female entrants demonstrate the same probability score.
+    This can be formulated as:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*P (Y =* 1*|d =* 1*, G = m*) *= P* (*Y =* 1*|d =* 1*, G =* *f*)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Furthermore, a classifier with an equal PPV will also have an equal FDR, which
+    means:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*P (Y =* 0*|d =* 1*, G = m) = P (Y =* 0*|d =* 1*, G =* *f)*'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The measures may not be fully equal and a threshold margin between the groups
+    is permitted. For example, a classifier may record the PPV for married/divorced
+    male and female entrants as 0.73 and 0.74, respectively, and the FDR for male
+    and female entrants as 0.27 and 0.26, respectively.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In real-world ML algorithms, most often, we find that any trained classifier
+    understands an advantaged group better and predicts them in the positive prediction
+    class. The disadvantaged or minority group’s predicted outcome sees a greater
+    number of challenges in correct evaluation, mostly due to there being limited
+    data for that group.
+  prefs: []
+  type: TYPE_NORMAL
+- en: False positive error rate balance/predictive equality
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'This metric ensures that the classifier satisfies that both protected and unprotected
+    groups demonstrate similar behavior by exhibiting measures that represent an equal
+    FPR (a metric used for the misclassification rate) – where a subject with a false
+    value and that is included in the negative class possesses a true positive predictive
+    value. For example, this concept implies that both male and female entrants show
+    the same probability measure, which causes entrants with a low qualifying score
+    to be designated a good predicted qualifying score. Mathematically, it can be
+    formulated as:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*P* (*d =* 1*|Y =* 0*, G = m) = P (d =* 1*|Y =* 0*, G =* *f*)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here, a classifier with an equal FPR will also exhibit an equal TNR. Hence:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*P* (*d =* 0*|Y =* 0*, G = m) = P (d =* 0*|Y =* 0*, G =* *f*)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In terms of actual values, the FPR for married/divorced male and female entrants
+    is 0.70 and 0.55, respectively, while the TNR is 0.30 and 0.45, respectively.
+    Any tendency of the classifier to assign good qualifying scores to males who previously
+    had low credit would cause the classifier to break the definitions stated and
+    would result in its failure.
+  prefs: []
+  type: TYPE_NORMAL
+- en: False negative error rate balance/equal opportunity
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'This concept ensures that a classifier satisfies the condition that both protected
+    and unprotected groups have an equal FNR – where a subject containing a true value
+    and that is included in the positive class actually possesses a negative predictive
+    value. This occurs on account of misclassification. Mathematically, it can be
+    formulated as:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*P* (*d =* 0*|Y =* 1*, G = m*) *= P* (*d =* 0*|Y =* 1*, G =* *f*)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This implies the condition that in both the male and female groups, any entrant
+    possessing a good predicted score has been misclassified and predicted as possessing
+    a low score. A classifier with an equal FNR will also have an equal TPR. Now in
+    terms of equation, the following condition holds, where we see TPR should be same
+    for both males and females:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*P* (*d =* 1*|Y =* 1*, G = m*) *= P* (*d =* 1*|Y =* 1*, G =* *f*)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: For example, the FPR and TPR for married/divorced male and female entrants are
+    0.13 and 0.87, respectively. As the classifier exhibits equal measures of good
+    qualifying scores among males and females, this would lead to equal treatment
+    of the two groups. If the classifier can also satisfy the low scores among the
+    two groups, it will be said to satisfy the condition of group fairness.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Equalized odds/disparate mistreatment
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'This type of fairness, also commonly known as **conditional procedure accuracy
+    equality**, enforces a condition of fairness by combining the previous two definitions.
+    It standardizes the error rates for both male and female populations, where a
+    classifier is satisfactory if protected and unprotected groups have an equal TPR
+    and an equal FPR. Hence, this acts as a combination function that ensures equality
+    among both male and female groups, when an entrant with a good qualifying score
+    is also correctly designated a good predicted qualifying score by the model. The
+    probability of an entrant having a low qualifying score in reality has been seen
+    to be inaccurately classified by the model and designated a good predicted qualifying
+    score. Mathematically, it can be formulated as:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*P* (*d =* 1*|Y = i, G = m*) *= P* (*d =* 1*|Y = i, G = f*)*, i* *∈*0, 1'
+  prefs: []
+  type: TYPE_NORMAL
+- en: For example, a classifier exhibiting an FPR for married/divorced male and female
+    entrants as 0.70 can only satisfy disparate mistreatment when it also records
+    a TPR of 0.86 for both males and females. But on the other hand, it shows preferential
+    treatment toward the male group by recording an FPR of 0.80, in contrast to an
+    FPR of 0.70 for the female group. This preferential or biased treatment will cause
+    the classifier to fail to satisfy the condition of equalized odds. Hence, classifiers
+    are often found to satisfy predictive parity but not to satisfy the condition
+    of equalized odds.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.5 – Two fairness trees that represent different types of fairness
+    on group/individual/overall levels](img/B18681_07_005.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.5 – Two fairness trees that represent different types of fairness on
+    group/individual/overall levels
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Figure 7**.5* gives a condensed representation of these fairness definitions.
+    The preceding figure depicts two fairness trees – the first one is for when we
+    deal with group fairness and the second one is for when we deal with fairness
+    for either individuals or everyone.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The overall fairness metric called the **Theil Index** is an economic inequality
+    metric used to quantify the divergence of the current distribution of resources
+    (for example, income) within and among diverse demographic groups. Thus, it helps
+    to measure the inequality of income spread (by giving a weighted average of inequality
+    within subgroups) across individuals and groups/sub-groups in a population.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To compute the individual fairness metric, we can either use **Manhattan distance**
+    (a metric that computes the average Manhattan distance between the samples from
+    two datasets) or **Euclidean distance** (a metric that computes the average Euclidean
+    distance between the samples from two datasets). For individual fairness, we follow
+    a similar method for similar individuals irrespective of their relationship with
+    any group.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A group fairness tree is generated based on disparate representations or disparate
+    errors. It is based on the two following factors.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Fairness based on disparate representations – equal parity/proportional parity**'
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: A fairness tree splits to either equal parity, when we are interested in selecting
+    an equal number of people from each group, or proportional parity, when we are
+    interested in selecting a number of people that is proportional to their percentage
+    in the entire population.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Fairness based on disparate errors in the system – punitive/assistive error
+    metrics**'
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: A fairness tree splits to either punitive or assistive error metrics, depending
+    on whether we are interested in making interventions that could either hurt or
+    help individuals.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We further illustrate in *Figure 7**.6* the computation of group fairness metrics
+    using the Adult dataset ([https://archive.ics.uci.edu/ml/datasets/adult](https://archive.ics.uci.edu/ml/datasets/adult)).
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.6 – An evaluation of group fairness metrics on the Adult dataset](img/B18681_07_006.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.6 – An evaluation of group fairness metrics on the Adult dataset
+  prefs: []
+  type: TYPE_NORMAL
+- en: Conditional-use accuracy equality
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'This type of fairness is built on the founding principle of joining two equal
+    t” conditions, PPV and NPV. Here, the probability of subjects under consideration
+    having true predictive values in reality is included in the positive class (PPV).
+    We will also observe that the probability of subjects having a false predictive
+    value in reality is included in the negative class (NPV). Mathematically, this
+    can be formulated as:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: (*P* (*Y =* 1*|d =* 1*, G = m*) *= P* (*Y =* 1*|d =* 1*, G = f* ))*∧*(*P* (*Y
+    =* 0*|d =* 0*, G = m*) *= P*(*Y =* 0*|d =* 0*,G =* *f* ))
+  prefs: []
+  type: TYPE_NORMAL
+- en: Equivalent accuracy is obtained for both male and female entrants. This means
+    that male and female entrants exhibit an equal probability of demonstrating equivalent
+    accuracy values. To explain further, a good predicted qualifying score signals
+    a good qualifying score for an entrant, while a low predicted qualifying score
+    for an entrant signifies a low qualifying score. As with the previous metrics,
+    this one is also not satisfied when the likelihood of a male entrant with a low
+    predicted score diminishes (due to gender bias), causing the male entrant to be
+    given a good qualifying score when he actually should not. A demonstration of
+    this equivalent accuracy metric is that male and female entrants have a PPV of
+    0.73 and 0.74, respectively, and an NPV of 0.49 and 0.63, respectively.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Overall accuracy equality
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'This forces a classifier to satisfy the condition that both protected and unprotected
+    groups demonstrate equal prediction accuracy. Here, in the ground truth data,
+    the probability of a subject with values of true or false is classed as either
+    positive or negative. The same class labels are also used in the model’s predictions.
+    This definition implies that true negatives are as desirable as true positives.
+    Mathematically, it can be formulated as:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*P* (*d = Y, G = m*) *= P* (*d = Y, G =* *f*)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: This metric allows minor differences between males and females, where the two
+    groups exhibit an overall accuracy rate of 0.68 and 0.71, respectively. However,
+    in this example, we consider overall accuracy and not the individual accuracy
+    of predicted classes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Treatment equality
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: This metric determines the ratio of errors of the classifier instead of considering
+    its accuracy. As such, the classifier ensures that both the protected and unprotected
+    groups demonstrate an equal ratio of false negatives and false positives (*FN/FP*),
+    such as 0.56 and 0.62 for male and female entrants, respectively. This idea has
+    been formulated to ensure an equal ratio of **false negatives** (**FN**) to **false
+    positives** (**FP**) of the different classes of the population for which the
+    ML classifier is being evailuated for fairness.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Types of fairness based on similarity-based measures
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Types of fairness built using statistical metrics often suffer from the limitation
+    of ignoring all attributes other than sensitive attributes. This leads to the
+    unfair treatment of one group, even when the same ratio of male and female entrants
+    exhibits the same skillsets or criteria. Such situations arise when selection
+    happens randomly for one group, whereas selection for another group (such as females)
+    is based on certain other attributes (for example, having higher savings). This
+    results in a discrepancy even though statistical parity will mark the classifier
+    as fair. The following types of fairness are put forward to address such issues
+    that may arise due to selection bias by removing the marginalization of insensitive
+    attributes, *X*, of the classified groups under study.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Causal discrimination
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'A classifier is said to fulfill the condition of causal discrimination when
+    it produces the same classification for any two subjects with exactly the same
+    features (or attributes), *X*. To satisfy this criterion, both males and females
+    with identical attributes should either be designated a good qualifying score
+    or a low qualifying score, and this should be the same for both groups. Mathematically,
+    this can be expressed as:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: (Xf = Xm ∧ Gf `!` = Gm) → df = dm
+  prefs: []
+  type: TYPE_NORMAL
+- en: To test this fairness measure, for each entrant in the test set, we need to
+    generate identical entrants of the opposite gender and compare the predicted classification
+    probabilities for those entrants. The classifier will fail if we fail to achieve
+    the same probabilities for the two groups.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fairness through unawareness
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'A classifier is said to fulfill this condition of fairness when no sensitive
+    attributes are explicitly used to predict the final model outcome. Training such
+    models requires that no gender-, race-, or ethnicity-related features are used
+    while training the model. Mathematically, the classification outcome of two similar
+    entrants *i* and *j* (of the opposite gender) with identical attributes can be
+    expressed as (X : Xi = Xj → di = dj). To test this condition, for each entrant
+    in the test set, we need to generate identical entrants of the opposite gender
+    and compare the predicted classification probabilities for those two entrants.
+    The classifier is then trained with any classification algorithm (such as logistic
+    regression or a random forest classifier) without using any sensitive attributes
+    and is validated as succeeding if and only if it generates the same probabilities
+    for both groups. However, we also need to ensure that no proxy features of the
+    direct sensitive attributes are used to train the model, which may again result
+    in creating unfair results in the model outcome.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fairness through awareness
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'This measure of fairness combines the previous two types to illustrate the
+    fact that similar individuals should exhibit similar classifications. We can evaluate
+    the similarity of individuals based on a distance metric, where the distributions
+    of predicted outcomes for individuals should lie within the computed distance
+    between the individuals. The fairness criterion is said to be satisfied when *D*(*M*(*x*)*,
+    M*(*y*)) ≤ *k* (*x, y*), where *V* represents the set of entrants, *k* serves
+    as the distance metric between the two entrants, *D* (distance) represents the
+    metric between the distribution of predicted outputs, and *V × V* *→* *R* creates
+    an alignment from a set of entrants to probability distributions over outcomes
+    *M: V* *→* *δ**A*.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now let''s illustrate this further with an example. As *k* represents the distance
+    between two entrants *i* and *j,* it can hold the value *0* if the features in
+    *X* (all features/attributes other than gender) are identical, or *1* if some
+    features in *X* vary. *D* could be defined as *0* if the classifier resulted in
+    a prediction in the same class, or *1* otherwise. The metric of consideration
+    here is the distance, which has been computed by normalizing the difference between
+    attributes such as age, income, and others. The reduction to a simpler version
+    ensures the easy representation of distance, which is the statistical difference
+    between the model’s predicted probabilities for two entrants: *D*(*i, j*) *= S*(*i*)
+    *−* *S*(*j*).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Types of fairness based on causal reasoning
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: The types of fairness that we’ve covered have been designed based on a directed
+    acyclic graph, where nodes represent the attributes of an entrant and edges represent
+    associations between the attributes. Such graphs aid in building fair classifiers
+    and other ML algorithms, as they are driven by the relationships between the attributes
+    and their impact on the model outcomes. The relationships can be further expressed
+    by a different set of equations, to ascertain the impact of sensitive attributes
+    and allow only a tolerance threshold to permit discrimination among different
+    groups present in the population.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.7 – A causal graph with a proxy attribute and a resolving attribute](img/B18681_07_007.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.7 – A causal graph with a proxy attribute and a resolving attribute
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Figure 7**.7* shows a causal graph comprising the attributes credit amount,
+    employment length, credit history, **protected attribute** **G** (or gender),
+    and predicted outcome **d**. *Figure 7**.7* depicts how a **proxy attribute**
+    (like **G**) can be derived from another attribute, which in our case is employment
+    length. As the causal graph demonstrates, we can easily derive the entrant’s gender
+    from their employment duration. Similarly, we use the term **resolving attribute**
+    in a causal graph to describe an attribute that is determined by a protected attribute,
+    in an unbiased fashion without any discrimination. Credit amount serves as a resolving
+    attribute for **G**, where the variations observed in credit amount for different
+    values of **G** are not considered biased and do not hold any discrimination.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let''s look at different types of fairness based on causal reasoning:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Counterfactual fairness**: This type of fairness is applicable to a causal
+    graph when the predicted outcome **d** in the graph has no dependence on a descendant
+    of the protected attribute **G**. We see in the example shown in *Figure 7**.7*
+    that **d** is dependent on credit history, credit amount, and employment length.
+    Even the presence of a single direct descendant of **G**, employment length in
+    this case, can cause the model to break the condition of being counterfactually
+    fair.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**No unresolved discrimination**: This property exists in a causal graph when
+    there is an absence of any path from the protected attribute **G** to the predicted
+    outcome **d**. The presence of a resolving variable can be treated as an exception
+    and is not a violation of anything. In *Figure 7**.7*, there exists a path from
+    **G** to **d** via credit amount, which is non-discriminatory. The presence of
+    credit amount enables the establishment of a resolving attribute. It further aids
+    in creating a discriminatory graph by generating a path via employment length.
+    Hence, this graph demonstrates an example of unresolved discrimination and cannot
+    satisfy this type of fairness.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**No proxy discrimination**: This property of a causal graph implies that it
+    is devoid of any proxy discrimination. In other words, it means there exist zero
+    paths from the protected attribute **G** to the predicted outcome**d**. In the
+    absence of any blockage caused by a proxy variable, the causal graph can be said
+    to have no proxy discrimination, thereby confirming an unbiased representation
+    of the data. However, in our example, there is an indirect path from **G** to
+    **d**via the employment length proxy attribute, which means the graph has proxy
+    discrimination.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Fair inference**: This type of fairness in a causal graph helps the path
+    classification process by labeling the paths in a causal graph as legitimate or
+    illegitimate. A causal graph guarantees the satisfaction of the fair inference
+    condition, where illegitimate paths from **G** to **d**are absent. However, as
+    *Figure 7**.7* shows, the existence of another illegitimate path, via credit amount,
+    means it cannot satisfy the condition of fair inference. Employment length is
+    an important factor for consideration in credit-related decisions, so even though
+    it behaves as a proxy candidate for **G**, the path can be referred to as a legitimate
+    path.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We have studied different statistical measures of fairness, but they alone are
+    insufficient to conclude that the predictions are fair, and they assume the availability
+    of actual, verified outcomes. Despite using statistical metrics, we cannot be
+    certain that outcomes present in training data will always be present in the classified
+    model and that predictions will also conform to the same distribution. More advanced
+    definitions of fairness using distance-based similarity metrics and causal reasoning
+    have also been proposed to support fairness in model predictions, but they require
+    expert intervention to confirm results.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A problem in seeking expert judgments is that they can involve bias. Modern
+    research techniques explore ways to reduce the search space without compromising
+    accuracy. Furthermore, when we try to meet all fairness conditions in a solution,
+    the complexity of the solution increases, as doing so requires the exploration
+    of a larger search space. Fair prediction also requires the consideration of social
+    issues such as unequal access to resources and social conditioning. Teams involved
+    in data processing and ML model development should try to analyze social issues’
+    impact and incorporate it when designing fair solutions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: With these types of fairness in mind, let's now try to master some of the open
+    source tools and techniques available to run data audits and quality checks.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The role of data audits and quality checks in fairness
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Even before digging deep into predictive algorithms and evaluating fairness
+    metrics, we must try to see whether the training data used in the process is skewed
+    and biased toward a majority of the population. This is mainly because most bias
+    results from not having enough data for a disadvantaged or minority sector of
+    a population. Additionally, bias also emerges when we do not apply any of the
+    techniques to deal with data imbalance. In such scenarios, it is essential for
+    us to integrate explainability tools to justify the variability and skewness of
+    the data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's now investigate how to measure data imbalance and explain variability
+    with the use of certain tools. One of the tools we are going to use first is **Fairlens**,
+    which aids in fairness assessment and improvement (such as evaluating fairness
+    metrics, mitigation algorithms, plotting, and so on). Some examples are given
+    here with code snippets (on the COMPAS dataset), which will help us to understand
+    the data distributions and evaluate the fairness criteria.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The necessary imports for running all the tests are as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: Assessing fairness
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Let’s try out Fairlens:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The `fairlens.FairnessScorer` class can be used to automatically generate a
+    fairness report on a dataset, if you provide it with a target column. Here, the
+    target column stays independent of the sensitive attributes. We can analyze the
+    inherent bias in a dataset used for supervised learning by passing in the name
+    of a desired output column. Now, let''s generate the demographic report of the
+    dataset:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: This will generate the following output, which shows that there is a complete
+    representation of distributional scores of all the major demographic sections
+    of the population.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.8 – Distribution statistics of the different demographic groups
+    of the population](img/B18681_07_008.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.8 – Distribution statistics of the different demographic groups of
+    the population
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We also plot the distributions of decile scores in subgroups made of African-Americans
+    and Caucasians as shown here:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This gives us the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.9 – Proportion of two groups – majority and minority](img/B18681_07_009.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.9 – Proportion of two groups – majority and minority
+  prefs: []
+  type: TYPE_NORMAL
+- en: Statistical distance
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: This is another important distance parameter that we want to consider if we
+    want to evaluate how the distributions between two sensitive demographic groups/sub-groups
+    vary. The metric is used for evaluating the statistical distance between two probability
+    distributions, `group1` and `group2`, with respect to the target attribute.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This can be done using the following code to yield (`0.26075238442125354, 0.9817864673203285`).
+    It returns the distance and the p-value, as `p_value` is set to `True`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: Proxy detection
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'This metric helps us to evaluate proxy features in some datasets. Some insensitive
+    attributes may become highly/partially correlated with sensitive columns, which
+    can effectively become proxies for them. This in turn makes the model biased when
+    the same dataset is used for training. Here, for the four different data points,
+    we can try to evaluate the hidden insensitive proxy features:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: Linear regression
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Linear regression can help us to identify proxy features, by evaluating the
+    correlation between the dependent and independent variables.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Cosine similarity/distance method
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Cosine similarity is one of the mechanisms used to detect proxy features, where
+    the similarity factor evaluates similar items in multidimensional space. Any two
+    features in a dataset (say, for example, for a loan application dataset) would
+    become proxy features when the cosine similarity between any two vectors falls
+    in the same direction. Such cases seem obvious when we see monthly income and
+    expenditure behaving as proxy features, particularly in a loan application with
+    the applicant’s gender and number of dependents taken together.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The linear association method using variance
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'This metric was discussed in the paper *Hunting for Discriminatory Proxies
+    in Linear Regression Models* by Yeom, Datta, and Fredrikson ([https://arxiv.org/pdf/1810.07155.pdf](https://arxiv.org/pdf/1810.07155.pdf))
+    and aims to measure the association between two attributes. To compute this metric,
+    we need to compute *cov* (*X*1, *X*2)2 / *Var* (*X*1) *Var* (*X*2), which can
+    be done as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, we need to compute the covariance factor between the two feature attributes:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The next step is to compute the individual variances of the feature attributes:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Then we try to evaluate the degree of linear association between the feature
+    attributes:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We get the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: Now, let's look at how we determine the correlations between protected features
+    and other features.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The variance inflation factor
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: The **variance inflation factor** (**VIF**) metric aims to measure multicollinearity
+    by evaluating the coefficient of determination (R2) for each variable. As this
+    method determines proxy features, it can aid in removing collinear or multicollinear
+    features, which act as proxies for sensitive/protected attributes in the dataset.
+    Further feature removal can be done by leveraging multiple regression trees.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'A high value for VIF in a regression model between protected features and other
+    features would be interpreted as a sign of collinearity between multiple colinear
+    features. Furthermore, it would also indicate the strong presence of another feature
+    that is collinear and thus is a proxy for the feature under study:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The first step is to have the necessary library imports for the VIF and load
+    the `german_credit` dataset:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The next step is to create a mapping for the sensitive feature attributes and
+    segregate the independent features for which we want to compute the VIF:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The final step is to run the VIF on the data, evaluate the VIF for each feature
+    attribute, and discover the potential proxy features:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We get the following output, which clearly shows that `Job` and `Duration`
+    have high VIF values. Using them together leads to a model with high multicollinearity.
+    They serve as potential candidates for proxy features:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Mutual information
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'This metric signifies the amount of information available for a random feature
+    attribute given another feature attribute is existing. It works in non-linear
+    tree-based algorithms by computing *I(X1, X2)*, which is a weighted sum of joint
+    probabilities, in contrast to *COV(X1, X2)*, which is a weighted sum of the product
+    of the two features:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We can compute the mutual information score for the `german_credit` dataset
+    as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We get the following output, which again confirms the fact that the relationship
+    between credit amount and sex is high, followed by the relationship between the
+    sex and credit duration attributes:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Significance tests
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'When we assess fairness scores and evaluate statistical distances, we may also
+    want to test the null hypothesis and see whether the null or alternate hypothesis
+    is true. This can be done using bootstrapping or permutation tests to resample
+    the data multiple times. These iterations compute the statistic multiple times
+    and provide an estimate of its distribution, by computing the p-value or the confidence
+    interval for the metric:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s see with the following example how we can compute the confidence interval
+    as well as the p-value between male and female distributions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The test statistic can be configured with the following code. `t_distribution`can
+    be set up using either the permutation or bootstap method between the two groups
+    previously created:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Or, you can use this code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, let''s compute the confidence interval and p-value as shown here:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now we get the output that follows. For the first case, we get the confidence
+    interval as a tuple, while for the second case, we receive the p-value:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Evaluating group fairness
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'We have seen how group fairness is important for fulfilling fairness generally.
+    Natalia Martinez, Martin Bertran, and Guillermo Sapiro are the inventors of the
+    concept of the minimax fairness criteria, which aims to improve group fairness
+    metrics. Let''s now study the important concept of minimax fairness ([https://github.com/amazon-research/minimax-fair](https://github.com/amazon-research/minimax-fair)),
+    which strives to achieve fairness when protected group labels are not available.
+    Equality of error rates is one of the most intuitive and well-studied forms of
+    fairness. But using them poses a major challenge when we try to equalize error
+    rates by raising the threshold of error rates, which is undesirable for social
+    welfare causes. Hence, increasing the error margins to establish equal error rates
+    across equally accurate racial groups, income levels, and geographic locations
+    is not a good choice. To further increase group fairness, we can use the minimax
+    group error, proposed by Martinez in 2020\. The concept of group fairness does
+    not seek to equalize error rates (as stated earlier in the fairness definitions).
+    Instead, this metric tries to minimize the largest group error rate, to ensure
+    that the worst group demonstrates the same values in terms of fairness metrics.
+    This relaxed concept of fairness tries to achieve the right trade-off between
+    minimax fairness and overall accuracy. The metric has a two-fold objective:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, it tries to find a minimax group fair model from a given statistical
+    class
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Then it evaluates a model that minimizes the overall error subject, where the
+    constraint has been set to bind all group errors below a specified (pre-determined)
+    threshold
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The objective of the preceding two steps is to reduce the process to unconstrained
+    (non-fair) learning over the same class, where they converge. The minimax fairness
+    metric can be further extended to handle different types of error rates, such
+    as FP and FN rates, as well as overlapping groups having intersectional characteristics.
+    Such groups with intersectional attributes are not just limited to race or gender
+    alone, but can also comprise combinations of race and gender:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Using a dataset, we generate `X`, `y`, `grouplabels`, and `groupnames`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Here`X` *and* `y` are the features and labels for each type of group. Furthermore,
+    `X` is divided into a number of different groups, where each of which has a shared
+    linear function. This function is used to sample the labels with noise. In the
+    absence of a dataset, to build and evaluate a fair minimax of a model, we can
+    employ a synthetic data generation mechanism, as in the following code snippet:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now the learning process can be kicked off as in the following code snippet,
+    with the parameters necessary for learning given in the table that follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Let''s now see the different parameters and their functionalities involved
+    in fair synthetic data generation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '| **Parameter name** | **Purpose** |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `X` | A NumPy matrix of features with dimensions equal to `numsamples`. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `y` | A NumPy array of labels with length `numsamples`. Should be numeric
+    (0/1 label binary classification). |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `a, b` | Parameters for *eta = a * t ^ (-b*). |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `scale_eta_by_label_range` | Whether or not the input value should be scaled
+    by the max absolute label value squared. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `rescale_features` | Whether or not the feature values should be rescaled
+    for numerical stability. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `gamma` | The maximum allowed max groups errors by convergence. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `relaxed` | Denotes whether we are solving the relaxed version of the problem.
+    |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `model_type` | The `sklearn` model type, such as `LinearRegression`, `LogisticRegression`,
+    and so on. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `error_type` | For classification only: total, FP, FN, and so on. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `extra_error_types` | The set of error types that we want to plot. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `pop_error_type` | The error type to use on the population: example error
+    metric is sum of FP/FN over the entire population. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `convergence_threshold` | Converges (early) when the max change in sample
+    weights < `convergence_threshold`. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `Penalty` | The regularization penalty for logistic regression. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `C` | The inverse of the regularization strength. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `logistic_solver` | Which underlying solver to use for logistic regression.
+    |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `fit_intercept` | Whether or not we should fit an additional intercept. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `max_logi_iters` | The max number of logistic regression iterations. |'
+  prefs: []
+  type: TYPE_TB
+- en: Table 7.2 – Different parameters for training the minimax model
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Figure 7**.10* shows the variation of individual group errors, group weights,
+    and the average population error with synthetic data using minimax group fairness
+    with logistic regression. We can see that both the individual sub-groups (log-loss
+    errors) and average population error (log loss) roughly follow the same trend
+    and remain confined between `0.63` and `0.65`.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.10 – A diagram showing different parameters for training the minimax
+    model](img/B18681_07_010.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.10 – A diagram showing different parameters for training the minimax
+    model
+  prefs: []
+  type: TYPE_NORMAL
+- en: Evaluating counterfactual fairness
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Let''s use the open source **FAT Forensics** (**fatf**) library, which is a
+    Python toolbox that can be used for evaluating the fairness, accountability, and
+    transparency of predictive systems:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let’s first set up the necessary imports:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Let’s load a synthetic healthcare dataset:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE30]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'With the dataset loaded, let’s map the target indices to target names, dropping
+    unnecessary columns, before starting the training process:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE31]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Next, we start the model training and select instances for counterfactual fairness:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE32]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'After training the model, let’s select the data instances (its protected features)
+    for which we would like to test the counterfactual fairness:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE33]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Print out the protected features and instances:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE34]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This results in the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE35]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The next step is to compute the counterfactually unfair samples:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE36]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The final step is to print the counterfactually unfair data points:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE37]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This generates the following output:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE38]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: We have already studied what **disparate** **impact** is when looking at fairness.
+    Now let's see with code examples how we can measure the three most common disparate
+    impact measures.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To evaluate the **equal accuracy** metric, we can use the following code snippet:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE39]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'To evaluate the **equal opportunity** metric, we run the following:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE40]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'To evaluate the **demographic parity** metric, we run this:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE41]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Here is the output we receive on running an evaluation of equal accuracy, equal
+    opportunity, and demographic parity:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE42]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: As we have learned about the basics of fairness with examples, we should also
+    find out how to apply these concepts to follow best practices.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Best practices
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: We have explored with different examples and code snippets the process by which
+    we can evaluate different fairness metrics. However, before evaluation, we need
+    to ensure that the data used for training our models proportionally represents
+    all different demographic groups of the population. Furthermore, to address the
+    issue of fairness, another important criterion is to ensure that your predictions
+    are calibrated for each group ([https://towardsdatascience.com/understanding-bias-and-fairness-in-ai-systems-6f7fbfe267f3](https://towardsdatascience.com/understanding-bias-and-fairness-in-ai-systems-6f7fbfe267f3)).
+    When model scores are not calibrated for each group, we may end up overestimating
+    or underestimating the probability of outcomes for different groups. We may need
+    to redesign thresholds and create separate models and decision boundaries for
+    each group. This process will alleviate bias and enable fairer predictions for
+    each of the groups than a single threshold.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Most of the time, we are not able to get data where all groups of the population
+    are equally represented. In such situations, the best practice is to generate
+    synthetic datasets by applying artificial methods, so that we not only train the
+    model with equal representations of the different groups but are also able to
+    validate the predicted outcomes against different thresholds customized for each
+    group. This will eliminate representation bias and account for geographic diversity
+    while creating such datasets.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We also have certain tools, mentioned next, for evaluating fairness.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Bias mitigation toolkits
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'Here is a list of some tools:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Aequitas**: An open source bias and fairness audit toolkit that evaluates
+    models for different types of bias and fairness metrics on multiple population
+    sub-groups.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Microsoft Fairlearn**: This toolkit takes the reduction approach to fair
+    classification (e.g. binary classification) by leveraging constraints. The constraint-based
+    approach reduces fair classification problems to a sequence of cost-sensitive
+    classification problems. Under applied constraints, this yields a randomized classifier,
+    with the lowest (empirical) error.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**The What-If Tool**: This open source TensorBoard web application is a toolkit
+    provided by Google that allows you to view the counterfactuals to analyze an ML
+    model. Users are then able to compare a given data point to the nearest data point
+    that resembles it, yet for which the model predicts a different result. This tool
+    also comes with the flexibility of adjusting the effects of different classification
+    thresholds, along with the ability to tweak different numerical fairness criteria.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**AI Fairness 360**: This toolkit, developed by IBM, contains an exhaustive
+    set of fairness metrics for datasets and ML models. It comes with explainability
+    for these metrics, and different algorithms to mitigate bias in datasets at the
+    preprocessing and model training stages.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We discuss some of these toolkits in later chapters.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we know about the different bias mitigation toolkits that are available,
+    and how important auditing data and running frequent quality checks is, let's
+    study synthetic datasets and how they can help in modeling fair ML problems.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fair synthetic datasets
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: By **synthetic data**, we mean data generated artificially from scratch, with
+    statistical properties matching the original or base dataset that is ingested
+    into the system. A synthetically generated dataset bears no relationship to the
+    real subjects present in the original dataset.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Modern research in **artificial intelligence** (**AI**) has led to innovations
+    and the publication of advanced tools that can generate synthetic data in data-intensive
+    environments. With the availability of better tools and techniques, fair, privacy-preserving
+    synthetic data generation (with tabular data) has been widely adopted by organizations.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Synthetic data-generating algorithms are capable of ingesting real-time data
+    and learning its features, different feature correlations, and patterns. They
+    can then generate large quantities of artificial data that closely resembles the
+    original data in terms of statistical properties and distributions. By and large,
+    these newly generated datasets are also scalable, privacy-compliant, and can display
+    all valuable insights, without violating data confidentiality rules. AI-generated
+    synthetic data is widely used by financial and healthcare providers for scaling
+    their AI solutions. Synthetic data has also been successful in generating robust
+    replacements for missing and hard-to-acquire data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Sensitive data has often been kept confined to teams and departments. But with
+    the implementation of synthetic-data-generation tools, it has become easier to
+    establish collaboration with teams and third parties in a privacy-compliant manner
+    using private synthetic copies of data. Synthetic data is great for improving
+    ML algorithms that are impacted by bias or imbalances due to new, rare incoming
+    data, which has a greater influence than historic data. This type of synthetic
+    data finds application in determining fraudulent transactions, whose volume is
+    < 5% of the overall transactions. Up-sampled synthetic datasets are not only capable
+    of detecting bias in transactional data but can also comply with ethics and help
+    ML models to yield better, fairer results for minority or disadvantaged groups.
+    Hence, synthetic data serves as a very important component in the design of ethical
+    ML pipelines. Fair synthetic data can remove societal and historical bias from
+    the predictions of ML models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, let's study, with an example, a framework that generates private synthetic
+    data by using realistic training samples, without disclosing the PII of individuals.
+  prefs: []
+  type: TYPE_NORMAL
+- en: MOSTLY AI’s self-supervised fair synthetic data generator
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: This framework takes into consideration fairness constraints, in a self-supervised
+    learning process, to simulate and generate large quantities of fair synthetic
+    data. The framework is made following a generative model architecture that feeds
+    in a dataset (in our example, the UCI Adult Census dataset) to get a better dataset
+    that has a higher degree of fairness than the original dataset.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Furthermore, the resultant dataset preserves all the original relationships
+    between the attributes but only controls the gender and racial biases present
+    in the original data. The propensity scores of the predicted model outcomes demonstrate
+    the fact of how fair synthetic data can alleviate bias when compared with the
+    original dataset.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In ML, we often use generative deep neural networks that use new, synthetic
+    samples (that are representations of the actual data) to optimize the accuracy
+    loss of an ML model being trained. The loss can represent the similarity of the
+    fitted function to the observed distributions of the real data. The process of
+    generating fair, representative data involves an additional loss to the original
+    loss function that can penalize any violation of the statistical parity.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![  Figure 7.11 – Different parameters for training the minimax model](img/B18681_07_011.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.11 – Different parameters for training the minimax model
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Hence, the algorithm for fair synthetic data generation involves optimizing
+    a combined loss, which contains the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: A weighted sum of the accuracy loss
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: A fairness loss that is proportional to the deviation from the empirically estimated
+    statistical parity
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The right trade-off between accuracy and fairness, where weights are shifted
+    from one loss component to the other
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Figure 7**.11* illustrates the step-by-step sequences of generating synthetic
+    data and comparing model performance when models are trained on original datasets
+    versus synthetic datasets.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We have seen how ML-based synthetic data generation is possible. Now, let's
+    see how protected attributes such as gender and income in fair synthetic data
+    help to satisfy some of the fairness definitions we studied before.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Influence on fairness statistics
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: We will leverage a generative deep neural network as a data synthesizer for
+    tabular data to generate synthetic data samples from the `adult_income` dataset.
+    The generative model synthesizer runs end to end 50 times with a parity fairness
+    constraint and takes gender as a protected attribute. *Figure 7**.12* shows that
+    the gender imbalance present in the original data within the high-income class
+    is successfully mitigated by the synthetic data. The disparate impact (derived
+    by comparing the difference and the high-income-male-to-high-income-female ratio)
+    is observed to be roughly 10/30 = 0.33 in the original dataset, while it is recorded
+    as 22/25 =0.88 in the bias-corrected synthetic dataset. We see that this metric
+    with synthetic data is considerably higher than 0.80, which is the industry benchmark.
+    We can safely conclude that data synthesis helps in mitigating bias.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We further observe that the additional parity constraint during model training
+    did not reduce the data quality, as shown in *Figure 7**.12*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.12 – Synthetic data mitigating the income gap](img/B18681_07_012.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.12 – Synthetic data mitigating the income gap
+  prefs: []
+  type: TYPE_NORMAL
+- en: Both the univariate and bivariate distributions demonstrate that the dataset
+    is able to preserve both the population-wide male-to-female and high-earner-to-low-earner
+    ratios. Only the statistical parity constraint signifying the dependence of income
+    and sex has been allowed to be violated to make them un-correlated. With representative
+    and synthetic data, this correlation is reduced to the noise level evident in
+    the following figure (see the red circle on the light green figure).
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.13 – Univariate versus bivariate statistics for original and synthetic
+    data](img/B18681_07_013.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.13 – Univariate versus bivariate statistics for original and synthetic
+    data
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Studying proxy attributes further shows that they do not introduce unfairness
+    through a backdoor. Even the addition of a strongly correlated artificial feature
+    (correlated with gender) named “proxy” is found to exhibit a constant correlation
+    with “sex” in the original dataset, which is considerably reduced with the introduction
+    of parity constraints due to induced fairness. The female section shows that “proxy”
+    equals 1 in 90% of cases and equals 0 for the remaining 10%. *Figure 7**.14* further
+    illustrates this:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.14 – The parity fairness constraint holds good for proxy attributes
+    such as gender](img/B18681_07_014.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.14 – The parity fairness constraint holds good for proxy attributes
+    such as gender
+  prefs: []
+  type: TYPE_NORMAL
+- en: For the Adult dataset, the generative model is trained by applying fairness
+    constraints on “gender” and “race.” Furthermore, it is evident from *Figure 7**.15*
+    that the synthetic data exhibits highly balanced high-income ratios across all
+    four groups by race and gender. Even though the solution is not able to guarantee
+    complete parity, it can be obtained (when the difference further diminishes) by
+    assigning a higher weight to the fairness loss in comparison to the accuracy loss.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.15 – Constraint-based bias mitigation by accounting for gender and
+    race, respectively](img/B18681_07_015.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.15 – Constraint-based bias mitigation by accounting for gender and
+    race, respectively
+  prefs: []
+  type: TYPE_NORMAL
+- en: In *Figure 7**.16*, we see the propensity scores of the corresponding predictive
+    models, on both the original dataset and the synthetic dataset.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.16 – Prediction of high income for both the original and synthetic
+    datasets](img/B18681_07_016.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.16 – Prediction of high income for both the original and synthetic
+    datasets
+  prefs: []
+  type: TYPE_NORMAL
+- en: Using the same ML model, we find that the model fitted on the original dataset
+    exhibits a much lower probability score for women being in the high-income class
+    when compared with the opposite gender – men. Hence, the discrepancy with synthetic
+    data is reduced and both distributions driven by the gender attribute are found
+    to align. As the training process of the predictive model does not include any
+    model optimization through fairness, it is obvious that the predicted outcome
+    is largely due to using bias-corrected synthetic data. A fairness-constrained
+    synthetic data solution ensures group fairness. The dataset maintains the relationship
+    between other attributes and at the same time removes dependencies between sensitive
+    and target attributes. Furthermore, the parity constraint also ensures fairness
+    for hidden proxy attributes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following steps illustrate step by step how to generate fair synthetic
+    data to equally represent males and females:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will set up a specified set of hyperparameters (including input training
+    data size, layer sizes, and classifier types) that we will train using synthetic
+    data:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE43]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Our next task is to set up a classifier that will train the network using the
+    hyperparameters used in the previous state. While training the dataset, we use
+    the validation dataset to validate the training process:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE44]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The `construct_classifier` function is set inside the `fariml-farm` library
+    to construct the classifier, as given in the following code snippet:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE45]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Our next job is to enable an equivalent representation of male (`1`) and female
+    (`0`) points through the synthetic data generation process:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE46]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The classifier is optimized using a loss function, given by the following:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE47]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The overall loss is the sum of losses, computed by `dpe`), `fnpe`), `fppe`),
+    and `cpe`). The loss function evaluated for `dpe` represents the loss due to `demographic_parity_discrimination`,
+    while `fnpe` and `fppe` represent the loss due to `equalized_odds_discrimination`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now if we try to plot the embeddings, we can use the following code snippet,
+    which generates an almost equivalent representation of embeddings between male
+    and female with an annual income >= 50K or < 50K:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE48]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This produces the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.17 – An equivalent representation of embeddings between the male
+    and female populations with an annual income >= 50K or < 50K](img/B18681_07_017.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.17 – An equivalent representation of embeddings between the male and
+    female populations with an annual income >= 50K or < 50K
+  prefs: []
+  type: TYPE_NORMAL
+- en: We learned how MOSTLY AI’s fairness GANs are capable of generating synthetic
+    datasets that have a positive impact on fairness statistics. Let's explore a GAN-based
+    approach that uses a **directed acyclic graph** (**DAG**) to generate fair synthetic
+    data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A GAN-based fair synthetic data generator
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Now let's see with an example how we can use **causally aware generative networks**
+    to generate fair, unbiased synthetic data. The objective is to generate an unbiased
+    dataset with no loss of the representation of the data distribution. The data-generation
+    process can be further modeled by a DAG. Here, the ML model (a single model or
+    a cascade of models) being trained on synthetic data not only gives unbiased predictions
+    (satisfying the fairness criteria) on synthetic data but is also capable of yielding
+    unbiased predictions on real-life available datasets.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The **Debiasing Causal Fairness** (**DECAF**) framework, based on GAN, explores
+    the principle of causal structure for data synthesis by employing **d** generators
+    (each generator being assigned to each variable) to learn about the causal conditionals
+    present in the data. The **data-generation process** (**DGP**) embedded within
+    DECAF allows variables to be re-engineered and regenerated based on their origin,
+    which is the causal parents, through the input layers of the generator. A framework
+    like this can remove bias from biased real-world datasets (datasets that under-represent
+    minority groups) with inherent bias and real-world datasets where bias has been
+    synthetically introduced. Furthermore, DECAF promises to offer protection for
+    confidential information through private synthetic data generation processes by
+    swapping out the standard discriminator for a differentially private discriminator.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The discriminator and generator run the optimization process in successive
+    iterations by adding a regularization loss to both networks. The optimization
+    process uses gradient descent and guarantees the same convergence criteria as
+    standard GANs. The framework involves the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: A data-generating distribution function that satisfies Markov compatibility.
+    For a known DAG (*G*), if we find that each node represents a variable in a probability
+    distribution (*P*), it is said to be Markov-compatible if each variable *X* present
+    in the DAG is independent of all its non-descendants.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Enough capacity for both the generator *G* and discriminator *D*.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Every training iteration successfully optimizes a given DAG *G* and correspondingly
+    updates it.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Maximized discriminator loss.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: A distribution function generated by the generator that gets optimized to converge
+    it on the true data distribution.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: During the training stage, DECAF learns about the causal conditionals that are
+    present in the data with a GAN. The GAN is equipped to learn about causal conditions
+    in the DAG between the source and destination nodes. At the generation (inference)
+    stage, the framework functions by applying three fundamental principles, **CF
+    debiasing**, **FTU debiasing**, and **DP debiasing**, which help the generator
+    to create fair data. However, it is also assumed that the DGP’s graph *G* is known
+    from before.
+  prefs: []
+  type: TYPE_NORMAL
+- en: During inference, the variable synthesis process originates from the root nodes,
+    then propagates down to their children (from the generated causal parents in the
+    causal graph). The topological process of data synthesis is dependent on the sequential
+    data generation technique, which terminates at the leaf nodes. This enables the
+    DECAF algorithm to remove bias strategically at inference time by enforcing targeted/biased
+    edge removal and further increases the probability of meeting the user-defined
+    fairness requirements. DECAF is also found to satisfy the fairness/discrimination
+    definitions we discussed earlier and at the same time maintains the high utility
+    of generated data so that it can be effectively used by ML models without creating
+    algorithmic bias.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Fairness through unawareness** (**FTU**) is measured by keeping all other
+    features constant and computing the distinctions between the predictions of a
+    downstream classifier, when the classifier’s predictions are either 1 and 0, respectively,
+    such that *| PA =* 0 (*Y*ˆ*|X*)–– *PA =* 1(*Y*ˆ*|X*) |. This metric helps to evaluate
+    the direct impact of *A* on the predicted outcomes. This metric aims to eliminate
+    disparate treatment, which is legally related to direct discrimination, and strives
+    to provide the same opportunity to any two equally qualified people, independent
+    of their race, gender, or other protected attributes.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Demographic parity** (**DP**) is measured in terms of the total variation,
+    which signifies and explains the differences between the predictions of a downstream
+    classifier. This helps to compute the positive-to-negative ratio between varying
+    categories (African, American, Asian, and Hispanic, for instance) of a protected
+    variable *A*:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*| P* (*Y*ˆ *|A = 0*)*–− P* (*Yˆ |A =* *1*) *|*'
+  prefs: []
+  type: TYPE_NORMAL
+- en: This metric does not allow any indirect discrimination unless otherwise provided
+    by explainability factors.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Conditional fairness** (**CF**) aims to generalize both FTU and DP.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'All DECAF methods yield good data quality metrics: precision, recall, and AUROC.
+    One good fair data generation mechanism that deserves special mention is DECAF-DP,
+    which performs best across all five of the evaluation metrics (precision, recall,
+    AUROC, DP, and FTU) and has better DP performance results, even when the dataset
+    exhibits high bias.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.18 – Training phase in DECAF](img/B18681_07_018.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.18 – Training phase in DECAF
+  prefs: []
+  type: TYPE_NORMAL
+- en: The training phase from the preceding figure directly follows the inference
+    phase in the following diagram.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.19 – Fairness inference phase enabling fair data synthesis in DECAF](img/B18681_07_019.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.19 – Fairness inference phase enabling fair data synthesis in DECAF
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now let''s see how we can generate synthetic data with DECAF using the following
+    code snippets:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following code is for all necessary imports:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE49]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now, after setting up the necessary imports, let''s set up the DAG structure
+    using `dag_seed`. The causal structure of the graph is stored in `dag_seed`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE50]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The next step is to have `DiGraph` invoked with `dag_seed`, using the following
+    code snippet. The `dag` structure is stored in the `dag_seed` variable. The edge
+    removal is stored in the `bias_dict` variable. Here, we have removed the edge
+    between 3 and 6\. Furthermore, `gen_data_nonlinear` is used to apply a perturbation
+    at each node:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE51]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'In the next stage, we set up the different hyperparameters required to facilitate
+    the training process:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE52]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The weight decay is initialized, which is used by AdamW, an optimizer that
+    is an improved version of **Adam (Adaptive Moment Estimation**) and is capable
+    of yielding better models with a faster training speed using stochastic gradient
+    descent. AdamW has a weight decay functionality that can be used to regularize
+    all network weights:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE53]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The next step is to set up the proportion of points to generate, which is negative
+    for sequential sampling:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE54]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: WGAN-GP
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'You can read more about the Wasserstein GAN with gradient penalty (**WGAN-GP**)
+    here: [https://jonathan-hui.medium.com/gan-wasserstein-gan-wgan-gp-6a1a2aa1b490](https://jonathan-hui.medium.com/gan-wasserstein-gan-wgan-gp-6a1a2aa1b490).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now let''s initialize and train the DECAF model by setting the different hyperparameters,
+    the generator, and the regularization parameters:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE55]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: We have now generated synthetic unbiased data that can be fed to any ML model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we have learned about the importance of fairness algorithms
+    in resolving societal bias, as different types of bias hinder the ability of an
+    ML model to yield a fair outcome. We had a deep dive to learn about all the different
+    types of fairness and how they can be practically applied to perform data quality
+    checks, discover conditional dependencies and attribute relationships, and generate
+    audit reports. In the process, we looked at how bias may appear in the data itself
+    and/or in the outcome of predictive models. Furthermore, we took the first step
+    in learning about fair synthetic data generation processes that can help in removing
+    bias.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In later chapters, we will learn more about the mechanisms of applying fairness-aware
+    models on diverse datasets, or diverse groups within a population. In addition,
+    we will also look at the proper selection of protected attributes (such as gender,
+    race, and others) based on the domain space of the problem and the dataset under
+    study. In our next chapter, [*Chapter 8*](B18681_08.xhtml#_idTextAnchor176), *Fairness
+    in Model Training and Optimization*, we will learn more about creating constrained
+    optimization functions that can help in building fair ML models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Further reading
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '*Fairness Definitions Explained* in *Proceedings of the International Workshop
+    on Software Fairness (FairWare ‘18), Association for Computing Machinery*, Verma
+    Sahil and Julia Rubin (2018), [https://fairware.cs.umass.edu/papers/Verma.pdf](
+    https://fairware.cs.umass.edu/papers/Verma.pdf )'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*A survey on datasets for fairnessaware-machine learning. Wiley Interdisciplinary
+    Reviews: Data Mining and Knowledge Discovery.* *10.1002/widm.1452,* [https://www.researchgate.net/publication/355061634_A_survey_on_datasets_for_fairness-aware_machine_learning](https://www.researchgate.net/publication/355061634_A_survey_on_datasets_for_fairness-aware_machine_learning
+    )'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Representative & Fair Synthetic Data*, Tiwald, Paul & Ebert, Alexandra & Soukup,
+    Daniel. (2021), [https://arxiv.org/pdf/2104.03007.pdf](https://arxiv.org/pdf/2104.03007.pdf
+    )'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Minimax Group Fairness: Algorithms and Experiments. Proceedings of the 2021
+    AAAI/ACM Conference on AI, Ethics, and Society. Association for Computing Machinery,
+    New York*. Emily Diana, Wesley Gill, Michael Kearns, Krishnaram Kenthapadi, and
+    Aaron Roth. 2021\. [https://assets.amazon.science/9d/a9/e085008e45b2b32b213786ac0149/minimax-group-fairness-algorithms-and-experiments.pdf](https://assets.amazon.science/9d/a9/e085008e45b2b32b213786ac0149/minimax-group-fairness-algorithms-and-experiments.pdf
+    )'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*A Survey on Bias and Fairness in Machine Learning. ACM Comput. Surv. 54, 6,
+    Article 115 (July 2022)*, Mehrabi Ninareh, Fred Morstatter, Nripsuta Saxena, Kristina
+    Lerman, and Aram Galstyan. (2021). [https://arxiv.org/pdf/1908.09635.pdf](https://arxiv.org/pdf/1908.09635.pdf
+    )'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*FAT Forensics: A Python Toolbox for Algorithmic Fairness, Accountability and
+    Transparency*, Sokol, K., Santos-Rodríguez, R., & Flach, P.A. (2019). [https://arxiv.org/pdf/1909.05167.pdf](https://arxiv.org/pdf/1909.05167.pdf
+    )'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Minimax Pareto Fairness: A Multi Objective Perspective*, Martinez Natalia,
+    Martin Bertran, Guillermo Sapiro, [http://proceedings.mlr.press/v119/martinez20a/martinez20a.pdf](http://proceedings.mlr.press/v119/martinez20a/martinez20a.pdf)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL

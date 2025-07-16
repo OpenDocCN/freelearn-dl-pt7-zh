@@ -1,0 +1,901 @@
+- en: Discovering Topics in Text Collection
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: One of the most useful ways to understand text is through topics. The process
+    of learning, recognizing, and extracting these topics is called topic modeling.
+    Understanding broad topics in text has several applications. It can be used in
+    the legal industry to surface themes from contracts. (Rather than manually reviewing
+    mountains of contracts for certain provisions, through unsupervised learning,
+    themes or topics can surface). Furthermore, it can be used in the retail industry
+    to identify broad trends in social media conversations. These broad trends can
+    then be used for product innovation—to introduce new merchandise into online and
+    physical stores, to inform others of product assortment, and so on.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we are going to learn how to synthesize topics from long-form
+    text (text that's longer than 140 characters). We will review the techniques of
+    topic modeling and understand how the **Neural Topic Model** (**NTM**) works.
+    We will then look at training and deploying NTM in SageMaker.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, we will cover the following topics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Reviewing topic modeling techniques
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Understanding how the Neural Topic Model works
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Training NTM in SageMaker
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Deploying NTM and running inference
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: To illustrate the concepts in this chapter, we will use the **Bag of Words**
+    ([https://archive.ics.uci.edu/ml/datasets/bag+of+words](https://archive.ics.uci.edu/ml/datasets/bag+of+words))
+    dataset from the **UCI Machine Learning Repository** ([http://archive.ics.uci.edu/ml](http://archive.ics.uci.edu/ml)).
+    The dataset contains information on Enron emails, such as email IDs, word IDs,
+    and their count, which is the number of times a particular word appeared in a
+    given email.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the GitHub repository ([https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/tree/master/Ch9_NTM](https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/tree/master/Ch9_NTM))
+    associated with this chapter, you should find the following files:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`docword.enron.txt.gz` ([https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/blob/master/Ch9_NTM/data/docword.enron.txt.gz](https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/blob/master/Ch9_NTM/data/docword.enron.txt.gz)[):](https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/blob/master/Ch9_NTM/data/docword.enron.txt.gz)
+    Contains Email ID and Word ID'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`vocab.enron.txt` ([https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/tree/master/Ch9_NTM/data/vocab.enron.txt](https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/tree/master/Ch9_NTM/data/vocab.enron.txt)):
+    Contains the actual words that are part of the dataset'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Let's begin by looking at topic modeling techniques.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Reviewing topic modeling techniques
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this section, we look at several linear and non-linear learning techniques
+    when it comes to topic modeling. Linear techniques include Latent Semantic Analysis
+    (two approaches - Singular Vector Decomposition and Non-negative Matrix Factorization),
+    probabilistic Latent Semantic Analysis, and Latent Dirichlet Allocation. On the
+    other hand, non-linear techniques include LDA2Vec and the Neural Variational Document
+    Model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the case of **Latent Semantic Analysis** (**LSA**), topics are discovered
+    by approximating documents into a smaller number of topic vectors. A collection
+    of documents is represented by document-word matrix:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In its simplest form, the document word matrix consists of raw counts, which
+    is the frequency with which a given word occurs in a given document. Since this
+    approach doesn't account for the significance of each word in the document, we
+    replace raw counts with the **tf-idf** (**term frequency-inverse document frequency**)
+    score.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Through tf-idf, words that occur frequently within the document in question,
+    but less frequently across all the other documents, will have a higher weight.
+    Given that the matrix of documents and words is sparse and noisy, dimensionality
+    must be reduced to obtain meaningful relationships between documents and words
+    via topics.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Reducing dimensionality can be done through truncated **SVD** (**Singular Value
+    Decomposition**), where the document-word matrix is broken down into three different
+    matrices, that is, document topic (*U*), word-topic (*V*), and singular values
+    matrix (*S*), where singular values represent the strength of the topics, as shown
+    in the following diagram:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![](img/dfd740bf-c367-4f34-9ef5-59d21c622be1.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'This decomposition is unique. To represent documents and words in a lower-dimensional
+    space, only *T* largest singular values are chosen (a subset of the matrix, as
+    shown in the preceding diagram), and only the first *T* columns of *U* and *V*
+    are retained. *T* is a hyperparameter and can be adjusted to reflect the number
+    of topics we want to find. In linear algebra, any *m x n* matrix *A* can be decomposed
+    as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/8c95a260-1eb4-4cbb-9766-b5592440c1fc.png), where *U* is called the
+    left singular vector, *V* is called the right singular vector, and *S* is called
+    the **singular value matrix**.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For information on how to compute singular values, as well as left and right
+    singular vectors for a given matrix, refer to [https://machinelearningmastery.com/singular-value-decomposition-for-machine-learning/](https://machinelearningmastery.com/singular-value-decomposition-for-machine-learning/)
+    [intuitive explanation—reconstruct matrix from SVD](https://machinelearningmastery.com/singular-value-decomposition-for-machine-learning/).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Therefore, we get, ![](img/f445a99d-9c18-4e3a-a1a8-90dd11889672.png).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Besides SVD, you can also conduct matrix factorization through (**non-negative
+    matrix factorization** (**NMF**). NMF belongs to linear algebra algorithms and
+    is used to identify a latent structure in the data. Two non-negative matrices
+    are used to approximate the document-term matrix, as shown in the following diagram
+    (terms and words are used interchangeably):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/702fe954-7207-45af-996d-391aa2a76ef1.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Let''s compare and contrast the different linear techniques of LSA and look
+    at a variant of LSA that offers more flexibility:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The difference between NMF and SVD is that with SVD, we can end up with negative
+    component (left and/or right) matrices, which is not natural for interpreting
+    textual representation. NMF, on the other hand, generates non-negative representations
+    for performing LSA.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The drawback of LSA, in general, is that it has fewer interpretable topics and
+    a less efficient representation. Additionally, it is a linear model and cannot
+    be used to model non-linear dependencies. The number of latent topics is limited
+    by the rank of the matrix.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Probabilistic LSA** (**pLSA**): The whole idea of pLSA is to find a probabilistic
+    model of latent topics that can generate documents and words we can observe. Therefore,
+    the joint probability, that is, the probability of finding a combination of documents
+    and words, [![](img/a1fa04af-15cf-4695-a6e0-41c3bf7bc6a1.png)], can be written
+    as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/2216cf84-ecdd-418c-9d69-3229a7fe5c1e.png) = ![](img/e76f0379-2351-46f4-83ae-782618ed3405.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Here, *D*=Document, *W*=Word, and *Z*=Topic.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s look at how pLSA works and an example of when it is not adequate:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We can see how pLSA is similar to LSA in that *P(Z)* corresponds to a singular
+    value matrix, *P(D|Z)* corresponds to a left singular vector, and *P(W|Z)* corresponds
+    to a right singular vector from SVD.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The number one disadvantage with this approach is that we cannot readily generalize
+    it for new documents. LDA addresses this issue.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Latent Dirichlet Allocation** (**LDA**): While LSA and pLSA are used for
+    semantic analysis or information retrieval, LDA is used for topic mining. In simple
+    terms, you uncover topics based on the word frequency across a collection of documents:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: For a collection of documents, you designate the number of topics you want to
+    uncover. This number can be adjusted depending on the performance of LDA on unseen
+    documents.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Then, you tokenize the documents, remove any stop words, retain words that appear
+    a certain number of times across the corpus, and conduct stemming.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: To begin with, for each word, you assign a random topic. You then compute the
+    topic mixture by document, that is, the number of times each topic appears in
+    the document. You also compute the word mixture by topic across the corpus, that
+    is, the number of times each word appears in the topic.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Iteration/Pass 1: For each word, you then reassign a topic after navigating
+    through the entire corpus. The topic is reassigned based on other topic assignments
+    by document. Let''s say a document is represented by the following topic mixture:
+    topic 1 - 40%, topic 2 - 20%, and topic 3 - 40% and the first word in the document
+    is assigned to topic 2\. The word in question appears across these topics (the
+    entire corpus) in the following manner: topic 1 - 52%, topic 2 - 42%, and topic
+    3 - 6%. In the document, we reassign the word from topic 2 to topic 1 because
+    the word represents topic 1 (40%*52%) more than topic 2 (20%*42%). This process
+    is repeated for all the documents. By the end of pass 1, you will have covered
+    each of the words in the corpus.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We go through several passes or iterations across the entire corpus for each
+    word until no further reassignment is necessary.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In the end, we have a few designated topics, with each topic represented by
+    keywords.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Up until now, we have looked at linear techniques for topic modeling. Now, it's
+    time to turn our attention to non-linearlearning. Neural network models for topic
+    modeling are much more flexible, allowing new capabilities to be added (for example,
+    creating contextual words for an input/target word).
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Lda2vec** is a superset of word2vec and LDA models. It is a variation of
+    the skip-gram word2vec model. Lda2Vec can be used for a variety of applications,
+    such as predicting contextual words given a word (known as a pivot or target word),
+    including learning topic vectors for topic modeling.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Lda2vec is similar to **Neural Variational Document Models** (**NVDM**) in terms
+    of producing topic embeddings or vectors. However, NVDM adopts a much cleaner
+    and flexible approach to topic modeling by creating document vectors using neural
+    networks, where a word-to-word relationship is completely disregarded.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**NVDM** (**Neural Variational Document Model**) is a flexible generative document
+    modeling process where we learn about multiple representations of documents through
+    topics (hence the word *variational—*meaning multiple—in NVDM):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'NVDM is based on the **Variational Autoencoder** (**VAE**) framework, which
+    uses one neural network to encode (that is, an encoder) a collection of documents
+    and a second one to decode (that is, a decoder) the compressed representation
+    of documents. The goal of this process is to look at the best way to approximate
+    information in a corpus. The autoencoder is optimized by minimizing two types
+    of losses:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Loss with Decoding** (the **reconstruction error**): Reconstruct the original
+    document from topic embeddings.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Loss with Encoding** (the **Kullback Leibler or KL Divergence**): Build a
+    stochastic representation of the input document or topic embeddings. KL divergence
+    measures information that''s lost when encoding a bag-of-words representation
+    of documents.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Now, let's do a delve into the Neural Topic Model, an implementation of NVDM
+    from AWS. Although AWS offers a readily consumable API, AWS Comprehend, to discover
+    topics, the NTM algorithm provides the fine-grained control and flexibility to
+    uncover topics from long-form text.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding how the Neural Topic Model works
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The **Neural Topic Model** (**NTM**), as we described previously, is a generative
+    document model that produces multiple representations of a document. It generates
+    two outputs:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The topic mixture for a document
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: A list of keywords that explain a topic, for all the topics across an entire
+    corpus
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'NTM is based on the **Variational Autoencoder** architecture. The following
+    illustration shows how NTM works:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/3a82f3ee-d762-4fda-a384-1336257c2599.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Let''s explain this diagram, bit by bit:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: There are two components—an encoder and a decoder. In the encoder, we have a
+    **Multiple Layer Perceptron** (**MLP**) network that takes a bag-of-words representation
+    of documents and creates two vectors, a vector of means ![](img/120cf1e9-9997-4dae-a4b6-f345d489d798.png)
+    and a vector of standard deviation ![](img/77c0a009-13af-4981-a6f0-45d3ccc5162a.png).
+    Intuitively, the mean vector controls where encoding the input should be centered,
+    while the standard deviation controls the area around the center. Because the
+    sample that was generated from this area is going to vary each time it's generated,
+    the decoder will learn to reconstruct different latent encodings of the input.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'MLP is a class of feedforward **artificial neuron networks** (**ANNs**). It
+    consists of at least three layers of nodes: input, output, and a hidden layer.
+    Except for the input node, each node is a neuron that uses a nonlinear activation
+    function.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The second component is a decoder, which reconstructs a document by independently
+    generating words. The output layer of the network is a Softmax layer that defines
+    the probability of each word by topic by reconstructing the topic words matrix.
+    Each column in the matrix represents a topic, while each row represents a word.
+    The matrix values, for a given column, represent the probability of the distribution
+    of words for the topic.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The Softmax decoder uses multinomial logistic regression, where we account for
+    the conditional probability of different topics. The transformation is, effectively,
+    a normalized exponential function that's used to highlight the largest values
+    and suppress values that are significantly below the max value.
+  prefs: []
+  type: TYPE_NORMAL
+- en: NTM is optimized by reducing reconstruction errors and KL divergence, as well
+    as the learning weights and biases of the network. Therefore, NTM is a flexible
+    neural network model for topic mining and producing interpretable topics. It is
+    now time to look at training NTM in SageMaker.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Training NTM in SageMaker
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this section, we will train NTM on Enron emails to produce topics. These
+    emails were exchanged between Enron, an American energy company that ceased its
+    operations in 2007 due to financial losses, and other parties that did business
+    with the company.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The dataset contains 39,861 emails and 28,101 unique words. We will work with
+    a subset of these emails – 3,986 emails and 17,524 unique words. Additionally,
+    we will create a text file, `vocab.txt`, so that the NTM model can report the
+    word distribution of a topic.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Before we get started, make sure that both `docword.enron.txt.gz` and `vocab.enron.txt`
+    have been uploaded to a folder called `data` on the local SageMaker compute instance.
+    Follow these steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Create a bag-of-words representation of emails, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the preceding code, we used the `pivot_table()` function in the pandas library
+    to pivot emails so that email IDs are indexes and word IDs are columns. The values
+    in the pivot table represent word counts. The pivot table contains 3,986 email
+    IDs and 17,524 word IDs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, let's multiply the word counts by the **Inverse Document Frequency** (**IDF**)
+    factor. Our assumption is that words that occur frequently in an email and less
+    frequently in other emails are important in discovering topics, while words that
+    occur frequently in all the emails may not be important for discovering topics.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'IDF is calculated as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: IDF is given by ![](img/b6ba616f-fdc7-4ae9-b30a-10a0749c6c11.png), where N is
+    the number of emails in the dataset and ![](img/1a526ca1-bdd2-4916-9589-7a96e72a248c.png)
+    is the number of documents containing the word *i*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: At the end of this step, a new DataFrame representing the pivoted emails with
+    tf-idf values is created.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, we will create a compressed sparse row matrix from the bag of words representation
+    of emails, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the preceding code, we used the `csr_matrix()` function from the `scipy.sparse`
+    module to produce an efficient representation of the emails matrix. With the compressed
+    sparse row matrix, you are able to run operations on only non-zero values, in
+    addition to using less RAM for computation. The compressed sparse row matrix uses
+    the row pointer to point to the row number and the column index to identify the
+    column in the row, as well as the values for the given row pointer and column
+    index.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Split the dataset into training, validation, and test sets as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: We use 80% of the emails for training, 10% for validation, and the remaining
+    10% for testing.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Convert the emails from a compressed sparse row matrix into RecordIO wrapped
+    Protobuf format, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: '**Protobuf format**, also known as **Protocol Buffers**, is a protocol from
+    Google that''s used to serialize or encode structured data. Although JSON, XML,
+    and Protobuf can be used interchangeably, Protobuf is much more enhanced and supports
+    more data types than other formats. RecordIO is a file format that stores serialized
+    data on disk. Its purpose is to store data as a sequence of records for faster
+    reading. Under the hood, RecordIO uses Protobuf to serialize structured data.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: For distributed training, we take a training dataset and divide it into portions
+    for distributed training. Please see the source code attached to this chapter
+    for additional details. The `write_spmatrix_to_sparse_tensor()` function from
+    `sagemaker.amazon.common` is used to convert each of these portions from the sparse
+    row matrix format into the sparse tensor format. The function takes a sparse row
+    matrix as input, along with a binary stream that RecordIO records will be written
+    to. We then reset the stream position to the beginning of the stream by calling
+    the `seek()` method—this is essential for reading data from the beginning of the
+    file.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Upload the train and validation datasets to an S3 bucket, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: We provide the filename to the binary stream and specify the name of the S3
+    bucket, which is where the datasets will be stored for training. We call the `upload_fileobj()`
+    method of the S3 object to upload the binary data to a designated location.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Now, we initialize SageMaker''s `Estimator` object to prepare for training,
+    as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: The estimator object, `ntm_estmtr`, is created by passing the Docker registry
+    path of the NTM image, the SageMaker execution role, the number and type of training
+    instances, and the location of the output. Since the number of compute instances
+    we are launching is two, we will be conducting distributed training. In distribution
+    training, data is partitioned and training is conducted in parallel on several
+    chunks of data.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Now, let''s define the hyperparameters of the NTM algorithm, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s take a look at the hyperparameters we specified in the preceding code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`feature_dim`: This represents the size of the feature vector. It is set to
+    the vocabulary size, which is 17,524 words.'
+  prefs:
+  - PREF_UL
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`num_topics`: This represents the number of topics to extract. We chose three
+    topics here, but this can be adjusted based on the model''s performance on the
+    test set.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`mini_batch_size`: This represents the number of training examples to process
+    before updating the weights. We specify 30 training examples here.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`epochs`: This represents the number of backward and forward passes that are
+    made.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`num_patience_epochs`: This represents the maximum number of bad epochs (epochs
+    where the loss does not improve) that are executed before stopping.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`optimizer`: This represents the algorithm that''s used to optimize network
+    weights. We are using the Adadelta optimization algorithm. The Adaptive Delta
+    gradient is an enhanced version of **Adagrad** (**Adaptive Gradient**), where
+    the learning rate decreases based on a rolling window of gradient updates versus
+    all past gradient updates.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`tolerance`: This represents the threshold for change in the loss function
+    – the training stops early if the change in the loss within the last designated
+    number of patience epochs falls below this threshold.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Upload the text file containing the vocabulary or words of the dataset to the
+    auxiliary path/channel. This is the channel that's used to provide additional
+    information to SageMaker algorithms during training.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Fit the NTM algorithm to the training and validation sets, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: For training, we call the `fit()` method of the `ntm_estmtr` object by passing
+    initialized `S3_input` objects from the `sagemaker.session` module. The `s3_train`,
+    `s3_val`, and `s3_aux` objects provide the location of the train, validation,
+    and auxiliary datasets, as well as their file format and distribution type.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Now, let''s walk through the results from distributed training:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Review the training output from the first ML compute instance, as follows:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![](img/fc9e2360-1268-4fa7-a057-9b52da5487e8.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Remember that there's a total of 3,188 training examples. Because we launched
+    two compute instances for training, on the first instance, we trained on 2,126
+    examples.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Review the results from the second training instance, as follows:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![](img/3df3c45b-74ad-4994-9628-cbfeab7a06d7.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: On the second compute instance, we trained on the remaining 1,062 examples.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We will report the model's performance on the validation dataset next. For the
+    metrics of the training dataset, please refer to the source code attached to this
+    chapter.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Now, let''s walk through the validation results of the trained model. The model
+    is evaluated against 390 data points that are part of the validation dataset.
+    Specifically, we will look at the following metrics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Word Embedding Topic Coherence Metric** (**WETC**): This measures the semantic
+    similarity of the top words in each topic. A good quality model will have top
+    words that are located close to each other in a lower-dimensional space. To locate
+    words in a lower-dimensional space, pre-trained word embeddings from GloVe (Global
+    Vectors) are used.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Topic Uniqueness** (**TU**): This measures the uniqueness of the topics that
+    are generated. The measure is inversely proportional to the number of times a
+    word appears across all the topics. For example, if a word appears in only one
+    topic, then the uniqueness of the topic is high (that is, 1). However, if a word
+    appears across, say, five topics, then the uniqueness measure is .2 (1 divided
+    by 5). To calculate the topic uniqueness across all the topics, we average the
+    TU measures across all topics.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Perplexity (logppx) is a statistical measure of how well a probability model
+    predicts a sample (validation dataset). After training, the perplexity of the
+    trained model is computed on the validation dataset (performance of the trained
+    model on the validation dataset). The lower the perplexity, the better, since
+    this maximizes the accuracy of the validation dataset.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Total Loss (total) is a combination of the Kullback-Leibler Divergence loss
+    and Reconstruction loss.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Remember that the Neural Topic Model optimizes across several epochs by minimizing
+    loss in the following ways:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Kullback-Leibler Divergence loss** (**kld**): Builds a stochastic representation
+    of emails (topic embeddings) that involve relative entropy, a measure of how one
+    probability distribution is different from a second, that is, a proxy probability
+    distribution.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Reconstruction loss** (**recons**): Reconstructs original emails from topic
+    embeddings.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The following screenshot shows the validation results and lists all the loss
+    types that were defined:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/e2ab8adc-f6c8-4e68-bf33-b733553f22ba.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The **total** Loss is **8.47**, where 0.19 is defined as the **kld** Loss and
+    **8.28** is defined as the **recons** loss.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: From the preceding screenshot, we can see that, across the three topics, **Word
+    Embedding Topic Coherence** (**WETC**) is **.26**, **Topic Uniqueness** (**TU**)
+    is **0.73**, and **Preplexity** (**logppx**) is **8.47** (same as the **t****otal**
+    Loss).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The three topics and the words that define each of them are highlighted in the
+    by rectangular boxes.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Now, it's time to deploy the trained NTM model as an endpoint.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Deploying the trained NTM model and running the inference
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In this section, we will deploy the NTM model, run the inference, and interpret
+    the results. Let''s get started:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, we deploy the trained NTM model as an endpoint, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we call the `deploy()` method of the SageMaker Estimator
+    object, `ntm_estmtr`, to create an endpoint. We pass the number and type of instances
+    required to deploy the model. The NTM Docker image is used to create the endpoint.
+    SageMaker takes a few minutes to deploy the model. The following screenshot shows
+    the endpoint that was provisioned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/3876a0a5-ef0b-4a0c-aa02-089323a66f49.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: You can see the endpoint you've created by navigating to the SageMaker service,
+    going to the left navigation pane, looking under the Inference section, and clicking
+    on **Endpoints**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Designate the request and response content types of test data, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the preceding code, the `deploy()` method of `ntm_estmtr` returns a `RealTimePredictor`
+    object (from the `sagemaker.predictor` module). We assign the input content type
+    of the test data and deserializer (the content type of the response) to `ntm_predctr`,
+    the `RealTimePredictor` object we created.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, we prepare the test dataset for inference, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the preceding code, we convert the test data format from a compressed sparse
+    row matrix into a dense array using the numpy Python library.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Then, we invoke the `predict()` method of `ntm_predctr` to run the inference,
+    as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the preceding code, we passed the first five emails from the test dataset
+    for inference. Then, we navigated through the prediction results to create a multi-dimensional
+    array of topic weights, where rows represent emails and columns represent topics.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, we interpret the results, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we transpose `topic_wts_res`, a multi-dimensional array,
+    to create a dataframe, `df_tpcwts`, so that each row represents a topic. We then
+    plot the topics, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'On the x-axis, we plot the topic numbers, and on the y-axis, we plot the percentage
+    of emails represented by each topic, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/c8a27d91-acd7-458c-a100-fd716e0eb889.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: It is evident from the preceding graph that Topic 0 represents less than 10%
+    of all five emails. However, Topics 1 and 2 are dominant to varying degrees in
+    the emails—around 70% of the 4^(th) email is represented by Topic 1, while around
+    60% of the 5th email is represented by Topic 2.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let''s look at the word cloud for each topic. It is important to understand
+    the word mixture by each topic so that we know the words that predominantly describe
+    a particular topic. Let''s get started:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Download the trained model, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the preceding code, we downloaded a trained NTM model from the path specified
+    by the `model_path` variable (the location was specified when at the time of creating
+    the Estimator, `ntm_estmtr`).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, we obtain the topic-word matrix from the trained model, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the preceding code, we extracted the NTM model, `downloaded_model.tar.gz`,
+    to load the learned parameters, `params`. Remember that the size of the output
+    layer of the model is the same as that of the number of words (vocabulary) in
+    the dataset. We then create a multi-dimensional mxnet array, *W*, to load word
+    weights by topic. The shape of W is 17,524 x 3, where 17,524 rows represent words
+    and 3 columns represent topics.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For each topic, run the softmax function on the word weights, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the preceding code, we run the softmax function on the word weights for each
+    topic to bring their values to between 0 and 1\. The sum of probabilities of words
+    for each topic should add up to 1\. Remember that the softmax layer, which is
+    the output layer of the NTM network, highlights the largest values and mutes the
+    values away from the max value.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Plot the word cloud by topic, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/3e7bc101-f452-4311-8412-1ea7054b38eb.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: As we can see, **Topic0** is defined predominantly by the words *resource* and
+    *pending*, while **Topic1** is primarily defined by the words *instruction*, *andor*,
+    and *notification*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Based on the top-ranking words in each of the topics, we can determine the
+    topic that''s being discussed in the emails:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Topic0** (**access to Enron IT apps**): Resource pending request create acceptance
+    admin local type permanent nahoutrdhoustonpwrcommonelectric nahoutrdhoustonpwrcommonpower2region
+    approval kobra click application date directory read risk tail.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Topic1** (**energy trading**): Andor instruction notification reserves buy
+    responsible sources prohibited order securities downgraded based intelligence
+    strong corp web solicitation privacy clicking coverage.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Topic2** (**includes a combination of access to IT apps and energy trading**):
+    Request resource pending create approval type application date tail directory
+    acceptance admin flip permanent counterparty head click swap kobra risk.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In this section, we have learned how to interpret results from topic modeling.
+    Now, let's summarize all of the concepts we've learned about in this chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we've reviewed topic modeling techniques, including linear
+    and non-linear learning methods. We explained how the NTM from SageMaker works
+    by discussing its architecture and inner workings. We also looked at distributed
+    training of the NTM model, where the dataset is divided into chunks for parallel
+    training. Finally, we deployed a trained NTM model as an endpoint and ran the
+    inference, interpreting topics from Enron emails. It is essential to synthesize
+    information and themes from large volumes of unstructured data for any data scientist.
+    NTM from SageMaker provides a flexible approach to doing this.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will cover the classification of images using SageMaker.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Further reading
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: For references to topic modeling techniques—LDA, then please go to [http://blog.echen.me/2011/08/22/introduction-to-latent-dirichlet-allocation/](http://blog.echen.me/2011/08/22/introduction-to-latent-dirichlet-allocation/).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For an intuitive explanation of VAE, check out the following links:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[https://jaan.io/what-is-variational-autoencoder-vae-tutorial/](https://jaan.io/what-is-variational-autoencoder-vae-tutorial/)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[https://towardsdatascience.com/intuitively-understanding-variational-autoencoders-1bfe67eb5daf](https://towardsdatascience.com/intuitively-understanding-variational-autoencoders-1bfe67eb5daf)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For references on neural variational inference for text processing, please go
+    to [https://arxiv.org/pdf/1511.06038.pdf](https://arxiv.org/pdf/1511.06038.pdf).
+  prefs: []
+  type: TYPE_NORMAL

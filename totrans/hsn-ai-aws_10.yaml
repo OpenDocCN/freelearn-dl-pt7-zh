@@ -1,0 +1,1807 @@
+- en: Working with Amazon SageMaker
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the last few chapters, you have learned about readily-available **Machine
+    Learning** (**ML**) APIs that solve business challenges. In this chapter, we will
+    deep dive into AWS SageMaker—the service that is used to build, train, and deploy
+    models seamlessly when the ML APIs do not completely meet your requirements. SageMaker
+    increases the productivity of data scientists and machine learning engineers by
+    abstracting away the complexity involved in provisioning compute and storage.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This is what will we cover in this chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Processing big data through Spark EMR
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Conducting training in Amazon SageMaker
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Deploying trained models and running inference
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Runninghyperparameter optimization
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Understanding SageMaker experimentation service
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Bring your own model – SageMaker, MXNet, and Gluon
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Bring your own container – R Model
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: For the following sections, we will employ the book rating dataset known as
+    `goodbooks-10k` to illustrate all of the topics outlined previously. The dataset
+    consists of 6 million ratings on 10,000 books from 53,424 users. More details
+    on the goodbooks-10k dataset can be found [https://www.kaggle.com/zygmunt/goodbooks-10k#books.csv](https://www.kaggle.com/zygmunt/goodbooks-10k#books.csv).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the [folder](https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services)
+    associated with this chapter, you will find two CSV files:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`ratings.csv`: Contains book ratings, user IDs, book IDs, and rating'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`books.csv`: Contains book attributes, including title'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: It is now time to wrangle big data to create a dataset for modeling.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Preprocessing big data through Spark EMR
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The design pattern to execute models in SageMaker is to read the data placed
+    in S3\. The data may not be readily consumable most of the time. If the datasets
+    required are large, then wrangling the data in the Jupyter notebook may not be
+    practical. In such cases, Spark EMR clusters can be employed to conduct operations
+    on big data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Wrangling a big dataset in Jupyter notebooks results in out-of-memory errors.
+    Our solution is to employ AWS EMR (Elastic MapReduce) clusters to conduct distributed
+    data processing. Hadoop will be used as the underlying distributed filesystem
+    while Spark will be used as the distributed computing framework.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, to run commands against the EMR cluster to process big data, AWS offers
+    EMR notebooks. EMR notebooks provide a managed notebook environment, based on
+    Jupyter Notebook. These notebooks can be used to interactively wrangle large data,
+    visualize the same, and prepare analytics-ready datasets. Data engineers and data
+    scientists can employ a variety of languages, Python, SQL, R, and Scala, to process
+    large volumes of data. These EMR notebooks can also be saved periodically to a
+    persistent data store, S3, so the saved work can be retrieved later. One of the
+    critical components of Amazon EMR architecture is the Livy service. It is an open
+    source REST interface for interacting with Spark clusters without the need for
+    Spark client. The Livy service enables communication between the EMR notebook
+    and EMR cluster, where the service is installed.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following architecture diagram details how EMR notebooks communicate with
+    Spark EMR clusters to process large data:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/a8460360-5965-4e0f-9beb-afc46b6cffb1.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Now that we''ve looked at how EMR clusters interact with EMR notebooks to process
+    big data interactively, let''s begin by creating an EMR notebook and cluster,
+    as shown in the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Navigate to Amazon EMR under Services and click on Notebooks.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'In the Create notebook page, enter Notebook name and Description, as shown
+    in the following screenshot:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/aa257df7-8459-46e0-85cb-cdf5d2e72172.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Next, select the option Create a cluster, enter Cluster name, and select Instance
+    type and number. As you can see in the preceding screenshot, the EMR cluster comes
+    with Hadoop, Spark, Livy, and Hive applications.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Now, let''s review the policies of EMR role and EC2 instance profile and enter
+    the S3 location where EMR notebooks will be saved, as in the following:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/b9185ba5-2ac3-40e9-84cc-b48651fdf7f4.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'From the preceding visual, we can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The EMR role is used to give the EMR service access to other AWS services (for
+    example, EC2).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The EMR EC2 instance profile further enables EC2 instances launched by EMR to
+    have access to other AWS services (for example, S3).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We configured appropriate security groups around the EMR cluster to allow communication
+    between the EMR notebook and master node of the EMR cluster.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We also assigned a service role to the EMR cluster, so it can interact with
+    other AWS services.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Also, EMR notebooks are saved to the designated S3 location when you click on
+    Save in EMR notebooks.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Now, click on Create notebook to launch a new EMR notebook. The notebook and
+    cluster will start provisioning, as shown in the following:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/48c2f140-2144-48d3-b56c-8790b6c073e1.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Once the EMR notebook and cluster are provisioned, click on Open to open the
+    notebook. We will use the EMR notebook to create a dataset that will be used to
+    recommend books to users via the object2vec algorithm, which is a built-in SageMaker
+    algorithm used to predict the affinity of a user toward a book.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'In the EMR notebook, we do five things:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Read the ratings and books CSV files.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Analyze the ratings dataset to understand the number of ratings by user and
+    book.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Filter the original ratings dataset to only include ratings, where it contains
+    users who have rated more than 1% of books and books that have been rated by at
+    least 2% of the users.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Create indexes (starting with zero) for both users and books in the ratings
+    dataset—this is required to train the `object2vec` algorithm.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Write (in parquet format) the resulting ratings dataset, which also includes
+    the book title, to relevant S3 bucket. The ratings dataset will then have a rich
+    history of user preferences, along with the popularity of books.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'In the following code block, we will whittle down 6 million ratings to ~1 million:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the preceding code, we filtered ratings to include users who have rated at
+    least 130 books and books that have been rated by at least 1,200 users.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Once the ratings dataset is prepared, we''ll persist it to S3 bucket, as shown
+    in the following:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/bcbad147-df09-42ca-a85c-ca24d5dd54a0.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'From the preceding screenshot, the following is understood:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Since the data is parallel processed on the EMR cluster, the output contains
+    several `parquet` files.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Apache Parquet is an open source compressed columnar storage format in the Apache
+    Hadoop ecosystem.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Compared to the traditional approach where data is stored in a row-oriented
+    approach, Parquet allows us to be more efficient in terms of storage and performance.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Stop the notebook and terminate the cluster after you are done storing the processed
+    dataset in S3 to avoid unnecessary costs.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Now, we are ready to understand the built-in `object2vec` algorithm and start
+    training the model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Conducting training in Amazon SageMaker
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Let's begin by spending a few minutes understanding how the `object2vec` algorithm
+    works. It is a multi-purpose algorithm that can create lower dimensional embeddings
+    of higher dimensional objects. This process is known as dimensionality reduction,
+    most commonly implemented through a statistical procedure called **Principal Component
+    Analysis** (**PCA**). However, Object2Vec uses neural networks to learn these
+    embeddings.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Some of the common applications of these embeddings include customer segmentation
+    and product search. In the case of customer segmentation, similar customers appear
+    closer in the lower dimensional space. A customer can be defined through multiple
+    attributes such as name, age, home address, and email address. With regards to
+    product search, because product embeddings capture the semantics of the underlying
+    data, any combination of search terms can be used to retrieve the target product.
+    The embedding of these search terms (semantics) should just match that of the
+    product.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's look at how Object2Vec works.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Learning how Object2Vec Works
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Object2vec can learn embeddings of pairs of objects. In our case, the higher
+    the rating of the book, the stronger the relationship between the user and the
+    book. The idea is that users with similar tastes are likely to rate similar books
+    higher. Object2vec approximates the book rating by using embeddings of users and
+    books. The closer a user is to some books, the higher the rating given by that
+    user to the books. We provide the algorithm with `(user_ind` and `book_ind)` pairs;
+    for each such pair, we also provide a **label** that tells the algorithm whether
+    the user and book are similar or not. The **label** in our case is the book rating.
+    Therefore, the trained model can be used to predict the rating of a book for a
+    given user such as the book; in this case, the one which has never been rated
+    by the user.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Following is the conceptual diagram of how `object2vec` works:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/c119c8a2-2164-40f7-8851-9110ce8d48f1.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'From the preceding visual, we can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We can see that the user and item or book embeddings are concatenated, which
+    are then passed to the **Multiple Layer Perceptron** (**MLP**).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: User and book embeddings are created from a one-hot encoded representation of
+    user and book indexes respectively.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Through supervised learning, MLP can learn the weights of the network and these
+    weights can be used to predict score or rating of user-book pair.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'To further understand the inner workings of `object2vec`, see the following
+    screenshot:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/ed402b5e-223e-4a8e-b70d-094957f3f948.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'From the preceding visual, we can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Object2vec starts with representing user and book with one-hot encoding. To
+    explain, in our case, a user can be represented with an array of the size 12,347,
+    which means that there are a total of 12,347 unique users in the dataset.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'User #1 can be represented by denoting 1 at position 1, while all of the other
+    positions in the array have zeros.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Books can also be represented in a comparable manner.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: It is time to now reduce the dimensionality of these representations. Therefore,
+    the algorithm uses an embedding layer with 1,024 neurons, each for a user and
+    a book.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Object2vec further extracts additional features by conducting element-wise multiplication
+    and subtraction between 1,024 user embedding neurons and 1,024 item embedding
+    neurons.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In other words, the user and book embeddings are compared in different ways.
+    Overall, we will then have 4,096 neurons when all of the neurons from the previous
+    layers are merged. The algorithm then uses a single perceptron layer with 256
+    neurons. This perceptron layer is then fully connected to the output layer with
+    one neuron. This one neuron will then predict the rating of a book given by a
+    user.
+  prefs: []
+  type: TYPE_NORMAL
+- en: It is now time to train the Object2Vec algorithm
+  prefs: []
+  type: TYPE_NORMAL
+- en: Training the Object2Vec algorithm
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Now that we have an understanding of how the algorithm works, let''s dive into
+    the training process:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Data processing**: Feed data in the form of JSON lines; random shuffle the
+    data for optimal performance. As you will see later, we send data in the format
+    of `user index`, `book index`, `label=rating`.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**Model training**: We pass both training and validation data to the algorithm.
+    There are multiple hyperparameters that we can configure to fine-tune the model''s
+    performance. We will review them in the upcomings sections. The objective function,
+    in our case, is to minimize the **Mean Squared Error** (**MSE**). The error is
+    the difference between the label (actual value) and the predicted rating.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Once the model has been trained, we will deploy it as an endpoint for inference.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In data processing, we will do the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, we will read the ratings dataset stored in `parquet` format on the S3
+    bucket, as shown in the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`s3fs` is a Python library that is based on boto3, an AWS SDK for Python. `s3fs`
+    provides a filesystem interface for S3.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We use the `pyarrow` Python library to read partitioned `parquet` files from
+    a designated s3 bucket.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Specifically, we call the `ParquetDataset()` function by passing in the dataset
+    name and filesystem.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'After reading the dataset, we display it to ensure that the data is read correctly,
+    as shown in the following screenshot:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/d9f71163-02e1-4eb9-a117-76d0368b087a.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Then, we load the dataframe in a format required by the `Object2Vec` algorithm.
+    For each user-book pair and rating label, we create an entry in a data list by
+    calling the `load_df_data()` function. Please refer to the source code attached
+    to this chapter for details.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In model training, we start by partitioning the dataset into training, validation,
+    and test sets. For each of the sets, we call the `write_data_list_to_jsonl()`
+    function to create `.jsonl` (JSON lines) files, the format required by `object2vec`.
+    A sample `jsonl` file is shown in the following screenshot:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/d714d5cd-cbc6-46e5-9e6f-54f76a075332.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Then, we upload the prepared datasets to the designated S3 bucket.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'We obtain a Docker image of the Object2Vec algorithm, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: To get the **Uniform Resource Identifier** (**URI**) of the `object2vec` Docker
+    image, we called the `get_image_uri()` function by passing the region name of
+    the local SageMaker session and the name of the algorithm as input.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `get_image_uri()` function is part of the SageMaker Python SDK.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'After obtaining the `uri` of the `object2vec` algorithm, we define the hyperparameters,
+    as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Encoder network**: This includes the following:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`enc0_layers`: This is the number of layers in the encoder network.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`enc0_max_seq_len`: This is the maximum number of sequences sent to the encoder
+    network (in this case, only one user sequence is sent to the network).'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`enc0_network`: This defines how embeddings are handled. In this case, since
+    we address one user embedding at a time, no aggregation is necessary.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`enc0_vocab_size`: This defines the first encoder vocabulary size. It represents
+    the number of users in the dataset.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Since there are two encoders in the network, the same hyperparameters apply
+    for encoder 1\. For encoder 1, the vocabulary size needs to be defined appropriately,
+    which is the number of books in the dataset—`enc1_vocab_size: 985`.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**MLP**: This includes the following:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`mlp_dim`: This is the number of neurons in the MLP layers. In our experiment,
+    we set it to 256.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`mlp_layers`: This is the number of layers in the MLP network. We use a single
+    layer in our experiment.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`mlp_activation`: This is the activation function for MLP layers. In our experiment,
+    we use the **Rectified Linear Unit** (**ReLU**) activation function for faster
+    convergence and to avoid vanishing gradient issues. Note that the ReLU activation
+    function is given by ![](img/d77d47c4-5a7c-4fa7-8ee1-ac2b6e4dd1d8.png).'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**The following instances control how** `object2vec` **is trained:**'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`epochs`: This is the number of backward and forward passes. We use 10 in our
+    case.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`mini_batch_size`: This is the number of training examples to process before
+    updating weights. We use 64.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`early_stopping_patience`: This is the maximum number of bad epochs (epochs
+    where loss does not improve) that are executed before stopping. We use 2.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`early_stopping_tolerance`: This is the improvement in loss function required
+    between two consecutive epochs for training to continue. This is after the number
+    of patience epochs conclude. We use 0.01 for this parameter.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Others** includes the following:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`optimizer`: This is the optimization algorithm to arrive at optimal network
+    parameters. In this experiment, we use adaptive moment estimation, also known
+    as Adam. It computes the individual learning rate for each parameter. Parameters
+    pertaining to features or inputs with sparse data go through large updates relative
+    to the ones with dense data. Also, Adam computes individual momentum changes for
+    each of the parameters. Remember that, during backpropagation, it is important
+    to navigate in the right direction for faster convergence. Momentum changes help
+    to navigate in the correct direction.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`output_layer`: This defines whether the network is a classifier or a regressor.
+    In this case, since the network is trying to learn to rate, we define the output
+    layer as a mean squared error (linear).'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'After the hyperparameters have been defined, we fit the `object2vec` estimator
+    to the prepared datasets (train and validation), as shown in the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we are doing the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We begin by creating an `object2vec` estimator by passing the Docker image,
+    current execution role, number, and type of training instances, and current `sagemaker`
+    session.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We then set hyperparameters for the newly created `object2vec` estimator using
+    the `set_hyperparameters()` function.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Then, we fit the model to the training and validation datasets using the `fit()`
+    function of the `Estimator` object.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The duration of training depends on the training instance type and the number
+    of instances. For one `m5.4xlarge` machine learning instance, it took 2 hours
+    to complete 10 epochs.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'To monitor the training job in progress, navigate to the Training section on
+    the left-hand side of the SageMaker service. Click on Training Jobs and then on
+    the job name of your current job. After, navigate to the monitor section to see
+    the training job''s progress, as shown in the following screenshot:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/6dd6d633-0114-44bf-8d98-be745ae67bfb.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: As you can see in the preceding screenshot, as the training MSE decreases, the
+    validation MSE also decreases—although, in the validation dataset, the decrease
+    in error is not as steep as the decrease in the training dataset. The training
+    throughput can also be monitored through this dashboard.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that the training is done, let's deploy the trained model as an endpoint
+    for inference.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Deploying the trained Object2Vec and running inference
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Now, let''s deploy the trained `object2vec` model. The SageMaker SDK offers
+    methods so that we can seamlessly deploy trained models:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, we will create a model from the training job using the `create_model()`
+    method of the SageMaker `Estimator` object, as shown in the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: To the `create_model()` method, we passed the type of serializers and deserializers
+    to be used for the payload at the time of inference.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Once the model has been created, it can be deployed as an endpoint via the
+    `deploy()` method of the SageMaker `Model` object, as shown in the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: To the `deploy()` method, we have specified the number and type of instances
+    that you have to launch to host the endpoint.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Once the `object2vec` model has been deployed as an endpoint, we can navigate
+    to the Endpoints section under the Inference grouping (present on the left navigation
+    menu under the SageMaker service). The status of the deployed endpoint can be
+    viewed here, as shown in the following screenshot:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/15cbd4d2-7734-4865-8f38-d9f8d352ef52.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Now that we have the `object2vec` endpoint available, let's run inference.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will create the `RealTimePredictor` object (the SageMaker Python SDK) by
+    passing the endpoint name, along with the type of serialization and deserialization
+    for the input and output, respectively. See the following code on how to initialize
+    the `RealTimePredictor` object:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: You can change the endpoint name to reflect your current endpoint (the first
+    argument of the `RealTimePredictor` object).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We then invoke the `predict()` method of `RealTimePredictor`, as shown in the
+    following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, remember that `test_data` should be in a format that''s
+    consumable by `object2vec.` We use the `data_list_to_inference_format()` function
+    to transform the test data into two components: instances and label. For details
+    on this function, please see the source code associated with this chapter. Check
+    out the following screenshot to see how the test data should be structured:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/87ccadde-beb8-4ac8-8ad7-e07f9b28168d.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'As shown in the preceding screenshot, the inputs for 0 (`in0`) and 1 (`in1`)
+    should have the indexes of the user and book, respectively. As for the test label,
+    we produce a data list of ratings for each of the associated user-book pairs,
+    as shown in the following screenshot:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/21b95547-7e80-4592-9686-68aec3f766cf.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: As shown in the preceding screenshot, we pass the first 100 user-book pairs
+    from the test dataset to the `predict()` method of `RealTimePredictor`. The result
+    is an MSE of 0.110.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let''s compare this MSE with the MSE from the naive options of computing
+    book ratings:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**Baseline 1**: For each user-book pair in the test dataset, compute the rating,
+    which is the average book ratings across all of the users, as shown in the following
+    code:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'To compute the average rating across all users, we do the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We iterate through all of the ratings in the training dataset to create a labels
+    list, `train_label`.
+  prefs:
+  - PREF_UL
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`train_label` is then used to compute the mean. To calculate the MSE, in the
+    `get_mse_loss()` function, the average rating across all of the users is subtracted
+    from each of the ratings in `test_label`.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The error is then squared and averaged across all of the test users. Please
+    see the attached source code for details. The MSE from this option is 1.13.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Baseline 2**: For each user-book pair in the test dataset, we compute the
+    rating, which is the average book rating for that user (that is, the average rating
+    across all books rated by the user), as shown in the following code:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the `bs2_predictor()` function, we passed the test data and user dictionary
+    from the training dataset as inputs. For each user in the test data, if they exist
+    in the training dataset, we computed the average book rating across all of the
+    books rated by them. If they do not exist in the training dataset, we just get
+    the average rating across all of the users, as shown in the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the preceding `bs2_predictor()` function, the `zip(*)` function is used to
+    return lists of books and ratings for each user. `bs1_prediction` is the average
+    rating across all of the users in the training dataset. The MSE from this option
+    is 0.82.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As we can see, an MSE of 0.110 from `object2vec` is better than the baselines:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Baseline 1 MSE**: 1.13, where the predicted book rating is the global average
+    book rating across all users'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Baseline 2 MSE**: 0.82, where the predicted book rating is the average book
+    rating by user'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Now that we have trained and evaluated the built-in SageMaker algorithm, `object2vec`,
+    it is time to understand the features that SageMaker offers so that we can automate
+    hyperparameter tuning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Running hyperparameter optimization (HPO)
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: It takes data scientists numerous hours and experiments to arrive at an optimal
+    set of hyperparameters that are required for best model performance. This process
+    is mostly based on trial and error.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Although `GridSearch` is one of the techniques that is traditionally used by
+    data scientists, it suffers from the curse of dimensionality. For example, if
+    we have two hyperparameters, with each taking five possible values, we're looking
+    at calculating objective function 25 times (5 x 5). As the number of hyperparameters
+    grows, the number of times that the objective function is computed blows out of
+    proportion.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Random Search addresses this issue by randomly selecting values of hyperparameters,
+    without doing an exhaustive search of every single combination of hyperparameters.
+    This [paper](http://jmlr.csail.mit.edu/papers/volume13/bergstra12a/bergstra12a.pdf)
+    by Bergstra et al. claims that a random search of the parameter space is guaranteed
+    to be more effective than a grid search.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The idea is that some parameters have much less effect than others on the objective
+    function. This is reflected by the number of values that are picked for each parameter
+    in the grid search. Random Search enables the exploration of more values for each
+    parameter, given several trials. The following is a diagram that illustrates the
+    difference between grid search and random search:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/5af628ab-0cee-4750-8500-fdc7c9768e62.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: As you can see from the preceding screenshot, in a random search, we can test
+    more values for important parameters, resulting in increased performance from
+    training a model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Neither of these techniques automate the process of hyperparameter optimization.
+    **Hyperparameter Optimization** (**HPO**), from SageMaker, automates the process
+    of selecting the optimal combination of hyperparameters. Here is how the tool
+    works:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/ab83634c-2e45-4199-ae95-39f64bd9c640.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Take a look at the following points:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: HPO uses a Bayesian technique to iteratively select a combination of hyperparameters
+    to train the algorithm.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: HPO picks the next set of hyperparameters, given the performance of the model
+    and the configuration of hyperparameters in all of the historical steps.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Also, it employs an *acquisition function* to determine where the next best
+    opportunity is to lower the cost function.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: After a specified number of iterations, you will arrive at an optimal configuration
+    of hyperparameters producing the best model.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'For the `object2vec` algorithm, let''s select the hyperparameters that we want
+    to tune:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`learning_rate`: Controls the speed with which weights in the neural network
+    are optimized'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`dropout`: The percent of the neurons in a layer that are ignored in forward
+    and backward passes'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`enc_dim`: The number of neurons to generate user/item embedding'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`mlp_dim`: The number of neurons in the MLP layer'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`weight_decay`: A factor to prevent overfitting (L2 regularization—causes the
+    weight to decay in proportion to the factor specified)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We will use the `HyperparameterTuner` class from the `sagemaker` Python SDK
+    to create tuning jobs. The goal of the tuning jobs is to reduce the MSE for the
+    validation dataset. Depending on your budget and time, you can choose the number
+    of training jobs you want to run. In this case, I chose to run 10 jobs, with only
+    one job running at a given moment. You can choose to run multiple jobs in parallel.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To instantiate hyperparameter tuning jobs, we will need to do the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Define the hyperparameters to tune and specify the objective function, as shown
+    in the following code:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'As shown in the preceding code, we defined the ranges for each of the hyperparameters.
+    For the objective function, we specified it as the mean squared error in the validation
+    dataset:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Define an estimator to train the `object2vec` model.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Define the `HyperparameterTuner` job by passing the estimator, the objective
+    function and type, and the maximum number of jobs to run, as shown here:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: The `HyperparameterTuner` object takes the estimator (named `regressor`) as
+    one of the inputs. The estimator should be initialized with hyperparameters, along
+    with the number and type of instances to be launched. Please see the associated
+    source code for this chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Fit the tuner to the training and validation datasets, as shown in the following
+    code:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: To the `fit` method of `hyperparameterTuner`, we pass the location of training
+    and validation datasets. We wait for the tuner to finish running all of the jobs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following screenshot shows a few training jobs with a different set of
+    hyperparameters that have been executed by `HyperparameterTuner`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/69bfb043-79b5-4a23-a772-90d01bb38b2d.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: With each job, you can look at the hyperparameters that were used and the value
+    of the objective function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To look at the best job with the lowest MSE, navigate to the Best job tab,
+    as shown in the following screenshot:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/267713ac-752b-4961-a157-0a8a1989602d.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: After the jobs are executed, you can run analytics on the results from hyperparameter
+    optimization to answer questions, such as how does the MSE vary as the tuning
+    jobs are being executed? You can also look at whether there is a correlation between
+    the MSE and hyperparameters being tuned, such as the learning rate, dropout, weight
+    decay, and the number of dimensions for both the encoder and `mlp`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the following code, we plot how the MSE changes as the training jobs are
+    being executed:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the preceding code, we create an analytics object from `HyperparameterTuner`,
+    which we created earlier. We then obtain a DataFrame from the analytics object—the
+    DataFrame contains the metadata of all of the training jobs that were executed
+    by the tuner. We then plot the MSE against time.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the following diagram, we track how the MSE varies with the training time:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/ab528e01-b0cc-4fb3-a4db-39795733b17d.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: As you can see, the plot is very bumpy. If you increase the number of training
+    jobs, perhaps the hyperparameter tuning job will converge.
+  prefs: []
+  type: TYPE_NORMAL
+- en: It is time to look at another important feature of SageMaker, that is, the experiment
+    service or search.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding the SageMaker experimentation service
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The goal of experiment management with SageMaker Search is to accelerate the
+    model's development and experimentation phase, improving the productivity of data
+    scientists and developers, while also reducing the overall time to market machine
+    learning solutions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The machine learning life cycle (continuous experimentation and tuning) states
+    that when you initiate the training of a new learning algorithm, to improve model
+    performance, you conduct hyperparameter tuning. With each iteration of the tuning,
+    you will need to check how the model's performance is improving.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This leads to hundreds and thousands of experiments and model versions. The
+    whole process slows down the selection of a final optimized model. Additionally,
+    it is critical to monitor the performance of a production model. If the predictive
+    performance of the model is degrading, it is important to know how the real-life
+    data is different from the data that's used during training and validation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'SageMaker''s Search tackles all of the challenges we highlighted previously
+    by providing the following features:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Organizing, tracking, and evaluating model training experiments**: Creating
+    leaderboards for winning models, cataloging model training runs, and comparing
+    models by performance metrics such as training loss and validation accuracy'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Seamlessly searching and retrieving the most relevant training runs**: Runs
+    that can be searched by key attributes, which can be the training job name, status,
+    start time, last modified time, and failure reason, among other things'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Tracking the lineage of a deployed model in a live environment**: Tracking
+    the training data used, values of the hyperparameters specified, resulting model
+    performance, and version of the model deployed'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Let''s illustrate the features of SageMaker Search:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Navigate to Searchon the left navigation pane of the Amazon SageMaker service.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Search for experiments that have been conducted using the `object2vec` algorithm:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In the Searchpane, under Property, select AlgorithmSpecification.TrainingImage.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Under Operator, select Contains.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Under Value, select object2vec, as shown in the following code:'
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/7a43c9f2-3732-4716-82cd-db0d870b2552.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'You can also search for experiments programmatically using `boto3`, the AWS
+    SDK for Python, as shown here:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the preceding code, we instantiated the `sagemaker` client by passing the
+    service name.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will then call the search function of the SageMaker client by passing search
+    parameters, as shown in the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code block, we defined search parameters such as the type
+    of resource to search for the maximum number of results to show, search expression,
+    and sort by and order. We pass the search parameters that were defined to the
+    search function of the SageMaker client to retrieve results:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**To find the winning training job**, do the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Search for the experiments, as we discussed earlier. We can search based on
+    several attributes, such as fields related to `TrainingJob`, `TuningJob`, `AlgorithmSpecification`,
+    `InputDataConfiguration`, and `ResourceConfiguration`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Once the relevant experiments have been retrieved, we can sort them by objective
+    metrics to find the winning training job.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**To** **deploy the best mode**, follow these steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Click on the winning training job and click on the Create Model button at the
+    top.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Specify the location of model artifacts and registry path of the inference image,
+    among other details, to create a model. Once the model have been created, navigate
+    to Models under the Inference section (the left navigation menu) of the SageMaker
+    service.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'You will find two options: Create batch transform job and create endpoint.
+    For real-time inference, click on create endpoint and provide configuration details.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'To track the lineage of a deployed model, do the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Choose Endpoints in the left navigation pane and select the endpoint of the
+    winning model.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Scroll to the Endpoint Configuration Settings to locate the hyperlink to the
+    Training Job that was used to create the endpoint.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Once the hyperlink has been clicked, you should see details on the model and
+    training job, as shown in the following screenshot:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/d43f5251-49a1-459a-84f3-19cf3053a07d.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'You can also programmatically track the lineage of a deployed model:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Use `boto3` to get the endpoint configuration by calling the `describe_endpoint_config()`
+    function of the SageMaker client.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: From the configuration, select the model name to retrieve the Model Data URL.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Retrieve a training job from the Model Data URL. By doing this, from a deployed
+    endpoint, we can trace back to the training job.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Let's now turn our attention to how SageMaker allows data scientists to bring
+    their own machine learning and deep learning libraries to AWS.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Bring your own model – SageMaker, MXNet, and Gluon
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: This section focuses on how SageMaker allows you to bring your own deep learning
+    libraries to the Amazon Cloud and still utilize the productivity features of SageMaker
+    to automate training and deployment at scale.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The deep learning library we will bring in here is Gluon:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Gluon is an open source deep learning library jointly created by AWS and Microsoft.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The primary goal of the library is to allow developers to build, train, and
+    deploy machine learning models in the cloud.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In the past, a tremendous amount of research has been conducted on recommender
+    systems. In particular, Deep Structured Semantic models attempt to capture information
+    from attributes, such as product image, title, and description. Extracting semantic
+    information from these additional characteristics will solve the cold start problem
+    in the space of recommender systems. In other words, when there is not much consumption
+    history for a given user, a recommender system can propose products similar to
+    the minimal products that are purchased by the user.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's see how pretrained word embeddings, available via the `gluonnlp` library,
+    can be used in SageMaker to find books similar to the books that a user likes,
+    that is, recommended books whose titles are semantically similar to titles of
+    books that a user likes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To do this, we will look at the same book ratings dataset we used in the previous
+    sections of this chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s begin by installing the prerequisites:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '`mxnet`: This is a deep learning framework.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`gluonnlp`: This builds on top of MXNet. It is an open source deep learning
+    library for **natural language processing** (**NLP**).'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`nltk`: This is a Python natural language toolkit.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Next, we will read the filtered book ratings dataset that we created in the
+    *Conduct Training in Amazon SageMaker* section. Then, we will obtain unique book
+    titles from the dataset.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'From each of the book titles, remove words with punctuation marks, numbers,
+    and other special characters and only retain words that contain alphabets, as
+    shown in the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code block, we can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We iterate through each of the book titles and create tokens by calling the
+    `word_tokenize()` function from `nltk.tokenize`.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For each title, we only retain words containing alphabets by calling the `isapha()`
+    method on word strings. In the end, we have a list of lists called `words`.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Next, we will count the frequency of tokens across all of the book titles,
+    as shown in the following:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: To compute the frequency of tokens, we called the `count_tokens()` function
+    from `gluonnlp.data` by passing the words list to it.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`counter`is a dictionary containing tokens (keys) and associated frequencies
+    (values).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Load the pre-trained word embedding vectors that were trained using fastText—a
+    library from the Facebook AI Research lab that''s used to learn word embeddings.
+    Then, tie the word embeddings to each of the words in a book title, as shown here:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code block, we can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We created the indexes of tokens that can be attached to token embeddings by
+    instantiating the `Vocab` class.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We then instantiated word/token embeddings by passing embedding type as `fasttext`.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We called the `set_embedding()` method of the `Vocab` object to attach pre-trained
+    word embedding to each of the tokens.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Now, we create the embedding of a book title by averaging across individual
+    word embeddings, as shown here:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We iterated through each of the book titles and computed its embedding by averaging
+    across all of the embeddings of the words in the title. This is done by calling
+    the `mean()` method of the `ndarray` object, an *n-*dimensional array.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We then created an array, `title_arr_list`, of title embeddings by using the
+    `append()` method of the `numpy` module.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'It is now time to plot book titles—first, we will reduce the dimensions of
+    the embeddings from 300 dimensions to 2\. Note that the shape of `title_arr_list`
+    is 978 x 300\. This means that the array has 978 unique book titles and each title
+    is represented by a vector that''s 300 in size. We will use the **T-distributed
+    Stochastic Neighbor Embedding** (**TSNE**) algorithm to reduce the dimensionality
+    but still retain its original meaning—that is, the distance between titles in
+    a higher dimensional space is going to be the same as the distance between titles
+    in a lower dimensional space. To go to a lower dimensional space for the title,
+    we instantiate the `TSNE` class from the `sklearn` library, as shown in the following
+    code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the preceding code block, we called the `fit_transform()` method of the `TSNE`
+    object to return the transformed version of embedding.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'After we get the transformed embedding, we will do a scatter plot with one
+    dimension on the *x*-axis and another dimension on the *y*-axis, as shown in the
+    following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/9684b30c-d85a-40d1-a9e1-9f315f2caa23.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The proximity of book titles implies that they are semantically similar. For
+    example, titles such as *Room* and *A Room with a View* seem to talk about the
+    same subject room. These titles are located together in the lower dimensional
+    space.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this section, you learned how to bring pretrained word embeddings from fastText
+    via the MXNet deep learning library to SageMaker. It is also possible to also
+    train neural networks that have been built using the MXNet deep learning library
+    from scratch. The same capabilities of SageMaker, such as training and deployment,
+    are equally available for both built-in and custom algorithms.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we have walked through how to bring your machine and/or deep learning
+    library to SageMaker, it is time to look at how to bring your own container.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Bring your own container – R model
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this section, we will illustrate the process of bringing your own Docker
+    container to Amazon SageMaker. Particularly, we will focus on training and hosting
+    R models seamlessly in Amazon SageMaker. Rather than reinventing the wheel in
+    terms of building ML models using SageMaker's built-in algorithms, data scientists
+    and machine learning engineers can reuse the work that they've done in R in SageMaker.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following is the architecture regarding how different AWS components interact
+    to train and host R models:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/894122ec-03e5-4497-9581-3b1126170431.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'To follow the preceding architectural diagram, we start with Amazon **Elastic
+    Container Registry** (**ECR**):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We create a Docker image containing an underlying operating system, prerequisites
+    to train a recommender algorithm in R, and R code for training and scoring the
+    **User-Based Collaborative Filtering** (**UBCF**) recommender algorithm.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The created Docker image is then published to Amazon ECR. Remember that the
+    training data for both SageMaker built-in and custom algorithms sits in the S3
+    bucket.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: To start a training job in SageMaker, you designate the location of the training
+    data and Docker registry path (in ECR) of the training image.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: During training, the appropriate R functions are triggered to train the UBCF
+    algorithm. The training happens on SageMaker's machine learning compute instances.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The resulting trained models known as model artifacts, are saved to the designated
+    location on the S3 bucket.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'As for hosting the trained model, SageMaker requires two things:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Model artifacts
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The Docker registry path of the inference image
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'To create an inference endpoint, the following takes place:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: SageMaker will create a model by passing the Docker registry path of the inference
+    image of the R model and model artifacts.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Once the SageMaker model has been created, SageMaker launches machine learning
+    to compute instances by instantiating the Docker inference image.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The compute instances will have R code for inference available as a RESTful
+    API.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In this section, we will look at the same book ratings dataset we used in the
+    previous sections of this chapter, goodbooks-10k. Our goal is to suggest the top
+    five books to users who are not part of the training dataset. We will use the
+    `recommenderlab` R package to measure the cosine distance between users (UBCF).
+    For our target user, we will pick 10 users/neighbors from the training set based
+    on cosine similarity.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To estimate the top five book recommendations for the target user, the UBCF
+    algorithm uses two things:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Target user preferences for some books in the collection
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The trained model
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'With the help of a trained model, we will compute ratings for books that the
+    target user has never rated before. The top five books (among all of the books
+    in the dataset) with the highest ratings are proposed to a given user. The trained
+    model fills in ratings for all the books and for all of the users in the training
+    dataset, as shown in the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/d1670572-6bc3-4aa8-b9d0-45d59653ed10.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'During the training process, UBCF computes the missing ratings. Let''s assume
+    that we want to fill in missing ratings for user A. User A has only rated **book
+    #1** (**BK1**) and **book #3** (**BK3**). To compute ratings for books 2, 4, and
+    5, the UBCF algorithm does the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'It computes the cosine similarity between user A and the rest of the users
+    in the training dataset. To compute the similarity between user A and B, we do
+    the following:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: If users A and B have common books that they've rated, multiply the ratings
+    by the book.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Add these ratings across all of the common books.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Then, divide the result by the norm of vectors represented by users A and B.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Given a similarity score for users B through E relative to A, compute the rating
+    for a given new book by taking the weighted average of ratings given by users
+    B through E for that book:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'For example, to compute the rating for book #2 for user A, we multiply a rating
+    of 3 given by user B for book #2 by a similarity score of 0.29 and multiply a
+    rating of 4 given by user C for book #2 by a similarity score of 0.73\. We add
+    these two factors together.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We then add the two similarity score of 0.29 and 0.73.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Finally, we divide the results from 1 with 2.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Now that we have looked at the training and hosting architecture for custom
+    containers in SageMaker and discussed the use case, let''s begin the implementation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The first step is to define the Dockerfile by highlighting the requirements
+    to run the R code. The requirements are an underlying operating system, the R
+    version, the R packages, and the location of the R logic for training and inference.
+    Create and publish a Docker image to the **EC2 Container Registry** (**ECR**).
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The following Dockerfile defines the specifications for training and hosting
+    R model:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code block, we can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We defined the version of the Ubuntu operating system to install.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We also specified that we need R installed.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Additionally, we have specified the R packages that need to be in place for
+    the `Recommender` algorithm to work, as shown in the following code:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We copied the training (`Recommender.R`) and inference (`plumber.R`) code to
+    the appropriate location.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Later, we specified an entry point (code to run) after the Docker image is instantiated.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Now that the Dockerfile has been compiled, it is time to create a Docker image
+    and push it to ECR, as shown here:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: To build the Docker image locally, we run the `Docker build` command by passing
+    the image name to the local SageMaker instance.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The Dockerfile from the local directory (`"."`) is leveraged.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: After tagging the Docker image, we then push it to ECR with the `Docker push`
+    command.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The next step is to create a SageMaker training job, listing training dataset,
+    the latest Docker image for training, and infrastructure specifications. The model
+    artifacts from the training job are stored in the relevant S3 bucket. This is
+    very similar to running any training job on SageMaker.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Let''s understand the R functions that are triggered during training:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Remember that the `Recommender.R` code gets executed when ML compute instances
+    are launched as part of the training.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Depending on the command-line arguments that are passed, either the `train()`
+    function or `serve()` function is executed, as shown in the following code:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs: []
+  type: TYPE_PRE
+- en: If the command-line argument contains the `train` keyword, the `train()` function
+    gets executed. The same logic holds true for the `serve` keyword.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'During training, SageMaker copies the training dataset from the S3 bucket to
+    ML compute instances. After we prepare training data for model fitting, we call
+    the `Recommender` method (the `recommenderlab` R package) by specifying the number
+    of users in the training set, the type of recommender algorithm, and the type
+    of output (top N book recommendations), as shown in the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code block, we can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We train the model on 270 users and 973 books.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The entire dataset contains 275 users.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Please refer to the source code attached to this chapter. Once the UBCF algorithm
+    has been trained, the resulting model is saved in the designated location on the
+    ML compute instance, which is then pushed to the specified location on the S3
+    bucket (model output path).
+  prefs: []
+  type: TYPE_NORMAL
+- en: The third step is to host the trained model as an endpoint (RESTful API). SageMaker
+    will need to create a model before provisioning an endpoint. Model artifacts and
+    Docker images from training are required to define a SageMaker model. Note that
+    the Docker image that was used for training is also used for inference. The SageMaker
+    endpoint takes infrastructure specifications for ML compute instances as input,
+    along with the SageMaker model. Again, this process of creating an endpoint in
+    SageMaker for custom containers is the same as that for built-in algorithms.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Let's understand the R functions that are triggered during inference.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following R function is run when SageMaker sends the `serve` command at
+    the time of inference, as shown in the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We have used the plumber R package to turn R functions into REST endpoints.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: R functions that will need to be converted in to REST APIs are decorated with
+    appropriate comments.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We used the `plumb()` method to host the `plumber.R` code as an endpoint.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'For each of the HTTP requests that''s sent to the endpoint, the appropriate
+    function is called, as shown here:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: At the time of inference, we load the trained model by calling the `load()`
+    method and passing the path to the model artifacts.
+  prefs:
+  - PREF_UL
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We then call the `predict()` method by specifying the name of the trained model,
+    the new user vector or book preferences, and the number of books to recommend.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Note that the ratings matrix, `ratings_mat`, contains all 275 users and their
+    ratings, where present, for books. In this case, we are interested in user #272\.
+    Remember that, in the dataset for this section, we have a total of 275 users and
+    973 books.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The fourth step is to run model inference, as shown here:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We captured the entire dataset of 275 users in a CSV file called **payload**.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We then pass the payload file as input to the `invoke_endpoint()` method of
+    the SageMaker runtime, along with the endpoint name and content type.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The endpoint responds with results, as shown in the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/5275b7b3-6cc1-408f-aebd-d80134ae0e43.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: By doing this, we have seen how seamless it is to bring your own container to
+    SageMaker to train and host models, reusing training and scoring (inference) logic
+    that's been written in other languages.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, you've learned how to process big data to create an analytics-ready
+    dataset. You've also seen how SageMaker automates most of the steps of the machine
+    learning life cycle, enabling you to build, train, and deploy models seamlessly.
+    Additionally, we've illustrated some of the productivity features, such as hyperparameter
+    optimization and experimentation service, which enable data scientists to run
+    multiple experiments and deploy the winning model. Finally, we have looked at
+    bringing our own models and containers to the SageMaker ecosystem. Through bringing
+    our own models based on open source machine learning libraries, we can readily
+    build solutions based on open source frameworks, while still leveraging all of
+    the capabilities of the platform. Similarly, by bringing our own container, we
+    can readily port solutions, written in other programming languages besides Python,
+    to SageMaker.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Learning all of the aforementioned aspects of Amazon SageMaker enables data
+    scientists and machine learning engineers to decrease speed-to-market machine
+    learning solutions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will cover how to create training and inference pipelines
+    so that models can be trained and deployed for efficiently running inferences
+    (by creating reusable components).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Further reading
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'For extended examples and details on working with SageMaker, please refer to
+    the following AWS blogs:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[https://github.com/awslabs/amazon-sagemaker-examples](https://github.com/awslabs/amazon-sagemaker-examples)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[https://aws.amazon.com/blogs/machine-learning/introduction-to-amazon-sagemaker-object2vec/](https://aws.amazon.com/blogs/machine-learning/introduction-to-amazon-sagemaker-object2vec/)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[https://aws.amazon.com/blogs/machine-learning/amazon-sagemaker-now-comes-with-new-capabilities-for-accelerating-machine-learning-experimentation/](https://aws.amazon.com/blogs/machine-learning/amazon-sagemaker-now-comes-with-new-capabilities-for-accelerating-machine-learning-experimentation/)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL

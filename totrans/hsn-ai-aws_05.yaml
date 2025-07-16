@@ -1,0 +1,1176 @@
+- en: Detecting and Translating Text with Amazon Rekognition and Translate
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we will build our first **Artificial Intelligence** (**AI**)
+    application that solves a real-world problem, as opposed to a theoretical demonstration.
+    We will build an application that can translate foreign texts appearing in pictures.
+    We will do this by combining two AWS AI services, Amazon Rekognition and Amazon
+    Translate. The application will use the reference architecture introduced in the
+    previous chapter. In this hands-on project, not only will we be building intelligent
+    capabilities for the current application, we will also be designing them to be
+    reusable components that we can leverage in future hands-on projects.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will cover the following topics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Detecting text in images with Amazon Rekognition
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Translating text using Amazon Translate
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Embedding intelligent capabilities into applications
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Building serverless AI applications with AWS services, RESTful APIs, and web
+    user interface
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Discussing good design practices and build intelligent capabilities as reusable
+    components
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Making the world smaller
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this section of the book, we will start building intelligence-enabled solutions
+    through hands-on projects. These projects will not only get you familiar with
+    Amazon's AI services, they will also help you to strengthen your intuition on
+    how to embed intelligent capabilities into applications to solve real-world problems.
+    We'll start with an application that can make the world smaller.
+  prefs: []
+  type: TYPE_NORMAL
+- en: When Google revealed a new feature in its Google Lens mobile app, users could
+    just point their phones at something around their environment and get more information
+    about it. Google Lens essentially brought search capabilities into the real world.
+    One particular use case of this app was the real-time language translation of
+    text. Users can point their camera at a street sign or a restaurant menu and get
+    the translation back as an augmented reality camera feed on the phone's display.
+    This feature alone can make the world more accessible to everyone.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We will be implementing this pictorial translation feature for our hands-on
+    project with AWS AI services. Our application, we'll call it Pictorial Translator,
+    will provide similar translation capabilities, albeit with a much less embellished
+    user interface than Google Lens.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding the architecture of Pictorial Translator
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Following the architecture template defined in [Chapter 2](042787e6-6f54-4728-8354-e22d87be0460.xhtml),
+    *Anatomy of a Modern AI Application*, here is the architectural design for Pictorial
+    Translator:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/7d934292-18c1-4c23-a2c5-20e0aa1a2c89.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'We will provide a web user interface for users to upload photos containing
+    foreign text and then view the translation of the foreign text. The web user interface
+    will interact with the **Orchestration Layer** containing two RESTful endpoints
+    to handle the image upload and translation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Upload Image Endpoint** will delegate the image upload to our **Storage Service**:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Storage Service** provides an abstraction layer to **AWS S3**, where the
+    uploaded photos will be stored, processed, and displayed from.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Translate Image Text Endpoint** will delegate the detection of text within
+    the photos to our **Recognition Service** and the translation of the detected
+    text to our **Translation Service**:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The **Recognition Service** provides an abstraction layer to the Amazon Rekognition
+    service, more specifically, the text detection capability of Rekognition. We named
+    our service **Recognition**, which is more generic and doesn't directly tie us
+    in with **AWS Rekognition**.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The **Translation Service** provides an abstraction layer to the Amazon Translate
+    service to perform the language translation.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The **Service Implememntation** might seem redundant to some readers. Why not
+    just have the endpoints talk to the AWS services directly instead of talking through
+    another layer of abstraction? There are many benefits to architecting the application
+    this way. Here are a few examples:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: During development time, we can more easily build and test the application without
+    dependency on AWS services. Any stub or mock implementation of these services
+    can be used during development for speed, cost, and experimentation reasons. This
+    lets us develop and iterate the application faster.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: When other services that provide better storage, recognition, or translation
+    capabilities come along, our application can switch to those capabilities by swapping
+    to a new service implementation with the same abstraction interface. The user
+    interface and the endpoints will not need to be modified to leverage these better
+    capabilities. This gives our application more flexibility to adapt to changes.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This makes our code base more composable and reusable. The capabilities provided
+    by these AWS services can be reused by other applications. These services are
+    modular packages that can be more easily reused than the orchestration endpoints.
+    The orchestration endpoints usually contain application-specific business logic
+    that limits reuse.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Component interactions of Pictorial Translator
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'It''s important to think through how the components of an application interact
+    with each other and how the user experience will be influenced by our design choices
+    before we dive into the implementation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/96e42da4-7c2f-4a83-8e00-2f4beff34319.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: From the user's perspective, the application provides a sequential experience
+    for uploading the image, viewing the uploaded images, and seeing the translated
+    text. We made the design decision to ensure the user waits for each photo to be
+    uploaded and processed (as opposed to bulk uploading many photos at once). This
+    design decision is fine for our application, given our use case assumes that the
+    users are at the physical locations waiting to see the translations before making
+    decisions or taking actions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Our Pictorial Translator application's interaction with the Upload Image Endpoint
+    and `StorageService` is straightforward. The users' requests is essentially passed
+    through to AWS S3 and back in a chain. Of course, the fact that the storage capability
+    is provided by AWS S3 is shielded from both the endpoint and the application through
+    the layers of abstraction. The photos will be stored in an S3 bucket, and the
+    text detection and translation will be performed from the S3 bucket.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The translate image text endpoint simplifies some business logic from the Pictorial
+    Translator application. Pictorial Translator is only sending the image ID to the
+    translate image text endpoint and then receiving the translation for every line
+    of text in the image. The translate image text endpoint does a couple of things
+    behind the scenes. This endpoint is calling `detect_text()` in `RecognitionService`
+    on the entire image, and then calling `translate_text()` in Translation Service
+    multiple times for the lines of detected text. The endpoint will only call the
+    Translation Service if the detected line of text meets a minimum confidence threshold.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here, we made two design decisions:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, we translate text at the line level. The thinking is that the text we
+    see in the real world is not always in the same context (for example, multiple
+    street signs in the same photo) or even in the same language. The real-world results
+    of this design decision need to be closely monitored in order to validate its
+    user experience.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Second, we only translate a line of text that `RecognitionService` is very confident
+    about. The real world is messy, the user might upload photos containing text that's
+    not relevant to the translation task (for example, street signs in a distance),
+    or the user might upload photos not fit for quality text detection (for example,
+    poor lighting and bad focus). We don't want to inundate the user with inaccurate
+    translations, so our application took the approach to only translate high-quality
+    text in the photos.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: These are examples of design decisions AI practitioners should evaluate and
+    validate when developing an intelligence-enabled application. Having a flexible
+    architecture allows you to move through the iterations much faster.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Setting up the project structure
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Let''s create a similar base project structure with the steps outlined in [Chapter
+    2](https://cdp.packtpub.com/hands_on_artificial_intelligence_on_amazon_web_services/wp-admin/post.php?post=298&action=edit#post_299),
+    *Anatomy of a Modern AI Application*, including `pipenv`, `chalice`, and the web
+    files:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the terminal, we will create the `root` project directory and enter the
+    following commands:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will create placeholders for the web frontend by creating a directory named
+    `Website` and, within this directory, create two files `index.html` and `scripts.js`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will create a Python 3 virtual environment with `pipenv` in the project''s
+    `root` directory. Our Python portion of the project needs two packages, `boto3`
+    and `chalice`. We can install them with the following commands:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Remember that the Python packages installed via `pipenv` are only available
+    if we activate the virtual environment. One way to do this is with the following
+    command:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, while still in the virtual environment, we will create the orchestration
+    layer as an AWS `chalice` project named `Capabilities` with the following commands:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'To create the `chalicelib` Python package, issue the following commands:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The project structure for Pictorial Translator should look like the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: This is the project structure for Pictorial Translator. It contains the user
+    interface, orchestration, and service implementation layers of the AI application
+    architecture that we defined in [Chapter 2](https://cdp.packtpub.com/hands_on_artificial_intelligence_on_amazon_web_services/wp-admin/post.php?post=298&action=edit#post_299),
+    *Anatomy of a Modern AI Application*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Implementing services
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Now that we know what we are building, let's implement this application layer
+    by layer, starting with the service implementations.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Recognition service – text detection
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'We are going to leverage the Amazon Rekognition service to provide the capability
+    to detect text in an image. Let''s first take a test drive of this capability
+    using the AWS CLI. We will use a photo of a German street sign:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/cf161f5f-4879-4913-8785-0e7ec81542c0.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The source of the preceding photo is [https://www.freeimages.com/photo/german-one-way-street-sign-3-1446112](https://www.freeimages.com/photo/german-one-way-street-sign-3-1446112).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Since we will be using S3 to hold the photos, let''s first upload this photo
+    to an S3 bucket we created in [Chapter 1](606f673e-f72c-43ed-9a1e-fc06796b1303.xhtml),
+    *Introduction to Artificial Intelligence on Amazon Web Services*. For instance,
+    we will be uploading the image to our `contents.aws.ai` bucket. Once uploaded,
+    to perform text detection on a photo with the name `german_street_sign.jpg` with
+    the AWS CLI, issue the following command:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'AWS CLI is a handy tool for examining the output formats of AWS services:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Here, we see a JSON output from the text detection, with portions of the output
+    truncated here for brevity.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: At the top level, we have an object surrounded by curly brackets, **{** and
+    **}**. Within this top level object, we have a name-value pair with the name being
+    `TextDetections` and the value being an array surrounded by square brackets, **[**
+    and **]**.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Within this array are zero or more objects describing the detected texts. Looking
+    at the detected text objects within the array, we see information such as `DetectedText`,
+    `Type`, `Id`, `Confidence`, and `Geometry`.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In our photo, we have only one word. However, Rekognition returned two objects
+    in the `TextDetections` array. That's because Rekognition returns two types of
+    `DetectedText` as objects, `LINE` of text as well as all the `WORD` objects in
+    that `LINE` of text as separate objects. The two objects we got back represent
+    the `LINE` as well as the single `WORD` in that line. Notice the types of the
+    two objects are different, and the ParentId of the second object (`WORD`) refers
+    to `Id` of the first object (`LINE`), showing the parent/child relationship between
+    lines and words.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We also see the `Confidence` level of the text detection we will use this later
+    to filter which lines of text to translate. Rekognition is very confident with
+    the word `Einbahnstrabe`, which has a `Confidence` score of `99.16583251953125`,
+    with 100 being the maximum.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The `Geometry` name/value pair contains two systems to describe the location
+    of the detected text in the image:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/2a286409-cbf0-4a81-9091-d4ad785900a6.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The previous diagrams explained the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`BoundingBox` describes a coarse rectangle where the text is located. This
+    system describes the `BoundingBox` with the coordinates of the top-left point
+    of the rectangle, and the width and the height of the rectangle.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: These coordinates and measurements are all given in ratios for the image. For
+    example, if the image is 700 x 200 pixels and the service returned left == 0.5
+    and top == 0.25, then the top-left point of the rectangle is at pixels (350, 50);
+    700 x 0.5 = 350 and 200 x 0.25 = 50.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`Polygon` describes a set of points within the `BoundingBox` that gives a fine-grained
+    polygon around the detected text. The *x* and y coordinates of each point are
+    also using the same ratio system of the `BoundingBox` coordinates.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The information provided in `Geometry` is useful for tasks such as highlighting
+    the text in the image or even overlaying other information on top of the image.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Rekognition text detection seems to work well with alphabet-based languages
+    such as English, German, and French, but doesn't work as well with character-based
+    languages such as Chinese, Korean, and Japanese. This definitely limits the use
+    cases of the application.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'With these insights to the text detection output, let''s implement our `RecognitionService`.
+    Let''s create a Python class named `RecognitionService` as shown in the following
+    `recognition_service.py` file located in the `chalicelib` directory:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, the following applies:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The constructor, `__init__()`, creates a `boto3` client for the Rekognition
+    service. The constructor also takes in a parameter for `storage_location` as the
+    S3 bucket name in our implementation.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The `detect_text()` method calls the `boto3` Rekognition client''s `detect_text()`
+    function and passes in the S3 bucket name and file key for the image. The `detect_text()`
+    method then processes the output in the `TextDetections` array:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Here, we are only keeping the `LINE` detected text type and for each line we
+    are storing the `DetectedText`, Confidence objects, and the `BoundingBox` coordinates.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Any client using the `detect_text()` method of the RecognitionService's will
+    expect these pieces of information to be returned as a Python list with dictionaries
+    (a key-value mapping) as `text`, `confidence`, and `boundingBox`.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Here, we adapted the AWS SDK input and output formats to our own `RecognitionService`
+    interface contract. The rest of our application will expect the method parameters
+    and return type of our `RecognitionService`. We essentially implemented the adapter
+    design pattern. Even if we swap the AWS Rekognition service for a different one,
+    as long as we adapt the new service to our interface contract, our application
+    can interact with the new service without further modifications.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'There are two ways to specify the image for text detection:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: One way is to provide an `S3Object` with the bucket name and object key.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The other way is to provide the raw bits of the image.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For our application, the `S3Object` way works better.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Translation service – translating text
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'We are going to leverage the Amazon Translate service to provide the language
+    translation capability. Again, let''s take a test drive with this capability using
+    the AWS CLI first. To perform a quick translation, let''s copy the detected text
+    from the previous section, `Einbahnstrabe` and issue the following command:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: We used `auto` as the source language; this tells Amazon Translate to automatically
+    determine the language of the text. For the target language, we selected `en`
+    for English.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The output of the Amazon Translate service is quite simple, it's just a JSON
+    object with three name/value pairs. As we can see, Amazon Translate correctly
+    determined `Einbahnstrabe` is a German word and its English translation is One
+    way. This must be a photo of a `One Way` traffic sign.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `auto` value for the source language is handy. However, there are situations
+    where the source language cannot be determined with a high level of confidence.
+    In those situations, AWS will throw a `DetectedLanguageLowConfidenceException`.
+    This exception will contain the most likely source language. If your application
+    can tolerate this low confidence, you can issue the translation request again
+    with the source language specified in the exception.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Amazon Translate supports translation between numerous languages, and the list
+    is growing. However, at the time of writing this book, there are still language
+    pairs that are not supported. Check the AWS document on supported language pairs
+    ([https://docs.aws.amazon.com/translate/latest/dg/pairs.html](https://docs.aws.amazon.com/translate/latest/dg/pairs.html))
+    for the latest. If a request is issued to translate a language pair that's not
+    supported, the AWS will throw an `UnsupportedLanguagePairException`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s create a Python class named `TranslationService` as shown in the following,
+    `translation_service.py` file located in the `chalicelib` directory:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, the following applies:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The constructor, `__init__()`, creates a `boto3` client or is being sent to
+    the Translate service.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `translate_text()` method calls the `boto3` Translate client's `translate_text()`
+    function and passes in the text, source language, and target language. This method's
+    `source_language` and `target_language` parameters have default values of `auto`
+    and `en`, respectively.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `translate_text()` function then processes the output from the AWS SDK and
+    returns as a Python dictionary with the `translatedText`, `sourceLanguage`, and
+    `targetLanguage` keys. Once again, we adapted the AWS SDK input and output formats
+    to our own *X* interface contract.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Amazon Translate service supports the concept of custom terminology. This feature
+    allows developers to set up custom terminology to use during translation. This
+    is useful for use cases where words and phrases in the source text are not part
+    of the standard language such as company names, brands, and products. For example,
+    "Packt" does not get translated correctly. To correct the translation, we can
+    create a custom terminology in our AWS account by uploading a **Comma-Separated
+    Values** (**CSV**) file with a mapping of "Packt" and to how it should be translated
+    in various languages, as shown in the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: During translation, we can specify one or more of these custom terminologies
+    with the TerminologyNames parameter. See the AWS documentation, [https://docs.aws.amazon.com/translate/latest/dg/how-custom-terminology.html](https://docs.aws.amazon.com/translate/latest/dg/how-custom-terminology.html),
+    [for more details.](https://docs.aws.amazon.com/translate/latest/dg/how-custom-terminology.html)
+  prefs: []
+  type: TYPE_NORMAL
+- en: Storage service – uploading files
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Let''s create a Python class named `StorageService` as shown in the following,
+    in the `storage_service.py` file located in the `chalicelib` directory:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, the following applies:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The constructor, `__init__()`, creates a `boto3` client or is being sent to
+    the S3 service. The constructor also takes in a parameter for `storage_location`
+    as the S3 bucket name in our implementation.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `get_storage_location()` method returns the S3 bucket name as the `storage_location`.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `upload_file()` method takes in the raw bytes of the file to be uploaded
+    and the filename. This method then calls the `boto3` S3 client's `put_object()`
+    function and passes in the bucket name, the raw bytes, key, and **Access Control
+    List** (**ACL**) parameter.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The first three parameters of `upload_file()` are self-explanatory. The ACL
+    parameter specifies that the file will be publicly readable after it has been
+    uploaded to the S3 bucket. Since the S3 bucket can serve static assets such as
+    images and files, we will use S3 to serve the image in our web user interface.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Our `upload_file()` method then returns the filename along with a URL to the
+    uploaded file in S3\. Since the ACL is set to `public-read`, anyone with this
+    URL can see this file on the internet.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This class and its first two methods are exactly the same as `StorageService`
+    we implemented in [Chapter 2](https://cdp.packtpub.com/hands_on_artificial_intelligence_on_amazon_web_services/wp-admin/post.php?post=298&action=edit#post_299),
+    *Anatomy of a Modern AI Application*. We are duplicating them here to make each
+    hands-on project self-contained, but we are essentially just adding the `upload_file()`
+    method to the [Chapter 2](https://cdp.packtpub.com/hands_on_artificial_intelligence_on_amazon_web_services/wp-admin/post.php?post=298&action=edit#post_299),
+    *Anatomy of a Modern AI Application*, `StorageService` implementation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A recommendation on unit testing
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Even though unit testing is beyond the scope of this book, we want to make
+    a strong recommendation that you make writing unit tests a habit when developing
+    applications that are intelligence-enabled or otherwise. Unit tests should be
+    written for every layer of the application. Unit tests should be run often to
+    execute functionalities and to catch bugs. Testing the application layer by layer
+    will reduce the debugging time and effort by limiting the search space for the
+    bugs. We wrote unit tests throughout the development of all hands-on projects
+    in this book. As an example, the following is a unit test we wrote for `TranslationService`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: This is a simple unit test, but it allowed us to ensure the text translation
+    is working before moving to the next layer. If something doesn't work in the application,
+    we have some assurance that it is not caused by this service implementation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Implementing RESTful endpoints
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Now that the services are implemented, let's move to the orchestration layer
+    with the RESTful endpoints.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Replace the contents of `app.py` in the `Chalice` project with the following
+    code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, the following applies:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The first four lines of code handle the imports for `chalice` as well as our
+    three services.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The next two lines of code declare the `chalice` app with the name `Capabilities`,
+    and turn on the debug flag. The `debug` flag tells chalice to output more useful
+    information, which is helpful during development. You can turn this flag to `False`
+    when deploying the application to production.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The next four lines of code define the `storage_location` parameter as our S3
+    bucket, and then instantiate our storage, recognition, and translation services.
+    The `storage_location` parameter should be replaced with your S3 bucket name.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Keep in mind that the `storage_location` parameter is more generic than an
+    S3 bucket name. This parameter for both `StorageService` and `RecognitionService`
+    can represent storage locations other than S3 buckets, for example, the NFS path
+    or resource URI depending on the service implementation. This allows `StorageService`
+    and `RecognitionService` to change the underlying storage technologies. However,
+    in this design, `StorageService` and `RecognitionService` are coupled to use the
+    same storage technology. There is an inherent assumption that `RecognitionService`
+    can access the file uploaded through `StorageService` when performing the text
+    detection task. We could have designed `StorageService` to return the raw bytes
+    of the image and then pass it to the `RecognitionService`. This design would remove
+    the same storage technology restriction, but it adds complexity and performance
+    overhead. There are always trade-offs when it comes to design: you as an AI practitioner
+    have to make the decisions on the trade-offs for your specific applications.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Translate the image text endpoint
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'We will start with the translate image text endpoint. The following code will
+    continue with the Python code of `app.py`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, the following applies:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `translate_image_text()` function implements the `RESTful` endpoint.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The annotation right above this function describes the HTTP request that can
+    access this endpoint.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In the `translate_image_text()` function, we first get the request data that
+    contains the source language, `fromLang`, and target language, `toLang`, for the
+    translation.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Next, we call `RecognitionService` to detect text in the image and store the
+    detected lines of text in `text_lines`.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Then, for each line of text in `text_lines`, we check the confidence level of
+    the detection. If the confidence level is above `MIN_CONFIDENCE`, which is set
+    to `80.0`, then we perform the translation on that line of text.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We then return the `text`, `translation`, and `boundingBox` to the caller as
+    JSON (chalice automatically formats the contents in `translated_line` to JSON).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The following is an HTTP request to this RESTful endpoint. The `/images` path
+    is treated as a collection resource in the RESTful convention, and `image_id`
+    specifies a specific image within this collection:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: To perform an action on the specific image specified by the `/images/{image_id}`
+    URL, we use a `POST` HTTP request to a custom `translate-text` action. We have
+    additional parameters as the JSON payload in the request body, `fromLang` and
+    `toLang`, to specify the language codes of the translation. To read this RESTful
+    HTTP request, we are performing `translate-text` action for an image in the `images`
+    collection on `<server url>` with the specified `image_id`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s test this endpoint out by running `chalice local` in the Python virtual
+    environment as shown in the following, and then issue the following `curl` command
+    and specify an image that has already been uploaded to our S3 bucket:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: This is the JSON that our web user interface will receive and use to display
+    the translations to the user.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Upload the image endpoint
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: We are going to allow the clients of this endpoint to upload images using Base64
+    encoding. With Base64 encoding, we can translate binary data, such as image and
+    audio, into ASCII string format and back. This method allows our application to
+    upload images using the JSON payload in the HTTP request. Don't worry, you don't
+    need to be familiar with Base64 to continue with the project implementation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s have a look at the code of our endpoint function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, the following applies:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `upload_image()` function implements the RESTful endpoint. The annotation
+    right above it describes the HTTP request that can access this endpoint.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In the `upload_image()` function, we use Base64 to decode the uploaded file
+    in the JSON payload in the HTTP request and then upload it through our `StorageService`.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In this function, we return to the caller the output of `StorageService.upload_file()`
+    in JSON format.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The following is an HTTP request to this RESTful endpoint. Again, as shown
+    in the following code block, `/images` is treated as a collection resource in
+    the RESTful convention:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs: []
+  type: TYPE_PRE
+- en: To create a new resource within the collection, the RESTful convention uses
+    the `POST` method to the `/images` collection resource.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'With `chalice local` running, issue the following `curl` command to test the
+    upload endpoint. We are using the `echo` command to send the JSON payload, including
+    the Base64 encoding, to our endpoint. The file specified in the command must be
+    on your local filesystem:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, the following applies:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: This is the JSON that our web user interface will receive. We get a `fileId`
+    back; this ID can be used to specify the upload image in the `/images` collection
+    resource.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We also get a `fileUrl`, and the current `StorageService` implementation returns
+    the S3 URL to the file, but this `fileUrl` is generic and not tied to any particular
+    service.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We will use this `fileUrl` to display the image in the web user interface.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: At this point, you can go to your S3 bucket and see whether the file has been
+    uploaded successfully.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Implementing the web user interface
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Next, let's create a simple web user interface with HTML and JavaScript in the
+    `index.html` and `script.js` files in the `Website` directory.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This is what the final web interface looks like:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/b67dafa3-4a37-448f-91dc-b0869f64d972.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: index.html
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Let''s create the web user interface with the `index.html` file, as shown in
+    the following code block:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We are using standard HTML tags here, so the code of the web page should be
+    easy to follow. Here are a few things to point out:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We are using two `<input>` tags for the file chooser and the upload button.
+    Typically, `<input>` tags are used inside HTML forms, but instead, we are running
+    a JavaScript function, `uploadAndTranslate()`, when the upload button is clicked.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `<img>` tag, with the `image` ID, will be used to display the uploaded image.
+    This ID will be used by JavaScript to add the image dynamically.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `<div>` tag, with the `translations` ID, will be used to display lines of
+    detected text and their translations. This `id` will also be used by JavaScript
+    to add the text and translation dynamically.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: scripts.js
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Let''s create `scripts.js` as shown in the following. The JavaScript function
+    is interacting with the endpoints and stitching together the overall user experience
+    of the Pictorial Translator. Let''s have a look at the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, define `serverUrl` as the address of `chalice local`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We will also define a new `HttpError` to handle the exceptions that might occur
+    during the HTTP requests.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Add this JavaScript class at the end of the `scripts.js` file:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we will define four functions in `scripts.js`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '`uploadImage()`: This uploads the image via Base64 encoding to our `UploadImage()`
+    endpoint.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`updateImage()`: This updates the user interface to display the uploaded image
+    using the S3 URL.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`translateImage()`: This calls the translate image text endpoint to translate
+    the text detected in the image.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`updateTranslations()`: This updates the user interface to display the translated
+    texts.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: These are sequential steps of the user experience. We broke them into individual
+    functions to make the JavaScript code more modular and readable. Each function
+    performs a specific task.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s have a look at the `uploadImage()` function, as shown in the following
+    code block:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, the following applies:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `uploadImage()` function is creating a Base64-encoded string from the file
+    input field in `index.html`.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This function is declared as async because we need to wait for the file to be
+    read and encoded.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This function creates a JavaScript `Promise` function that uses a `FileReader`
+    to read the file, and then converts the file content as Base64 with the `readAsDataURL()`
+    function.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This function clears the file input field after each upload, so the user can
+    more easily upload another image.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This function then sends the POST HTTP request with the JSON payload to our
+    Upload Image Endpoint URL and returns `response.json`.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Let''s have a look at the `updateImage()` function, as shown in the following
+    code block:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, the following applies:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `updateImage()` function makes the `<div>` tag with the `view` ID visible
+    to display the image.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This function finds the `<img>` tag with the `image` ID and sets the `src` attribute
+    to the URL of the image file stored in S3.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `<img>` tag's `alt` attribute is set to the filename in case the image cannot
+    be loaded for some reason.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `alt` attribute makes web pages more accessible for more users, including
+    the visually impaired. For more information on web page accessibility, search
+    for `508 compliance`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Lets, have a look at the `translateImage()` function, as shown in the following
+    code block:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, the following applies:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `translateImage()` function sends the HTTP POST request, along with the
+    JSON body, to our **Translate Image Text Endpoint** URL.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The function then returns the response JSON with the translation texts.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Let''s have a look at the `annotateImage()` function, as shown in the following
+    code block:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, the following applies:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `updateTranslations()` function finds the `<div>` tag with the `translations`
+    ID and removes any existing translations from the previous image.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Then, it adds to the `<div>` tag for each line of text, a new `<h6>` tag to
+    display the detected text as well as its translation.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'All four functions are stitched together by the following `uploadAndTranslate()`
+    function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Notice how clear the sequence of events are in the `uploadAndTranslate()` function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: If the `updateImage()` function is successful, then run `updateImage()` with
+    the image information.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Then, run the `translateImage()` function with the image information. If the
+    `translateImage()` function is successful, then run `updateTranslations()`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Catch any errors in this chain and display it in a pop-up modal.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The final project structure for the Pictorial Translator application should
+    be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs: []
+  type: TYPE_PRE
+- en: Now, we have completed the implementation of the Pictorial Translator application.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Deploying Pictorial Translator to AWS
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The deployment steps for the Pictorial Translator application are the same
+    as the deployment steps of the Rekognition demonstration in [Chapter 2](042787e6-6f54-4728-8354-e22d87be0460.xhtml),
+    *Anatomy of a Modern AI Application*; we have included the steps here for completion:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, let''s tell `chalice` to perform policy analysis for us by setting `autogen_policy`
+    to `false` in the `config.json` file in the `.chalice` directory of the project
+    structure:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we create a new `policy-dev.json` file in the `.chalice` directory to
+    manually specify the AWS services the project needs:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE30]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we deploy the `chalice` backend to AWS by running the following command
+    within the `Capabilities` directory:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE31]'
+  prefs: []
+  type: TYPE_PRE
+- en: When the deployment is complete, `chalice` will output a RESTful API URL that
+    looks similar to `https://<UID>.execute-api.us-east-1.amazonaws.com/api/`, where
+    the `<UID>` tag is a unique identifier string. This is the server URL your frontend
+    app should hit to access the application backend running on AWS.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Next, we will upload the `index.html` and `scripts.js` files to this S3 bucket,
+    and then set the permissions to publicly readable. Before we do that, we need
+    to make a change in `scripts.js`, as shown in the following. Remember, the website
+    will be running in the cloud now, and won''t have access to our local HTTP server.
+    Replace the local server URL with the one from our backend deployment:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE32]'
+  prefs: []
+  type: TYPE_PRE
+- en: Now the Pictorial Translator application is accessible for everyone on the internet
+    to make our world smaller!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Discussing project enhancement ideas
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'At the end of each hands-on project in Part 2, we provide you with a few ideas
+    to extend the intelligence-enabled application. Here are a couple of ideas to
+    enhance the Pictorial Translator:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Add voice read back for both original and translated texts. Voice read back
+    for the original text will help users learn a foreign language. Voice read back
+    of the translated text will help visually impaired users. AWS provides voice-generation
+    capabilities with the Amazon Polly service.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Create a native mobile app for better user experience. For example, a continuous
+    camera scan for real-time pictorial translation. The mobile app can leverage the
+    same two endpoints we created. The mobile app is just another frontend to the
+    Pictorial Translator application.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we built a Pictorial Translator application to translate texts
+    appearing in pictures. We leveraged Amazon Rekognition to first detect lines of
+    text in pictures and then leveraged Amazon Translate to translate the detected
+    texts. This is our first intelligence-enabled solution that solves a real-world
+    problem. Building these solutions through hands-on projects helps to build your
+    intuition for solving problems with AI capabilities. Along the way, we also discussed
+    solution design decisions and trade-offs that must be validated against the real-world
+    usages of our application. From an architectural perspective, not only did we
+    build a working application, we architected it in a way that allows for reusable
+    components that we can leverage in future hands-on projects.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will build more intelligence-enabled applications using
+    additional AWS AI services. As we gain more experience building hands-on projects,
+    pay close attention to the reusable opportunities created by our architecture
+    design decisions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Further reading
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'For more information on detecting and translating text with Amazon Rekognition
+    and Amazon Translate, please refer to the following links:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[https://www.androidauthority.com/google-lens-augmented-reality-785836/](https://www.androidauthority.com/google-lens-augmented-reality-785836/)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[https://docs.aws.amazon.com/rekognition/latest/dg/API_DetectText.html](https://docs.aws.amazon.com/rekognition/latest/dg/API_DetectText.html)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[https://www.cs.vu.nl/~eliens/assets/flex3/langref/flash/geom/Rectangle.html](https://www.cs.vu.nl/~eliens/assets/flex3/langref/flash/geom/Rectangle.html)
+    (rectangle image)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[https://en.wikipedia.org/wiki/Base64](https://en.wikipedia.org/wiki/Base64)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL

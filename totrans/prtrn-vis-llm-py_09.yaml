@@ -1,0 +1,646 @@
+- en: '9'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Advanced Training Concepts
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we will cover advanced training concepts at scale, such as
+    evaluating throughput, calculating model **teraFLOPS** (**TFLOPS**) per device,
+    compiling, and using the scaling laws to determine the right length of training
+    time. In the last chapter, you learned about how to do large-scale training on
+    SageMaker, in general terms. In this chapter, you’ll learn about particularly
+    complex and sophisticated techniques you can use to drive down the overall cost
+    of your job. This lower cost directly translates to higher model performance because
+    you can train for longer on the same budget.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will cover the following topics in this chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Evaluating and improving throughput with model TFLOPS
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Using FlashAttention to speed up your training runs
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Speeding up your jobs with compilation
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Amazon SageMaker Training Compiler and Neo
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Running compiled models on Amazon’s Trainium and Inferentia custom hardware
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Solving for an optimal training time
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Evaluating and improving throughput
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: As we’ve previously covered in the book, total job throughput is an important
+    metric to track. On the one hand, you want to keep a batch size small enough to
+    ensure your model is trained appropriately. On the other hand, you want to max
+    out your overall job performance to get the most possibly accurate model you can.
+    We learned in [*Chapter 7*](B18942_07.xhtml#_idTextAnchor116) how to use hyperparameter
+    tuning to solve both of those. We also covered other tips and tricks for reducing
+    your **graphics processing unit** (**GPU**) memory footprint in [*Chapter 5*](B18942_05.xhtml#_idTextAnchor085)
+    and [*Chapter 8*](B18942_08.xhtml#_idTextAnchor127). Now, let’s close out a few
+    more gaps in this area.
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, it’s important to consider how you measure throughput in general terms.
+    You have probably used some logging packages in PyTorch that handily report iterations
+    per second during the training loop. Obviously, this is extremely useful in clocking
+    your training speed, but how would you take into account the size of the model?
+    What if you wanted to compare your speed with others to see whether you’re in
+    the same ballpark?
+  prefs: []
+  type: TYPE_NORMAL
+- en: To solve this problem, many research teams calculate an aggregate term that
+    combines both indicators for the model’s size with operations completed. Commonly,
+    this is called **model TFLOPS**. These calculations will vary based on individual
+    team preferences, but we’ll explore the setup from a recent Chinchilla *(11)*
+    paper that just won a **Neural Information Processing Systems** (**NeurIPS**)
+    best paper award. You’ll find this phrase is common in evaluating large-scale
+    distributed training systems.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Calculating model TFLOPS
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: You’ve heard of **floating operations per second** (**FLOPS**). This is a simple
+    way of presenting how many computations a given machine can perform. Higher is
+    better because this means your machine can complete more tasks given the same
+    amount of time. **TFLOPS** is an easier way of comparing performance for distributed
+    training solutions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In Chinchilla, the authors have a clean way of computing model TFLOPS. First,
+    let’s consider that the performance of the forward pass and the backward pass
+    is different. The backward pass is actually two times the compute costs of the
+    forward pass because we need to both compute the gradients and update the weights
+    and parameters. So, the model TFLOPS would then be the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/B18942_09_001.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Simple enough? Now let’s unpack that term.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/B18942_09_002.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: In *Appendix F* of their paper, they define the rest of their terminology in
+    detail. Another much more simple but slightly less precise way of computing your
+    total model TFLOPS is simply C=6⋅D⋅N, where *N* is the number of parameters in
+    your model. Chinchilla actually found no significant difference between this computation
+    and theirs presented in the preceding formula.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you read through these metrics, consider that each term relates to a part
+    of your neural network, specifically scoping how large it is. When you combine
+    these with the number of tokens processed per second, you get a realistic metric
+    for the efficiency of your overall training loop. This efficiency metric then
+    becomes a single common denominator you can use to compare your experiments at
+    runtime.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Remember that in [*Chapter 3*](B18942_03.xhtml#_idTextAnchor050), you learned
+    how to think about your overall project as a series of experiments? While the
+    accuracy of your project should no doubt be a key performance indicator, I would
+    strongly recommend including an efficiency indicator as well. This helps ensure
+    that you’re making the best use of your compute budget, which is relevant for
+    the initial training runs, subsequent retraining, inference, monitoring, and overall
+    project maintenance.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For example, you might consider the following experiment schedule:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '| **Phase** | **Model type** | **Model size** | **Datase size** | **Compute
+    size** | **Compute efficiency** | **Experiment run-time** |'
+  prefs: []
+  type: TYPE_TB
+- en: '| One – small-scale testing | Generic pretrained | Base | 5–30 GBs | 1–4 less
+    expensive GPUs | Low | One full pass through a small data sample |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Two – increase the dataset | Semi-custom | A few billion     parameters | 100 GBs–     TBs | Tens to hundreds of better GPUs | Medium | A few steps or epochs |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Three – increase     model (and data) | Very custom | Tens of billions of parameters | TBs | Hundreds
+    to     thousands of     high-performance GPUs | High | A few steps or epochs |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Four – maximize compute budget | Fully custom | Tens to hundreds of billions
+    of parameters | TBs–PBs | Thousands or more     high-performance GPUs | State of the art | Train to optimal     period |'
+  prefs: []
+  type: TYPE_TB
+- en: Figure 9.1 – Suggested phase of experiments for training foundation models at
+    scale
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let me be explicitly clear about this table; I do not under any circumstances
+    expect every person to follow this exactly. There are countless nuances in novel
+    training regimes, dataset sizes, models, GPU performance, modeling results, compute
+    budget, and perspectives for a single table to encompass all of them. Some teams
+    will never hit models over 1 billion parameters and still build something the
+    world adores, such as Stable Diffusion! But I guarantee you that the lab staged
+    its build across multiple phases that eventually culminated in a massive run.
+    You want to learn how to increase the scope of your projects from very doable
+    to very impressive. It’s up to you how to do that appropriately for the problem
+    you’re solving at hand.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now let’s look at a few more methods you can use to boost your training efficiency.
+    Next up is Flash Attention!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Using Flash Attention to speed up your training runs
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In earlier chapters, we learned about the core Transformer model, with its underlying
+    self-attention mechanism that serves as the basis for most state-of-the-art models
+    across vision, language, and generative use cases today. While Transformer models
+    are easily parallelizable, they aren’t particularly good at optimizing for different
+    memory speeds within modern GPUs. This becomes a problem when they materialize
+    the Transformer in the slowest part of the GPU due to a naïve implementation.
+    As you can imagine, that leaves performance gains on the table.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A Stanford-led research team realized that they could improve this and developed
+    a novel implementation of the Transformer architecture. Simply put, it’s an extremely
+    clever way to handle a quadratic nested for-loop. Let’s take a closer look.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.2 – From FlashAttention by Tri Dao et al, 2022 (1)](img/B18942_image_09_02.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 9.2 – From FlashAttention by Tri Dao et al, 2022 *(1)*
+  prefs: []
+  type: TYPE_NORMAL
+- en: This visual from the paper demonstrates three key concepts. On the left-hand
+    side, we see a simple pyramid showing the three common types of compute available
+    on most GPU servers. At the base, we have a lot of CPUs with more than 1 TB available
+    of main memory. However, this peaks at 12.8 GB/s bandwidth. Next, we have the
+    slower part of the GPU, with much less memory but much more bandwidth, only 40
+    GB of GPU HMB but up to 1.5 TBs. Finally, we have the fastest part of the GPU,
+    with only 20 MB of memory but up to 19 TBs of bandwidth. Obviously, 19 TBs is
+    more than 10 times faster than 1.5 TBs! This shows you right away that moving
+    as much of the compute to the **static random-access memory** (**SRAM**) can save
+    you a lot of time.
+  prefs: []
+  type: TYPE_NORMAL
+- en: However, you’ll notice that this 10 times is in bandwidth, not necessarily throughput.
+    While pure throughput means efficiently processing a large volume of data, bandwidth
+    here helps optimize **input/output** (**I/O**). In this case, it refers to how
+    data is passed between different data structures in this overall computer architecture.
+    This is why it’s the bandwidth metric we’re most interested in; bandwidth controls
+    the volume of data we can pass to or from a given compute. This means that when
+    we have an I/O intensive process, such as the quadratic nested for-loop used in
+    self-attention heads, pushing as much of the data to the part with the highest
+    bandwidth is a way to increase the overall speed.
+  prefs: []
+  type: TYPE_NORMAL
+- en: What types of gains does this give us? In the far right-hand side of the visual,
+    you can see that this new *fused kernel*, provided by FlashAttention, finishes
+    in the amount of time it takes just one of the five operations to complete in
+    a naïve PyTorch implementation. While a naïve implementation needs about 17 seconds
+    to finish all the **Matrix multiplication** (**Matmul**), Masking, Softmax, Dropout,
+    and finally Matmul, the FlashAttention fused kernel can run all of these in around
+    seconds!
+  prefs: []
+  type: TYPE_NORMAL
+- en: FlashAttention hasn’t yet been upstreamed into PyTorch directly, although I
+    would be shocked if that didn’t happen in the next 12 months. For the time being,
+    you can use an open source implementation available here *(2)*. The authors show
+    that this leads to a 3–5 times speedup for **generative pre-trained transformer**
+    (**GPT**) models over the Hugging Face options, reaching up to 189 TFLOPS on each
+    NVIDIA A100 GPU. While that may not sound like a big jump at smaller scales, once
+    you’ve hit hundreds to thousands of GPUs, that can equal massive savings! Support
+    for FlashAttention is available in the SageMaker Model Parallel library as of
+    December 2022 *(3).*
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now let’s look at another advanced training concept to help speed up your training
+    runs: compilation.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Speeding up your jobs with compilation
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Remember that in [*Chapter 4*](B18942_04.xhtml#_idTextAnchor066), we learned
+    about some basic concepts in GPU systems architecture. We covered the foundational
+    **Compute Unified Device Architecture** (**CUDA**) software framework that lets
+    you run normal Python code on GPUs. We talked about managed containers and deep
+    learning frameworks, such as PyTorch and TensorFlow, which are already tested
+    and proven to run nicely on the AWS cloud. The problem with most neural network
+    implementations is that they aren’t particularly optimized for GPUs. This is where
+    compilation comes in; you can use it to eke out an extra two-times jump in speed
+    for the same model!
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the context of compilers for deep learning, we’re mostly interested in `torch.compile`
+    method.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Before we get into any examples of using compilation, let’s first try to understand
+    what it is and why it’s useful. Imagine you have two vectors (remember, think
+    “lists”), both of size 1000\. One of them is filled with zeros, and the other
+    is filled with ones. Now imagine that you have a basic operation to apply to both
+    of these vectors: addition. You want to add these two vectors to produce a third
+    vector with a length of 1000, which is simply the direct sum of each item in both
+    of the original vectors.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: A naïve way of doing this would be to walk through both lists, compute the sum,
+    and add it to the new list. But what if you knew ahead of time that one of these
+    vectors was zero? Wouldn’t you want to then skip the addition operation altogether?
+    If you did, it could save you a lot of time!
+  prefs: []
+  type: TYPE_NORMAL
+- en: This jump is possible as a result of an intermediate representation. As presented
+    in a 2020 survey *(4)*, deep learning compilers profile the graph that is your
+    neural network. First, a frontend compiler computes a more optimal version of
+    your graph, such as fusing operators, simplifying the algebraic expressions, performing
+    static memory planning, and many more techniques. Next, a backend compiler computes
+    this again for specific hardware, lower-level representations, memory allocation,
+    custom kernels, and more. This then generates the new code that is consumed by
+    the accelerator.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now let’s learn how to add compilation to your scripts!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Integrating compilation into your PyTorch scripts
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: From the launch PyTorch documentation here *(5)*, you’ll see that there are
+    three major ways to use compilation in your own PyTorch code. First, you can use
+    any PyTorch built-in functions such as `torch.sin` or `torch.cos`, and then pass
+    these into `torch.compile`. This uses a variety of the techniques we discussed
+    previously to compile your function based on the available GPUs. Alternatively,
+    you can add a decorator to your PyTorch function, simply `@torch.compile`, which
+    provides the same functionality. Both of these features are also available for
+    the `torch.nn.Module` base object, which means you should be able to use them
+    for any of your PyTorch models!
+  prefs: []
+  type: TYPE_NORMAL
+- en: If you’re thinking these speedups with compilation seem useful, but I don’t
+    want to re-write my model code to use them, this next section will be extremely
+    interesting for you! Let’s look at managed compilation features on AWS – SageMaker
+    Training Compiler and SageMaker Neo.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Amazon SageMaker Training Compiler and Neo
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: If you use Hugging Face language models today, such as BERT, GPT, RoBERTa, AlBERT,
+    DistiliBERT, or hundreds of others, then you are in luck! Without much work, you
+    can easily speed up the run-time of your jobs by up to 50%. This is because of
+    **SageMaker Training Compiler** (**SMTC**). As we learned earlier, compilation
+    generally has the potential to increase the speed of your training. With SMTC,
+    we provide a managed compilation feature within SageMaker training to easily enable
+    this for your own models and scripts.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As you can see in the visual provided, enabling this is quite simple. Here
+    we use the Hugging Face AWS-managed deep learning container and simply add `TrainingCompilerConfig()`.
+    If you’re using a model with the Hugging Face `Trainer` API, this will automatically
+    trigger Training Compiler:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.3 – Configure SageMaker Training Compiler](img/B18942_image_09_03.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 9.3 – Configure SageMaker Training Compiler
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'How does it work? SMTC uses a variety of compilation methods on three different
+    levels: compilations for the graph, the data flow, and the backend. The graph-level
+    optimizations include operator fusion, memory planning, and algebraic simplifications.
+    The data flow-level optimizations include layout transformation and common sub-expression
+    elimination. Backend optimizations include memory latency hiding and loop-oriented
+    optimizations. This accelerates the training process by up to 50%, and the resultant
+    model is the same as if SMTC had not been applied. For example, when fine-tuning
+    Hugging Face’s GPT-2 model, SMTC reduced the training time from nearly 3 hours
+    to just 90 minutes!'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Best practices for compilation
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: When working with compilers, you’ll want to ensure that you are updating your
+    hyperparameters accordingly. This is because the net effect of a compiler is that
+    it reduces the GPU memory footprint of the model. For example, without compiling,
+    your model might consume a solid 10 GB of GPU memory. After compilation, you might
+    get that down to 5 GB! This opens up more space for you to pack in objects in
+    your batch size. As we learned earlier in the book, this directly increases your
+    GPU utilization and, thus, your overall project efficiency. Just be careful not
+    to over-increase batch size, which then makes it harder to converge. You’ll also
+    want to increase your learning rate at the same pace.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you might be anticipating, there are clear times when compilation is expected
+    to be quite useful. There are also times when compilation could be a waste of
+    time. This is because most compilers *take some time to run their compilation
+    process* before executing your code. That means that, in contrast to normal Python
+    code execution, the compiler will run its subprocess ahead of time to produce
+    a more optimized version of your model. Once this is produced, your code will
+    run in earnest.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This ahead-of-time compilation process introduces the key tradeoff for evaluating
+    the impact of compilation as a whole. The longer your model training period, the
+    larger the boost from the compilation. This means if you’re using a large number
+    of epochs, or if your dataset is quite large, then compilation should be a useful
+    way to save compute costs. Personally, I’d say if your model runs for anything
+    longer than 30 or 40 minutes, try to find a way to drive that down with compilation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Alternatively, if you have a frequent retraining pipeline or job, one that runs
+    on a semi-frequent schedule, try to use compilation to drive down that time. Some
+    of my customers retrain their models every day, every week, or even every few
+    hours or minutes. We’ll dive into this and other topics about operations in [*Chapter
+    14*](B18942_14.xhtml#_idTextAnchor217).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let’s learn how using PyTorch compilation enables us to easily use Amazon’s
+    custom hardware for machine learning: Trainium and Inferentia!'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Running compiled models on Amazon’s Trainium and Inferentia custom hardware
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: So far in this book, most of the accelerators we evaluated have been GPUs designed
+    and built by NVIDIA. As we learned earlier, NVIDIA’s excellent software enables
+    the lion’s share of deep learning frameworks to run nicely on those same GPUs,
+    which ends up being a primary deciding factor in using GPUs. We also learned earlier
+    how those same GPUs are also available on AWS, notably through our machine learning
+    service, Amazon SageMaker.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'However, as you have no doubt realized by this point, the price tag of those
+    same GPUs can be high! Even though AWS has generous enterprise discount programs,
+    such as using reserved instances to save up to 75% *(6)*, you would still benefit
+    from learning about alternatives. Basic economics tells us that when supply increases,
+    such as through alternative accelerators, while demand stays constant, the price
+    drops! This is exactly what we’re thrilled to provide customers: our custom accelerators
+    for machine learning – Trainium and Inferentia. As you might have guessed, Trainium
+    is dedicated to training machine learning models, while Inferentia does the same
+    for hosting. As of this writing, these are available on EC2 and SageMaker as Inf1
+    and Trn1 instances.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fortunately for those of you who made it through the previous section on compilation,
+    many models compiled with XLA are supported by Trainium and Inferentia! This means
+    that if you are already using XLA compilation, either through PyTorch or TensorFlow,
+    you are well on your way to a successful migration onto Trainium and Inferentia.
+    A word of caution, however, is that not every model and operation is supported
+    by these yet. Expect some friction as you develop and test. The AWS Neuron **software
+    development kit** (**SDK**) is a great way to test compatibility *(7)*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'There are two reasons to evaluate our custom accelerators:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, it’s a new type of hardware. This is particularly valuable for you scientists
+    out there because you could quite literally be the first person to use a certain
+    type of model on this hardware in the world. This may actually increase your odds
+    of publication and recognition because you could develop a truly novel insight
+    based on how this model performs.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Second, as with all of our new instances on AWS, the price-performance ratio
+    should be substantially better than it was previously.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: What is a price-performance ratio? Consider each task you need to complete.
+    In the case of Inferentia, that would be model inference requests completed. For
+    Trainium, that would be steps through your training loop. Then consider the cost
+    for each task to be completed. Now you have your ratio! Our Trn1 instances offer
+    up to 50% cost-to-train savings over comparable GPU instances, and Amazon Search
+    reduced their inference costs by 85% with Inferentia *(8)*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we’ve looked at Trainium and Inferentia at a very high level, let’s
+    explore how to solve for an optimal training time using the scaling laws.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Solving for an optimal training time
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Time is an interesting construct in training large vision and language models.
+    On the one hand, you might consider it a hyperparameter, simply the number of
+    epochs. On the other hand, you might consider it a facet of your training data,
+    its total number of tokens or images. You might also consider it a fixed input
+    to your project, your total compute budget. Most research teams I work with use
+    their intuition and good judgment to use a combination of all of these.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As we learned earlier in the book, the proposed *scaling laws* provide an interesting
+    theoretical tool you can use to predict the performance of your model. Their original
+    author, Kaplan et al. *(9)*, actually suggested that optimal usage of a given
+    compute budget should stop “significantly before convergence.” They proposed this
+    because of their proposed insight into large language models being more “sample
+    efficient” than smaller ones.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'However, 2022 saw these original laws being turn on their head. In this visual,
+    you can see the theoretical predictions determined by a new set of scaling laws
+    from **Chinchilla**:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.4 – Improved performance from Hoffman et al., 2022 (10)](img/B18942_image_09_04.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 9.4 – Improved performance from Hoffman et al., 2022 *(10)*
+  prefs: []
+  type: TYPE_NORMAL
+- en: Here Hoffman et al. make the elegant proposal that *training data and model
+    sizes should be increased linearly*. That is to say, if you double the size of
+    the model, you should double the size of the training data. I appreciate this
+    natural symmetry and find it quite intuitive. Happily, these predictions were
+    validated by extensive empirical evidence across no less than 400 models, 150
+    downstream tasks, and 6 domains, including language modeling, reading comprehension,
+    question answering, common sense reasoning, and more. Per the authors, “Chinchilla
+    uniformly and significantly outperforms **Gopher (280 B)**, **GPT-3 (175 B)**,
+    **Jurassic-1 (178 B)**, and **Megatron-Turing NLG (530B)** on a large range of
+    downstream evaluation tasks.” This implies that these models are undertrained,
+    actually needing much larger datasets to validate their parameter size.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Using these equations and a massive set of experimental results, the authors
+    suggest the following set of values for parameters, FLOPS, and tokens:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.5 – Suggested FLOPS and tokens per model size](img/B18942_image_09_05.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 9.5 – Suggested FLOPS and tokens per model size
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Remember that when we look at this FLOPS value, we need to consider the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: What value do I expect this model to bring to my organization?
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: From this, what total compute budget can I plan for?
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: How large is my training data?
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: What size of a model should I use based on this?
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: How efficient are my training loop and distributed system? Said another way,
+    how many TFLOPS per GPU am I able to eke out?
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: How many GPUs can I get from my cloud provider?
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: How long will I need to run my entire training loop to train to convergence?
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The answers to questions (*1*), (*2*), (*3*), and (*5*) can only come from you.
+    The answers to questions (*4*) and (*7*) are functional derivatives of the previous
+    answers. The answer to question (*6*), I would say is halfway between a functional
+    derivative from the answer to (*1*), and a simple fact of the market at that point
+    in time. If there’s a global supply chain issue for electronics, then accessing
+    GPUs will be hard.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Whew, you made it through the advanced chapter! Now let’s do a quick concept
+    recap, and then we’ll move into *Part Four: Evaluate* *your model*.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we covered some advanced concepts in training large-scale vision
+    and language models. First, you learned how to evaluate and improve throughput
+    by computing model TFLOPS per GPU, and using this as one of a number of metrics
+    to compare experimental results. You learned about FlashAttention, and how its
+    I/O-aware optimized quadratic for-loop speeds up the Transformer self-attention
+    mechanism by as much as 3–5 times. You learned about compilation using methods
+    built into PyTorch natively and those managed by AWS. You also learned about a
+    few different types of compilation methods. You learned to update your hyperparameters
+    for compilation, in addition to cases where the compilation is expected to provide
+    a boost (or not).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You also learned about how to use compilers to run on Amazon’s custom hardware
+    for machine learning, Trainium, and Inferentia. Lastly, we used the scaling laws
+    to solve for an optimal train time.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, you’ll learn how to fine-tune your model and compare it
+    with open source alternatives.
+  prefs: []
+  type: TYPE_NORMAL
+- en: References
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness:
+    [https://arxiv.org/pdf/2205.14135.pdf](https://arxiv.org/pdf/2205.14135.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'HazyResearch/flash-attention: [https://github.com/HazyResearch/flash-attention](https://github.com/HazyResearch/flash-attention)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'New performance improvements in Amazon SageMaker model parallel library: [https://aws.amazon.com/blogs/machine-learning/new-performance-improvements-in-amazon-sagemaker-model-parallel-library/](https://aws.amazon.com/blogs/machine-learning/new-performance-improvements-in-amazon-sagemaker-model-parallel-library/)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The Deep Learning Compiler: A Comprehensive Survey: [https://arxiv.org/pdf/2002.03794.pdf](https://arxiv.org/pdf/2002.03794.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'TORCH.COMPILE TUTORIAL: [https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html](https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Enterprise Customers: [https://aws.amazon.com/pricing/enterprise/](https://aws.amazon.com/pricing/enterprise/)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Welcome to AWS Neuron: [https://awsdocs-neuron.readthedocs-hosted.com/en/latest/](https://awsdocs-neuron.readthedocs-hosted.com/en/latest/)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'How Amazon Search reduced ML inference costs by 85% with AWS Inferentia: [https://aws.amazon.com/blogs/machine-learning/how-amazon-search-reduced-ml-inference-costs-by-85-with-aws-inferentia/](https://aws.amazon.com/blogs/machine-learning/how-amazon-search-reduced-ml-inference-costs-by-85-with-aws-inferentia/)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Scaling Laws for Neural Language Models: [https://arxiv.org/abs/2001.08361](https://arxiv.org/abs/2001.08361)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Training Compute-Optimal Large Language Models: [https://arxiv.org/pdf/2203.15556.pdf](https://arxiv.org/pdf/2203.15556.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Training Compute-Optimal Large Language Models: [https://openreview.net/pdf?id=iBBcRUlOAPR](https://openreview.net/pdf?id=iBBcRUlOAPR)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Part 4: Evaluate Your Model'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In part 4, you’ll learn how to evaluate your model. You’ll use the scaling laws
+    to identify the shortest possible training time, fine-tune your model to compare
+    with public benchmarks, and identify and mitigate bias.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This section has the following chapters:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[*Chapter 10*](B18942_10.xhtml#_idTextAnchor152), *Fine-Tuning and Evaluating*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[*Chapter 11*](B18942_11.xhtml#_idTextAnchor167), *Detecting, Mitigating, and
+    Monitoring Bias*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[*Chapter 12*](B18942_12.xhtml#_idTextAnchor178), *How to Deploy Your Model*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL

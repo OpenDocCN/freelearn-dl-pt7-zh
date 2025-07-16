@@ -1,0 +1,530 @@
+- en: Recurrent Neural Networks
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '**Recurrent Neural Networks** (**RNNs**) are the most flexible form of networks
+    and are widely used in **natural language processing **(**NLP**), financial services,
+    and a variety of other fields. Vanilla feedforward networks, as well as their
+    convolutional varieties, accept a fixed input vector and output a fixed vector;
+    they assume that all of your input data is independent of each other. RNNs, on
+    the other hand, operate on sequences of vectors and output sequences of vectors,
+    and allow us to handle many exciting types of data. RNNs are actually turing-complete,
+    in that they can simulate arbitrary tasks, and hence are very appealing models
+    from the perspective of the Artificial Intelligence scientist.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we'll introduce ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: This chapter will be utilizing TensorFlow in Python 3\. The corresponding code
+    for this chapter is available in the book's GitHub repository.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The building blocks of RNNs
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'When we think about how a human thinks, we don''t just observe a situation
+    once; we constantly update what we''re thinking based on the context of the situation.
+    Think about reading a book: each chapter is an amalgamation of words that make
+    up its meaning. Vanilla feedforward networks don''t take sequences as inputs,
+    and so it becomes very difficult to model unstructured data such as natural language.
+    RNNs can help us achieve this.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Basic structure
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: RNNs differ from other networks in the fact that they have a recursive structure;
+    they are recurring over time. RNNs utilize recursive loops, which allow information
+    to persist within the network. We can think of them as multiple copies of the
+    same network, with information being passed between each successive iteration.
+    Without recursion, an RNN tasked with learning a sentence of 10 words would need
+    10 connected copies of the same layer, one for each word. RNNs also share parameters
+    across the network. Remember in the past few chapters how the number of parameters
+    we had in our network could get unreasonably large with complex layers? With recursion
+    and parameter sharing, we are able to more effectively learn increasingly long
+    sequence structures and minimize the amount of overall parameters that we have
+    to learn.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Basically, recurrent networks take in items from a sequence and recursively
+    iterate over them. In the following diagram, our sequence *x *gets fed into the
+    network:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/7d33b17a-8b3b-477d-8737-1c5a7d49788a.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: RNNs have memory, or **hidden states**, which help them manage and learn complex
+    knowledge; we represent them with the variable *h.* These hidden states capture
+    important information from the previous pass, and store it for future passes. RNN
+    hidden states are initialized at zero and updated during the training process. Each
+    pass in an RNN's is called a **time step**; if we have a 40-character sequence,
+    our network will have 40 time steps. During an RNN time step, our network takes
+    the input sequence *x* and returns both an output vector *y*as well as an updated
+    hidden state. After the first initial time step, the hidden state *h* also gets
+    fed into the network at each new step along with the input *x. *The output of
+    the network is then the value of the hidden state after the last time step.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'While RNNs are recursive, we could easily unroll them to graph what their structure
+    looks like at each time step. Instead of viewing the RNN as a box, we can unpack
+    its contents to examine its inner workings:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/f381e150-58cb-4aad-8a03-21573b2ff6f9.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'In the preceding diagram, our RNN is represented as the function *f* to which
+    we apply the weights *w*, just as we would with any other neural network. In RNNs,
+    however, we call this function the **recurrence formula**, and it looks something
+    such as this:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/dd0434c2-a294-498e-a5f5-b80982e06abd.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Here, *h[t] *represents our new state that will be the output of a single time
+    step. The *h[t-1] *expression represents our previous state, and *x* is our input
+    data from the sequence. This recurrence formula gets applied to an element of
+    a sequence until we run out of time stamps.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's apply and dissect how a basic RNN works by walking through its construction
+    in TensorFlow.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Vanilla recurrent neural networks
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Let's walk through the architecture of a basic RNN; to illustrate, we are going
+    to create a basic RNN that predicts the next letter in a sequence. For our training
+    data, we will be using the opening paragraph of Shakespeare's Hamlet. Let's go
+    ahead and save that `corpus` as a variable that we can use in our network.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: One-to-many
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Image captioning represents a **one-to-many** scenario. We take in a single
+    vector that represents that input image, and output a variable length description
+    of the image. One-to-many scenarios output a label, word, or other output at each
+    time step:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/2bc2ca76-b366-4eca-aa5f-0ac379ac3779.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Music generation is another example of a one-to-many scenario, where we output
+    a variable set of notes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Many-to-one
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In cases such as sentiment analysis, we are interested in a single and final
+    hidden state for the network. We call this a **many-to-one** scenario. When we
+    arrive at the last time step, we output a classification or some other value,
+    represented in the computational graph by *yt*:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/1015fed0-a2e7-42ca-85c0-6fc82cba321b.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Many-to-one scenarios can also be used for tasks such as music genre labeling,
+    where the network takes in notes and predicts a genre.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Many-to-many
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'If we wanted to classify the expression of a person during a video, or perhaps
+    label a scene at any given time, or even for speech-to-text recognition, we would
+    use a **many-to-many** architecture. Many-to-many architectures take in a variable''s
+    length sequence while also outputting a variable length sequence:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/a6ed4412-0a2a-4c8e-b50c-fef908b3d6f7.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: An output vector is computed at every step of the process, and we can compute
+    individual losses at every step in the sequence. Frequently, we utilize a softmax
+    loss for explicit labeling tasks. The final loss will be the sum of these individual
+    losses.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Backpropagation through time
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: RNN utilizes a special variation of regular backpropagation called **backpropagation
+    through time**. Like regular old backpropagation, this process is often handled
+    for us in TensorFlow; however, it's important to note how it differs from standard
+    backpropagation for feedforward networks.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's recall that RNNs utilize small *copies* of the same network, each with
+    its own weights and bias factors. When we backpropagate through RNNs, we calculate
+    the gradients at each time step, and sum the gradients across the entire network
+    when computing the loss. We'll have a separate gradient from the weight that flows
+    to the computation that happens at each of the time steps, and the final gradient
+    for *W* will be the sum of the ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Memory units – LSTMs and GRUs
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: While regular RNNs can theoretically ingest information from long sequences,
+    such as full documents, they are limited in *how far back* they can look to learn
+    information. To overcome this, researchers have developed variants on the traditional
+    RNN that utilize a unit called a **memory cell**, which helps the network *remember*
+    important information. They were developed as a means to solve the vanishing gradient
+    problem that occurs with traditional RNN models. There are two main variations
+    of RNN that utilize memory cell architectures, known as the **GRU** and the **LSTM**.
+    These architectures are the most widely used RNN architectures, so we'll pay some
+    what attention to their mechanics.
+  prefs: []
+  type: TYPE_NORMAL
+- en: LSTM
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: LSTMs are a special form of RNN that excel at learning long-term dependencies.
+    Developed by Hochreiter and Schmidhuber in 1997, LSTMs have several different
+    layers that information passes through to help them keep what is important and
+    jettison the rest. Unlike vanilla recurrent networks, the LSTM has not one but
+    two states; the standard hidden state that we've been representing as *h[t]*,
+    as well as a state that is specific to the LSTM cell called the **cell state**,
+    which we will denote with *c[t]*. These LSTM states are able to update or adjust
+    these states with **gating mechanisms**. These gates help to control the processing
+    of information through the cell, and consist of an activation function and a basic
+    **point wise operation**, such as vector multiplication. ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: GRUs
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'GRUs were developed in 2014 as a new take on the classic LSTM cell. Instead
+    of having four separate gates, it combines the forget and input gates into a single
+    update gate; you can think of this in the sense of: whatever is not written, gets
+    forgotten. It also merges the cell state *c[t]* from the LSTM with the overall
+    hidden state *h[t]*. At the end of a cycle, the GRU exposes the entire hidden
+    state:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Update gate**: The update gate combines the forget and input gates, essentially
+    stating that whatever is not written into memory is forgotten. The update gate
+    takes in our input data *x* and multiplies it by the hidden state. The result
+    of that expression is then multiplied by the weight matrix and fed through a sigmoid
+    function:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![](img/8e6d1821-5f52-4e09-88a1-3ecbe59d4af9.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: '**Reset gate**: The reset gate functions similarly to the output gate in the
+    LSTM. It decides what and how much is to be written to memory. Mathematically,
+    it is the same as the update gate:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![](img/9c0f8c8a-6885-4739-ba77-39b5ac47e859.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: '**Memory gate**: A tanh operation that actually stores the output of the reset
+    gate into memory, similar to the write gate in the LSTM. The results of the reset
+    gate are combined with the raw input, and put through the memory gate to calculate
+    a provisional hidden state:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![](img/72573546-7ff8-400a-81b0-61c7682c3493.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Our end state is calculated by taking the provisional hidden state and conducting
+    an operation with the output of the update gate:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/b34874a5-54cd-4f9c-a89b-3dc2ba3f1d12.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The performance of a GRU is similar to that of the LSTM; where GRUs really provide
+    benefit is that they are more computationally efficient due to their streamlined
+    structure. In language modeling tasks, such as the intelligent assistant that
+    we will create in a later chapter, GRUs tend to perform better especially in situations
+    with less training data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Sequence processing with RNNs
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Now that we''ve learned about the components of RNNs, let''s dive into what
+    we can do with them. In this section, we''ll look at two primary examples: **machine
+    translation** and **generating image captions**. Later on in this book, we''ll
+    utilize RNNs to build a variety of end-to-end systems.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Neural machine translation
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Machine translation represents a sequence-to-sequence problem; you'll frequently
+    see these networks described as **sequence-to-sequence** (or **Seq2Seq**) models. Instead
+    of utilizing traditional techniques that involve feature engineering and n-gram
+    counts, neural machine translation maps the overall meaning of a sentence to a
+    singular vector, and we then generate a translation based on that singular meaning
+    vector.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Machine translation** models rely on an important concept in artificial intelligence
+    known as the **encoder**/**decoder** paradigm. In a nutshell:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Encoders** parse over input and output a condensed, vector representation
+    of the input. We typically use a GRU or LSTM for this task'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Decoders** take the condensed representation, and extrapolate to create a
+    new sequence from it'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: These concepts are extremely import in understanding generative adversarial
+    networks, which we will learn about in a coming chapter. The first part of this
+    network acts as an encoder that will parse over your sentence in English; it represents
+    the summarization of the sentence in English.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Architecturally, neural machine translation networks are many-to-one and one-to-many,
+    which sit back-to-back with each other, as demonstrated in the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/c7641cfc-342f-4982-b03c-b2a3f676a93a.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: This is the same architecture that Google uses for Google Translate.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Attention mechanisms
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '**Neural machine translation **(**NMT**) models suffer from the same long-term
+    dependency issues that RNNs in general suffer from. While we saw that LSTMs can
+    mitigate much of this behavior, it still becomes problematic with long sentences.
+    Especially in machine translation, where the translation of the sentence is largely
+    dependent on how much information is contained within the hidden state of the
+    encoder network, we must ensure that those end states are as rich as possible.
+    We solve this with something called **attention mechanisms**.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Attention mechanisms allow the decoder to select parts of the input sentence
+    based on context and what has generated thus far. We utilize a vector called a
+    **context vector** to store scores from the ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Generating image captions
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'RNNs can also work with problems that require fixed input to be transformed
+    into a variable sequence. Image captioning takes in a fixed input picture, and
+    outputs a completely variable description of that picture. These models utilize
+    a CNN to input the image, and then feed the output of that CNN into an RNN, which
+    will generate the caption one word at a time:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/757eb8e8-e8e5-4820-9285-6c0a0d4fab09.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: We'll be building a neural captioning model based on the Flicker 30 dataset,
+    provided by the University of California, Berkley, which you can find in the corresponding
+    GitHub repository for this chapter. In this case, we'll be utilizing pretrained
+    image embeddings for the sake of time; however you can find an example of an end-to-end
+    model in the corresponding GitHub repository.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s start with our imports:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: Next, let's load the image data from the files you've downloaded from the repository.
+    First, let's define a path to where we can find the images.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: Next, we can actually load in the images and the various captions. We'll call
+    these captions and images.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we''ll have to store the occurrence count for the number of times the
+    words appear:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'First, we''ll have to construct a vocabulary to draw from; we''ll need to do
+    a bit of preprocessing for our captions beforehand. You can go through the following
+    code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now we can construct the model itself. Follow the comments below to understand
+    what each section is doing:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, we will train the cycle for the model:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: During training, we utilize a separate weight matrix to help model the image
+    information, and utilize that weight matrix to ingest the image information at
+    every RNN time step cycle.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'At each step, our RNN will compute a distribution over all scores in the network''s
+    vocabulary, sample the most likely word from that distribution, and utilize that
+    word as the input for the next RNN time step. These models are typically trained
+    end-to-end, meaning that backpropagation for both RNN and the CNN happens simultaneously.
+    In this case, we only need to worry about our RNN:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, let''s initialize the caption RNN model and start building the model.
+    The code for that is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The last thing we need to do is train the model; we can do that by simply calling
+    the `training` function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: Often, you may see many variants of RNNs for text generation called the **character**-**level
+    RNN**, or **ChaRnn**. It's advisable to stay away from character-level RNN models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Extensions of RNNs
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'There have been many extensions of vanilla RNNs over the past several years.
+    This is by no means an exhaustive list of all of the great advances in RNNs that
+    are happening in the community, but we''re going to review a couple of the most
+    notable ones: Bidirectional RNNs, and NTM.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Bidirectional RNNs
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In recent years, researchers have developed several improvements on the traditional
+    RNN structure. **Bidirectional RNNs **were developed with the idea that they may
+    not only depend on the information that came before in a sequence, but also the
+    information that comes afterwards. Structurally, they are just two RNNs that are
+    stacked on top of each other, and their output is a combination of the hidden
+    states of each of the individual networks.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Neural turing machines
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '**Neural turing machines** (**NTM**) are a form of RNN that were developed
+    by Alex Graves of DeepMind in 2014\. Instead of having an internal state such
+    as an LSTM, NTMs have external memory, which increases their ability to handle
+    complex computational tasks.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'NTMs consist of two main components: a **controller** and a **memory bank**.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**NTM controller**: The controller in an NTM is the neural network itself;
+    it manages the flow of information between input and memory, and learns to manage
+    its own memory throughout'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**NTM memory bank**: The actual external memory, usually represented in tensor
+    form'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Provided there's enough memory, an NTM can replicate any algorithm by simply
+    updating its own memory to reflect that algorithm. The architecture ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: RNNs are the primary means by which we reason over textual inputs, and come
+    in a variety of forms. In this chapter, we learned about the recurrent structure
+    of RNNs, and special versions of RNNs that utilize memory cells. RNNs are used
+    for any type of sequence prediction, generating music, text, image captions, and
+    more.
+  prefs: []
+  type: TYPE_NORMAL
+- en: RNNs are different from feedforward networks in that they have recurrence; each
+    step in the RNN is dependent on the network's memory at the last state, along
+    with its own weights and bias factors. As a result, vanilla RNNs struggle with
+    long-term dependencies; they find it difficult to remember sequences beyond a
+    specific number of time steps back. GRU and LSTM utilize memory gating mechanisms
+    to control what they remember and forget, and hence, overcome the problem of dealing
+    with long-term dependencies that many RNNs run into. RNN/CNN hybrids with attention
+    mechanisms actually provide state-of-the-art performance on classification tasks.
+    We'll create one of these in the [Chapter 9](f1757dce-003c-4295-ac10-aea45860cbe2.xhtml),
+    *Deep Learning for Intelligent Assistants* about creating a basic agent.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we'll move beyond RNNs into one of the most exciting classes
+    of networks, **generative networks**, where we'll learn how to use unlabeled data,
+    and how to generate images and paintings from scratch.
+  prefs: []
+  type: TYPE_NORMAL

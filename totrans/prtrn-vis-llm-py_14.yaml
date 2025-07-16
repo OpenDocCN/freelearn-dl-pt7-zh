@@ -1,0 +1,696 @@
+- en: '14'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: MLOps for Vision and Language
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we’ll introduce the core concepts of operations and orchestration
+    for machine learning, also known as MLOps. This includes building pipelines, continuous
+    integration and deployment, promotion through environments, and more. We’ll explore
+    options for monitoring and human-in-the-loop auditing of model predictions. We’ll
+    also identify unique ways to support large vision and language models in your
+    MLOps pipelines.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We’ll be covering the following topics in the chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: What is MLOps?
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Continuous integration and continuous deployment
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Model monitoring and human-in-the-loop
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: MLOps for foundation models
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: AWS offerings for MLOps
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: What is MLOps?
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: We’ve covered such a huge amount of content in this book that it’s almost inconceivable.
+    From the absolute foundations of pretraining, we’ve worked through use cases,
+    datasets, models, GPU optimizations, distribution basis, optimizations, hyperparameters,
+    working with SageMaker, fine-tuning, bias detection and mitigation, hosting your
+    model, and prompt engineering. Now, we come to the art and science of *tying it*
+    *all together*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**MLOps** stands for **machine learning operations**. Broadly speaking, it
+    includes a whole set of technologies, people, and processes that your organization
+    can adopt to streamline your machine learning workflows. In the last few chapters,
+    you learned about building RESTful APIs to host your model, along with tips to
+    improve your prompt engineering. Here, we’ll focus on *building a deployment workflow*
+    to integrate this model into your application.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Personally, I find the pipeline aspect of MLOps the most poignant. A **pipeline**
+    is a set of steps you can build to orchestrate your machine learning workflow.
+    This can include everything from automatically retraining your model, hyperparameter
+    tuning, auditing, and monitoring, application testing and integration, and promotion
+    to more secure environments, drift and bias detection, and adversarial hardening.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 14.1 – Pipelines for machine learning operations](img/B18942_Figure_14_01.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 14.1 – Pipelines for machine learning operations
+  prefs: []
+  type: TYPE_NORMAL
+- en: Pipelines are tools you can build using any number of software options. If you’re
+    using SageMaker-native tooling and you don’t already have an orchestration stack,
+    you might start by looking at **SageMaker Pipelines**. Alternatively, if you’re
+    already using an orchestration stack, such as AirFlow, KubeFlow, Ray, MLFlow,
+    or StepFunctions, you might continue using those and simply point to SageMaker
+    APIs for your machine learning workflows.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The core component of a pipeline is a *step*. A step might be something such
+    as **data preprocessing**, **model training**, **model evaluation**, a **manual
+    review**, **model deployment**, and so on. A basic pipeline will flow through
+    a number of steps that you define. Pipelines usually start with a **trigger**,
+    some event that delivers a notification system to the pipeline. Your trigger could
+    be an upload to S3, a commit to your repository, a time of day, an update on your
+    dataset, or a customer event. Usually, you’ll see one trigger kicking off the
+    entire pipeline, with each step initiated after the previous one completes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let’s move on to the common MLOps pipelines.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Common MLOps pipelines
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Let’s examine a few of the most common pipelines in machine learning:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Model deployment pipeline**: Here, the core task is to point to your pretrained
+    model artifacts, notably your inference script and the model itself, and put these
+    into whichever deployment option you select. You might use **SageMaker RealTime
+    Endpoints** for product recommendation, or **asynchronous endpoints** to host
+    large language models. You might have a variety of images through the **multi-container
+    endpoint**, or even with the **multi-model endpoint**. In any case, the most basic
+    pipeline steps might look something like this:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Update a model artifact.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Create a new endpoint
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Test the endpoint.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: If the test is successful, set production traffic to the endpoint. If the test
+    fails, notify the development team.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**Model retraining pipeline**: A model retraining pipeline is useful for use
+    cases where you need to retrain a model regularly. This might be every time you
+    have new data, which can be as often as every few hours, or as irregular as every
+    month. For a simple case, such as rerunning a report or notebook, you might use
+    SageMaker’s *notebook job* feature, launched in December 2022, to run a notebook
+    on a schedule. A pipeline, however, would be useful if you wanted to trigger this
+    retraining based on updated data. Alternatively, if the model or dataset were
+    large and needed distributed training, a pipeline would be a natural fit. Your
+    pipeline steps might look something like this:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Upload new data.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Run preprocessing.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Train the model.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Tune the model.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Trigger the deployment pipeline.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**Environment promotion pipeline**: Some customers, particularly in security-sensitive
+    settings such as highly regulated industries, require that applications are upgraded
+    through increasingly more secure environments. Here, the word *environment* means
+    an isolated compute boundary, usually either a full new AWS account or, more simply,
+    a different region. The steps for this pipeline might look something like this:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Trigger the pipeline from data scientists in the development account.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Promote the resources to a test account.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Test the endpoint.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: If the endpoint passes, promote it to a production account. If the endpoint
+    fails, notify the data scientists.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In the production account, create the endpoint.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Set production traffic to the endpoint.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: As you have no doubt noticed, each of these pipelines can interact with each
+    other. They can trigger each other as unique steps, interact with other components,
+    and continuously add value. Their basic components are also interchangeable –
+    you can easily substitute some steps with others, defining whatever overall system
+    you need.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A concept underlying much of this is **microservices**. You can think of each
+    of these pipelines as a microservice, starting with some input and delivering
+    an output. To maximize value across teams, you might build and maintain a base
+    set of templates for each step, or for entire pipelines, to make it easier for
+    future teams to use them.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As we learned earlier in [*Chapter 12*](B18942_12.xhtml#_idTextAnchor178), *How
+    to Deploy Your Model*, there are quite a few techniques you can use to improve
+    your model for deployment. This includes quantization and compression, bias detection,
+    and adversarial hardening *(1)*. Personally, I tend to see many of the methods
+    executed rarely on a model, such as when it first moves from the R&D team to the
+    deployment team. For regular retraining, I’d avoid extensive compute resources,
+    assuming that much of the basic updates incorporated into the model work in more
+    recent versions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Continuous integration and continuous deployment
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In machine learning, we tend to look at two somewhat different stacks. On the
+    one hand, you have the model creation and deployment process. This includes your
+    model artifacts, datasets, metrics, and target deployment options. As we discussed
+    previously, you might create a pipeline to automate this. On the other hand, you
+    have the actual software application where you want to expose your model. This
+    might be a visual search mobile app, a question/answering chat, an image generation
+    service, a price forecasting dashboard, or really any other process to improve
+    using data and automated decisions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Many software stacks use their own **continuous integration and continuous deployment**
+    (**CI**/**CD**) pipelines to seamlessly connect all the parts of an application.
+    This can include integration tests, unit tests, security scans, and machine learning
+    tests. **Integration** refers to putting the application together, while **deployment**
+    refers to taking steps to move the application into production.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Many of the pipelines we looked at previously could be considered CD pipelines,
+    especially when they refer to updating the service in production. A continuous
+    integration pipeline might include steps that point to the application, testing
+    a variety of responses, and ensuring that the model responds appropriately. Let’s
+    take a closer look.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 14.2 – CI/CD options for machine learning](img/B18942_Figure_14_02.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 14.2 – CI/CD options for machine learning
+  prefs: []
+  type: TYPE_NORMAL
+- en: What I’m trying to convey here is that *you have many options for how to set
+    up your pipelines*. For a large-scale foundation model, such as your own pretrained
+    LLM or text-to-vision model, you might possibly have handfuls of extremely robust
+    repositories that each team develops for different pieces of the puzzle. Integrating
+    these, using slices of them to support each other, and automating as much as you
+    can with robust unit testing to ensure the highest performance across the board
+    is in your best interest. Separately from the model development, you’ll likely
+    have a deployment pipeline that checks all the boxes to prepare your model for
+    real-time traffic and successful communication with your client application.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we’ve covered a few foundational topics in general operations, let’s
+    take a closer look at two key aspects that relate especially to machine learning
+    – model monitoring and human-in-the-loop.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Model monitoring and human-in-the-loop
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In *Chapter 11*, we explored topics around bias detection, mitigation, and monitoring
+    for large vision and language models. This was mostly in the context of evaluating
+    your model. Now that we’ve made it to the section on deploying your models, with
+    an extra focus on operations, let’s take a closer look at model monitoring.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once you have a model deployed into any application, it’s extremely useful to
+    be able to view the performance of that model over time. This is the case for
+    any of the use cases we discussed earlier – chat, general search, forecasting,
+    image generation, recommendations, classification, question answering, and so
+    on. All of these applications benefit from being able to see how your model is
+    trending over time and provide relevant alerts.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Imagine, for example, that you have a price forecasting model that suggests
+    a price for a given product based on economic conditions. You train your model
+    on certain economic conditions, maybe those in January, and deploy the model in
+    February. While deployed, the model continues to look at those same conditions
+    and help price your project. However, you may not realize that in March, the entire
+    market conditions changed. Things in our world change so rapidly that entire sectors
+    may have inverted. Your model came into the world thinking that everything looks
+    exactly the same as when it was trained. Unless you recalibrate your model, it
+    won’t realize that things are different.
+  prefs: []
+  type: TYPE_NORMAL
+- en: But how are you supposed to know when to recalibrate your model? Through Model
+    Monitor! Using Amazon SageMaker, including our fully managed Model Monitor capabilities,
+    you can easily run tests that learn summary statistics of your training data.
+    You can then schedule jobs to compare these summaries with the data hitting your
+    endpoint. This means that as the new data interacts with your model, you can store
+    all of these requests in S3\. After the requests are stored, you can use the model
+    monitor service to schedule jobs that compare these inference requests with your
+    training data. This is useful because you can use it to send yourself alerts about
+    how your model is trending on inference, especially if you need to trigger a retraining
+    job. The same basic concepts of Model Monitor should also apply to vision and
+    language; the only question is how we generate summary statistics.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, how does Model Monitor relate to human-in-the-loop? It’s because you can
+    also use triggers from your hosted model to *trigger a manual review*. As shown
+    in the following figure, you can bring in some software checks to confirm that
+    your model outputs content that is mostly in line with your expectations. If not,
+    you can trigger a manual review. This uses another option on SageMaker, **Augmented
+    Artificial Intelligence** (**A2I**), which in turn relies on SageMaker Ground
+    Truth. Put another way, if the model doesn’t act as you expect, you can send the
+    prediction request and response to a team for manual review. This helps your teams
+    build more trust in the overall solution, not to mention improving your dataset
+    for the next iteration of the model! Let’s take a look at this visually.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 14.3 – Model monitoring with human-in-the-loop](img/B18942_Figure_14_03.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 14.3 – Model monitoring with human-in-the-loop
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the preceding figure, you can see a variety of components, or microservices,
+    that you can combine to provide a complete pipeline with model monitoring and
+    humans kept in the loop. First, your client application can interact with a Lambda
+    function that, in turn, invokes a SageMaker model. You might store the model requests
+    and responses in an S3 bucket by writing it in Lambda yourself, or you could set
+    the SageMaker endpoint to do this for you. Once you have records stored in S3,
+    you can run **model monitoring** jobs. This can use a feature of SageMaker, model
+    monitor, to learn the statistical differences between your training and inferencing
+    data, sending you alerts if these fall out of a large range. Alternatively, you
+    could write your own comparison script and run these jobs yourself on SageMaker
+    training or processing jobs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once you have some visibility into how your model is responding on aggregate,
+    your best move is to incorporate human feedback as much as you can. This is increasingly
+    true in the generative space, where accuracy, style, and tone of the content are
+    top criteria for most organizations. A great option for this is **SageMaker Ground
+    Truth**! As we learned in [*Chapter 2*](B18942_02.xhtml#_idTextAnchor034) on preparing
+    data, this is a fully managed service you can use to both increase your labeled
+    datasets and augment your model responses in real time.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A similar approach here is to use multiple models to confirm the prediction
+    result. Imagine that you process a document quickly and want to extract content
+    from it accurately. Your customer uploads a PDF to your website, you parse it
+    using ML models, and you want to confirm or deny the contents of a given field.
+    One way to increase your stakeholder’s confidence in the accuracy of your system
+    is to just use more than one model. Maybe you use your own, a custom deep learning
+    model hosted in SageMaker, while at the same time, you point to a fully managed
+    AWS service such as Textract that can extract digital natural language from visual
+    forms. Then, you might have a Lambda function to see whether both models agree
+    on the response. If they do, then you could respond to the customer directly!
+    If they don’t, then you could route the request for manual review.
+  prefs: []
+  type: TYPE_NORMAL
+- en: There are countless other ways to monitor your models, including ways to integrate
+    these with people! For now, however, let’s move on to components of MLOps that
+    are specifically scoped to vision and language.
+  prefs: []
+  type: TYPE_NORMAL
+- en: MLOps for foundation models
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Now that you have a good idea of MLOps, including some ideas about how to use
+    human-in-the-loop and model monitoring, let’s examine specifically what aspects
+    of vision and language models merit our attention from an MLOps perspective.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The answer to this question isn’t immediately obvious because, from a certain
+    angle, vision and language are just slightly different aspects of machine learning
+    and artificial intelligence. Once you have the right packages, images, datasets,
+    access, governance, and security configured, the rest should just flow naturally.
+    Getting to that point, however, is quite an uphill battle!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Building a pipeline for large language models is no small task. As I mentioned
+    previously, I see at least two very different aspects of this. On one side of
+    the equation, you’re looking at the entire model development life cycle. As we’ve
+    learned throughout this book, that’s a massive scope of development. From dataset,
+    model, and script preparation to the training and evaluation loops, and performance
+    and hyperparameter optimizations, there are countless techniques to track in order
+    to produce your foundation model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once you have the foundation model, preparing it for development is a different
+    beast. As we discussed previously, *adversarial hardening* includes a variety
+    of techniques you can use to improve the performance of your model for the target
+    domain. Everything we learned about in fine-tuning and evaluation from [*Chapter
+    10*](B18942_10.xhtml#_idTextAnchor152), bias detection and mitigation in [*Chapter
+    11*](B18942_11.xhtml#_idTextAnchor167), and deployment techniques in [*Chapter
+    12*](B18942_12.xhtml#_idTextAnchor178) come right to the forefront. To me, it
+    seems natural to locate these in a different pipeline that is focused squarely
+    on deployment. Let’s take a look at these in the following visual.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 14.4 – LLM development and deployment pipelines](img/B18942_Figure_14_04.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 14.4 – LLM development and deployment pipelines
+  prefs: []
+  type: TYPE_NORMAL
+- en: What makes this much more complicated is that *many of these disparate steps
+    use similar packages and functions*. This means that to implement each of these
+    steps, you’re looking at pointing to at least one, and possibly a few `git` repositories
+    and packages. When you decouple these, using different containers, resources,
+    and steps to manage each piece, it helps each team work on them independently.
+    We all know that the pace of foundation model development is only going to increase
+    over the next few years, so assume that each step here will mean you need to pause
+    periodically, capture the latest open source scripts or research techniques, develop
+    and test them, and integrate them back into the larger pipeline.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, let’s learn about MLOps for vision.
+  prefs: []
+  type: TYPE_NORMAL
+- en: MLOps for vision
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: How do vision foundation models compare with what we suggested previously for
+    language models? To some degree, not much. You’re still working with images, scripts,
+    packages, datasets, and model quality. You still want to keep your models up to
+    date, and you still want to incorporate as much human feedback in the best way
+    you can. As we’ve seen in the book so far, models and evaluation metrics will
+    vary, datasets will be quite different, and tasks are not entirely the same. A
+    lot of the basic logic, however, carries over. One quick word of caution though
+    – fine-tuning in language is not at all the same as fine-tuning in vision.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A word of caution on overfitting in vision and a call for common sense
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Please keep in mind that vision *is much more sensitive to overfitting than
+    language*. To understand this, let’s consider the fundamental differences between
+    the two modalities. Language is inherently discrete; we represent the entire world
+    with only letters and words, items that are noncontinuous by default. You could
+    say that the entire modality of language is equal to the sum of all dictionaries
+    in all languages around the world, to the extent that dictionaries themselves
+    are only approximations of words spoken, used, and developed by humans constantly.
+    The arrangement of these words, and the interpretation and meaning of them across
+    the wide breadth of lived human experiences, is infinite.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Vision is completely different. The modality itself is continuous; while pixels
+    themselves of course start and stop, the delineation between objects in a picture
+    is almost a matter of opinion. We use metrics to quantify the quality of and discrepancy
+    between labeled objects, such as *intersection over union*. Objects rotate; they
+    seem to change completely in different lighting and backgrounds. Their patterns
+    might seem to be the same even across totally different types, such as animals
+    and cups, street signs and clothing, furniture, and natural landscapes. While
+    both vision and language decompose into embeddings on their way into a model,
+    the ability of neural nets to capture the meaning of the content provided and
+    extrapolate this into other settings seems to be very different in language than
+    in vision. Language fine-tuning works well in many cases, while vision fine-tuning
+    very commonly results in poor performance at first blush.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Personally, I find another machine learning technique very interesting, which
+    appears to operate, in essence, at the core of these combined modalities – common
+    sense reasoning. Machine common sense refers to ensuring logical consistency between
+    concepts, objects, and the defining characteristics of those objects. Most humans
+    excel at this, such as knowing that water is wet, that heavy objects fall when
+    dropped into open space, that fire produces heat, and so on.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Computers, however, are terrible at this. It’s almost as if the physical dimension
+    doesn’t exist; certainly, the biological plain is a complete anomaly to them.
+    Image generators don’t understand that food has to go into a mouth to constitute
+    eating. Image classifiers routinely miscategorize zebras with furniture. Language
+    models don’t appreciate the pace of human communication, occasionally overwhelming
+    their operators. Movie generators regularly cause more disgust than delight because
+    they fail to recognize the first basic discrimination mastered by infants – humans
+    and their movement. To humans, it’s immediately obvious that a cup and an animal
+    are both objects, and might even occasionally share some stylistic traits, but
+    in the physical world, they come from completely different domains. To computers,
+    it’s as if this physical dimension doesn’t exist. They are quite literally only
+    learning what exists inside the two-dimensional frames you provide. This is why
+    we use labels in the first place – to give your model some meaning by translating
+    the physical world into pixels.
+  prefs: []
+  type: TYPE_NORMAL
+- en: I had the distinct pleasure of meeting and briefly chatting with Yejin Choi
+    *(2)* last year. She delivered a keynote to the general assembly of the Association
+    of Computational Linguists, one of the best NLP conferences in the world, on a
+    fascinating hypothetical forecast of the next 60 years of natural language research.
+    I was completely blown away by her passion for the humanities, philosophy, and
+    deep scientific discoveries. She started exploring machine common sense in an
+    era when it was extremely unpopular to do so, and in fact, she jokes today that
+    she was actively discouraged from doing so, since everyone thought it would be
+    impossible to get published on this topic. Since then, she’s turned into probably
+    the world’s leading expert in this area, largely operating with language and vision
+    as her modalities. Since then, I’ve been curious about common sense and wanted
+    to explore it in more detail.
+  prefs: []
+  type: TYPE_NORMAL
+- en: I wonder if human knowledge itself is inherently relational and possibly multimodal.
+    We build concepts in our minds based on experiences – lived, perceived, imagined,
+    and understood. These mental concepts guide our words and actions, expressing
+    themselves in some cases verbally, and other times purely physically. Perhaps
+    we need deeper representations to guide the intermingling of modalities. Perhaps
+    language might help our vision models adapt to new domains more quickly. Perhaps
+    this is because it provides a bit of common sense.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Practically, I’m bringing this up because, if you’re about to embark on a vision
+    fine-tuning exercise, I want you to go in knowing that it won’t be easy, and what
+    worked for you in language probably won’t translate as well as you thought. I’m
+    also bringing this up because I want you future researchers out there to take
+    courage, trust your intuition, and challenge your assumptions. Now that we’ve
+    learned a bit about MLOps for foundation models, let’s take a look at some AWS
+    offerings to help simplify and speed you up to nail this subject!
+  prefs: []
+  type: TYPE_NORMAL
+- en: AWS offerings for MLOps
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Happily, AWS provides a variety of tools to help simplify this! One nice feature
+    is called **lineage tracking**. SageMaker can automatically create the lineage
+    *(3)* for key artifacts, including across accounts. This includes dataset artifacts,
+    images, algorithm specifications, data configs, training job components, endpoints,
+    and checkpoints. This is integrated with the **Experiments SDK**, letting you
+    compare experiments and results programmatically and at scale. Let’s explore this
+    visually. We’ll even generate a visualization for you to see how all of these
+    are connected! Check it out in the following figure.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 14.5 – SageMaker automatically creates lineage tracking](img/B18942_Figure_14_05.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 14.5 – SageMaker automatically creates lineage tracking
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you can see, the first step in tracking your lineage is running on key SageMaker
+    resources such as training jobs, images, and processing jobs. You can use the
+    entities that are automatically tracked, or you can define your own entities.
+    To generate the lineage view as shown in the previous figure, you can interact
+    with the **lineage query language**. If you want to jump straight into the notebook,
+    which ships with a visualization solution, that’s available as point *(4)* in
+    the *References* section. The lineage tracking is explained in more detail here
+    – *(5)*, and the querying is defined here – *(6)*. Using SageMaker Lineage, you
+    can easily trace how a model was trained and where it was deployed.
+  prefs: []
+  type: TYPE_NORMAL
+- en: How does it work? You can use the *LineageFilter API* to look for different
+    objects, such as endpoints, that are associated with a model artifact. You can
+    also search for trial components associated with endpoints, find datasets associated
+    with models, and traverse forward and backward through the graph of associated
+    items. Having these relationships available programmatically makes it much easier
+    to take all of the necessary resources and put them into pipelines and other governance
+    structures.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once you have the resources identified, how do you wrap them into a pipeline?
+    As we mentioned earlier in the chapter, many of the basic AWS and SageMaker resources
+    are available as discrete building blocks. This includes the model, relevant model
+    artifacts, deployment configurations, associated training and processing jobs,
+    hyperparameter tuning, and containers. This means you can use the AWS SDK for
+    Python, **boto3**, and the **SageMaker Python SDK** to point to and execute all
+    of your resources and tasks programmatically. Wrapping these in a pipeline then
+    means using whatever tooling stack you prefer to use to operationalize these automatically.
+    One option for doing so is **SageMaker Pipelines**!
+  prefs: []
+  type: TYPE_NORMAL
+- en: A quick introduction to SageMaker Pipelines
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: If you’re working with SageMaker-native resources, such as jobs, endpoints,
+    model artifacts, and Docker images, then connecting them through the Pipelines
+    SDK construct *(7)* should not be too much of an additional lift. SageMaker Pipelines
+    is a managed feature you can use to create, run, and manage complete workflows
+    for machine learning on AWS. Once you’ve defined your base Python SDK objects
+    for SageMaker, such as a training job, evaluation metrics, hyperparameter tuning,
+    and an endpoint, you can pass each of these objects to the Pipelines API and create
+    it as a graph! Let’s explore this in more detail in the following figure.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 14.6 – SageMaker Pipelines](img/B18942_Figure_14_06.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 14.6 – SageMaker Pipelines
+  prefs: []
+  type: TYPE_NORMAL
+- en: For a notebook walk-through of creating a graph very similar to the one in the
+    preceding figure, there is a resource on GitHub *(8)*. The core idea is that you
+    build each part of the pipeline separately, such as the data processing, training,
+    and evaluation steps, and then pass each of these to the SageMaker Pipelines API
+    to create the connected graph.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you can see in the preceding figure, this is presented visually in SageMaker
+    Studio! This makes it much easier for data scientists to develop, review, manage,
+    and execute these pipelines. Studio also has a handful of other relevant features
+    for MLOps, such as a feature store, model registry, endpoint management, model
+    monitoring, and inference recommender. For a deeper dive into these topics, there’s
+    a full white paper from the AWS Well-Architected Framework on machine learning
+    *(9)*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we’ve learned about the AWS offerings for MLOps, let’s close out the
+    chapter with a full recap.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we introduced the core concept of MLOps, especially in the
+    context of vision and language. We discussed machine learning operations, including
+    some of the technologies, people, and processes that make it work. We especially
+    focused on the pipeline aspect, learning about technologies useful to build them,
+    such as SageMaker Pipelines, Apache Airflow, and Step Functions. We looked at
+    a handful of different types of pipelines relevant to machine learning, such as
+    model deployment, model retraining, and environment promotion. We discussed core
+    operations concepts, such as CI and CD. We learned about model monitoring and
+    human-in-the-loop design patterns. We learned about some specific techniques for
+    vision and language within MLOps, such as common development and deployment pipelines
+    for large language models. We also looked at how the core methods that might work
+    in language can be inherently less reliable in vision, due to the core differences
+    in the modalities and how current learning systems operate. We took a quick tour
+    down the philosophical route by discussing common sense reasoning, and then we
+    closed out the chapter with key AWS offerings for MLOps, such as SageMaker Lineage,
+    Experiments, and Pipelines.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, let’s conclude the book with one final chapter on future trends.
+  prefs: []
+  type: TYPE_NORMAL
+- en: References
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Please go through the following content for more information on a few topics
+    covered in the chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Hardening Deep Neural Networks via Adversarial Model* *Cascades*:[https://arxiv.org/pdf/1802.01448.pdf](https://arxiv.org/pdf/1802.01448.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Yejin* *Choi*: [https://homes.cs.washington.edu/~yejin/](https://homes.cs.washington.edu/~yejin/)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Amazon SageMaker ML Lineage* *Tracking*: [https://docs.aws.amazon.com/sagemaker/latest/dg/lineage-tracking.html](https://docs.aws.amazon.com/sagemaker/latest/dg/lineage-tracking.html)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*aws/amazon-sagemaker-examples*: [https://github.com/aws/amazon-sagemaker-examples/blob/main/sagemaker-lineage/sagemaker-lineage.ipynb](https://github.com/aws/amazon-sagemaker-examples/blob/main/sagemaker-lineage/sagemaker-lineage.ipynb)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Lineage Tracking* *Entities**:* [https://docs.aws.amazon.com/sagemaker/latest/dg/lineage-tracking-entities.html](https://docs.aws.amazon.com/sagemaker/latest/dg/lineage-tracking-entities.html)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Querying Lineage* *Entities*:[https://docs.aws.amazon.com/sagemaker/latest/dg/querying-lineage-entities.html](https://docs.aws.amazon.com/sagemaker/latest/dg/querying-lineage-entities.html)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*SageMaker* *Pipelines*:[https://sagemaker.readthedocs.io/en/stable/workflows/pipelines/index.html](https://sagemaker.readthedocs.io/en/stable/workflows/pipelines/index.html)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*aws/amazon-sagemaker-examples*: [https://github.com/aws/amazon-sagemaker-examples/blob/main/sagemaker-pipelines/tabular/train-register-deploy-pipeline-model/train%20register%20and%20deploy%20a%20pipeline%20model.ipynb](https://github.com/aws/amazon-sagemaker-examples/blob/main/sagemaker-pipelines/tabular/train-register-deploy-pipeline-model/train%20register%20and%20deploy%20a%20pipeline%20model.ipynb)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Machine Learning Lens AWS Well-Architected* *Framework*:[https://docs.aws.amazon.com/pdfs/wellarchitected/latest/machine-learning-lens/wellarchitected-machine-learning-lens.pdf](https://docs.aws.amazon.com/pdfs/wellarchitected/latest/machine-learning-lens/wellarchitected-machine-learning-lens.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL

@@ -1,0 +1,472 @@
+- en: Sensing Market Sentiment for Algorithmic Marketing at Sell Side
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the previous chapter, we learned about investment portfolio management. We
+    also learned some of the portfolio management techniques, such as the Markowitz
+    mean-variance model and the Treynor–Black model for portfolio construction. We
+    also learned about how to predict a trend for a security. So, the previous chapter
+    was based on the buy side of a market. It depicted the behavior of portfolio managers
+    or asset managers.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we will look at the sell side of the market. We will understand
+    the behavior of the counterpart of the portfolio managers. Sell side refers to
+    securities firms/investment banks and their main services, including sales, trading,
+    and research. Sales refers to the marketing of securities to inform investors
+    about the securities available for selling. Trading refers to the services that
+    investors use to buy and sell off securities and the research performed to assist
+    investors in evaluating securities. Being client-centric, one of the key functions
+    of a bank is sensing the needs and sentiments of the end investors, who in turn
+    push the asset managers to buy the product from banks. We will begin this chapter
+    by looking at a few concepts and techniques. We will look at an example that illustrates
+    how to sense the needs of an investor. We will look at another example to analyze
+    the annual report and extract information from it.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following topics will be covered in this chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding sentiment analysis
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Sensing market requirements using sentiment analysis
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Network building and analysis using Neo4j
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Understanding sentiment analysis
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Sentiment analysis is a technique in which text mining is done for contextual
+    information. The contextual information is identified and extracted from the source
+    material. It helps businesses understand the sentiment for their products, securities,
+    or assets. It can be very effective to use the advanced techniques of artificial
+    intelligence for in-depth research in the area of text analysis. It is important
+    to classify the transactions around the following concepts:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The aspect of security the buyers and sellers care about
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Customers' intentions and reactions concerning the securities
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Sentiment analysis is known to be the most common text analysis and classification
+    tool. It receives an incoming message or transaction and classifies it depending
+    on whether the sentiment associated with the transaction is positive, negative,
+    or neutral. By using the sentiment analysis technique, it is possible to input
+    a sentence and understand the sentiment behind the sentence.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we have understood what sentiment analysis is, let's find out how to
+    sense market requirements in the following section.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Sensing market requirements using sentiment analysis
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: One of the key requirements of a security firm/investment bank on the sell side
+    is to manufacture the relevant securities for the market. We have explored the
+    fundamental behaviors and responsibilities of companies in [Chapter 4](0c281efb-a1b8-423f-976b-0fa47f5da990.xhtml), *Mechanizing
+    Capital Market Decisions*, and [Chapter 5](bbb73cab-df58-462a-8b5e-c1574611aff2.xhtml),
+    *Predicting the Future of Investment Bankers*. We learned about the momentum approach
+    in [Chapter 6](0e7c4e25-941b-4bd6-a04a-55924bdbaa43.xhtml), *Automated Portfolio
+    Management Using the Treynor–Black Model and ResNet*. While the market does not
+    always act rationally, it could be interesting to hear about the market's feelings.
+    That is what we will be doing in this chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this example, we will be playing the role of the salesperson of an investment
+    bank on the trading floor, trading in equities. What we want to find out is the
+    likes and dislikes regarding securities so that they can market the relevant securities,
+    including derivatives. We got our insights from Twitter Search, and the stock
+    price from Quandl. All of this data requires a paid license.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Solution and steps
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'There are a total of three major steps to get the market sentiment using coding
+    implementation. The data is used as shown in the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/f4bbac19-98e7-4dc2-8e09-d4c83ca5d8d0.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The steps are as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Data will be retrieved from Twitter and be saved locally as a JSON file.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The JSON file will then be read, further processed by counting the positive
+    and negative words, and input as records into a SQL Lite database.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Lastly, the sentiment will be read from the database and compared against stock
+    prices retrieved from Quandl.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We will elaborate on these steps in more detail in the following sections.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Downloading the data from Twitter
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: By using a Twitter Search commercial license, we download data on the same industry
+    as defined by the Shalender (Quandl) industry classification. We will use the
+    API key to search and download the latest 500 tweets containing or tagged with
+    the company name, one by one. All tweets are received in JSON format, which looks
+    like a Python dictionary. The JSON file will then be saved on the computer for
+    further processing.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Sample Python codes can be found on GitHub ([https://github.com/twitterdev/search-tweets-python](https://github.com/twitterdev/search-tweets-python)),
+    especially regarding authentication. The following is the code snippet for downloading
+    tweets from Twitter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: Converting the downloaded tweets into records
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: The tweet's message and any linked page will then be loaded and read by a simple
+    language processing program, which will count the number of positive and negative
+    words in the message and linked page body. The parsed tweet will be converted
+    to a structured SQL database format and stored in a SQL Lite database.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following is the code snippet to convert tweets into records:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: There are three functions that are called by the preceding program. One is used
+    to count the positive and negative words, one looks at the topic concerned, and
+    one retrieves the text in the URL given in the tweet.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following code snippet defines the functions used in the program:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: Performing sentiment analysis
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'The database that stored the parsed tweet will be read by another program.
+    For each record, the sentiment will be represented by aggregate sentiment on a
+    daily basis. Each tweet''s sentiment is calculated as the total number of negative
+    sentiments subtracted from positive sentiments. The range of this sentiment score
+    should be in the range of -1 to +1, with -1 representing a totally negative score
+    and +1 a totally positive score. Each day’s sentiment score is calculated as the
+    average of all the tweets'' sentiment scores for the security. Sentiment scores
+    of all securities in the same industry are plotted on a graph, similar to the
+    following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/2c1f9e69-f7f9-4bf3-a0d5-73c88093fa9c.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: For example, in the short period of our coverage, Dominion Energy has one of
+    the most favorable sentiment scores (between Oct 29 and Oct 30).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The sample output of Dominion Energy is shown in the following graph:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/f65f340f-ad37-4161-92dc-02daf067caf3.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The sentiment is the orange line and the price is the blue line (please refer
+    to the color graph provided in the graphic bundle of this book).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following is the code snippet for sentiment analysis:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: Comparing the daily sentiment against the daily price
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'After we obtain the sentiment score for each stock, we also want to know the
+    predictive power or the influence of the sentiment on the stock price. The stock
+    price of the day is calculated by the middle-of-day high and low. For each stock,
+    we plot and compare the sentiment and stock price over a period of time. The following
+    screenshot is an illustration of PG&E Corp''s sentiment versus stock price:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/057a323b-721b-4faa-810c-fbe1aac920d0.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The following is the code snippet for daily sentiment analysis data against
+    the daily price:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: Congratulations! You have developed a program to assist sales in finding popular
+    securities to develop products for.
+  prefs: []
+  type: TYPE_NORMAL
+- en: From what we have seen, comparing this example to the technical analysis examples,
+    we can see that the information from the sentiment is far higher than the technical
+    trend. So far, we have only looked at the primary impact of the trend, fundamental,
+    and sentiment; however, companies are interconnected in our society. So how can
+    we model the linkage of firms and individuals? This brings us to the next topic—network
+    analysis.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Network building and analysis using Neo4j
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: As sell-side analysts, besides finding out the primary impact of news on the
+    company, we should also find out the secondary effect of any news. In our example,
+    we will find out the suppliers, customers, and competitors of any news on the
+    stocks.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We can do this using three approaches:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: By means of direct disclosure, such as annual reports
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: By means of secondary sources (media reporting)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: By means of industry inferences (for example, raw materials industries, such
+    as oil industries, provide the output for transportation industries)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In this book, we use direct disclosure from the company to illustrate the point.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We are playing the role of equity researchers for the company stock, and one
+    of our key roles is to understand the relevant parties' connections to the company.
+    We seek to find out the related parties of the company—Duke Energy—by reading
+    the company's annual report.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Solution
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'There are a total of four steps. The following diagram shows the data flow:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/11af5ce3-eb8c-41bd-89dd-3add22b17e89.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: We will now look at the steps in more detail in the following sections.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Using PDFMiner to extract text from a PDF
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Besides storage, we also need to extract the relationship from text documents.
+    Before we can start dealing with text, we need to convert the PDF data to text.
+    To do this, we use a library called **PDFMiner** (specifically, the module is
+    called **pdfminer.six** ([https://github.com/pdfminer/pdfminer.six](https://github.com/pdfminer/pdfminer.six)) for
+    Python 3+). PDF is an open standard to describe a document. It stores the lines,
+    text, images, and their exact locations in the document. We will only be using
+    a basic function in PDFMiner to extract the texts from it. Even though we could
+    extract the coordinates, we will skip this to simplify our work. Upon extracting
+    the text, we append all lines into one super long line.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following code snippet imports the necessary libraries and initializes
+    a PDF file to be processed:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: Entity extractions
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: We deploy a linguistic analysis approach called **part-of-speech** (**POS**)
+    tagging to decide whether words X and Z are a company or person, and whether Y
+    is a product or service. Because of the sentence structure, we know that these
+    are nouns, not because we know what X, Y, and Z are.
+  prefs: []
+  type: TYPE_NORMAL
+- en: However, it is still not enough to label the entity. An entity is a standalone
+    subject or object. Since there are too many entities, we should only tag entities
+    with an uppercase first letter as those unique organizations or assets that are
+    pertinent to our work.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The types of entity include `ORG`, `PERSON`, `FAC`, `NORP`, `GPE`, `LOC`, and `PRODUCT`—that
+    is, Organization, Person, Facilities, Nationalities or religious or political
+    groups, Geo-spatial, Location, and Product, using the SpaCy model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Upon getting the text chunk from the PDF of step 1, we run SpaCy to extract
+    the entities from each of the sentences. For each sentence, we store the entity
+    types and entities in a database record. SpaCy will have a technical limitation
+    on the length of the documents it analyzes; therefore, we cut the very long text
+    chunk into different chunks to respect the technical limitation. However, this
+    comes with the price of chopping sentences at the cut-off point of the text chunk.
+    Considering that we are handling hundreds of pages, we will take the short cut.
+    Of course, the best way to cut this is to cut it approximately around the chunk,
+    while respecting the punctuation in order to preserve the complete sentences.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following code snippet depicts how to extract various entities:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: '**Entity classification via the lexicon:** For our use case, we need to further
+    classify the organizations as suppliers, customers, competitors, investors, governments,
+    or sister companies/assets—for example, banks that are the credit investors of
+    the company will first be classified as **Banks** before they are inferred as
+    the Credit Investors/Bankers for the company in its annual report. So some of
+    the relationships require us to check against a database of organizations to classify
+    them further. Acquiring such knowledge requires us to download the relevant databases—in
+    our case, we use Wikipedia to download the list of banks. Only when we check against
+    the list of names of banks will we be able to classify the organization as banks
+    or not. We did not perform this step in our example, as we do not have the lexicon
+    set that is normally available to banks.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Using NetworkX to store the network structure
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: After processing the data, the entities will be stored in SQL databases and
+    further analyzed by NetworkX—a Python package that handles network data. Edge
+    and Node are the building blocks of any graph; however, there are a lot more indicators
+    to measure and describe the graph, as well as the position of the node and edge
+    within the graph. What matters for our work now is to see whether the nodes are
+    connected to the company in focus, and the type of connection they have.
+  prefs: []
+  type: TYPE_NORMAL
+- en: At the end of NetworkX, the graph data is still pretty abstract. We need better
+    interactive software to query and handle the data. Therefore, we will output the
+    data as a CSV for Neo4j to further handle, as it provides a user interface to
+    interact with the data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: It is, however, still far from being used—a lot of time is required to cleanse
+    the dataset and define the types of relationship involved. Neo4j is a full-blown
+    graph database that could satisfy the complex relationship structures.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A relationship must be established between the entities mentioned in the company's
+    annual report and the entities stored in the database. In our example, we did
+    not do any filtering of entities as the NLP model in the previous step has a lift
+    of 85%, and so it does not have perfect performance when it comes to spotting
+    the entities. We extract only the people and organizations as entities. For the
+    type of relationship (edge), we do not differentiate between the different edge
+    types.
+  prefs: []
+  type: TYPE_NORMAL
+- en: After defining the network structure, we prepare a list that stores the nodes
+    and edges and generates a graph via `matplotlib`, which itself is not sufficient
+    for manipulation or visualization. Therefore,  we output the data from NetworkX
+    to CSV files—one storing the nodes and the other one storing the edges.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following is the code snippet for generating a network of entities:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: Using Neo4j for graph visualization and querying
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: We will install Neo4j and import the CSV files to construct the data network
+    in Neo4j—the industry-grade graph database. Unfortunately, Neo4j itself requires
+    another set of programming languages to manipulate its data, called **Cypher**.
+    This allows us to extract and search the data we need.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We generate the files required for Neo4j. The following code snippet initializes
+    Neo4j:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the terminal, we copy the output files to the home directory of Neo4j. The
+    following are the commands to be executed from the terminal:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'At Neo4j, we log in via the browser. The following is the URL to enter into
+    the browser:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following is the sample code snippet for Neo4j Cypher:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following screenshot is the resulting output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/be090852-8478-4554-b0f5-4e4c7293ee44.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Congratulations! You have managed to extract lots of important names/parties
+    from the annual report that you need to focus your research on for further analysis.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we learned about the behavior of the sell side of a market.
+    We learned about what sentiment analysis is and how to use it. We also looked
+    at an example to sense market needs using sentiment analysis. We learned about
+    network analysis using Neo4j, which is a NoSQL database technique. We learned
+    about text mining using the PDF miner tool.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will learn how to use bank APIs to build personal wealth
+    advisers. Consumer banking will be a focus of the chapter. We will learn how to
+    access the Open Bank Project to retrieve financial health data. We will also learn
+    about document layout analysis in the chapter. Let's jump into it without any
+    further ado.
+  prefs: []
+  type: TYPE_NORMAL

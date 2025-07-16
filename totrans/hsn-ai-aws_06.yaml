@@ -1,0 +1,1337 @@
+- en: Performing Speech-to-Text and Vice Versa with Amazon Transcribe and Polly
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we will continue to develop the skills and intuition required
+    for real-world artificial intelligence applications. We will build an application
+    that can translate spoken speech from one language to another. We will leverage
+    Amazon Transcribe and Amazon Polly to perform speech-to-text and text-to-speech
+    tasks. We will also demonstrate how our reference architecture allows us to reuse
+    the service implementations we implemented in the previous chapter projects.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will cover the following topics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Performing speech-to-text with Amazon Transcribe
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Performing text-to-speech with Amazon Polly
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Building serverless AI applications with AWS services, RESTful APIs, and web
+    user interface
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Reusing existing AI service implementations within the reference architecture
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Discussing user experience and product design decisions
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: This book's GitHub repository, which contains the source code for this chapter,
+    can be found at [https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services](https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Technologies from science fiction
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Google's recent entry into the headphone market, called the Pixel Buds, had
+    a unique feature that wowed the reviewers. These headphones can translate conversations
+    in real time for dozens of languages. This sounds like science fiction. What comes
+    to mind is Star Trek's universal translator that allows Starfleet crews to communicate
+    with almost any alien race. Even though the Pixel Buds are not as powerful as
+    their science fiction counterpart, they are packed with some amazing **Artificial
+    Intelligence** (**AI**) technologies. This product showcases what we can expect
+    from AI capabilities to help us communicate with more people in more places.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We will be implementing a similar conversation translation feature using AWS
+    AI services. Our application, modestly named the Universal Translator, will provide
+    voice-to-voice translation between dozens of languages. However, our Universal
+    Translator is not exactly real time and it only supports dozens of human languages.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding the architecture of Universal Translator
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Our Universal Translator application will provide a web user interface for
+    the users to record a phrase in one language and then translate that phrase to
+    another language. Here is the architecture design highlighting the layers and
+    services of our application. The organization of the layers and components should
+    be familiar to you from our previous projects:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/ebd4b401-085c-4255-885a-53ab98fce7f0.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'In this application, the web user interface will interact with three RESTful
+    endpoints in the orchestration layer:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Upload Recording Endpoint** will delegate the audio recording upload to our
+    Storage Service, which provides an abstraction layer to AWS S3.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Translate Recording Endpoint** will use both the Amazon Transcription Service
+    and the Amazon Translation Service. It first gets the transcription of the audio
+    recording, and then translates the transcription text to the target language.
+    The transcription service and the translation service abstract the Amazon Transcribe
+    and Amazon Translate services respectively.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Synthesize Speech Endpoint** will delegate the speech synthesis of the translated
+    text to the Speech Service, which is backed by the Amazon Polly service.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: As we will soon see in the project implementation, the Translation Service is
+    reused from the Pictorial Translator project, without any modification. In addition,
+    the upload file method in the Storage Service implementation is also reused from
+    the previous projects. One of the benefits of separating the orchestration layer
+    and the service implementations should be clear here. We can reuse and recombine
+    various service implementations, without modification, by stitching them together
+    in the orchestration layer. Each application's unique business logics are implemented
+    in the orchestration layer while the capabilities are implemented without the
+    knowledge of the application-specific business logic.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Component interactions of Universal Translator
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The following diagram walks through how the different components will interact
+    with each other to form the business logic workflow of the Universal Translator
+    application:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/ee07ad0e-99d3-4c4a-89a0-34ae8e71593b.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The following is from the user''s perspective:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The user first selects the source and target languages of the speech translation
+    in the web user interface.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The user then records a short audio speech with the on-screen controls.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This recording can be played back from the web user interface. The user can
+    use the playback feature to check the quality of the speech recording.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: When the user is satisfied with the recording, it can be uploaded for translation.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Some time later, the web user interface will display both the transcription
+    and translation texts in the web user interface.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Finally, a synthesized speech of the translated text will be available for audio
+    playback from the web user interface.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'We decided to break the end-to-end translation process into three major steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Upload the audio recording.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Get the translation text.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Synthesize the speech.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: This design decision allows the Universal Translator to display the translation
+    text in the web user interface while the translation audio is being synthesized.
+    This way, not only does the application appear more responsive to the user, but
+    the user can also make use of the translation text in certain situations without
+    waiting for the audio synthesis.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Setting up the project structure
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Let''s create a similar base project structure with the steps outlined in [Chapter
+    2](042787e6-6f54-4728-8354-e22d87be0460.xhtml), *Anatomy of a Modern AI Application*,
+    including `pipenv`, `chalice`, and the web files:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the terminal, we will create the root project directory, and enter it with
+    the following commands:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will create placeholders for the web frontend by creating a directory named
+    `Website`, and, within this directory, we will create the `index.html` and `scripts.js`
+    files, as shown as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will create a Python 3 virtual environment with `pipenv` in the project''s
+    `root` directory. Our Python portion of the project needs two packages, `boto3`
+    and `chalice`. We can install them with the following commands:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Remember that the Python packages installed via `pipenv` are only available
+    if we activate the virtual environment. One way to do this is with the following
+    command:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, while still in the virtual environment, we will create the orchestration
+    layer as an AWS `chalice` project named `Capabilities`, with the following commands:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'To create the `chalicelib` Python package, issue the following commands:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The initial project structure for Universal Translator should look like the
+    following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: This is the project structure for the Universal Translator; it contains a user
+    interface, orchestration, and the service implementation layers of the AI application
+    architecture that we defined in [Chapter 2](042787e6-6f54-4728-8354-e22d87be0460.xhtml),
+    *Anatomy of a Modern AI Application*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Implementing services
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Let's implement this application layer by layer, starting with the service implementations
+    that contain the crucial AI capabilities that make the Universal Translator tick.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Transcription service – speech-to-text
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the Universal Translator, we are going to translate spoken words from one
+    language to another. The first step of this translation process is to know which
+    words were spoken. For this, we are going to use the Amazon Transcribe service.
+    Amazon Transcribe uses deep learning based **Automatic Speech Recognition** (**ASR**)
+    algorithms to generate text from speech.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s use the AWS CLI to understand how the Transcribe service works. Issue
+    the following command to start a transcription:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s understand the parameters passed in the preceding command:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The job name must be a unique ID for each transcription job.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The language code tells the service which language the audio speech is in. Supported
+    languages, at the time of this writing, are `"en-US"`, `"es-US"`, `"en-AU"`, `"fr-CA"`,
+    `"en-GB"`, `"de-DE"`, `"pt-BR"`, `"fr-FR"`, and `"it-IT"`.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The media format specifies the audio format of the speech; possible values are
+    `"mp3"`, `"mp4"`, `"wav"`, and `"flac"`.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The media parameter takes a URI to the audio recording, for example, an S3 URL.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The output bucket name specifies in which S3 bucket the transcription output
+    should be stored.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: You will need to upload an audio recording to an S3 bucket for this command
+    to work. You can use any available software tool to record an audio clip, or you
+    can skip ahead to the *Speech Service* section of this chapter to learn how to
+    generate speech audio with the Amazon Polly service.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Interestingly, we don't get the transcript in the output of this command. In
+    fact, we can see that the transcription job we just started hasn't finished yet.
+    In the output, `TranscriptionJobStatus` is still `IN_PROGRESS`. The Amazon Transcribe
+    service follows an asynchronous pattern, which is commonly use for longer running
+    tasks.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'So how do we know the job has finished? There is another command as the following
+    shows. We can issue this command to check the status of the job we just started:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding command:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `get-transcription-job` command takes in one parameter here, which is the
+    unique job name that we specified when we started the job.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: When the job status becomes `"COMPLETED"`, `"TranscriptFileUri"` will point
+    to the JSON output file sitting in the output bucket we specified earlier.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'This JSON file contains the actual transcription; here''s an excerpt:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: This is the JSON output we need to parse in our service implementation to extract
+    the transcription text.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The Transcription Service is implemented as a Python class:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The constructor, `__init__()`, creates a `boto3` client to the Transcribe service.
+    The constructor also takes in the Storage Service as a dependency for later use.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `transcribe_audio()` method contains the logic to work with the Amazon Transcribe
+    service.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `extract_transcript()` method is a helper method that contains the logic
+    to parse the transcription JSON output from the Transcribe service.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: Before we dive deeper into the implementation of the `"transcribe_audio()"`
+    and `"extract_transcript()"` methods, let's first take a look at the APIs available
+    for Transcribe in the `boto3` SDK.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As with the AWS CLI commands, the Amazon Transcribe APIs follow the same asynchronous
+    pattern. We can call `"start_transcription_job()"` with `"TranscriptionJobName"`,
+    which is the unique identifier for the transcription job. This method invokes
+    the transcription process; however, it does not return the transcription text
+    when the API call finishes. The `"start_transcription_job()"` API call also returns
+    a `"TranscriptionJobStatus"` field within its response, which can be one of three
+    values, `"IN_PROGRESS"`, `"COMPLETED"`, or `"FAILED"`. We can check on the transcription
+    process with the API call to `"get_transcritpion_job()"` with the previously specified
+    `"TranscriptionJobName"` to check on the job status.
+  prefs: []
+  type: TYPE_NORMAL
+- en: When the job is completed, the transcription text is placed in an S3 bucket.
+    We can either specify an S3 bucket with `"OutputBucketName"` when calling `"start_transcription_job()"`
+    or Amazon Transcribe will place the transcription output in a default S3 bucket
+    with a presigned URL to access the transcription text. If the job failed, another
+    `"FailureReason"` field in the response of `"start_transcription_job()"` or `"get_transcription_job()"`
+    will provide the information about why the job failed.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This asynchronous pattern is commonly used for longer running processes. Instead
+    of blocking the API caller until the process is completed, it allows the caller
+    to perform other tasks and check back on the process later. Think about the customer
+    experience of ordering an item on Amazon.com. Instead of making the customer wait
+    on the website for the item to be packaged, shipped, and delivered, the customer
+    is immediately shown the confirmation message that the order has been placed,
+    and the customer can check on the order status (with a unique order ID) at a later
+    time.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The `"transcribe_audio()"` method in the `TranscriptionService` class works
+    around this asynchronous pattern of the Amazon Transcribe APIs:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following is an overview of the preceding `"transcribe_audio()"` implementation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We used a simple Python dictionary to store three pairs of language codes. The
+    abbreviations "en", "es", and "fr" are the language codes used by our Universal
+    Translator, and they are mapped to the language codes used by Amazon Transcribe,
+    "en-US", "es-US", and "fr-CA" respectively.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This particular mapping is limited to only three languages to simplify our project.
+    However, it does demonstrate the technique for abstracting the language codes,
+    an implementation detail used by third-party services from our application. This
+    way, regardless of the underlying third-party services, we can always standardize
+    the language codes used by our application.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We generated a unique name for each transcription job, called `"job_name"`.
+    This name combines the audio filename and a string representation of the current
+    time. This way, even if the method is called on the same file multiple times,
+    the job name still remains unique.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This method then calls `"start_transcription_job()"` with the unique `"job_name"`,
+    language code, media format, the S3 URI where the recording is located, and finally
+    the output bucket name.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Even though the Transcribe API is asynchronous, we designed our `"transcribe_audio()"`
+    method to be synchronous. To make our synchronous method work with Transcribe's
+    asynchronous APIs, we added a wait loop. This loop waits for the `POLL_DELAY`
+    seconds (set at 5 seconds) and then calls the `"get_transcription_job()"` method
+    repeatedly to check on the job status. The loop runs while the job status is still
+    `"IN_PROGRESS"`.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Finally, when the job completes or fails, we grab the contents of the JSON output
+    file from the specified S3 bucket via the Storage Service. This is why we needed
+    the Storage Service as a dependency in the constructor. We then parse the transcription
+    output with an `"extract_transcript()"` helper method.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Next, we implement the `"extract_transcript()"` helper method, previously used
+    by the `"transcribe_audio()"` method to parse the Amazon Transcribe output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: We have seen the JSON output format earlier with the transcription job we issued
+    with the AWS CLI. This helper method encapsulates the logic to parse this JSON
+    output. It first checks if the job completed successfully, and, if not, the method
+    returns an error message as the transcription text; otherwise, it returns the
+    actual transcription text.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Translation Service – translating text
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Just like in [Chapter 3](504c5915-cf10-4cd0-8f5c-3c75466f7dc6.xhtml), *Detecting
+    and Translating Text with Amazon Rekognition and Translat*e, the Pictorial Translator
+    application, we are going to leverage the Amazon Translate service to provide
+    the language translation capability. As stated earlier, we can reuse the same
+    implementation of the translation service that we used in the Pictorial Translator
+    project:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: The preceding code is the exact same implementation of `TranslationService`
+    from the previous project. For completion, we include this code here. For more
+    details on its implementation and design choices, refer to [Chapter 3](https://cdp.packtpub.com/hands_on_artificial_intelligence_on_amazon_web_services/wp-admin/post.php?post=300&action=edit#post_298),
+    *Detecting and Translating Text with Amazon Rekognition and Translat*e.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Speech Service – text-to-speech
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Once we have the translation text, we are going to leverage the Amazon Polly
+    service to generate a spoken version of the translation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Before we dive into the implementation, let''s generate a short audio speech
+    using this service with the following AWS CLI command:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This command has four mandatory parameters:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The output format is the audio format:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For audio stream, this can be `"mp3"`, `"ogg_vorbis"`, or `"pcm"`.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For speech marks, this will be `"json"`.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The output S3 bucket name is where the generated audio file will be placed.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The text is the text to be used for the text-to-speech synthesis.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The voice ID specifies one of many voices available in Amazon Polly. The voice
+    ID indirectly specifies the language, as well as a female or male voice. We used
+    Ivy, which is one of the female voices for US English.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The Amazon Polly service follows a similar asynchronous pattern we saw earlier
+    with Amazon Transcribe. To check on the status of the task we just started, we
+    issue the following AWS CLI command:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding command, we have the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `"get-speech-synthesis-task"` command takes in just one parameter, the task
+    ID that was passed back in the output of the `"start-speech-synthesis-task"` command.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: When the job status becomes `"completed"`, the `"OutputUri"` will point to the
+    audio file generated in the S3 bucket we specified earlier.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The audio filename is the task ID with the specified audio format file extension,
+    for example,`"e68d1b6a-4b7f-4c79-9483-2b5a5932e3d1.mp3"` for the MP3 format.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Our Speech Service implementation is a Python class with a constructor, `"__init__()"`,
+    and a method named `synthesize_speech()`. Here is its implementation as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: The constructor creates a `boto3` client for the Amazon Polly service, and takes
+    in `StorageService` as a dependency for later use.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the `synthesize_speech()` method, we used the Python `voice_map` dictionary
+    to store five pairs of language codes. The language codes used by our Universal
+    Translator application are `"en"`, `"de"`, `"fr"`, `"it"`, and `"es"`. Instead
+    of language codes, Amazon Polly uses voice ids which are associated with languages
+    as well as female/male voices. The following is an excerpt of Polly voice mappings:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '| **Language** | **Female ID(s)** | **Male ID(s)** |'
+  prefs: []
+  type: TYPE_TB
+- en: '| English, British (en-GB) | Amy, Emma | Brian |'
+  prefs: []
+  type: TYPE_TB
+- en: '| German (de-DE) | Marlene, Vicki | Hans |'
+  prefs: []
+  type: TYPE_TB
+- en: '| French (fr-FR) | Celine, Lea | Mathieu |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Italian (it-IT) | Carla, Bianca | Giorgio |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Spanish, European (es-ES) | Conchita, Lucia | Enrique |'
+  prefs: []
+  type: TYPE_TB
+- en: The `voice_map` dictionary in this method stored the first female voice ID of
+    each language that the Universal Translator supports. This design choice is to
+    simplify our project implementation. For a more polished voice-to-voice translation
+    application, the developer can choose to support more languages and to provide
+    customizations on the different voices. Again, `"voice_map"` abstracts third party
+    service implementation details, the Amazon Polly voice ids, from our application.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Our choices of supported languages are not completely arbitrary here. We specifically
+    picked US English, US Spanish, and Canadian French for the input voices of Amazon
+    Transcribe, and a European variant of the output voices of Amazon Polly. We are
+    targeting customers from North America who are traveling to Europe with our Universal
+    Translator, at least for this **MVP** (**minimal viable product**) version.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Amazon Polly service APIs follow the same asynchronous pattern as its AWS
+    CLI commands, with the `"start_speech_synthesis_task()"` and `"get_speech_synthesis_task()"`
+    API calls. The implementation to synthesize speech looks very similar to the transcription
+    implementation. Once again, we call the `"start_speech_synthesis_task()"` method
+    to start the long-running process, and then use a while loop to make our method
+    implementation synchronous. This loop waits for the `POLL_DELAY` seconds (set
+    at 5 seconds) and then calls the `"get_speech_synthesis_task()"` method to check
+    on the job status, which can be `"scheduled"`, `"inProgress"`, `"completed"`,
+    and `"failed"`. The loop runs while the status is still `"scheduled"` or `"inProgress"`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Notice that, even amongst AWS APIs, the status values are not consistent from
+    service to service. Our speech and transcription services shielded all these implementation
+    details from the rest of our application. In the event that we want to swap in
+    a different speech or transcription service implementation, the changes are isolated
+    in the service implementation layer.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Finally, when the task has the status of `"completed"`, we grab the S3 URI of
+    the synthesized audio translation. By default, the file in the S3 bucket will
+    not be publicly accessible, and our web user interface will not be able to play
+    the audio translation. Therefore, before we return the S3 URI, we used our Storage
+    Service `"make_file_public()"` method to make the audio translation public. We
+    will take a look at how that's done in the Storage Service implementation next.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Storage Service – uploading and retrieving a file
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Most of the Storage Service implementation should look familiar from the previous
+    chapter. The `__init__()`, constructor, the `"get_storage_location()"` method,
+    and the `"upload_file()"` method are all exactly the same as in our previous implementations.
+    We added two new methods to extend the functionalities of `StorageService`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here is the complete implementation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s have a look at the two new class methods:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `get_file()` method takes a filename and returns that file's content as
+    a string. We accomplish this by using the `boto3` S3 client to get the object
+    by key (filename) from the bucket name (Storage Service's storage location), and
+    then decode the file content as a UTF-8 string.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `make_file_public()` method takes a file URI and changes the **Access Control
+    List** (**ACL**) of the target file to allow public access. Since our Storage
+    Service is backed by AWS S3, the method assumes the URI is an S3 URI and parses
+    it accordingly to extract the bucket name and key. With the bucket name and key,
+    it then changes the object's ACL to `'public-read'`.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: All of the methods within the Storage Service are designed to be generic, so
+    that they are more likely to be reused by different applications.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Implementing RESTful endpoints
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Now that the services are implemented, let's move on to the orchestration layer
+    with the RESTful endpoints. Since all of the real work is done by the service
+    implementations, the endpoints are used to stitch the capabilities together and
+    to provide HTTP access for the user interface layer to use these capabilities.
+    The implementation code, therefore, is concise and easy to understand.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The `app.py` file contains the RESTful endpoint implementations. Here''s a
+    snippet from `app.py` that includes the imports, configuration, and initialization
+    code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs: []
+  type: TYPE_PRE
+- en: We will discuss each endpoint implementation in `app.py` in detail in the next
+    few sections.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Translate recording endpoint
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The Translate Recording endpoint is an HTTP POST endpoint that takes JSON parameters
+    in the request''s body. This endpoint takes the recording ID as a parameter, and
+    uses a JSON body to pass in the source and target languages of the translation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The annotation right above this function describes the HTTP request that can
+    access the endpoint:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s look at the preceding code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The annotation right above the `"transcribe_recording()"` describes the HTTP
+    POST request that can access the endpoint.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The function first gets the request data that contains the source language,
+    `"fromLang",` and target language, `"toLang"`, for the translation.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `"transcribe_recording()"` function calls to the Transcription Service to
+    transcribe the audio recording.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Next, this function calls the Translation Service to translate the transcription
+    text.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Finally, this function returns a JSON object containing both the transcription
+    text and the translation information.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Let''s test this endpoint out by running `chalice local` in the Python virtual
+    environment, and then issue the following `curl` command that specifies an audio
+    clip that has already been uploaded to our S3 bucket:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs: []
+  type: TYPE_PRE
+- en: The `<recording id>` identifies the filename of the audio file in our S3 bucket.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This is the JSON that our web user interface will receive and use to display
+    the translation to the user.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Synthesize speech endpoint
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The Synthesize Speech endpoint is an HTTP POST endpoint that takes JSON parameters
+    in the request''s body. This endpoint uses JSON to pass in the target language
+    and the text to be converted into speech. Even though Universal Translator is
+    designed to translate short phrases, the text used to perform text-to-speech on
+    can potentially be long, depending on the application. We are using a JSON payload
+    here, as opposed to the URL parameters, because there''s a limit to the length
+    of URLs. This design decision makes the endpoint more reusable for other applications
+    in the future. It is also a good practice to keep the URLs of your application
+    short and clean:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The annotation right above this function describes the HTTP request that can
+    access this endpoint:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we have the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `synthesize_speech()` function parses the request body as JSON data to get
+    the text and the language for the speech synthesis.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The function then calls the Speech Service's `synthesize_speech()` method.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The function then returns the URL to the audio file. Remember that we already
+    made this audio file publicly accessible before `synthesize_speech()` returned.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Let''s test this endpoint out by running `chalice local` in the Python virtual
+    environment, and then issue the following `curl` command to pass in the JSON payload:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs: []
+  type: TYPE_PRE
+- en: This is the JSON that our web user interface will receive and use to update
+    the audio player for the translation speech.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Upload recording Endpoint
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'This endpoint is essentially the same as the Upload Image Endpoint from [Chapter
+    3](https://cdp.packtpub.com/hands_on_artificial_intelligence_on_amazon_web_services/wp-admin/post.php?post=300&action=edit#post_298),
+    *Detecting and Translating Text with Amazon Rekognition and Translat*e*,* Pictorial
+    Translator application. It uses the same two functions that we implemented in
+    the project without modification. The only change is the `@app.route` annotation,
+    where we created a different HTTP POST endpoint, `/recordings`, that takes uploads
+    via Base64 encoding:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs: []
+  type: TYPE_PRE
+- en: For completion, we include the code for both the endpoint and its helper function
+    here. For more details on their implementations, refer to [Chapter 3](504c5915-cf10-4cd0-8f5c-3c75466f7dc6.xhtml),
+    *Detecting and Translating Text with Amazon Rekognition and Translate*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Implementing the Web User Interface
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Next, let's create a simple web user interface with HTML and JavaScript in the
+    `index.html` and `scripts.js` files in the `Website` directory.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This is what the final web interface looks like:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/ec702afc-5450-4647-9fcf-4e26e20704ba.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: In this application, the user first selects the languages to translate from
+    and to in the Select Languages section. The user then records a short speech in
+    the Record Audio section. In this section, the user can also playback the recording
+    to check for quality. Then the translation process kicks off. When the translation
+    text becomes available, it is displayed to the user in the Translation Text section.
+    Then the text-to-speech generation process is started. When the generated audio
+    translation becomes available, the audio player controls are enabled to allow
+    playback of the translation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We made the design decision to treat the steps of every translation as sequential,
+    meaning only one translation can be performed at a time. There is a certain amount
+    of wait time for each end-to-end translation, mostly due to the speed of Amazon
+    Transcribe and Amazon Polly services. There are a few techniques to improve the
+    user experience during the wait time:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: A most important technique is actually letting the user know that the application
+    is processing. We employed spinners in the Translation Text and Translation Audio
+    sections while the application is processing. The fact that we are displaying
+    spinners gives the clue to the user that these steps are not instantaneous.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Another technique we employed is breaking up the text translation and audio
+    translation steps. Even though the total amount of processing time stays about
+    the same, the user sees progress and intermediate results. Psychologically, this
+    significantly reduces the perception of the wait time for the user.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'We could also reduce the `POLL_DELAY` in our Transcription Service and Speech
+    Service implementations. Currently, the `POLL_DELAY` is set to 5 seconds in both.
+    This results in some delay after the processing is completed, on average 2.5 seconds
+    of delay in each step and on average 5 seconds in total. We can certainly reduce
+    the delay. However, there is a tradeoff here: shorter `POLL_DELAY` will result
+    in more AWS API calls to `"get_transcription_job()"` and `"get_speech_synthesis_task()"`
+    functions.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Finally, we could use real-time services for faster processing if they are available.
+    For example, Amazon Transcribe now supports real-time transcription with a feature
+    called Streaming Transcription. This feature enables applications to pass in live
+    audio streams and receive text transcripts in real time. Unfortunately, at the
+    time of this writing, this feature is not available in the Python AWS SDK. A flexible
+    architecture will allow future service implementations, AWS-based or otherwise,
+    to be more easily swapped in for long term evolution of the application.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: index.html
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Following is the `index.html` file. We are using standard HTML tags here, so
+    the code of the web page should be easy to follow:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This code snippet shows the frame and the title of the web user interface:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In addition to the W3 stylesheets we have used in previous projects, we also
+    included the Font-Awesome CSS for the spinners.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: At the bottom of `index.html`, we have included `MediaStreamRecorder.js` for
+    the audio recording functionality in the web user interface.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The rest of the `index.html` code snippet goes inside the top level `<div>`
+    tag within the `<body>`
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In this code snippet, we have the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We created the `Select Languages` and Record Audio sections of the web user
+    interface.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In the Select Languages section, we hardcoded the supported `fromLang` and `toLang`
+    in `dropdown` lists.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In the Record Audio section, we used the `<audio>` tag to create an audio player
+    with a couple of input buttons to control the recording and translation functions.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Most of the dynamic behaviors are implemented in `scripts.js`.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'To continue with the `index.html` code, execute the following command:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In this code snippet, we have the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We created the `Translation Text` and Translation Audio sections of the web
+    user interface.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In the Translation Text section, we placed a spinner that's initially hidden
+    from view and a couple of `<div>` that will be used to display the translation
+    results.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In the Translation Audio section, we placed another spinner that's also initially
+    hidden from view, along with an audio player that will be used to play back the
+    translation audio.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: scripts.js
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The following is the `scripts.js` file. Much of the Universal Translator''s
+    dynamic behaviors are implemented in JavaScript. `scripts.js` is interacting with
+    the endpoints and stitching together the overall user experience of the application:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This snippet defines the `serverUrl` as the address of `chalice local`. It
+    also defines the `HttpError` to handle the exceptions that might occur during
+    the HTTP requests:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE30]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This code snippet follows the recommended audio recording implementation from
+    [https://github.com/intercom/MediaStreamRecorder](https://github.com/intercom/MediaStreamRecorder)
+    which we will not cover. There are a few details to point out:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Universal Translator supports upto 30 seconds of audio recording, defined in
+    the `maxAudioLength` constant. This length should be sufficient for translation
+    of short phrases.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The audio recording format is set to `audio/wav`, which is one of the formats
+    supported by Amazon Transcribe.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'When the audio recording is completed, we perform two tasks:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We place the recorded bits in a JavaScript File object with the filename `recorded_audio.wav`;
+    this will be the filename of the uploaded recording to S3\. Since the recordings
+    all have the same filename, a previously uploaded recording will be replaced when
+    a new recording is uploaded.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We update the audio player in the Record Audio section with an Object URL to
+    the recorded audio for playback.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE31]'
+  prefs: []
+  type: TYPE_PRE
+- en: The `toggleRecording` function in `scripts.js` makes the first input button
+    beneath the audio player a toggle button. This toggle button starts or stops the
+    audio recording with the `MediaStreamRecorder` implementation preceding.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Next, we define five functions:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`uploadRecording()`: Uploads the audio recording via Base64 encoding to our
+    Upload Recording Endpoint'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`translateRecording()`: Calls our Translate Recording Endpoint to translate
+    the audio recording'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`updateTranslation()`: Updates the Translation Text section with the returned
+    transcription and translation texts'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`synthesizeTranslation()`: Calls our Synthesize Speech Endpoint to generate
+    audio speech of the translation text'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`updateTranslationAudio()`: Updates the audio player in the Translation Audio
+    section with the audio speech URL to enable playback'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: These functions correspond to the sequential steps of the translation user experience.
+    We broke them into individual functions to make the JavaScript code more modular
+    and readable; each function performs a specific task. Let's go through the implementation
+    details of these functions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s have a look at the `uploadRecording()` function as shown in the following
+    code block:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE32]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we have the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `uploadRecording()` function creates a Base64 encoded string from the File
+    object that's holding the audio recording.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This function formats the JSON payload to include the `filename` and `filebytes`
+    that our endpoint is expecting.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: It then sends the HTTP POST request with the JSON payload to our Upload Recording
+    Endpoint URL and returns the response JSON.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This is almost the same code as the `uploadImage()` function in the Pictorial
+    Translator application; the only difference is the File is coming from the audio
+    recorder.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Let''s have a look at the `translateRecording()` function as shown in the following
+    code block:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE33]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we have the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `translateRecording()` function first grabs the values of the languages
+    from the `fromLang` and `toLang` dropdowns in the web user interface.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The function then starts the spinner, signaling the start of the translation
+    process to the user. It then calls our Translate Recording Endpoint and waits
+    for the response.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Let''s have a look at the `updateTranslation()` function as shown in the following
+    code block:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE34]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, the following applies:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: When the Translate Recording Endpoint responds, the `updateTranslation()` function
+    hides the spinner.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The function then updates the `Translation Text` section with the transcription
+    and translation texts.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Let''s have a look at the `synthesizeTranslation()` function as shown in the
+    following code block:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE35]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we have the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `synthesizeTranslation()` function starts the spinner to signal the start
+    of the speech synthesis process to the user.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This function then calls the Synthesize Speech Endpoint and waits for the response.
+    Remember this endpoint is expecting JSON parameters, which it is setting in the
+    `fetch()` call.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Let''s have a look at the `updateTranslationAudio()` function as shown in the
+    following code block:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE36]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we have the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: When the Synthesize Speech Endpoint responds, the `updateTranslationAudio()`
+    function stops the audio synthesis spinner.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This function then updates the audio player with the URL of the synthesized
+    translation audio.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'All preceding five functions are stitched together by the `uploadAndTranslate()`
+    function as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE37]'
+  prefs: []
+  type: TYPE_PRE
+- en: Notice how clear the sequence of events are in the `uploadAndTranslate()` function.
+    By way of a final step in this function, we enable the record toggle button so
+    that the user can start the next translation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The final project structure for the Universal Translator application should
+    be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE38]'
+  prefs: []
+  type: TYPE_PRE
+- en: Now, we have completed the implementation of the Universal Translator application.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Deploying the Universal Translator to AWS
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The deployment steps for the Universal Translator application is the same as
+    the deployment steps of the projects in the previous chapters. We include them
+    here for completion.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, let''s tell Chalice to perform policy analysis for us by setting `"autogen_policy"`
+    to `false` in the `config.json` file in the `.chalice` directory of the project
+    structure:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE39]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we create a new file `policy-dev.json` in the `chalice` directory to
+    manually specify the AWS services the project needs:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE40]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we deploy the Chalice backend to AWS by running the following command
+    within the `Capabilities` directory:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE41]'
+  prefs: []
+  type: TYPE_PRE
+- en: When the deployment is complete, Chalice will output a RESTful API URL that
+    looks similar to `https://<UID>.execute-api.us-east-1.amazonaws.com/api/` where
+    the `<UID>` is a unique identifier string. This is the server URL your frontend
+    app should hit to access the application backend running on AWS.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Next we will upload the `index.html` and `scripts.js` files to this S3 bucket,
+    and then set the permissions to publicly readable. Before we do that, we need
+    to make a change in `scripts.js` as shown in the following. Remember, the website
+    will be running in the cloud now, and won''t have access to our local HTTP server.
+    Replace the local server URL with the one from our backend deployment:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE42]'
+  prefs: []
+  type: TYPE_PRE
+- en: Now the Universal Translator application is accessible to everyone on the Internet!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Discussing the project enhancement ideas
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'At the end of each hands-on project in Part 2, we provide you with a few ideas
+    to extend the intelligence-enabled application. Here are a couple of ideas to
+    enhance the Universal Translator:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Allow users to save default source language and output voice preferences within
+    the application. The user is likely to use his or her native language as the source
+    language and may prefer the translated speech to match the his or her gender and
+    voice.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Add real-time transcription with Amazon Transcribe's Streaming Transcription
+    feature. This feature can greatly reduce the user's wait time for the voice translation.
+    At the time of this writing, the Python SDK does not support this feature, so
+    your implementation will need a different SDK. Our architecture does support a
+    polyglot system, a system written in multiple languages.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The Universal Translator and the Pictorial Translator both provide translation
+    capabilities. These two forms of translation capability can be combined into a
+    single application for travelers and students, especially a mobile app that's
+    always with the user in the real-world.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we built a Universal Translator application to translate spoken
+    speech from one language to another. We combined speech-to-text, language translation,
+    and text-to-speech capabilities from AWS AI services, including Amazon Transcribe,
+    Amazon Translate, and Amazon Polly. This hands-on project continued our journey
+    as AI practitioners to develop the skills and intuition for real-world AI applications.
+    Along the way, we also discussed user experience and product design decisions
+    of our Universal Translator application. Additionally, we demonstrated clean code
+    reuse of Translation Service and Storage Service in the reference architecture
+    defined in [Chapter 2](042787e6-6f54-4728-8354-e22d87be0460.xhtml), *Anatomy of
+    a Modern AI Application*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will leverage more AWS AI services to create solutions
+    that can simplify our lives. Being an AI practitioner is not just about knowing
+    which services or APIs to use, but is also about being skilled in fusing good
+    product and architecture designs with AI capabilities.
+  prefs: []
+  type: TYPE_NORMAL
+- en: References
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'For more information on Performing Speech-to-Text and Vice-versa with Amazon
+    Transcribe and Amazon Polly, please refer to the following links:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[https://www.verizonwireless.com/wireless-devices/accessories/google-pixel-buds/](https://www.verizonwireless.com/wireless-devices/accessories/google-pixel-buds/)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[https://www.washingtonpost.com/news/the-switch/wp/2017/11/15/i-tried-out-googles-translating-headphones-heres-what-i-found/?utm_term=.1cef17d669e2](https://www.washingtonpost.com/news/the-switch/wp/2017/11/15/i-tried-out-googles-translating-headphones-heres-what-i-found/?utm_term=.1cef17d669e2)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[https://github.com/intercom/MediaStreamRecorder](https://github.com/intercom/MediaStreamRecorder)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL

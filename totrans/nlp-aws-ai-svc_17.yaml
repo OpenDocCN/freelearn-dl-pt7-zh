@@ -1,0 +1,968 @@
+- en: '*Chapter 14*: Auditing Named Entity Recognition Workflows'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the previous chapter, we were introduced to an approach for improving the
+    accuracy of the results we wanted to extract from documents using **Amazon** **Augmented
+    AI** (**Amazon** **A2I**). We saw that Amazon A2I can be added to a document processing
+    workflow to review model prediction accuracy. This enabled us to include human
+    reviews in LiveRight's check processing system.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we will walk through an extension of the previous approach
+    by including **Amazon** **Comprehend** for text-based insights thereby demonstrating
+    an end-to-end process for setting up an auditing workflow for your custom named
+    entity recognition use cases. We put together this solution based on our collective
+    experience and the usage trends we have observed in our careers. We expect to
+    be hands-on throughout the course of this chapter, but we have all the code samples
+    we need to get going.
+  prefs: []
+  type: TYPE_NORMAL
+- en: With **machine learning** (**ML**), companies can set up automated document
+    processing solutions that can be trained to recognize and extract custom entities
+    from your documents. This helps you derive unique insights from your text corpus.
+    These insights can help drive strategic decisions. However, there are certain
+    challenges that need to be navigated first. Typically, companies receive large
+    volumes of incoming documents of different templates, with varying contents, in
+    multiple languages. Also, as businesses grow, the type and volume of documents
+    evolve, and very soon you get into a maintenance overhead situation trying to
+    keep the various templates, formats, and rules synchronized with how you are trying
+    to use these documents for your operational needs. Furthermore, you will have
+    to ensure your infrastructure is able to scale to support your processing needs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To solve these challenges, we will show you how you can use the ready-made
+    ML capabilities of **Amazon** **Textract**, leveraging transfer learning to create
+    a custom entity recognition model with **Amazon** **Comprehend**, and auditing
+    the predictions with a human reviewer loop using A2I. We introduced Amazon A2I
+    in detail in [*Chapter 13*](B17528_13_Final_SB_ePub.xhtml#_idTextAnchor151), *Improving
+    the Accuracy of Document Processing Workflows*. In this chapter, we will navigate
+    through the following sections:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Authenticating loan applications
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Building the loan authentication solution
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: For this chapter, you will need access to an **AWS** **account** at [https://aws.amazon.com/console/](https://aws.amazon.com/console/).
+    Please refer to the *Signing up for an AWS account* subsection within the *Setting
+    up your AWS environment* section in [*Chapter 2*](B17528_02_Final_SB_ePub.xhtml#_idTextAnchor027),
+    *Introducing Amazon Textract,* for detailed instructions on how you can sign up
+    for an AWS account and sign in to the **AWS** **Management Console**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The **Python** code and sample datasets for the solution discussed in this
+    chapter can be found at the following link: [https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/tree/main/Chapter%2014](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/tree/main/Chapter%2014).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Check out the following video to see the Code in Action at [https://bit.ly/3GoBh1B](https://bit.ly/3GoBh1B).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Authenticating loan applications
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Financial organizations receive significant volumes of loan applications every
+    day. While the major organizations have switched to fully digital processing,
+    there are still many banks and institutions across the world that rely on paper
+    documents. To illustrate our example, let''s go back to our fictitious banking
+    corporation, *LiveRight Holdings Private Limited*, and review the requirements
+    for this use case:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: LiveRight offers a number of lending products to its customers, which are primarily
+    small-to-medium businesses and individual consumers. To apply for a loan, consumers
+    fill out a paper-based loan/mortgage application form that is validated by a team
+    of experts to determine the authenticity of the application (called the *authenticity-check*
+    process). If found to be a valid applicant, LiveRight's loan processors will request
+    supporting documentation from the consumers for pre-approval qualification.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: LiveRight receives anywhere from 8,000 to 10,000 loan applications a day from
+    potential customers. These applications are forwarded nightly from its various
+    branches to the document inlet center at the company's **headquarters (HQ)**.
+    Today, their authenticity-check process takes approximately 2 to 4 weeks for the
+    team to scan all the applications and determine whether they are good enough to
+    be forwarded to the loan processors, causing significant delays even at the pre-approval
+    stage. This has irked many customers who are taking their business elsewhere.
+    LiveRight has hired you to automate the authenticity-check process with a target
+    to reduce the processing time to 24 hours within the first 3 months of the solution
+    being implemented.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: As the enterprise architect for the project, you decide to use Amazon Textract
+    to leverage its pre-trained ML model for text extraction, the **Custom Entity
+    Recognizer** feature of Amazon Comprehend to incrementally create your own entity
+    recognizer for loan application checks without the need to build complex **natural
+    language processing** (**NLP**) algorithms, and A2I to set up a human review workflow
+    to monitor predictions from your entity recognizer and send feedback to the recognizer
+    to improve its detection capabilities for entities unique to the use case.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'You plan to have the private human workflow available for the first 2 to 3
+    months and subsequently disable it, at which point the document processing workflow
+    will become fully automated. As the human team checks and updates the entity labels,
+    you need to determine the authenticity check decision to be either *APPROVE*,
+    *SUMMARY APPROVE*, or *REJECT*. This decision, along with the relevant content
+    from the loan application, should be stored in an **Amazon** **DynamoDB** (a fully
+    managed, low-latency **NoSQL** database service) table for loan processors to
+    access the content and enable pre-approval qualification. The components of the
+    solution we will build are shown in the following figure:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 14.1 – Loan approval document processing solution architecture'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_14_01.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 14.1 – Loan approval document processing solution architecture
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will be walking through our solution using an **Amazon** **SageMaker** **Jupyter**
+    **notebook** that will allow us to review the code and results as we execute it
+    step by step. The solution build includes the following tasks:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: As a first step, we will create an Amazon Comprehend custom entity recognizer
+    based on the training dataset provided in our GitHub repository.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'We will then create a private labeling workforce and add a team member who
+    will be responsible for reviewing predictions from the Amazon Comprehend custom
+    entity recognizer, using the Amazon A2I service. We will create the private workforce
+    using the *labeling* workforces feature available in the Amazon SageMaker console.
+    For more details, please refer to this link: [https://docs.aws.amazon.com/sagemaker/latest/dg/sms-workforce-private.html](https://docs.aws.amazon.com/sagemaker/latest/dg/sms-workforce-private.html).'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We start the solution workflow by inspecting our sample input loan application
+    available in our GitHub repository. We display the image of the loan application
+    in our notebook and look at the contents.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Next, we use Amazon Textract to extract the key-value pairs from our input document.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We then create an inference request string from the key-value pairs and prepare
+    it to send to Amazon Comprehend custom entity detection.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Next, we set up an Amazon Comprehend real-time endpoint and invoke it to detect
+    entities from our inference request string.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We will set up an Amazon A2I human review loop using the entity recognition
+    task UI template and send the results of the custom entity detection to an Amazon
+    A2I human loop.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Logging in as a private worker, we will review the detected entities and modify
+    the labels as required.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We will then check whether a new entity detection event occurred or whether
+    an existing entity detection was modified, update the entity list, and send it
+    back to Amazon Comprehend for retraining our entity detection model.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Based on the output from the human loop review, we will also determine a decision
+    for the loan application and upload this to a **DynamoDB** table for downstream
+    processing.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Now that we've got the context for the exercise and gone over our intended process,
+    let's start building the solution.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Building the loan authentication solution
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the previous section, we introduced the loan application approval use case,
+    covered the architecture of the solution we will be building, and briefly walked
+    through the solution components and workflow steps. In this section, we will get
+    right down to action and start executing the tasks to build our solution. But
+    first, there are pre-requisites we will have to take care of.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Setting up to solve the use case
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'If you have not done so in the previous chapters, you will first have to create
+    a Jupyter notebook and set up **Identity and Access Management** (**IAM**) permissions
+    for that notebook role to access the AWS services we will use in this notebook.
+    After that, you will need to clone the GitHub repository ([https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services)),
+    create an **Amazon** **S3** bucket ([https://aws.amazon.com/s3/](https://aws.amazon.com/s3/)),
+    and provide the bucket name in the notebook to start execution. Please follow
+    the next steps to complete these tasks before we can execute the cells from our
+    notebook:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Note:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Please ensure you have completed the tasks mentioned in the *Technical requirements*
+    section.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To create your Jupyter Notebook instance, follow the instructions in the *Create
+    an Amazon SageMaker Jupyter Notebook instance* section in the *Setting up your
+    AWS environment* section in [*Chapter 2*](B17528_02_Final_SB_ePub.xhtml#_idTextAnchor027),
+    *Introducing Amazon Textract*.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: IAM role permissions while creating Amazon SageMaker Jupyter notebooks
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Accept the default for the IAM role at the notebook creation time to allow access
+    to any S3 bucket.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Once you create the notebook instance and its status is **InService**, click
+    on **Open Jupyter** in the **Actions** menu, heading for the notebook instance.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: This will take you to the **home** folder of your notebook instance.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click on **New** and select **Terminal**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In the `cd SageMaker`, and then, type `git clone` [https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services).
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Now, exit the Terminal window and go back to the `Natural-Language-Processing-with-AWS-AI-Services`.
+    Click this folder to bring up the chapter folders and click `Chapter 14`. Open
+    this folder by clicking. You should see a notebook called `chapter14-auditing-workflows-named-entity-detection-forGitHub.ipynb`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Open this notebook by clicking it.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Follow through the steps in this notebook that correspond to the next few subheadings
+    in this section by executing one cell at a time. Please do read the descriptions
+    provided preceding each notebook cell.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Additional IAM pre-requisites
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'To train the Comprehend custom entity recognizer, to set up real-time endpoints,
+    we have to enable additional policies and also update the trust relationships
+    for our SageMaker notebook role. Please refer to *Changing IAM permissions and
+    trust relationships for the Amazon SageMaker Notebook execution role* in the *Setting
+    up your AWS environment* section in [*Chapter 2*](B17528_02_Final_SB_ePub.xhtml#_idTextAnchor027),
+    *Introducing Amazon Textract,* for more detailed instructions on how to execute
+    the following steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Please attach `TextractFullAccess`, `ComprehendFullAccess`, and `AmazonAugmentedAIFullAccess`
+    policies to your Amazon SageMaker Notebook IAM role.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Add an `IAM:PassRole` permission as an inline policy to your SageMaker Notebook
+    execution role:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Finally, update the trust relationships:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Now that we have set up our notebook and set up the IAM role to run the walkthrough
+    notebook, in the next section, we will train an Amazon Comprehend entity recognizer.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Training an Amazon Comprehend custom entity recognizer
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Let''s begin by training a custom entity recognizer to detect entities unique
+    to this solution. Amazon Comprehend offers pre-trained entity recognition features
+    that we learned about in the previous chapter. For this solution, we will use
+    the **Custom Entity Recognition** feature of Amazon Comprehend that allows you
+    to train a recognizer for custom needs using incremental training. All we have
+    to do is provide a list of entities we want it to recognize, and a raw dataset
+    containing the lines of text comprising the context that will be detected as entities.
+    Open the notebook and execute the steps as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Execute the cell under **Step 0 – Import Libraries** to ensure we have the
+    libraries we need for the notebook. Note that in this cell you are getting the
+    Amazon SageMaker execution role for the notebook, along with the SageMaker session.
+    Please ensure you create an Amazon S3 bucket ([https://docs.aws.amazon.com/AmazonS3/latest/userguide/create-bucket-overview.html](https://docs.aws.amazon.com/AmazonS3/latest/userguide/create-bucket-overview.html))
+    and provide the bucket name in the following line:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Execute the cells under `boto3` handle for Amazon Comprehend:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'b) Then, define the variables for the S3 prefixes and upload the training dataset
+    and the entity list to the S3 bucket:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'c) Continue executing the rest of the cells in the notebook to declare the
+    variables with the full S3 **URIs** for our input documents, define the input
+    object for the entity recognizer, and finally, call the Comprehend API to create
+    the custom entity recognizer. This will start the training job:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'd) Print the results of the custom entity recognizer training job:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Check the status of the training job periodically by visiting the Amazon Comprehend
+    AWS console ([https://console.aws.amazon.com/comprehend/v2/home?region=us-east-1#entity-recognition](https://console.aws.amazon.com/comprehend/v2/home?region=us-east-1#entity-recognition)).
+    The training should take approximately 15 to 30 minutes. Time for a coffee/snack
+    break.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Creating a private team for the human loop
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Refer to *Step 2* in the notebook ([https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2014/chapter14-auditing-workflows-named-entity-detection-forGitHub.ipynb](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2014/chapter14-auditing-workflows-named-entity-detection-forGitHub.ipynb))
+    for the instructions we will execute now.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this step, we will create a private team using the Amazon SageMaker labeling
+    workforce console, and we will add ourselves to the private team as a worker.
+    This is required so we can log in to the labeling task UI when we reach the Amazon
+    A2I step in this solution. Please execute the following tasks:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Log in to the AWS Management Console if not already done (please refer to the
+    *Technical requirements* section at the start of this chapter for more details),
+    type `amazon sagemaker` in the **Services** search bar, and go to the Amazon SageMaker
+    console. Once there, on the left of the UI, click on **Ground Truth** and then
+    **Labeling workforces**. On this screen, select **Private** from the tab at the
+    top and click on **Create private team**.![Figure 14.2 – SageMaker labeling workforces
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_14_02.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 14.2 – SageMaker labeling workforces
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Enter a name for your private team in the **Team name** field and leave the
+    default selection of **Create a new Amazon Cognito user group** in the **Add workers**
+    section. Scroll down and click **Create private team**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'You will now be returned to the `nlp-doc-team`, should be visible under `arn:aws:sagemaker:region-name-123456:workteam/private-crowd/team-name`.
+    Please copy the ARN from the screen and provide this in the notebook cell:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Next, scroll down in the previous screen, go to the `no-reply@verificationemail.com`.
+    Follow the instructions to complete the sign-up process.![Figure 14.3 – Inviting
+    new workers
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_14_03.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 14.3 – Inviting new workers
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Now, add yourself to the private team by clicking on **nlp-doc-team** and then
+    clicking on **Add workers to team**. Select your email address from the list and
+    click on **Add workers to team**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 14.4 – Adding workers to team'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_14_04.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 14.4 – Adding workers to team
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we have added the private team, let's review our loan application by
+    extracting the contents using Amazon Textract.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Extracting sample document contents using Amazon Textract
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'This section corresponds to *Step 3* in the notebook: [https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2014/chapter14-auditing-workflows-named-entity-detection-forGitHub.ipynb](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2014/chapter14-auditing-workflows-named-entity-detection-forGitHub.ipynb).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this step, we will review the sample loan application, and then use Amazon
+    Textract to extract the key-value pairs or form data that is of interest to our
+    solution, creating an inference request CSV file to pass as an input to our Comprehend
+    custom entity recognizer for detecting entities. Please follow through using the
+    notebook and execute the cells to perform the tasks required for this step:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Review the input document by executing the code in the notebook cell, as shown
+    here:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Let''s now load this image into our S3 bucket:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We will extract the key-value pair data from this document to transform and
+    create a request string for inference using the Amazon Textract **AnalyzeDocument**
+    API. This accepts image files (PNG or JPEG) as an input. To use this example with
+    a PDF file, or for processing multiple documents together, you can use the **StartDocumentAnalysis**
+    API: [https://docs.aws.amazon.com/textract/latest/dg/API_StartDocumentAnalysis.html](https://docs.aws.amazon.com/textract/latest/dg/API_StartDocumentAnalysis.html).'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'We will use the `amazon-textract-response-parser` library to help with the
+    JSON response from Textract. Install it by typing the following:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now, let''s use the Textract `boto3` Python SDK to retrieve the contents of
+    the document, as shown here:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We will now extract the key-value pairs we need for our solution. We will not
+    use the checkbox fields but only those fields with values in them. Also, we will
+    filter out the fields that we actually need in the next few steps:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now that we have loaded the results from Textract into a **p****andas** **DataFrame**
+    ([https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html)),
+    we will run a series of operations to filter the columns we are interested in
+    from the loan application. Execute all the cells under the *Extract contents for
+    sending to Comprehend CER* section in the notebook. We should see the final filtered
+    list of fields as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 14.5 – Finalized list of fields we will use for Comprehend entity
+    recognition'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_14_05.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 14.5 – Finalized list of fields we will use for Comprehend entity recognition
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, let's cover detecting entities using the Amazon Comprehend custom entity
+    recognizer.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Detecting entities using the Amazon Comprehend custom entity recognizer
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Now that we have what we need from the loan application, let''s construct a
+    string that will become our inference request to the Comprehend custom entity
+    recognizer we trained at the beginning of this walkthrough (*Step 1* in the notebook).
+    Before we can detect the entities, we need to create a real-time endpoint and
+    associate that with our entity recognizer. When you deploy this solution in batch
+    mode or use it for processing multiple documents, you will use the Amazon Comprehend
+    **StartEntitiesDetection** API: [https://docs.aws.amazon.com/comprehend/latest/dg/API_StartEntitiesDetectionJob.html](https://docs.aws.amazon.com/comprehend/latest/dg/API_StartEntitiesDetectionJob.html).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Please follow the instructions in this section by executing the cells in *Step
+    4* in the notebook: [https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2014/chapter14-auditing-workflows-named-entity-detection-forGitHub.ipynb](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2014/chapter14-auditing-workflows-named-entity-detection-forGitHub.ipynb):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will now create a request string that will be sent to the Amazon Comprehend
+    custom entity recognizer model to detect the entities we trained it on. This string
+    comprises data that we extracted from our loan application document using Amazon
+    Textract in the previous step. We will transpose our pandas DataFrame, add a document
+    number column, and use it to prepare the inference request string:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Next, let''s create a real-time endpoint for Comprehend:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We see the endpoint Arn printed as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Check the status of the endpoint by navigating to the **Amazon Comprehend**
+    console, go to **custom entity recognition** in the left menu, click on your recognizer,
+    and scroll down to verify your real-time endpoint has been created successfully.
+    If the endpoint is not active, the code in the next cell in the notebook will
+    fail. It may take about *15 minutes* for the endpoint to be ready:![Figure 14.6
+    – Waiting for an endpoint to be ready
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_14_06.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 14.6 – Waiting for an endpoint to be ready
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'When the endpoint is **Ready**, execute the code in the notebook cell to send
+    the inference request to the custom entity recognizer, as shown here:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We see the output as shown in the following code block. This display shows
+    that our Comprehend entity recognition has identified all these attributes that
+    represent a valid person:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The last task in *Step 4* is to prepare a `human_loop_input` list to be used
+    with the Amazon A2I human workflow that we will create in the next step:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: In this section, we were able to detect entities with the Amazon Comprehend
+    entity recognizer. In the next section, we will walk through how you can use Amazon
+    A2I to review the predictions and make changes to the predicted versus actual
+    entity.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Setting up an Amazon A2I human workflow loop
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'For the code blocks discussed here, refer to *Step 5* in the notebook: [https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2014/chapter14-auditing-workflows-named-entity-detection-forGitHub.ipynb](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2014/chapter14-auditing-workflows-named-entity-detection-forGitHub.ipynb).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now that we have the detected entities from our Comprehend custom entity recognizer,
+    it''s time to set up a human workflow using the *private team* we created in *Step
+    2* and send the results to the Amazon A2I human loop for review, and any modifications/augmentation
+    as required. Subsequently, we will update the `entitylist.csv` file that we originally
+    used to train our Comprehend custom entity recognizer so we can prepare it for
+    retraining based on the human feedback:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s start by initializing some variables we will need for the next few tasks:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Now, we will create the human task UI by executing the next cell in the notebook
+    (refer to *Step 5* in the notebook). We selected the task template for named entity
+    recognition from the Amazon A2I Sample Task UI GitHub repository ([https://github.com/aws-samples/amazon-a2i-sample-task-uis](https://github.com/aws-samples/amazon-a2i-sample-task-uis))
+    and customized it for our needs.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Create the task UI based on the template:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We get the output as shown:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Execute the next couple of cells in the notebook to create the **Amazon A2I
+    flow definition** that manages the orchestration of tasks to workforces and the
+    collection of the output data. We are now ready to start the human workflow loop.
+    Execute the next code block in the notebook to start the human loop.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Check the status of your human loop by executing the code block in the next
+    cell in the notebook – it should be `InProgress`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We get the output as shown:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: In the next section, we will walk through how your private reviewers can log
+    in to the console and review the entities detected by Amazon Comprehend.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Reviewing and modifying detected entities
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Now, we will log in to the **Amazon** **A2I** **Task UI** to review, change,
+    and re-label the detected entities from our Comprehend custom entity recognizer.
+    Execute the cells in the notebook based on the instructions discussed in this
+    sectio:.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s log in to the worker portal to review the predictions and modify them
+    as required. Execute the following code to get the URL to our Task UI:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Once you log in you will see a **LOAN APPLICATION REVIEW** task. Select it and
+    click on **Start working**:![Figure 14.7 – Amazon A2I task list
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_14_07.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 14.7 – Amazon A2I task list
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: You should see the Amazon A2I labeling UI with the list of entities detected
+    by Comprehend custom entity recognition highlighted along with the labels, as
+    shown in the following screenshot:![Figure 14.8 – Amazon A2I labeling UI ready
+    for human review](img/B17528_14_08.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 14.8 – Amazon A2I labeling UI ready for human review
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Now, select the **GHOST** label from the labels on the right then assign this
+    to the unlabeled **Country:US** entry in the UI and click **Submit**.![Figure
+    14.9 – Adding/modifying labels to the detected entities and clicking Submit](img/B17528_14_09.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 14.9 – Adding/modifying labels to the detected entities and clicking
+    Submit
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Continue executing the cells in the notebook to check the status of the human
+    loop again (this should show a status of `entitylist.csv` file and trigger a retraining
+    of our Comprehend custom entity recognizer. Let''s verify whether new entities
+    are present:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We see the output as shown in the following code block. Though Comprehend detected
+    `Years` and `Cell Phone` to be a `PERSON` entity, it was not present in the original
+    `entitylist.csv` file, and so it will be updated with these values and the Comprehend
+    entity recognition will be re-trained:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: This response is saved automatically in the Amazon S3 bucket JSON file in the
+    form of labels. In the next section, we will use these modified or reviewed labels
+    to retrain our custom entity recognizer model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Retraining Comprehend custom entity recognizer
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'We will now retrain our Comprehend custom entity recognizer. The cells to be
+    executed are similar to what we did when we originally trained our recognizer:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Execute the cells in *Step 7* of the notebook: [https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2014/chapter14-auditing-workflows-named-entity-detection-forGitHub.ipynb](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2014/chapter14-auditing-workflows-named-entity-detection-forGitHub.ipynb).'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'After declaring variables, we execute the following code block to start the
+    training:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We see the output shown that indicates the retraining job has been submitted.
+    The metadata has been removed from the response for clarity:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: As before, go to the Amazon Comprehend console to check the status of the entity
+    recognizer, and verify that the status has changed to **Trained**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Please repeat *Steps 3* to *5* from the notebook to test the newly retrained
+    recognizer.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Let's now execute the steps to store the results of the authentication check
+    for access by applications downstream.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Storing decisions for downstream processing
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Now we understand how to set up an auditing workflow, let's execute the steps
+    needed to persist the results from our entity detection so we can send them to
+    a downstream application. If the majority or all of the entities are of the `GHOST`
+    type, we will send a *rejection* decision, if the majority is of the `PERSON`
+    type, we will send a *summary approval*, if all of them are `PERSON`, we will
+    send *approval*, and if they are evenly distributed, we will send a *rejection*
+    decisio:.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, let''s check how many entities were detected to be of the `PERSON` or
+    `GHOST` type from A2I. Execute the first cell in *Step 8* from the notebook. We
+    get the output as shown:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Let''s apply the preceding rules to determine the decision for this loan application:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE30]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: We get the output `APPROVE`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Store the decision in an Amazon DynamoDB table (reminder: a managed database
+    service for storing and accessing key-value pairs with very low latency). Loan
+    processors can use this data to start the pre-qualification process. Execute the
+    next cell in the notebook to create the DynamoDB table.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Now, execute the next cell in the notebook to insert the contents of the loan
+    application and the decision into the table. We see the values inserted into the
+    DynamoDB table as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 14.10 – Loan authenticity check status in DynamoDB'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_14_10.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 14.10 – Loan authenticity check status in DynamoDB
+  prefs: []
+  type: TYPE_NORMAL
+- en: That concludes the solution build. Please refer to the *Further reading* section
+    for more examples of approaches for this use case, as well as the code sample
+    for building a similar solution using **AWS** **Lambda** and **CloudFormation**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we learned how to build an auditing workflow for named entity
+    recognition to solve real-world challenges that many organizations face today
+    with document processing, using Amazon Textract, Amazon Comprehend, and Amazon
+    A2I. We reviewed the loan authentication use case to validate the documents before
+    they can be passed to a loan processor. We considered an architecture based on
+    conditions such as reducing the validation time from 2 to 4 weeks to 24 hours
+    within the first 3 months of solution implementation. We assumed that you, the
+    reader, are the solution architect assigned to this project, and we reviewed an
+    overview of the solution components along with an architectural illustration in
+    *Figure 4.1*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We then went through the pre-requisites for the solution build, set up an Amazon
+    SageMaker Notebook instance, cloned our GitHub repository, and started executing
+    the code in the notebook based on instructions from this chapter. We covered training
+    an Amazon Comprehend custom entity recognizer, setting up our private work team
+    using Amazon SageMaker labeling workforces, extracting the relevant content from
+    the loan application using Amazon Textract, sending it to the Comprehend custom
+    entity recognizer for detecting entities, forwarding the detection results to
+    an Amazon A2I human review loop, completing the human task steps using the UI,
+    reviewing the results of the review, updating the entities list to retrain the
+    custom entity recognizer, and finally, storing the document contents and the loan
+    validation decision to an Amazon DynamoDB table for downstream processing.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will be building a classical use case that's tailor-made
+    for NLP – namely, the active learning workflow for text classification. We will
+    be training a text classification model using Amazon Comprehend custom for labeling
+    documents into classes, review predictions using Amazon A2I, and retrain the classifier
+    based on feedback from the Amazon A2I human review loop. We will demonstrate how
+    the solution evolves in intelligence in being able to improve classification accuracy
+    because of the feedback loop.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Further reading
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '*Building an end-to-end intelligent document processing solution using AWS*
+    by Purnesh Tripathi: [https://aws.amazon.com/blogs/machine-learning/building-an-end-to-end-intelligent-document-processing-solution-using-aws/](https://aws.amazon.com/blogs/machine-learning/building-an-end-to-end-intelligent-document-processing-solution-using-aws/)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Setting up human review of your NLP-based entity recognition models with Amazon
+    SageMaker Ground Truth, Amazon Comprehend, and Amazon A2I* by Mona Mona and Prem
+    Ranga: [https://aws.amazon.com/blogs/machine-learning/setting-up-human-review-of-your-nlp-based-entity-recognition-models-with-amazon-sagemaker-ground-truth-amazon-comprehend-and-amazon-a2i/](https://aws.amazon.com/blogs/machine-learning/setting-up-human-review-of-your-nlp-based-entity-recognition-models-with-amazon-sagemaker-ground-truth-amazon-comprehend-and-amazon-a2i/)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Announcing model improvements and lower annotation limits for Amazon Comprehend
+    custom entity recognition* by Prem Ranga, Chethan Krishna, and Mona Mona: [https://aws.amazon.com/blogs/machine-learning/announcing-model-improvements-and-lower-annotation-limits-for-amazon-comprehend-custom-entity-recognition/](https://aws.amazon.com/blogs/machine-learning/announcing-model-improvements-and-lower-annotation-limits-for-amazon-comprehend-custom-entity-recognition/)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL

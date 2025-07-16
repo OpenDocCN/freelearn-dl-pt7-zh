@@ -1,0 +1,1170 @@
+- en: Extracting Information from Text with Amazon Comprehend
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we will build an application that can automatically extract
+    contact information from photos of business cards. With this application, we aim
+    to reduce tedious manual work by using automation. We will use Amazon Rekognition
+    to detect text in the business card photos and then use Amazon Comprehend to extract
+    structured information such as the name, address, and phone number. We will demonstrate
+    that the goal of automation is not always full autonomy; there is some value in
+    keeping the human component in the solution.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, we will cover the following topics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding the role of Artificial Intelligence in our workplaces
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Performing information extraction with Amazon Comprehend and Amazon Comprehend
+    Medical
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Storing and retrieving data in AWS DynamoDB
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Building serverless AI applications with AWS services, RESTful APIs, and web
+    user interface
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Reusing existing AI service implementations within the reference architecture
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Discussing human-in-the-loop interface design in automation solutions
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: This book's GitHub repository, which contains the source code for this chapter,
+    can be found at [https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services](https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Working with your Artificial Intelligence coworker
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '**Artificial Intelligence** (**AI**) is advancing the progress of automation
+    in our lives. When most people think about intelligent automation they think of
+    smart thermostats, vacuum robots, or autonomous vehicles that help us live better.
+    There are also tremendous opportunities for us to use intelligent automation to
+    help us work better. AI can complement human labor in the workplace to provide
+    value for businesses, contribute to economic growth, and redirect human labor
+    toward creative work. One area hungry for automation progress is manual back office
+    processes. There are many tasks still fulfilled by humans behind the scenes when
+    we deposit checks, when we sign up for services, and when we buy things online.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: There certainly are concerns about losing jobs to automation; however, we have
+    also observed improved worker morale when menial efforts are automated. Most of
+    the manual back office processes are tedious and repetitive. For example, there
+    are people whose jobs involve reading through multiple documents, identifying
+    certain pieces of information within them, and then manually entering the information
+    into computer systems. These back-office document processing tasks are also called
+    "swivel-chair" processes because the workers are constantly swiveling in their
+    chairs to switch between the documents and the computer screens. We could use
+    AI to automate the documentation process by reading the documents using **Optical
+    Character Recognition** (**OCR**) and then extracting information using **Natural
+    Language Processing** (**NLP**).
+  prefs: []
+  type: TYPE_NORMAL
+- en: However, automating document processing is not trivial. Paper documents must
+    be scanned first. Depending on the quality of the document image, the complexity
+    of the document structure, or even handwritten text within the documents, it can
+    be difficult to guarantee processing accuracy. For certain business environments
+    and use cases, anything less than 100% accuracy is not acceptable. In such cases,
+    automation developers must design with failover to manual intervention in mind
+    so that humans can step in and take over. For example, an automation solution
+    can extract the dollar amount on a check during a bank deposit. Inaccuracies during
+    this business process can have major consequences for the bank customer. To ensure
+    the correct dollar amount is deposited, the automation solution could extract
+    the value and then show the extracted amount to a human operator before the deposit
+    is completed. This solution leverages AI capabilities to automate the task but
+    also allows humans to intervene in the event of errors.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we will be implementing an application, Contact Organizer,
+    to automate document processing. More specifically, this application helps us
+    extract contact information from scanned business cards. To ensure accuracy, our
+    application will provide a human-in-the-loop user interface so that automatically
+    extracted information can be reviewed and corrected by the user before it is saved.
+    This human-in-the-loop user interface is a popular approach because it improves
+    automation accuracy with human judgement.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding the Contact Organizer architecture
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The Contact Organizer application will provide a web user interface for users
+    so that they can upload an image of a business card. The contact information will
+    be extracted and categorized by the application. The automatically extracted contact
+    information will then be displayed to the user in the web user interface. The
+    user can review and correct the information before saving it to a permanent contact
+    store.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following diagram shows the architecture''s design, highlighting the layers
+    and services of the Contact Organizer application. The following architecture
+    design should look very familiar by now; the layers and components follow the
+    same reference architecture template we defined in [Chapter 2](042787e6-6f54-4728-8354-e22d87be0460.xhtml),
+    *Anatomy of a Modern AI Application*:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/0b0b3b30-5bd6-4d8f-91e9-2317d7f25ffc.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'In this application, the web user interface will interact with three RESTful
+    endpoints in the orchestration layer:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Upload Recording Endpoint** will delegate the image upload to our **Storage
+    Service**.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Extract Information Endpoint** will use the **Recognition Service** and **Extraction
+    Service**:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The Recognition Service is reused from [Chapter 3](504c5915-cf10-4cd0-8f5c-3c75466f7dc6.xhtml),
+    *Detecting and Translating Text with Amazon Rekognition and Translate*, when we
+    looked at the Pictorial Translator project.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The Extraction Service will use both Amazon Comprehend and Amazon Comprehend
+    Medical to extract and categorize the diverse contact information such as name,
+    address, and phone number.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Save/Get Contacts Endpoints** will write to/read from the **Contact Store**,
+    which is backed by the AWS DynamoDB NoSQL database.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In Contact Organizer, there are several opportunities for us to reuse components
+    we already implemented in previous projects. In the orchestration layer, we can
+    reuse the Upload Recording Endpoint. In the service implementation layer, we can
+    reuse the Storage and Recognition services.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Component interactions in Contact Organizer
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The following interaction diagram walks through the Contact Organizer''s business
+    logic workflow between the application''s components:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/bad3f779-841b-4e53-94a8-2cf2bd441813.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'From the user''s perspective, we have the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: When the Contact Organizer web user interface first loads, it will get and display
+    all of the existing contacts.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The user can then upload a photo of a business card via the web user interface.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'After the upload is completed, two steps are kicked off:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The uploaded business card image is displayed in the user interface.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The automated contact information extraction process is started.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: When the information extraction is completed, the extracted information is displayed
+    to the user for review and correction.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: After the user has reviewed and corrected the information, the contact information
+    can be persisted after the user clicks the **Save** button.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'We designed the Contact Organizer to have a human-in-the-loop user interface,
+    as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The uploaded business card image is displayed back to the user so that they
+    can see the original contact information.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The automatically extracted contact information is also displayed to the user,
+    along with the business card image.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The user has the option to change or correct any of the extracted information
+    from the user interface.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The user has to explicitly click the Save button, which acts as confirmation
+    from a human that the contact information is correct.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: This human-in-the-loop user interface should not just be an afterthought in
+    an intelligence-enabled solution either. Our rule of thumb for evaluating the
+    design of such interfaces is that the solution should be fully functional, even
+    if the AI capabilities are not present alongside the user interface.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Setting up the project structure
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Create a similar base project structure to the one we outlined in [Chapter
+    2](https://cdp.packtpub.com/hands_on_artificial_intelligence_on_amazon_web_services/wp-admin/post.php?post=301&action=edit#post_299),
+    *Anatomy of a Modern AI Application*, including `pipenv`, `chalice`, and the web
+    files:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the terminal, we will create the `root` project directory and enter it with
+    the following commands:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will create placeholders for the web frontend by creating a directory named
+    `Website`. Within this directory, we will create two files, `index.html` and `scripts.js`,
+    as shown in the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will create a Python 3 virtual environment with `pipenv` in the project''s
+    root directory. Our Python portion of the project needs two packages, `boto3`
+    and `chalice`. We can install them with the following commands:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Remember that the Python packages that are installed via `pipenv` are only
+    available if we activate the virtual environment. One way to do this is with the
+    following command:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, while still in the virtual environment, we will create the orchestration
+    layer as an AWS Chalice project named `Capabilities` with the following commands:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'To create the `chalicelib` Python package, issue the following commands:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The initial project structure for Contact Organizer should look as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: This project structure for Contact Organizer contains the user interface, orchestration,
+    and service implementations layers of the AI application architecture that we
+    defined in [Chapter 2](https://cdp.packtpub.com/hands_on_artificial_intelligence_on_amazon_web_services/wp-admin/post.php?post=301&action=edit#post_299),
+    *Anatomy of a Modern AI Application*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Implementing services
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Let's implement the Contact Organizer layer-by-layer, starting with the service
+    implementations that contain crucial AI capabilities. Many of the capabilities
+    we need for this project, such as detecting text in images and handling file uploads,
+    were implemented in previous projects. Services with truly new capabilities are
+    the Extraction Service and Contact Store.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Recognition Service – text detection
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Once again, we are going to leverage the Amazon Rekognition Service to provide
+    the capability to detect text in an image. We can reuse the exact same implementation
+    of our Recognition Service from the Pictorial Translator project in [Chapter 3](504c5915-cf10-4cd0-8f5c-3c75466f7dc6.xhtml),
+    *Detecting and Translating Text with Amazon Rekognition and Translate*, as shown
+    in the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: For more details on its implementation and the design choices of the Recognition
+    Service, refer to [Chapter 3](504c5915-cf10-4cd0-8f5c-3c75466f7dc6.xhtml), *Detecting
+    and Translating Text with Amazon Rekognition and Translate*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: There is a new Amazon Textract service that can automatically extract text and
+    data from scanned documents. Amazon Textract might work just as well for extracting
+    text from business cards, but there are a few things to consider. Even though
+    business cards are document-like, our application is processing photos of business
+    cards, not scanned images.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Amazon Textract is generally available now; replacing AWS Rekognition because
+    of its text extraction capability will make a good feature enhancement exercise
+    for this hands-on project. Think about which components and interactions would
+    be impacted by this change in our architecture.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Extraction Service – contact information extraction
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: We are going to leverage Amazon Comprehend to extract the contact information
+    from the text that's detected on the business cards. First, let's explore this
+    service using the AWS CLI.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Contact Organizer needs to extract information from our business cards.
+    Typically, text on business cards contains information such as the person's name,
+    job title, organization, address, phone number, email, and so on.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following is example text from a made-up contact:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s see what Amazon Comprehend can extract from this example text. Issue
+    the following AWS CLI command:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: Amazon Comprehend extracted some pieces of information, including the organization
+    (`ORGANIZATION`), the person's name (`PERSON`), and the address (`LOCATION`).
+    However, AWS Comprehend extracted the email and the phone number as `OTHER`, incorrectly
+    extracted the zip code as a `DATE`, and failed to extract the job title.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Even though the extraction results are not perfect, they can still be leveraged
+    by our Contact Organizer application to reduce manual effort on the part of users.
+  prefs: []
+  type: TYPE_NORMAL
+- en: There is a way to improve upon these information extraction results. Amazon
+    offers another variant of the Comprehend service called AWS Comprehend Medical.
+    This variant of the service specializes in extracting information from various
+    medical documents.
+  prefs: []
+  type: TYPE_NORMAL
+- en: One of its features is the extraction of **Protected Health Information** (**PHI**)
+    such as name, age, address, phone number, and email. We can leverage this feature
+    for our business card information extraction task.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s see how this feature performs with the same example text we looked at
+    previously. Issue the follow AWS CLI command:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: Amazon Comprehend Medical extracted much of the same information as its non-medical
+    counterpart. In addition, it extracted the job title (`PROFESSION`), the phone
+    number (`PHONE_OR_FAX`), and the email (`EMAIL`). The extracted address (`ADDRESS`)
+    also seems more accurate than the non-medical variant. When we combine the results
+    from both variants of the Comprehend service, we are able to extract the contact
+    information on typical business cards.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'With these insights, let''s implement our Extraction Service. Let''s create
+    a Python class named `ExtractionService` in the `extraction_service.py` file located
+    in the `chalicelib` directory:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: This code excerpt shows the imports the service needs, as well as the constructor
+    method, that instantiates two `boto3` clients for the Amazon Comprehend and the
+    Amazon Comprehend Medical services, respectively.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now let''s see how the `extract_contact_info()` method is implemented with
+    these two services:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `extract_contact_info()` method calls both variants of Amazon Comprehend
+    through `boto3`. The results from both calls are processed and stored in the `contact_info`
+    dictionary.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`contact_info` is declared as a `defaultdict(list)`, which is a dictionary
+    data structure where the values are defaulted to an empty list.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'In practice, multiple results may be extracted for a given type. For example,
+    two phone numbers can be extracted from a single business card. This can happen
+    for three reasons, as we have observed in our use cases:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The first reason applies when there are actually multiple pieces of information
+    for a given type. For example, when there is a phone number and a fax number on
+    a business card.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The second reason is that the information is a composite of simpler pieces of
+    information. For example, many job titles actually include role names, job levels,
+    and specialties.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The third reason is inaccuracies during the extraction process by the Amazon
+    Comprehend service. For example, the zip code in the address may be mistakenly
+    categorized as the phone number.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The two calls to the two variants of AWS Comprehend are as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The first call is to the `detect_entities()` function of the Amazon Comprehend
+    client. From the response, we store the name and organization in `contact_info`.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The second call is to the `detect_phi()` function of the Amazon Comprehend Medical
+    client. From the response, we store the email, phone number, job title, and address
+    in `contact_info`.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: If there are multiple results for each of these types, they are appended to
+    the corresponding list in the `defaultdict(list)` data structure.
+  prefs: []
+  type: TYPE_NORMAL
+- en: AWS Comprehend extracts the address as a single piece of information. However,
+    it would be more useful to store the various pieces of the address, such as city,
+    state, and zip code, separately. This will make organizing, searching, and displaying
+    contact information easier. In the `extract_contact_info()` method, we also use
+    a Python package named `usaddress` to try and parse out the subcomponents of the
+    address and then store them separately in the `contact_info` data structure.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Finally, the `extract_contact_info()` method returns `contact_info` as a standard
+    Python dictionary.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the Contact Organizer application, the user uploads a photo of a business
+    card. Then, the application tries to detect text with AWS Rekognition and feeds
+    the detected text to AWS Comprehend to try to extract information. There is also
+    a post-processing step for the address to parse out the city, state, and zip code.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We can think of this process as a pipeline with multiple sequential steps; the
+    output of a previous step feeds into the next step as input. Just like a game
+    of telephone, the final result may be mangled by the output quality of any of
+    the steps. The accuracy of the extraction depends on the quality of the photo,
+    the detection accuracy of text in the photo, the extraction accuracy of information
+    from the text, and the parsing accuracy of the post-processing.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Contact Store – save and retrieve contacts
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: After the user saves the contact information in the Contact Organizer, they
+    should be able to retrieve this information. Retrieving data requires data persistence.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In Contact Organizer, we will be leveraging AWS DynamoDB, a highly scalable
+    NoSQL database in the cloud. DynamoDB fits well with our serverless architecture
+    because developers do not need to manage database servers. Instead, developers
+    can create tables that scale with demand automatically. We will be storing and
+    retrieving contact information using a DynamoDB table.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s create a Contacts table using the AWS Web Console:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Go to the DynamoDB dashboard page and click on the Create table button:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/8490604e-d778-40d0-bb62-71b963ae07a9.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'On the Create DynamoDB table page, set the table name to Contacts and set the
+    primary key to name. Since DynamoDB is a NoSQL or document database, we do not
+    need to specify the entire database table schema a priori:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/f81c4cab-f40a-4036-b440-f93491a1303f.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Finish the table setup by choosing the Use default settings option and clicking
+    Create.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: That's it! You just created a web-scale database that can handle more than 10
+    trillion requests per day. The best thing is, you don't have to manage it!
+  prefs: []
+  type: TYPE_NORMAL
+- en: For this simple project, we used the AWS Web Console to create a database table.
+    For enterprise-grade applications, we recommend following the best practices in
+    line with **Infrastructure as Code** (**IaC**), where infrastructure should be
+    provisioned and managed automatically through code or configuration rather than
+    by using a manual setup such as with AWS Web Console.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The benefits include fast recovery from catastrophic events, rapid experimentation
+    of features, and documentation of the system environment setup, to name only a
+    few. Boto3 allows you to write Python code to create and configure DynamoDB tables.
+    AWS CloudFormation also allows for the automatic creation and configuration of
+    DynamoDB and many more AWS services.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now with the `Contacts` table created, let''s implement our `ContactStore`
+    service. Create a Python class named `ContactStore` in the `contact_store.py`
+    file, which is located in the `chalicelib` directory:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we have the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The constructor, `__init__()`, creates a `boto3` source for DynamoDB in order
+    to get our `Contacts` table. The constructor takes in a parameter for `store_location`
+    as the table name in our implementation.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `save_contact()` method takes a Python dictionary data structure containing
+    the contact information and stores the contact using the `put_item()` function,
+    which takes in the item to be put into the table.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'In `save_contact()`, we are returning the `contact_info` data object to the
+    caller. We are trying to conform to the RESTful API convention: when an API creates
+    a new resource (contact), it should return the updated resource (contact):'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The RESTful convention recommends returning the new representation of the resources'
+    state after their creation. For example, a new ID might have been created for
+    the resource. However, the `put_item()` function in `boto3` currently does not
+    return the new values of the resource. This is fine for Contact Organizer, since
+    we chose to use the "name" as the key or the ID for the contact.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `get_all_contacts()` method retrieves all the contacts that have been saved
+    in DynamoDB using the `scan()` function. With only the table name provided, the
+    `scan()` function returns all the items in the table.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Storage Service – uploading and retrieving a file
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'We can reuse the exact same implementation of `StorageService` from previous
+    projects. We are only providing the methods we need for the current project, as
+    follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: For more details on the implementation and design choices, refer to [Chapter
+    3](504c5915-cf10-4cd0-8f5c-3c75466f7dc6.xhtml), *Detecting and Translating Text
+    with Amazon Rekognition and Translate*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Implementing RESTful endpoints
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Let's move on to the orchestration layer so that we can stitch together the
+    various capabilities we implemented in the services. The RESTful endpoints provide
+    HTTP access for the user interface layer to access business capabilities.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As we stated previously, the orchestration layer should be concise and easy
+    to understand. RESTful endpoints should only be concerned with orchestrating the
+    services to form a higher-level business logic and handling HTTP protocol specifics.
+  prefs: []
+  type: TYPE_NORMAL
+- en: One way to evaluate whether the orchestration layer or RESTful endpoints are
+    well designed in terms of separation of concerns is to check package imports.
+    Does the orchestration layer need to import packages from the services?
+  prefs: []
+  type: TYPE_NORMAL
+- en: For example, in our projects, do the RESTful endpoints import a `boto3` that
+    interacts with AWS? They shouldn't.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Typically, RESTful endpoints will import service implementations (`storage_service`
+    and `recognition_service`), programming framework-related packages (`chalice`),
+    and protocol-related packages (`JSON` and `CGI`).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Replace the contents of `app.py` in the Chalice project with the following
+    code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: The preceding code excerpt handles all package imports, the Chalice app configuration,
+    and the instantiation of our four services.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Extract Image Information endpoint
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The `extract_image_info()` function implements the RESTful endpoint. Use the
+    following code to continue with the Python code in `app.py`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The annotation right above this function describes the HTTP request that can
+    access this endpoint:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we have the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the `extract_image_info()` function, we call `RecognitionService` to detect
+    text in the image and store the detected lines of text in `text_lines`.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Then, we build a string, `contact_string`, that contains all of the lines of
+    detected text with a confidence level is above `MIN_CONFIDENCE`, which is set
+    to `70.0`:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This `contact_string` is built by joining the detected text with three spaces
+    in between. We chose three spaces as the delimiter because detected lines are
+    more likely to be related information, and we are hinting that relationship to
+    the extraction service with the extra spaces.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We then call the `extract_contact_info()` method of the Extraction Service and
+    return the contact info. Remember that `extract_contact_info()` not only calls
+    two variants of the Amazon Comprehend service, it also uses the `usaddress` Python
+    package to parse out the individual parts of an address.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Let''s test this endpoint out by running `chalice local` in the Python virtual
+    environment and then issue the following `curl` command. Then, we will specify
+    an image that has already been uploaded to our S3 bucket:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs: []
+  type: TYPE_PRE
+- en: This is the JSON that our web user interface will receive and use to display
+    translations to the user.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Save contact and get all contacts endpoints
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The save contact and get all contacts endpoints deal with the saving and retrieval
+    of contacts through the Contact Store service:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Their implementations are pretty simple:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The `save_contact()` function gets the contact information from the JSON parameters
+    in the request''s body. This method then saves the contact using the Contact Store.
+    The following code is the HTTP request that can access this endpoint:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The `get_all_contacts()` method retrieves all of the saved contacts using the
+    Contact Store. The following code is the HTTP request that can access this endpoint:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s test these endpoints together with a pair of `curl` commands:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The first `POST` command gets the contact representation back as a response
+    to conform to the RESTful convention.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The second `GET` command gets a list of contacts with the one contact we just
+    saved.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: These are the JSON formats that are used to interact with the web user interface.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Upload image endpoint
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'We are reusing the exact same implementation of the upload image endpoint from
+    the Pictorial Translator project. For more implementation details and design choices
+    for this code snippet. Please refer to [Chapter 3](504c5915-cf10-4cd0-8f5c-3c75466f7dc6.xhtml),
+    *Detecting and Translating Text with Amazon Rekognition and Translate*:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs: []
+  type: TYPE_PRE
+- en: Now the Contact Organizer's orchestration layer is complete.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Implementing the web user interface
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Next, we will create a simple web user interface with HTML and JavaScript in
+    the `index.html` and `scripts.js` files in the `Website` directory.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following screenshot shows the final web user interface:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/06e0f314-3f85-40ee-977f-9a21290f2f70.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: In the Contact Organizer, the user uploads a photo of a business card and the
+    application will do its best to detect the text on the card and extract diverse
+    information from the detected text. The application then populates the input fields
+    with the extracted information for the user to review and modify.
+  prefs: []
+  type: TYPE_NORMAL
+- en: If multiple pieces of information were extracted for a certain type, the Contact
+    Organizer populates the input field for that type with all the available information.
+    For example, if multiple phone numbers were extracted, then the phone input field
+    will be populated with all the phone numbers that are available.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This design decision assumes that it is easier for a user to delete surplus
+    information than to type in missing information. This assumption sounds valid;
+    however, it should be validated with the target audience of the application through
+    surveys or user studies. Fine-tuning these design decisions for human-in-the-loop
+    user interfaces gives an application a slight edge over the competition.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Even though we would like an application such as the Contact Organizer to automatically
+    extract and save all of the information on the business card, the aim of the Contact
+    Organizer is to reduce menial effort as much as possible, while still keeping
+    the user in the loop to ensure information accuracy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The human-in-the-loop user interface has another important benefit. Because
+    a human is involved in correcting any mistakes that are made by intelligent automation,
+    this is an opportunity to capture training data that can be used to improve the
+    automation technology in the future. Users are essentially providing training
+    examples to the machine learning algorithm. Remember, better data always wins!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Index.html
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'We are using standard HTML tags here, so the code for the web page should be
+    easy to follow:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This preceding HTML code snippet includes the top and bottom portions of the
+    web user interface:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: When the web page initially loads, it calls a JavaScript function, `retrieveAndDisplayContacts()`,
+    to load existing contacts from the server. This is done in the `<body>` tag's
+    onload attribute.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: After the contacts are returned from the server, the `retrieveAndDisplayContacts()`
+    function then updates `<div id="contacts"/>` to display the existing contacts
+    to the user.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The application also provides a Refresh button for the user to reload the contacts
+    from the server at any time:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs: []
+  type: TYPE_PRE
+- en: This code snippet contains the Contact Organizer's human-in-the-loop interface
+    so that it can add new contacts.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'There are a few things to point out, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We are providing an image upload interface that's similar to previous projects.
+    We are displaying the uploaded image of a business card to the user. This way,
+    the user can view the business card while reviewing and correcting the contact
+    information.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We are providing two columns of input fields for the various contact information
+    types.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We are providing a Save contact button for the user so that they can explicitly
+    save contact information. The Save contact button is initially disabled until
+    the application receives the extracted information from the server.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: scripts.js
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The first part of the Contact Organizer''s `scripts.js` file is the same implementation
+    of image upload from the Pictorial Translator project:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we implemented the `uploadImage()` and `updateImage()`
+    functions, which we will need later:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code snippet, we implement the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `extractInformation()` function, which calls the Extract Information endpoint
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `populateFields()` function, which fills input fields with extracted contact
+    information
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The `uploadAndExtract()` function chains, along with the `uploadImage()`, `updateImage()`,
+    `extractInformation()`, and `populateFields()` functions, to compose the business
+    logic flow when the user clicks on the Extract Info button:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code snippet, the following things occur:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `saveContact()` function gets a value from every input field and then creates
+    the `contactInfo` data structure. This function then sends the data in `contactInfo`
+    to the server for persistence.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: If the response from the server is `ok`, it means the contact has been saved.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Then, this function calls the `clearContact()` function to clear the values
+    of the input fields and the image display.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The following is the code for the `clearContact()` helper function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The `clearContact()` helper function from the preceding code prepares the user
+    interface to process another business card. Let''s have a look at the following
+    code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE30]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code snippet, the following occurs:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `retrieveContacts()` function calls the server to retrieve all existing
+    contacts.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The `displayContacts()` function takes the contacts and displays them at the
+    bottom of the Contacts Organizer user interface.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The `retrieveAndDisplayContacts()` function chains together the business logic
+    flow when the web interface is initially loaded or when the user clicks on the
+    Refresh button:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE31]'
+  prefs: []
+  type: TYPE_PRE
+- en: This code snippet shows the gory details of generating HTML to display a list
+    of contacts, the contact information, and the business card image.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you can see in the `displayContacts()` function, there is a lot of JavaScript
+    code being used to generate HTML. Using a combination of business logic and display
+    logic is considered bad practice.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We highly recommend leveraging a JavaScript framework such as Angular, React,
+    or Vue to better implement the **Model View Control** (**MVC**) design pattern
+    for the user interface. To limit the scope of this book, we had no choice but
+    to deal with code ugliness in our hands-on projects.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Deploying the Contact Organizer to AWS
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The deployment steps for the Contact Organizer application are similar, but
+    slightly different from, the deployment steps in the previous projects we covered.
+    Let''s get started:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For the Contact Organizer, we need to add additional Python packages to the
+    AWS Lambda environment. We do this by adding two packages to the `requirements.txt`
+    file:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The `usaddress` package is used to parse the various parts of the address, such
+    as city, state, zip, and so on.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The `boto3` package is specified here because we need a specific version. At
+    the time of writing, the `boto3` version in the AWS Lambda environment does not
+    support the `comprehendmedical` service; we need a newer version for this project:'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE32]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, let''s tell Chalice to perform a policy analysis for us by setting `"autogen_policy"`
+    to `false` in the `config.json` file in the `.chalice` directory of the project
+    structure:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE33]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we create a new file, `policy-dev.json`, in the `.chalice` directory
+    to manually specify the AWS services the project needs:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE34]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we deploy the Chalice backend to AWS by running the following command
+    within the `Capabilities` directory:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE35]'
+  prefs: []
+  type: TYPE_PRE
+- en: When the deployment is complete, Chalice will output a RESTful API URL that
+    looks similar to `https://<UID>.execute-api.us-east-1.amazonaws.com/api/`, where
+    `<UID>` is a unique identifier string. This is the server URL your frontend app
+    should hit to access the application backend running on AWS.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Next, we will upload the `index.html` and `scripts.js` files to this S3 bucket,
+    then set the permissions as `publicly readable`. Before we do that, we need to
+    make a change in `scripts.js`, as follows. Remember, the website will be running
+    in the cloud now and won''t have access to our local HTTP server. Replace the
+    local server URL with the one from our backend deployment:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE36]'
+  prefs: []
+  type: TYPE_PRE
+- en: Now the Contact Organizer application is publicly accessible to everyone on
+    the internet.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As it is implemented in this chapter, the Contact Organizer shows anyone who
+    has the URL for the application all of the saved contact information. We do not
+    recommend leaving any personally identifiable information out in the open on the
+    internet.
+  prefs: []
+  type: TYPE_NORMAL
+- en: One way to protect this information is to add authentication and authorization
+    features to Contact Organizer. These features are beyond the scope of this book,
+    but they are interesting enhancements for this project.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Discussing the project enhancement ideas
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'At the end of each hands-on project in Part 2, we provide you with a few ideas
+    to extend our intelligence-enabled application. The following are a couple of
+    ideas for enhancing the Contact Organizer:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Use the Amazon Textract service to create another implementation of the Recognition
+    Service. Textract provides an **Optical Character Recognition** (**OCR**) capability
+    that's much better suited for documents with a large amount of text. Depending
+    on the business card's appearance, environment lighting, and photo quality, Textract
+    might provide better text detection performance.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The intelligent capabilities and the user interface we created for Contact Organizer
+    can also be used for other use cases, such as data extraction from business documents,
+    summarizing school notes, and categorizing customer requests. The raw text doesn't
+    even need to come from images; other sources can include emails, phone calls,
+    and even social media. Think about use cases where you might use a similar human-in-the-loop
+    user interface and intelligent capabilities.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we built a Contact Organizer application that can extract contact
+    information from uploaded photos of business cards. We used two variants of the
+    Amazon Comprehend service, Amazon Comprehend and Amazon Comprehend Medical, to
+    extract different types of contact information. The Contact Organizer has a human-in-the-loop
+    user interface, where the user can review and correct automatically extracted
+    information before saving it to the Contact Store. We noted that the human-in-the-loop
+    user interface should provide business value, even if AI capabilities are not
+    present in the solution. As AI practitioners, we don't always have to provide
+    fully automated solutions—there is value in providing intelligent assistive solutions,
+    which can be much more feasible to build and maintain as long as they are well
+    designed with the human component in mind.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will build an AI solution that can communicate with
+    us using natural conversational interfaces. We will be using AI technologies that
+    are at the heart of the popular Alexa smart speakers.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Further reading
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'For more information on extracting information from text with Amazon Comprehend,
+    please refer to the following links:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[https://www.mckinsey.com/featured-insights/future-of-work/ai-automation-and-the-future-of-work-ten-things-to-solve-for](https://www.mckinsey.com/featured-insights/future-of-work/ai-automation-and-the-future-of-work-ten-things-to-solve-for)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[https://builtin.com/artificial-intelligence/examples-ai-in-industry](https://builtin.com/artificial-intelligence/examples-ai-in-industry)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL

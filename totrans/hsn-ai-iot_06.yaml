@@ -1,0 +1,1232 @@
+- en: Reinforcement Learning for IoT
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '**Reinforcement learning** (**RL**) is very different from both supervised
+    and unsupervised learning. It''s the way most living beings learn—interacting
+    with the environment. In this chapter, we''ll study different algorithms employed
+    for RL. As you progress through the chapter, you''ll do the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Learn what RL is and how it's different from supervised learning and unsupervised
+    learning
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Lear different elements of RL
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Learn about some fascinating applications of RL in the real world
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Understand the OpenAI interface for training RL agents
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Learn about Q-learning and use it to train an RL agent
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Learn  about Deep Q-Networks and employ them to train an agent to play Atari
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Learn about the policy gradient algorithm and use it to
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Introduction
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Have you ever observed infants and how they learn to turn over, sit up, crawl,
+    and even stand? Have you watched how baby birds learn to fly—the parents throw
+    them out of the nest, they flutter for some time, and they slowly learn to fly.
+    All of this learning involves a component of the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Trial and error**: The baby tries different ways and is unsuccessful many
+    times before finally succeeding in doing it.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Goal-oriented**: All of the efforts are toward reaching a particular goal.
+    The goal for the human baby can be to crawl, and for baby bird to fly.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Interaction with the environment**: The only feedback that they get is from
+    the environment.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This YouTube video is a beautiful video of a child learning to crawl and the
+    stages in between [https://www.youtube.com/watch?v=f3xWaOkXCSQ](https://www.youtube.com/watch?v=f3xWaOkXCSQ).
+  prefs: []
+  type: TYPE_NORMAL
+- en: The human baby learning to crawl or baby bird learning to fly are both examples
+    of RL in nature.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'RL (in Artificial Intelligence) can be defined as a computational approach
+    to goal-directed learning and decision-making, from interaction with the environment,
+    under some idealized conditions. Let''s elaborate upon this since we''ll be using
+    various computer algorithms to perform the learning—it''s a computational approach.
+    In all of the examples that we''ll consider, the agent (learner) has a specific
+    goal, which it''s trying to achieve—it''s a goal-directed approach. The agent
+    in RL isn''t given any explicit instructions, it learns only from its interaction
+    with the environment. This interaction with the environment, as shown in the following
+    diagram, is a cyclic process. The **Agent** can sense the state of the **Environment**,
+    and the **Agent** can perform specific well-defined actions on the **Environment**; this
+    causes two things: first, a change in the state of the environment, and second,
+    a reward is generated (under ideal conditions). This cycle continues:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/d4f20501-75cf-40cb-bdb8-69a29e084d98.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The interaction between agent and environment
+  prefs: []
+  type: TYPE_NORMAL
+- en: Unlike supervised learning, the **Agent** isn't presented with any examples.
+    The **Agent** doesn't know what the correct action is. And unlike unsupervised
+    learning, the agent goal isn't to find some inherent structure in the input (the
+    learning may find some structure, but that isn't the goal); instead, its goal
+    is to maximize the rewards (in the long run).
+  prefs: []
+  type: TYPE_NORMAL
+- en: RL terminology
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Before learning different algorithms, let''s accustom ourselves to the RL terminology.
+    For illustration purposes, let''s consider two examples: an agent finding a route
+    in a maze and an agent steering the wheel of a **Self-Driving Car** (**SDC**).
+    The two are illustrated in the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/8745eea1-ff7e-493e-a5d9-2017ec988da7.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Two example RL scenarios
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Before going further, let''s acquaint ourselves with common RL terms:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**States *s***: The states can be thought of as a set of tokens (or representation)
+    that can define all of the possible states the environment can be in. The state
+    can be continuous or discrete. For example, in the case of an agent finding a
+    path through a maze, the state can be represented by a 4 × 4 array, with a **0**
+    representing an empty block, **1** representing a block occupied by the agent,
+    and **X** the state that can''t be occupied; the states here are discrete in nature.
+    In the case of an agent steering the wheel, the state is the view in front of
+    the SDC. The image contains continuous valued pixels.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Actions *a*(*s*)**: Actions are the set of all possible things that the agent
+    can do in a particular state. The set of possible actions, ***a***, depends on
+    the present state, ***s***. Actions may or may not result in the change of state.
+    They can be discrete or continuous. The agent in the maze can perform five discrete
+    actions **[up**, **down**, **left**, **right**, **no change]**. The SDC agent,
+    on another hand, can rotate the steering wheel in a continuous range of angles.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Reward *r(s, a, s''*)**: It''s a scalar value returned by the environment
+    when the agent selects an action. It defines the goal; the agent gets a higher
+    reward if the action brings it near the goal, and a low (or even negative) reward
+    otherwise. How we define a reward is totally up to us—in the case of the maze,
+    we can define the reward as the Euclidean distance between the agent''s current
+    position and goal. The SDC agent reward can be that the car is on the road (positive
+    reward) or off the road (negative reward).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Policy π(*s*)**: It defines a mapping between each state and the action to
+    take in that state. The policy can be deterministic—that is, for each state a
+    well-defined policy. Like for the maze agent, a policy can be that if the top
+    block is empty, move up. The policy can also be stochastic—that is, where an action
+    is taken by some probability. It can be implemented as a simple look-up table,
+    or it can be a function dependent on the present state. The policy is the core
+    of the RL agent. In this chapter, we''ll learn about different algorithms that
+    help the agent to learn the policy.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Value function *V*(*s*)**: It defines the goodness of a state in the long
+    run. It can be thought of as the total amount of reward the agent can expect to
+    accumulate over the future, starting from the state ***s***. You can think of
+    it as long-term goodness as opposed to the immediate goodness of rewards. What
+    do you think is more important, maximizing the reward or maximizing the value
+    function? Yes, you guessed right: just as in chess, we sometimes lose a pawn to
+    win the game a few steps later, and so the agent should try to maximize the value
+    function. There are two ways in which the value function is normally considered:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Value function *V*^π(*s*)**: It''s the goodness of state following the policy *π*.
+    Mathematically, at state *s*, it''s the expected cumulative reward from following
+    the policy, *π*:'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![](img/f9885ead-b1ba-41fd-b021-5701678e2699.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: '**Value-state function (or *Q*-function) *Q*^π(*s*, *a*)**: It''s the goodness
+    of a state *s*, taking action *a*, and thereafter following policy *π*. Mathematically,
+    we can say that for a state-action pair (*s*, *a*), it''s the expected cumulative
+    reward from taking action *a* in state *s* and then following policy *π*:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![](img/c6648db3-0b91-4b58-b2a5-9923e080dbba.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: '*γ* is the discount factor, and its value determines how much importance we
+    give to the immediate rewards as compared to rewards received later on. A high
+    value of discount factor decides how far into the future an agent can see. An
+    ideal choice of *γ* in many successful RL algorithms has been a value of *0.97*.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Model of the environment**: It''s an optional element. It mimics the behavior
+    of the environment, and it contains the physics of the environment; in other words,
+    it defines how the environment will behave. The model of the environment is defined
+    by the transition probability to the next state.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: An RL problem is mathematically formulated as a **Markov Decision Process**
+    (**MDP**), and it follows the Markov property— that is, *the current state completely
+    characterizes the state of the world*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Deep reinforcement learning
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'RL algorithms can be classified into two, based on what they iterate/approximate:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Value-based methods**: In these methods, the algorithms take the action that
+    maximizes the value function. The agent here learns to predict how good a given
+    state or action would be. Hence, here, the aim is to find the optimal value. An
+    example of the value-based method is Q-learning. Consider, for example, our RL
+    agent in a maze: assuming that the value of each state is the negative of the
+    number of steps needed to reach from that box to the goal, then, at each time
+    step, the agent will choose the action that takes it to a state with optimal value,
+    as in the following diagram. So, starting from a value of **-6**, it''ll move
+    to **-5**, **-4**, **-3**, **-2**, **-1**, and eventually reach the goal with
+    the value **0**:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![](img/bacdaff7-2312-4005-840d-a6056cabe610.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The maze world with the value of each box
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Policy-based methods**: In these methods, the algorithms predict the best
+    policy which maximizes the value function. The aim is to find the optimal policy.
+    An example of the policy-based method is policy gradients. Here, we approximate
+    the policy function, which allows us to map each state to the best corresponding
+    action.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We can use neural networks as a function approximator to get an approximate
+    value of either policy or value. When we use deep neural networks as a policy
+    approximator or value approximator, we call it **deep reinforcement learning**
+    (**DRL**). DRL has, in the recent past, given very successful results, hence,
+    in this chapter, our will focus will be on DRL.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Some successful applications
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In the last few years, RL has been successfully used in a variety of tasks,
+    especially in game-playing and robotics. Let''s acquaint ourselves with some success
+    stories of RL before learning its algorithms:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**AlphaGo Zero**: Developed by Google''s DeepMind team, the AlphaGo Zero *Mastering
+    the game of Go without any human knowledge*, starts from an absolutely blank slate
+    (**tabula rasa**). The AlphaGo Zero uses one neural network to approximate both
+    the move probabilities and value. This neural network takes as input the raw board
+    representation. It uses a Monte Carlo Tree search guided by the neural network
+    to select the moves. The reinforcement learning algorithm incorporates look-ahead
+    search inside the training loop. It was trained for 40 days using a 40-block residual
+    CNN and, over the course of training, it played about 29 million games (a big
+    number!). The neural network was optimized on Google Cloud using TensorFlow, with
+    64 GPU workers and 19 CPU parameter servers. You can access the paper here: [https://www.nature.com/articles/nature24270](https://www.nature.com/articles/nature24270).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**AI-controlled sailplanes**: Microsoft developed a controller system that
+    can run on many different autopilot hardware platforms such as Pixhawk and Raspberry
+    Pi 3\. It can keep the sailplane in the air without using a motor, by autonomously
+    finding and catching rides on naturally occurring thermals. The controller helps
+    the sailplane to operate on its own; it detects and uses thermals to travel without
+    the aid of a motor or a person. They implemented it as a partially observable
+    MDP. They employ the Bayesian reinforcement learning and use the Monte Carlo tree
+    search to search for the best action. They''ve divided the whole system into level
+    planners—a high-level planer that makes a decision based on experience and a low-level
+    planner that uses Bayesian reinforcement learning to detect and latch onto thermals
+    in real time. You can see the sailplane in action at Microsoft News: [https://news.microsoft.com/features/science-mimics-nature-microsoft-researchers-test-ai-controlled-soaring-machine/](https://news.microsoft.com/features/science-mimics-nature-microsoft-researchers-test-ai-controlled-soaring-machine/).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Locomotion behavior**: In the paper *Emergence of Locomotion Behaviours in
+    Rich Environments* ([https://arxiv.org/pdf/1707.02286.pdf](https://arxiv.org/pdf/1707.02286.pdf)),
+    DeepMind researchers provided the agents with rich and diverse environments. The
+    environments presented a spectrum of challenges at different levels of difficulty.
+    The agent was provided with difficulties in increasing order; this led the agent
+    to learn sophisticated locomotion skills without performing any reward engineering.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Simulated environments
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Since RL involves trial and error, it makes sense to train our RL agent first
+    in a simulated environment. While a large number of applications exist that can
+    be used for the creation of an environment, some popular ones include the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**OpenAI gym**: It contains a collection of environments that we can use to
+    train our RL agents. In this chapter, we''ll be using the OpenAI gym interface.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Unity ML-Agents SDK**: It allows developers to transform games and simulations
+    created using the Unity editor into environments where intelligent agents can
+    be trained using DRL, evolutionary strategies, or other machine learning methods
+    through a simple-to-use Python API. It works with TensorFlow and provides the
+    ability to train intelligent agents for two-dimensional/three-dimensional and
+    VR/AR games. You can learn more about it here: [https://github.com/Unity-Technologies/ml-agents](https://github.com/Unity-Technologies/ml-agents).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Gazebo**: In Gazebo, we can build three-dimensional worlds with physics-based
+    simulation. Gazebo along with **Robot Operating System** (**ROS)** and the OpenAI
+    gym interface is gym-gazebo and can be used to train RL agents. To know more about
+    this, you can refer to the whitepaper: [http://erlerobotics.com/whitepaper/robot_gym.pdf](http://erlerobotics.com/whitepaper/robot_gym.pdf).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Blender**** learning environment**: It''s a Python interface for the Blender
+    game engine, and it also works over OpenAI gym. It has it''s base Blender. A free
+    three-dimensional modeling software with an integrated game engine, this provides
+    an easy-to-use, powerful set of tools for creating games. It provides an interface
+    to the Blender game engine, and the games themselves are designed in Blender.
+    We can then create the custom virtual environment to train an RL agent on a specific
+    problem ([https://github.com/LouisFoucard/gym-blender](https://github.com/LouisFoucard/gym-blender)).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: OpenAI gym
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'OpenAI gym is an open source toolkit to develop and compare RL algorithms.
+    It contains a variety of simulated environments that can be used to train agents
+    and develop new RL algorithms. To start, you''ll first have to install `gym`.
+    For Python 3.5+, you can install `gym` using `pip`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'OpenAI gym supports various environments, from simple text-based to three-dimensional.
+    The environments supported in the latest version can be grouped as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Algorithms**: It contains environments that involve performing computations
+    such as addition. While we can easily perform the computations on a computer,
+    what makes these problems interesting as an RL problem is that the agent learns
+    these tasks purely by example.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Atari**: This environment provides a wide variety of classical Atari/arcade
+    games.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Box2D**: It contains robotics tasks in two dimensions such as a car racing
+    agent or bipedal robot walk.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Classic control**: This contains the classical control theory problems, such
+    as balancing a cart pole.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**MuJoCo**: This is proprietary (you can get a one-month free trial). It supports
+    various robot simulation tasks. The environment includes a physics engine, hence,
+    it''s used for training robotic tasks.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Robotics**: This environment too uses the physics engine of MuJoCo. It simulates
+    goal-based tasks for fetch and shadow-hand robots.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Toy text**: It''s a simple text-based environment—very good for beginners.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'To get a complete list of environments under these groups, you can visit: [https://gym.openai.com/envs/#atari](https://gym.openai.com/envs/#atari).
+    The best part of the OpenAI interface is that all of the environments can be accessed
+    with the same minimum interface. To get a list of all available environments in
+    your installation, you can use the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This will provide a list of all installed environments along with their environment
+    ID, which is a string. It''s also possible to add your own environment in the
+    `gym` registry. To create an environment, we use the `make` command with the environment
+    name passed as a string. For example, to create a game using the Pong environment,
+    the string we need will be `Pong-v0`. The `make` command creates the environment,
+    and the `reset` command is used to activate the environment. The `reset` command
+    returns the environment in an initial state. The state is represented as an array:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: The state space of `Pong-v0` is given by an array of the size 210×160×3, which
+    actually represents the raw pixel values for the Pong game. On the other hand,
+    if you create a **Go9×9-v0** environment, the state is defined by a 3×9×9 array.
+    We can visualize the environment using the `render` command. The following diagram
+    shows the rendered environment for the **Pong-v0** and **Go9x9-v0** environments
+    at the initial state:.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/b2bc09c8-c223-4b72-84a3-c6ea180afe56.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The rendered environments for Pong-v0 and Go9x9-v0
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `render` commands pop up a window. If you want to display the environment
+    inline, then you can use Matplotlib inline and change the `render` command to
+    `plt.imshow(env.render(mode='rgb_array'))`. This will show the environment inline
+    in the Jupyter Notebook.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The environment contains the `action_space` variable, which determines the
+    possible actions in the environment. We can select a random action using the `sample()`
+    function. The selected action can affect the environment using the `step` function.
+    The `step` function performs the selected action on the environment; it returns
+    the changed state, the reward, a Boolean informing whether the game is over or
+    not, and some information about the environment that can be useful for debugging,
+    but isn''t used while working with RL agents. The following code shows a game
+    of Pong with the agent playing a random move. We''re storing the state at each
+    time step in an array, `frames`, so that we can later see the game:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'These frames can be displayed as a continuously playing GIF-style image in
+    the Jupyter Notebook with the help of the animation function in Matplotlib and
+    IPython:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Normally, to train an agent, we''ll need a very large number of steps, and
+    so it won''t be feasible to store the state space at each step. We can either
+    choose to store after every 500th (or any other number you wish) step in the preceding
+    algorithm. Instead, we can use the OpenAI gym wrapper to save the game as a video.
+    To do so, we need to first import wrappers, then create the environment, and finally
+    use Monitor. By default, it will store the video of 1, 8, 27, 64, and so on and
+    then every 1,000^(th) episode (episode numbers with perfect cubes); each training,
+    by default, is saved in one folder. The code to do it is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'If you want to use the same folder in the next training, you can choose the `force=True`
+    option in the `Monitor` method call. In the end, we should close the environment
+    using the `close` function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: The preceding codes are available in the  `OpenAI_practice.ipynb` Jupyter Notebook in
+    the folder for [Chapter 6](01e534ff-b0a2-4b5e-bc9a-fd65c527ac7d.xhtml), *Reinforcement
+    Learning for IoT,* in GitHub.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Q-learning
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In his doctoral thesis, *Learning from delayed rewards*, Watkins introduced
+    the concept of Q-learning in the year 1989\. The goal of Q-learning is to learn
+    an optimal action selection policy. Given a specific state, *s*, and taking a
+    specific action, *a*, Q-learning attempts to learn the value of the state *s*. In
+    its simplest version, Q-learning can be implemented with the help of look-up tables.
+    We maintain a table of values for every state (row) and action (column) possible
+    in the environment. The algorithm attempts to learn the value—that is, how good
+    it is to take a particular action in the given state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We start by initializing all of the entries in the Q-table to *0*; this ensures
+    all states a uniform (and hence equal chance) value. Later, we observe the rewards
+    obtained by taking a particular action and, based on the rewards, we update the
+    Q-table. The update in Q-value is performed dynamically with the help of **the
+    Bellman Equation,** given by the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/fd672f88-b11d-4994-9ef5-79075fd547a1.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Here, *α* is the learning rate. This shows the basic Q-learning algorithm:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/4dfc4179-734a-465e-8e72-b60d8cc3af20.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Simple Q-learning algorithm
+  prefs: []
+  type: TYPE_NORMAL
+- en: If you're interested, you can read the 240 pages Watkins doctoral thesis here: [http://www.cs.rhul.ac.uk/~chrisw/new_thesis.pdf](http://www.cs.rhul.ac.uk/~chrisw/new_thesis.pdf).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'At the end of learning, we''ll have a good Q-table, with optimal policy. An
+    important question here is: how do we choose the action at the second step? There
+    are two alternatives; first, we choose the action randomly. This allows our agent
+    to explore all of the possible actions with equal probability but, at the same
+    time, ignoring the information it has already learned. The second way is we choose
+    the action for which the value is maximum; initially, all of the actions have
+    the same Q-value but, as the agent will learn, some actions will get high value
+    and others low value. In this case, the agent is exploiting the knowledge it has
+    already learned. So what''s better: exploration or exploitation? This is called
+    the **exploration-exploitation trade-off**. A natural way to solve this problem
+    is by relying on what the agent has learned, but at the same time sometimes just
+    explore. This is achieved via the use of the **epsilon greedy algorithm**. The
+    basic idea is that the agent chooses the actions randomly with the probability, *ε*,
+    and exploits the information learned in previous episodes by a probability, (*1-ε*).
+    The algorithm chooses the best option (greedy) most of the time (*1-ε*) but sometimes
+    (*ε*) it makes a random choice. Let''s now try to implement what we learned in
+    a simple problem.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Taxi drop-off using Q-tables
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The simple Q-learning algorithm involves maintaining a table of the size *m*×*n*,
+    where *m* is the total number of states and *n* the total number of possible actions.
+    Therefore, we choose a problem from the toy-text group since their `state` space
+    and `action` space is small. For illustrative purposes, we choose the `Taxi-v2` environment.
+    The goal of our agent is to choose the passenger at one location and drop them
+    off at another. The agent receives *+20* points for a successful drop-off and
+    loses *1* point for every time step it takes. There''s also a 10-point penalty
+    for illegal pick-up and drop-off. The state space has walls shown by **|** and
+    four location marks, **R**, **G**, **Y**, and **B** respectively. The taxi is
+    shown by box: the pick-up and drop-off location can be either of these four location
+    marks. The pick-up point is colored blue, and the drop-off is colored purple.
+    The `Taxi-v2` environment has a state space of size *500* and action space of
+    size *6*, making a Q-table with *500×6=3000* entries:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/e24e0dd9-8879-439b-ba1c-796ed9c1541b.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Taxi drop-off environment
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the taxi drop-off environment, the taxi is denoted by the yellow box. The
+    location mark, R, is the pick-up position, and G is the drop-off location:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We start by importing the necessary modules and creating our environment. Since,
+    here, we just need to make a look-up table, using TensorFlow won''t be necessary.
+    As mentioned previously, the `Taxi-v2` environment has *500* possible states and
+    *6* possible actions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We initialize the Q-table of the size (*300×6*) with all zeros, and define
+    the hyperparameters: *γ*, the discount factor, and *α*, the learning rate. We
+    also set the values for maximum episodes (one episode means one complete run from
+    reset to done=`True`) and maximum steps in an episode the agent will learn for:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, for each episode, we choose the action with the highest value, perform
+    the action, and update the Q-table based on the received rewards and future state
+    using the Bellman Equation:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s now see how the learned agent works:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following diagram shows the agent behavior in a particular example. The
+    empty car is shown as a yellow box, and the car with the passenger is shown by
+    a green box. You can see that, in the given case, the agent picks up and drops
+    off the passenger in 11 steps, and the desired location is marked (**B**) and
+    the destination is marked (**R**):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/404c987f-7024-4e67-a00c-aab1d910e40b.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Agent picking up and dropping off a passenger using the learned Q-table
+  prefs: []
+  type: TYPE_NORMAL
+- en: Cool, right? The complete code is available in the `Taxi_drop-off.ipynb` file
+    available at GitHub.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Q-Network
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The simple Q-learning algorithm involves maintaining a table of the size *m*×*n*,
+    where *m* is the total number of states and *n* the total number of possible actions.
+    This means we can't use it for large state space and action space. An alternative
+    is to replace the table with a neural network acting as a function approximator,
+    approximating the Q-function for each possible action. The weights of the neural
+    network in this case store the Q-table information (they match a given state with
+    the corresponding action and its Q-value). When the neural network that we use
+    to approximate the Q-function is a deep neural network, we call it a **Deep Q-Network**
+    (**DQN**).
+  prefs: []
+  type: TYPE_NORMAL
+- en: The neural network takes the state as its input and calculates the Q-value of
+    all of the possible actions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Taxi drop-off using Q-Network
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'If we consider the preceding *Taxi drop-off* example, our neural network will
+    consist of *500* input neurons (the state represented by *1×500* one-hot vector)
+    and *6* output neurons, each neuron representing the Q-value for the particular
+    action for the given state.  The neural network will here approximate the Q-value
+    for each action. Hence, the network should be trained so that its approximated
+    Q-value and the target Q-value are same. The target Q-value as obtained from the
+    Bellman Equation is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/f09c0b5b-3f34-4b90-ac56-6ef4863af836.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'We train the neural network so that the square error of the difference between
+    the target *Q* and predicted *Q* is minimized—that is, the neural network minimizes
+    the following loss function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/4dd26570-6e18-4b2d-a7f1-98d2dddfa5ff.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The aim is to learn the unknown Q[target] function. The weights of `QNetwork`
+    are updated using backpropagation so that this loss is minimized. We make the
+    neural network, `QNetwork`, to approximate the Q-value. It''s a very simple single-layer
+    neural network, with methods to provide action and their Q-values (`get_action`),
+    train the network (`learnQ`), and get the predicted Q-value (`Qnew`):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We now incorporate this neural network in our earlier code where we trained
+    an RL agent for the *Taxi drop-off* problem. We''ll need to make some changes;
+    first, the state returned by the OpenAI step and reset function in this case is
+    just the numeric identification of state, so we need to convert it into a one-hot
+    vector. Also, instead of a Q-table update, we''ll now get the new Q-predicted
+    from `QNetwork`, find the target Q, and train the network so as to minimize the
+    loss. The code is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This should have done a good job but, as you can see, even after training for
+    *1,000* episodes, the network has a high negative reward, and if you check the
+    performance of the network, it appears to just take random steps. Yes, our network
+    hasn''t learned anything; the performance is worse than Q-table. This can also
+    be verified from the reward plot while training—ideally, the rewards should increase
+    as the agent learns, but nothing of the sort happens here; the rewards increase
+    and decrease like a random walk around the mean (the complete code for this program
+    is in the `Taxi_drop-off_NN.ipynb` file available at GitHub):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/13ebed29-bce7-456d-a4d4-23ad3eb5dda4.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Total reward per episode obtained by the agent as it learns
+  prefs: []
+  type: TYPE_NORMAL
+- en: What happened? Why is the neural network failing to learn, and can we make it
+    better?
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Consider the scenario when the taxi should go west to pick up and, randomly,
+    the agent chose west; the agent gets a reward and the network will learn that,
+    in the present state (represented by a one-hot vector), going west is favorable.
+    Next, consider another state similar to this one (correlated state space): the
+    agent again makes the west move, but this time it results in a negative reward,
+    so now the agent will unlearn what it had learned earlier. Hence, similar state-actions
+    but divergent targets confuse the learning process. This is called **catastrophic
+    forgetting**. The problem arises here because consecutive states are highly correlated
+    and so, if the agent learns in sequence (as it does here), this extremely correlated
+    input state space won''t let the agent learn.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Can we break the correlation between the input presented to the network? Yes,
+    we can: we can construct a **replay buffer**, where we first store each state,
+    its corresponding action, and the consecutive reward and resultant state (state,
+    action, reward, new state). The actions, in this case, are chosen completely randomly,
+    thereby ensuring a wide range of actions and resultant states. The replay buffer
+    will finally consist of a large list of these tuples (*S*, *A*, *R*, *S''*). Next,
+    we present the network with these tuples randomly (instead of sequentially); this
+    randomness will break the correlation between consecutive input states. This is
+    called **experience replay**. It not only resolves the issues with correlation
+    in input state space but also allows us to learn from the same tuples more than
+    once, recall rare occurrences, and in general, make better use of the experience.
+    In one way, you can say that, by using a replay buffer, we''ve reduced the problem
+    of the supervised learning (with the replay buffer as an input-output dataset),
+    where the random sampling of input ensures that the network is able to generalize.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Another problem with our approach is that we're updating the target Q immediately.
+    This too can cause harmful correlations. Remember that, in Q-learning, we're trying
+    to minimize the difference between the *Q[target]* and the currently predicted
+    *Q*. This difference is called a **temporal difference** (**TD**) error (and hence
+    Q-learning is a type of **TD learning**). At present, we update our *Q[target]*
+    immediately, hence there exists a correlation between the target and the parameters
+    we're changing (weights through *Q[pred]*). This is almost like chasing a moving
+    target and hence won't give a generalized direction. We can resolve the issue
+    by using **fixed Q-targets**—that is, use two networks, one for predicting *Q* and
+    another for target *Q*. Both are exactly the same in terms of architecture, with
+    the predicting Q-Network changing weights at each step, but the weight of the
+    target Q-Network is updated after some fixed learning steps. This provides a more
+    stable learning environment.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Finally, we make one more small change: right now our epsilon has had a fixed
+    value throughout learning. But, in real life, this isn''t so. Initially, when
+    we know nothing, we explore a lot but, as we become familiar, we tend to take
+    the learned path. The same can be done in our epsilon-greedy algorithm, by changing
+    the value of epsilon as the network learns through each episode, so that epsilon
+    decreases with time.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Equipped with these tricks, let's now build a DQN to play an Atari game.
+  prefs: []
+  type: TYPE_NORMAL
+- en: DQN to play an Atari game
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The DQN we''ll learn here is based on a DeepMind paper ([https://web.stanford.edu/class/psych209/Readings/MnihEtAlHassibis15NatureControlDeepRL.pdf](https://web.stanford.edu/class/psych209/Readings/MnihEtAlHassibis15NatureControlDeepRL.pdf)). At
+    the heart of DQN is a deep convolutional neural network that takes as input the
+    raw pixels of the game environment (just like any human player would see), captured
+    one screen at a time, and as output, returns the value for each possible action.
+    The action with the maximum value is the chosen action:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The first step is to get all of the modules we''ll need:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We chose the Breakout game from the list of OpenAI Atari games—you can try
+    the code for other Atari games; the only change you may need to do would be in
+    the preprocessing step. The input space of Breakout—our input space—consists of
+    210×160 pixels, with 128 possible colors for each pixel. It''s an enormously large
+    input space. To reduce the complexity, we''ll choose a region of interest in the
+    image, convert it into grayscale, and resize it to an image of the size *80×80*.
+    We do this using the `preprocess` function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following screenshot shows the environment before and after the preprocessing:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/947614bc-85de-436a-93be-2b01ae49a075.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The original environment, size 210× 160 (colored image) and the processed environment,
+    size 80×80 (grayscale)
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As you can see from the preceding diagram, it isn''t possible to tell whether
+    the ball is coming down or going up. To deal with this problem, we combine four
+    consecutive states (due to four unique actions) as one input. We define a function, `update_state`,
+    that appends the current environment observation to the previous state array:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The function appends the processed new state in the sliced state, ensuring
+    that the final input to the network consists of four frames. In the following
+    screenshot, you can see the four consecutive frames. This is the input to our
+    DQN:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/2bbec24a-38d5-4bc4-92ac-0340ca53e978.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The input to DQN four consecutive game-states (frames)
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We create a DQN that we define in the class DQN; it consists of three convolutional
+    layers, the output of the last convolutional layer is flattened, and it''s then
+    followed by two fully connected layers. The network, as in the previous case,
+    tries to minimize the difference between *Q[target] *and *Q[predicted]*. In the
+    code, we''re using the RMSProp optimizer, but you can play around with other optimizers:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The necessary methods that we require for this class are discussed in the following
+    steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We add a method to return the predicted Q-values:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We need a method to determine the action with maximum value. In this method,
+    we also implemented the epsilon-greedy policy, and the value of epsilon is changed
+    in the main code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We need a method to update the weights of the network so as to minimize the
+    loss. The function can be defined as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Copy the model weights to the fixed Q-Network:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Besides these methods, we need some helper functions to save the learned network,
+    load the saved network, and set the TensorFlow session:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'To implement the DQN algorithm, we use a `learn` function; it picks a random
+    sample from the experience replay buffer and updates the Q-Network, using target
+    Q from the target Q-Network:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Well, all of the ingredients are ready, so let''s now decide the hyperparameters
+    for our DQN and create our environment:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'And finally, the following is the code that calls then fills the experience
+    replay buffer, plays the game step by step, and trains the model network at every
+    step and `target_model` after every four steps:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We can see that now the reward is increasing with episodes, with an average
+    reward of **20** by the end, though it can be higher, then we had only learned
+    few thousand episodes and even our replay buffer with a size between (50,00 to
+    5,000,000):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/4f2a3911-d5d0-49e6-a497-be4aa063ce9b.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Average rewards as the agent learn
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s see how our agent plays, after learning for about 2,700 episodes:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs: []
+  type: TYPE_PRE
+- en: You can see the video of the learned agent here: [https://www.youtube.com/watch?v=rPy-3NodgCE](https://www.youtube.com/watch?v=rPy-3NodgCE).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Cool, right? Without telling it anything, it learned to play a decent game after
+    only 2,700 episodes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'There are some things that can help you to train the agent better:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Since training takes a lot of time, unless you have a strong computational resource,
+    it's better to save the model and restart the saved model.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In the code, we used `Breakout-v0` and OpenAI gym, in this case, repeats the
+    same step in the environment for consecutive (randomly chosen `1`, `2`, `3` or
+    `4`) frames. You can instead choose `BreakoutDeterministic-v4`, the one used by
+    the DeepMind team; here, the steps are repeated for exactly four consecutive frames.
+    The agent hence sees and selects the action after every fourth frame.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Double DQN
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Now, recall that, we're using a max operator to both select an action and to
+    evaluate an action. This can result in overestimated values for an action that
+    may not be an ideal one. We can take care of this problem by decoupling the selection
+    from evaluation. With Double DQN, we have two Q-Networks with different weights;
+    both learn by random experience, but one is used to determine the action using
+    the epsilon-greedy policy and the other to determine its value (hence, calculating
+    the target Q).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To make it clearer, let''s first see the case of the DQN. The action with maximum
+    Q-value is selected; let *W* be the weight of the DQN, then what we''re doing
+    is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/82f81b0f-9082-4204-b661-6e9b18499ca6.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The superscript *W* tells the weights used to approximate the Q-value. In Double
+    DQN, the equation changes to the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/64ff7e73-19e9-4c73-a3b7-1f9dfc40e701.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Note the change: now the action is chosen using the Q-Network with the weights
+    *W*, and max Q-value is predicted using a Q-Network with weights *W''.* This reduces
+    the overestimation and helps us to train the agent quickly and more reliably.
+    You can access the *Deep Reinforcement Learning with Double Q-Learning* paper
+    here: [https://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/download/12389/11847](https://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/download/12389/11847).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Dueling DQN
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Dueling DQN decouples the Q-function into the value function and advantage function.
+    The value function is the same as discussed earlier ; it represents the value
+    of the state independent of action. The advantage function, on the other hand,
+    provides a relative measure of the utility (advantage/goodness) of action *a*
+    in the state *s:*
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/4cf3f468-8c90-4d54-b1dc-5321a9cc9823.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: In Dueling DQN, the same convolutional is used to extract features but, in later
+    stages, it's separated into two separate networks, one providing the value and
+    another providing the advantage. Later, the two stages are recombined using an
+    aggregating layer to estimate the Q-value. This ensures that the network produces
+    separate estimates for the value function and the advantage function. The intuition
+    behind this decoupling of value and advantage is that, for many states, it's unnecessary
+    to estimate the value of each action choice. For example, in the car race, if
+    there's no car in front, then the action turn left or turn right is not required
+    and so there's no need to estimate the value of these actions on the given state.
+     This allows it to learn which states are valuable, without having to determine
+    the effect of each action for each state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'At the aggregate layer, the value and advantage are combined such that it''s
+    possible to recover both *V* and *A* uniquely from a given *Q*. This is achieved
+    by enforcing that the advantage function estimator has zero advantage at the chosen
+    action:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/a235ba01-25da-4810-b326-fc80f8b57e79.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Here, *θ* is the parameter of the common convolutional feature extractor, and *α*
+    and *β* are the parameters for the advantage and value estimator network. The
+    Dueling DQN too was proposed by Google''s DeepMind team. You can read the complete
+    paper at *arXiv*: [https://arxiv.org/abs/1511.06581](https://arxiv.org/abs/1511.06581).
+    The authors found that changing the preceding `max` operator with an average operator
+    increases the stability of the network. The advantage, in this case, changes only
+    as fast as the mean. Hence, in their results, they used the aggregate layer given
+    by the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/bd2bd8f7-e556-4009-aa53-b1d457099849.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The following screenshot shows the basic architecture of a Dueling DQN:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/04aeee5f-ab54-4e73-873f-66b6fece0574.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The basic architecture of Dueling DQN
+  prefs: []
+  type: TYPE_NORMAL
+- en: Policy gradients
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the Q-learning-based methods, we generated a policy after estimating a value/Q-function.
+    In policy-based methods, such as the policy gradient, we approximate the policy
+    directly.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Continuing as earlier, here, we use a neural network to approximate the policy.
+    In the simplest form, the neural network learns a policy for selecting the actions
+    that maximize the rewards by adjusting its weights using steepest gradient ascent,
+    hence the name policy gradients.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In policy gradients, the policy is represented by a neural network whose input
+    is a representation of states and whose output is action selection probabilities.
+    The weights of this network are the policy parameters that we need to learn. The
+    natural question arises: how should we update the weights of this network? Since
+    our goal is to maximize rewards, it makes sense that our network tries to maximize
+    the expected rewards per episode:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/05ad2539-cfd2-4f99-8e91-9edc0d186e10.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Here, we''ve taken a parametrized stochastic policy *π—*that is, the policy
+    determines the probability of choosing an action *a* given state *s*, and the
+    neural network parameters are *θ*. *R* represents the sum of all of the rewards
+    in an episode. The network parameters are then updated using gradient ascent:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/1198f6cd-5308-4e80-8911-e375a002e057.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Here, *η* is the learning rate. Using the policy gradient theorem, we get the
+    following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/0911f1c5-bb9d-46c1-ade7-90cab47fdc5c.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Hence, instead of maximizing the expected return, we can use loss function
+    as log-loss (expected action and predicted action as labels and logits respectively)
+    and the discounted reward as the weight to train the network. For more stability,
+    it has been found that adding a baseline helps in variance reduction. The most
+    common form of the baseline is the sum of the discounted rewards, resulting in
+    the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/2871ebfe-531e-4f6e-acbd-4e71ca5af1ea.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The baseline *b*(*s[t]*) is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/5d1d07d4-39cf-4400-876e-297c54fe5302.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Here, *γ* is the discount factor.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Why policy gradients?
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Well, first of all, policy gradients, like other policy-based methods, directly
+    estimate the optimal policy, without any need to store additional data (experience
+    replay buffer). Hence, it's simple to implement. Secondly, we can train it to
+    learn true stochastic policies. And finally, it's well suited for continuous action-space.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Pong using policy gradients
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Let''s try to use policy gradients to play a game of Pong. The Andrej Karpathy
+    blog post, at [http://karpathy.github.io/2016/05/31/rl/](http://karpathy.github.io/2016/05/31/rl/) inspires
+    the implementation here. Recall that, in *Breakout*, we used four-game frames
+    stacked together as input so that the game dynamics are known to the agent; here,
+    we use the difference between two consecutive game frames as the input to the
+    network. Hence, our agent has information about the present state and the previous
+    state with it:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The first step, as always, is importing the modules necessary. We import TensorFlow,
+    Numpy, Matplotlib, and `gym` for the environment:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We build our neural network, the `PolicyNetwork`; it takes as input the state
+    of the game, and outputs the action selection probabilities. Here, we build a
+    simple two-layered perceptron, with no biases. `weights` are initialized randomly
+    using the `Xavier` initialization. The hidden layer uses the `ReLU` activation
+    function, and the output layer uses the `softmax` activation function. We use
+    the `tf_discount_rewards` method defined later to calculate the baseline. And
+    finally, we''ve used TensorFlow `tf.losses.log_loss` with calculated action probabilities
+    as predictions, and chosen one-hot action vector as labels and discounted reward
+    corrected by variance as weight:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The class has methods to calculate the action probabilities (`tf_policy_forward`
+    and `predict_UP`), calculate the baseline using `tf_discount_rewards`, update
+    the weights of the network (`update`), and finally set the session (`set_session`),
+    then load and save the model:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now that `PolicyNetwork` is made, we make a `preprocess` function to the game
+    state; we won''t process the complete 210×160 state space—instead, we''ll reduce
+    it to an 80×80 state space, in binary, and finally flatten it:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s define some variables that we''ll require to hold state, labels, rewards,
+    and action space size. We initialize the game state and instantiate the policy
+    network:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE30]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now we start the policy gradient algorithm. For each episode, the agent first
+    plays the game, storing the states, rewards, and actions chosen. Once a game is
+    over, it uses all of the stored data to train itself (just like in supervised
+    learning). And it repeats this process for as many episodes as you want:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE31]'
+  prefs: []
+  type: TYPE_PRE
+- en: After training for 7,500 episodes, it started winning some games. After 1,200
+    episodes the winning rate improved, and it was winning 50% of the time. After
+    20,000 episodes, the agent was winning most games. The complete code is available
+    at GitHub in the `Policy gradients.ipynb` file. And you can see the game played
+    by the agent after learning for 20,000 episodes here: [https://youtu.be/hZo7kAco8is](https://youtu.be/hZo7kAco8is).
+    Note that, this agent learned to oscillate around its position; it also learned
+    to pass the force created by its movement to the ball and has learned that the
+    other player can be beaten only by attacking shots.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The actor-critic algorithm
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In the policy gradient method, we introduced the baseline to reduce variance,
+    but still, both action and baseline (look closely: the variance is the expected
+    sum of rewards, or in other words, the goodness of the state or its value function)
+    were changing simultaneously. Wouldn''t it be better to separate the policy evaluation
+    from the value evaluation? That''s the idea behind the actor-critic method. It
+    consists of two neural networks, one approximating the policy, called the **actor-network**,
+    and the other approximating the value, called the **critic-network**. We alternate
+    between a policy evaluation and a policy improvement step, resulting in more stable
+    learning. The critic uses the state and action values to estimate a value function,
+    which is then used to update the actor''s policy network parameters so that the
+    overall performance improves. The following diagram shows the basic architecture
+    of the actor-critic network:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/bdfe8a1a-de28-4c04-998a-e55bd0840078.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Actor-critic architecture
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we learned about RL and how it's different from supervised
+    and unsupervised learning. The emphasis of this chapter was on DRL, where deep
+    neural networks are used to approximate the policy function or the value function
+    or even both. This chapter introduced OpenAI gym, a library that provides a large
+    number of environments to train RL agents. We learned about the value-based methods
+    such as Q-learning and used it to train an agent to pick up and drop passengers
+    off in a taxi. We also used a DQN to train an agent to play a Atari game . This
+    chapter then moved on to policy-based methods, specifically policy gradients.
+    We covered the intuition behind policy gradients and used the algorithm to train
+    an RL agent to play Pong.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we'll explore generative models and learn the secrets behind
+    generative adversarial networks.
+  prefs: []
+  type: TYPE_NORMAL

@@ -1,0 +1,1647 @@
+- en: 5\. Dynamic Programming
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Overview
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, you will be introduced to the driving principles of dynamic
+    programming. You will be introduced to the classic coin-change problem as an application
+    of dynamic programming. Furthermore, you will learn how to implement policy evaluation,
+    policy iteration, and value iteration and learn the differences between them.
+    By the end of the chapter, you will be able to implement dynamic programming to
+    solve problems in **Reinforcement Learning** (**RL**).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Introduction
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the previous chapter, we were introduced to the OpenAI Gym environment and
+    also learned how to implement custom environments, depending on the application.
+    You also learned the basics of TensorFlow 2, how to implement a policy using the
+    TensorFlow 2 framework, and how to visualize learning using TensorBoard. In this
+    chapter, we will see how **Dynamic Programming** (**DP**) works in general, from
+    a computer science perspective. Then, we'll go over how and why it is used in
+    RL. Next, we will dive deep into classic DP algorithms such as policy evaluation,
+    policy iteration, and value iteration and compare them. Lastly, we will implement
+    the algorithms in the classic coin-change problem.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'DP is one of the most fundamental and foundational topics in computer science.
+    Furthermore, RL algorithms such as **Value Iteration**, **Policy Iteration**,
+    and others, as we will see, use the same basic principle: avoid repeated computations
+    to save time, which is what DP is all about. The philosophy of DP is not new;
+    it is self-evident and commonplace once you learn the ways to solve it. The hard
+    part is identifying whether a problem can be solved using DP.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The basic principle can be explained to a child as well. Imagine counting the
+    number of candies in a box. If you know there are 100 candies in a box, and the
+    shopkeeper offers 5 extra candies, you don''t start counting the candies all over
+    again. You use the prior information to add 5 to the original count and say, "I
+    have 105 candies." That''s the core of DP: saving intermediate information and
+    reusing it, if required, to avoid re-computation. While it sounds simple, as mentioned
+    before, the hard part is identifying whether a problem can be solved using DP.
+    As we will see later, in the *Identifying Dynamic Programming Problems* section,
+    a problem must satisfy a specific prerequisite, such as optimal substructure and
+    overlapping subproblems, to be solved using DP, which we will study in the *Identifying
+    Dynamic Programming Problems* section. Once a problem qualifies, there are some
+    well-known techniques such as top-down memoization, that is, saving intermediate
+    states in an unordered fashion, and bottom-up tabulation, which is saving the
+    states in an ordered array or matrix.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Combining these techniques can achieve a considerable performance boost over
+    solving them using brute force. Furthermore, the difference in time increases
+    with an increase in the number of operations. Mathematically speaking, solutions
+    solved using DP usually run in O(n2), while those using brute force execute in
+    O(2n) time, where the notation "O" (Big-O) can be loosely thought of as the number
+    of operations performed. So, for instance, if N=500, which is a reasonably small
+    number, a DP algorithm will roughly execute 5002 steps, compared to a brute force
+    algorithm, which will use 2500 steps. For reference, there are 280 hydrogen atoms
+    in the sun, which is undoubtedly a much smaller number than 2500.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following figure depicts the difference in the number of operations executed
+    for both algorithms:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.1: Visualizing Big-O values'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_01.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 5.1: Visualizing Big-O values'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's now move toward studying the approach of solving DP problems.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Solving Dynamic Programming Problems
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'There are two popular ways to solve DP problems: the tabular method and memoization.
+    In the tabular method, we build a matrix that stores the intermediate values one
+    by one in the lookup table. On the other hand, in the memoization method, we store
+    the same values in an unstructured way. Here, unstructured way refers to the fact
+    that the lookup table may be filled all at once.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Imagine you''re a baker and are selling cakes to shops. Your job is to sell
+    cakes and make the maximum profit out of it. For simplicity, we will assume that
+    all other costs are fixed, and the highest price offered for your product is the
+    only indicator of profits earned, which is a fair assumption for most business
+    cases. So, naturally, you''d wish to sell all your cakes to the shop offering
+    the highest price, but there''s a decision to make as there are multiple shops
+    that offer different prices on different sizes of cakes. So, you have two choices:
+    how much to sell, and which shop to trade with. For this example, we''ll forget
+    other variables and assume there are no additional hidden costs. We''ll tackle
+    the problem using the tabular method, as well as memoization.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Phrasing the problem formally, you have a cake with weight W, and an array of
+    prices that different shops are willing to offer, and you have to find out the
+    optimal configuration that yields the highest price (and by the assumptions stated
+    previously, highest profit).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the code examples, which will be listed further in this section, we have
+    used profit and price interchangeably. So, for example, if you encounter a variable
+    such as `best_profit`, it would also be an indicator of best price and vice-versa.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For instance, say W = 5, meaning we have a cake that weighs 5 kilograms and
+    the prices, indicated in the following table, are what are offered by restaurants:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.2: Different prices offered for different weights of cakes'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_02.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 5.2: Different prices offered for different weights of cakes'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now consider restaurant A pays $10 for a 1 kg cake, but $40 for a 2 kg cake.
+    So, the question is: should I sell a 5 kg cake and partition it into 5 x 1 kg
+    slices, which will yield $45, or should I sell the 5 kg cake as a whole to restaurant
+    B, which is offering $80\. In this case, the most optimal configuration is to
+    partition the cake into a 3 kg part that yields $50 and a 2 kg part that generates
+    $40, which yields a total of $90\. The following table indicates various ways
+    of partitioning and the corresponding price that we''ll get:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.3: Different combinations for cake partitioning'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_03.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 5.3: Different combinations for cake partitioning'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, from the preceding table, it is quite evident that the best price is provided
+    by the combination of 2 kg + 3 kg. But to really understand the limitation of
+    the brute force approach, we'll assume that we don't know the best combination
+    for yielding the maximum price. We'll try to implement the brute force approach
+    in code. In reality, the number of observations for an actual business problem
+    may be too large for you to arrive at an answer as quickly as you may have done
+    here. The preceding table is just an example to help you understand the limitations
+    of the brute force approach.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'So, let''s try to solve this problem using brute force. We can rephrase the
+    question slightly differently: at every junction, we have a choice – partition
+    or not. If we choose to partition the cake into two unequal parts first, the left
+    side, for instance, becomes one part of the cake, and the right side can be treated
+    as an independent partition. In the next iteration, we''ll only concentrate on
+    the right side / the other part. Now, again, we can partition it, and the right
+    side becomes a part of the cake that is divided further. This paradigm is also
+    called **recursion**.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.4: Cake partitioned into several pieces'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_04.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 5.4: Cake partitioned into several pieces'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the preceding figure, we can see a cake being partitioned into multiple
+    pieces. For a cake that weighs 5 kg (and assuming you can partition the cake in
+    a manner that the minimum weight of each partition is 1 kg, and thus the partitions
+    can only be integral multiples of 1), we are presented with "partition or not"
+    a total of 32 times; here''s how:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'So, for starters, let''s do this: for each of the 32 possible combinations,
+    calculate the total price, and in the end, report the combination with the highest
+    amount of price. We''ve defined the price in a list, where the index tells us
+    the weight of a slice of cake:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'For instance, selling a whole 1 kg cake yields a price of $9; whereas selling
+    a 2 kg cake/slice yields a price of $40\. The price on the zeroth index is NA
+    because we won''t ever have a cake that weighs 0 kg. Here is pseudo-code formulated
+    to implement the preceding scenario:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The preceding function partition, `cake_size`, will take an integer input:
+    the size of the cake. Then, in the `for` loop, we will cut the cake in every possible
+    way and calculate the best profit. Given that we are taking a partition/no partition
+    decision for every single place, the code runs in O(2n) time. Now let''s call
+    the function using the following code. The `if __name__` block will make sure
+    that your code runs only when you run the script (and not when you import it):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Upon running it, we can see the best possible profit for a cake of size `5`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The preceding method solves the problem of calculating maximum profit, but
+    it has a huge flaw: it is very slow. We are performing unnecessary computations,
+    and exploring the entire search tree (all possible combinations). Why is this
+    a bad idea? Well, imagine you''re traveling from point A to point C, and it costs
+    $10\. Would you ever consider traveling from A to B to D to F and then to C, which
+    might cost, say, $150? Of course not, right? The idea is similar: if I know the
+    current path is not the most optimal one, why bother exploring that way?'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To solve this problem more efficiently, we will look at two great techniques:
+    the tabular method and memoization. Both are based on the same principle: avoid
+    unproductive exploration. But each uses a slightly fundamentally different approach
+    to solving the problem, as you will see.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's explore memoization in the following section.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Memoization
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: The `memoization` method refers to a method in which we save the results of
+    the intermediate outputs for further use in a dictionary, also known as memo.
+    Hence the name "memoization."
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Coming back to our cake partition example, if we modify the `partition` function
+    and print the value of `cake_size` and the best solution for the size, there''s
+    a new pattern to be found. Using the same code as was used in the brute force
+    approach before, we add a `print` statement to display the cake size and the corresponding
+    profit:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Call the function using the `main` block:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We then see the output as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: As you can see in the preceding output, there is a pattern here – the best profit
+    for a given size remains the same, but we calculate it many times. Especially
+    pay attention to the size and the order of the calculations. It calculates the
+    profit for size 1, and then 2, and now when it wants to calculate it for size
+    3, it does so by starting from scratch again by calculating the answer for 1,
+    and then 2, and then finally 3\. This happens repeatedly since it doesn't store
+    any intermediate results. An obvious improvement would be to store the profit
+    in a memo and then use it later.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We add a small modification here: if the `best_profit` for a given `cake_size`
+    is already calculated, we just use it right away without calculating it, as shown
+    in the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s now look at the complete code snippet:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now if we run this program, we get the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: Here, instead of running the calculations 2n times, we're running it just `n`
+    times. That's a vast improvement. And all we had to do was save the result of
+    the output in a dictionary, or memo, hence the name **memoization**. In this method,
+    we essentially save the intermediate solution in a dictionary to avoid re-computation.
+    This method is also called the top-bottom method as we follow natural ordering
+    analogous to searching in a binary tree, for instance.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, we will be looking at the tabular method.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Tabular Method
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Using memoization, we arbitrarily store the intermediate computation. The tabular
+    method does almost the same thing, but slightly differently: it goes in a predetermined
+    order, which is almost always fixed – from small to large. This means that to
+    obtain the most profitable cuts, we will first get the most profitable cut in
+    a 1 kg cake, then a 2 kg cake, then 3 kg, and so on. This is usually done using
+    a matrix and is called the bottom-up method as we solve the smaller problems first.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Consider the following code snippet:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, we are iterating over the sizes first and then cuts.
+    A good exercise would be to run the code in an IDE using a debugger to see how
+    the `profits` array is updated. First, it would find the most profit in the cake
+    of size 1, and then it would find the most profit in the cake of size 2\. But
+    here, the second `for` loop would try both the configurations: one cut (two cakes
+    of size 1), and no cuts (one cake of size 2) indicated by `profits[i – current_size]`.
+    Now, similarly, for every size, it would try to cut the cake in all the possible
+    configurations, without recalculating the profits on the smaller part. For instance,
+    `profits[i – current_size]` would return the best possible configuration, without
+    recalculating it.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Exercise 5.01: Memoization in Practice'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'In this exercise, we will try to solve a DP problem using the memoization method.
+    The problem is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Given a number `n`, print the nth Tribonacci number. The Tribonacci sequence
+    is similar to the Fibonacci sequence but uses three numbers instead of two. This
+    means that the nth Tribonacci number is the sum of the prior three numbers. The
+    following is an example:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Fibonacci sequence 0, 1, 2, 3, 5, 8… is defined as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.5: Fibonacci sequence'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_05.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 5.5: Fibonacci sequence'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Tribonacci sequence 0, 0, 1, 1, 2, 4, 7…. is defined as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.6: Tribonacci sequence'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_06.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 5.6: Tribonacci sequence'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The generalized formula for the Tribonacci sequence is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following steps will help you complete the exercise:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now that we know the formula, the first step is to create a simple recursive
+    implementation in Python. Use the formulas in the description and convert them
+    into a Python function. You can choose to do it in a Jupyter notebook, or just
+    a simple `.py` Python file:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'In the preceding code, we are recursively calculating the value of the Tribonacci
+    number. Furthermore, if the number is less than or equal to 1, we know the answer
+    is going to be 0, and for 2 it''s going to be 1, so we add the `if-else` condition
+    to take care of the edge cases. To test the preceding code, just call it in the
+    `main` block and check the output is as expected:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'As we''ve learned, this implementation is quite slow and grows exponentially
+    with higher values of `n`. Now, using the principle of memoization, store the
+    intermediate results so they are not recomputed. Create a dictionary that will
+    check whether the answer to that nth tribonacci number is already added to the
+    dictionary. If yes, just return that; otherwise, try to compute it:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now, using the previous code snippet, calculate the nth Tribonacci number without
+    using recursion. Run the code and make sure the output matches the expectation
+    by running it in the `main` block:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: As you can see in the output, the sum is `7`. We have learned how to convert
+    a simple recursive function into memoized DP code.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: To access the source code for this specific section, please refer to [https://packt.live/3dghMJ1](https://packt.live/3dghMJ1).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also run this example online at [https://packt.live/3fFE7RK](https://packt.live/3fFE7RK).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, we will try to do the same with the tabular method.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Exercise 5.02: The Tabular Method in Practice'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'In this exercise, we will solve a DP problem using the tabular method. The
+    goal of the exercise is to identify the length of the longest common substring
+    between two strings. For instance, if the two strings are `BBBABDABAA` and `AAAABDABBAABB`,
+    then the longest common substring is `ABDAB`. Other common substrings are `AA`,
+    `BB`, and `BA`, and `BAA` but they''re not the longest:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Import the `numpy` library:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Implement the brute force method to calculate the longest common substring
+    of two strings first. Imagine we have two variables, `i` and `j`, that indicate
+    the start and end of the substring. Use these pointers to indicate the start and
+    end of the substring for both strings. You can use the `==` operator in Python
+    to see whether the strings match:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Call the function using the `main` block:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We can verify that the output is correct:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Let''s implement the tabular method. Now that we have a simple solution, we
+    can proceed to optimize it. Look at the main loop, which nests four times. Meaning
+    the solution runs in `O(N^4)`. It performs the same calculations irrespective
+    of whether we have the longest common substring or not. Use the tabular method
+    to come up with more solutions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The problem has a nice matrix structure inherent to it. Consider the length
+    of one string to be the rows and the length of the other string as the columns
+    of the matrix. Initialize this matrix with `0`. The values in the matrix at position
+    `i, j` will indicate whether the `i`th character in the first string is the same
+    as the `j`th character in the second string.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Now the longest common substring will have the highest number of ones in a diagonal.
+    Use this fact to increment the maximum length of the substring by 1 if there's
+    a match at the current position and there's a `1` in the `i-1` and `j-1` positions.
+    This will essentially indicate that there are two subsequent matches. Return the
+    `max` element in the matrix using `np.max(table)`. We can also look at the diagonally
+    increasing sequence until the value reaches `5`.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Call the function using the `main` block:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 5.7: Output for LCS'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_07.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 5.7: Output for LCS'
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you can see, there is a direct mapping between the rows (the first string)
+    and the columns (the second string), so the LCS string would just be the diagonal
+    elements counted backward from the LCS length. In the preceding output, you can
+    see that the highest element is 5 and hence you know that the length is 5\. The
+    LCS string would be the elements going diagonally upward from the element `5`.
+    The direction of the string will always be diagonally upward since the columns
+    always run from left to right. Note that the solution involves just calculating
+    the length of the LCS and not finding the actual LCS.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: To access the source code for this specific section, please refer to [https://packt.live/3fD79BC](https://packt.live/3fD79BC).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also run this example online at https://packt.live/2UYVIfK.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we have learned how to solve DP problems, we should next learn how
+    to identify them.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Identifying Dynamic Programming Problems
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'While it is easy to solve a DP problem once you identify how it recurses, it
+    is difficult to determine whether a problem can be solved using DP. For instance,
+    the traveling salesman problem, where you are given a graph and wish to cover
+    all the vertices in the least possible time, is something that can''t be solved
+    using DP. Every DP problem must satisfy two prerequisites: it should have an optimal
+    substructure and should have overlapping subproblems. We''ll look into exactly
+    what they mean and how to solve them in the subsequent section.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Optimal Substructures
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Recall the best path example we discussed earlier. If you want to go from point
+    A to point C through B, and you know that''s the best path, there''s no point
+    in exploring others. Rephrasing this: If I want to go from A to D and I know the
+    best path from A to C, then the best route from A to D will include the path from
+    A to C. This is called the optimal substructure. Essentially, what it means is
+    the optimal solution to the problem contains optimal solutions to subproblems.
+    Remember how we didn''t care to recalculate the best profit for a cake of size
+    `n` once we knew it? Because we know the best profit for the cake of size `n +
+    1` will include `n` while considering making a cut and dividing the cake into
+    size `n` and `1`. To reiterate, the property of optimal substructure would be
+    a requirement if we were to solve the problem using DP.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Overlapping Subproblems
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Remember when we were initially designing a brute force solution for the cake
+    partition example, and later using memoization. Initially, it required 32 steps
+    for the brute force approach to arrive at the solution, while memoization took
+    only 5\. This was because the brute force approach performed the same computation
+    repeatedly: the optimal solution for size three would call for size two and then
+    one. Then, for size 4, it would again call for three, and then two, and then one.
+    This recursive re-computation is due to the nature of the problem: the overlapping
+    subproblems. This is the reason we could save the answer in a memo and later use
+    the same solution without recomputing it. The overlapping subproblem is another
+    requirement that a problem must have to be solved using DP.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Coin-Change Problem
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'The coin-change problem is one of the most commonly asked interview questions
+    in software engineering interviews. The statement is simple: given a list of coin
+    denominations, and a sum value N, identify the number of unique ways to arrive
+    at the sum. For instance, if N = 3 and D, the coin denomination, = {1, 2} the
+    answer is 2\. That is, there are two ways to arrive at 3 by having coins of denomination
+    1 and 2, which are {1, 1, 1} and {2, 1}:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: To solve the problem, you would need to prepare the recursion formula that will
+    calculate the number of ways to arrive at a sum. To do this, you might want to
+    start with a simple version that solves just a single number and then try to convert
+    it to a more general solution.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The end output could be a table as shown in the following figure, which can
+    be used to summarize the result. In the following table, the first row represents
+    the denominations, and the first column represents the sum. More specifically,
+    the first row, 0, 1, 2, 3, 4, 5, represents the sum. And the first column represents
+    the available denominations. We initialize the base cases with 1 and not 0 because
+    if the denomination is less than the sum, then we just copy the previous combinations
+    over.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The following table represents how to count the number of ways to get to 5
+    using coins [1, 2]:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 5.8: Counting the number of ways to get to sum 5 using denominations
+    of 1, 2'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_08.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 5.8: Counting the number of ways to get to sum 5 using denominations
+    of 1, 2'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: So, we can see the number of ways to arrive at the sum of 5 using coins of denominations
+    1 and 2 is 3, which is basically 1+1+1+1+1, 2+1+1+1, and 2+2+1\. Remember we're
+    looking for only unique ways, meaning, 2+2+1 is the same as 1+2+2\.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Let's execute an exercise to solve the coin-change problem.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Exercise 5.03: Solving the Coin-Change Problem'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'In this exercise, we will be solving the classic and very popular coin-change
+    problem. Our goal is to find the number of permutations, in which the coins can
+    be used to arrive at a sum, 5, using the coin denominations of 1, 2, and 3\. The
+    following steps will help you complete the exercise:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Import the `numpy` and `pandas` libraries:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Let''s now try to identify the overlapping subproblem. As previously, there''s
+    one common thing: we have to search for all possible denominations and check whether
+    they sum to a certain number. Furthermore, it''s a little more complicated than
+    the cake example since we have got two things to iterate on: firstly, the denomination,
+    and secondly the total sum (in the cake example, it was only one variable, the
+    cake size). So, we need a 2D array, or a matrix.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'On the columns, we will have the sum we are trying to reach, and on the rows,
+    we will consider various denominations available. As we loop over the denominations
+    (columns), we will calculate the number of ways to sum up to `n` by first adding
+    the number of ways to reach the sum without considering the current denomination,
+    and then by considering it. This is analogous to the cake example, where we first
+    performed the cut, calculated the profit, and then didn''t perform the cut and
+    calculate the profit. The difference, however, is this time the previous best
+    configuration would be fetched from the row above, and also, we would add the
+    two numbers instead of selecting the maximum out of it since we are interested
+    in the total number of ways to reach the sum. For example, the number of ways
+    to sum up to 4 using {1, 2} would be first to use {2} and then add the number
+    of ways to sum up to 4 – 2 = 2\. We could fetch it from the same row and the index
+    would be 2\. We will also initiate the first row with 1s as they are either invalid
+    (the number of ways to reach zeros using 1) or valid with one solution:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 5.9: Initial setup of the algorithm'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_09.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Next, we will initialize a table with the dimension `len(denomination)` x `(N
+    + 1)`. The number of columns is `N + 1` since the index includes zero as well:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now, in the end, we will print the table:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a Python script with the following utility, which pretty prints a table.
+    This will be useful for debugging. Pretty printing is essentially used to present
+    data in a more legible and comprehensive way. By setting the denominations as
+    the index, we will see the output more clearly:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Note
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'For more details on pretty printing, you can refer to the official documentation
+    at the following link: [https://docs.python.org/3/library/pprint.html](https://docs.python.org/3/library/pprint.html).'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Initialize the script with the following configuration:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE30]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE31]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: As we can see in the entry in the last row and column, the number of ways to
+    get a 5 using [1, 2] is 3\. We have now learned about the concept of DP in detail.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: To access the source code for this specific section, please refer to [https://packt.live/2NeU4lT](https://packt.live/2NeU4lT).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also run this example online at [https://packt.live/2YUd6DD](https://packt.live/2YUd6DD).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, let's see how it is used to solve problems in RL.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Dynamic Programming in RL
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: DP plays an important role in RL as the number of choices you have at a given
+    time is too large. For instance, whether the robot should take a left or right
+    turn given the current state of the environment. To solve such a problem, it's
+    infeasible to find the outcome of every state using brute force. We can do that,
+    however, using DP, using the methods we learned in the previous section.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We have seen the Bellman equation in previous chapters. Let's reiterate the
+    basics and see how the Bellman equation has both of the required properties for
+    using DP.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Assuming the environment is a finite **Markov Decision Process** (**MDP**),
+    let's define the state of the environment by a finite set of states, *S*. This
+    indicates the state configuration, for instance, the current position of the robot.
+    A finite set of actions, *A*, gives the action space, and a finite set of rewards,
+    *R*. Let's denote the discounting rate using ![which is a value between](img/B16182_05_09a.png),
+    which is a value between 0 and 1\.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Given a state, *S*, the algorithm chooses one of the actions in *A* using a
+    deterministic policy, ![a](img/B16182_02_31b.png). The policy is nothing but a
+    mapping between state *S* and action *A*, for instance, a choice a robot would
+    make such as go left or right. And a deterministic policy allows us to choose
+    an action in a non-random fashion (as opposed to a stochastic policy, which has
+    a significant random component).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To concretize our understanding, let''s take an example of a simple autonomous
+    car. To make it simple, we will make some reasonable assumptions here. The action
+    space can be defined as {left, right, straight, reverse}. A deterministic policy
+    is: if there''s a hole in the ground, take a left or right turn to avoid it. A
+    stochastic policy, however, would say: if here''s a hole in the ground, take a
+    left turn with 80% probability, which means there''s a small chance that the car
+    would purposely enter the hole. While this move might not make sense at the moment,
+    we will see later, in the *Chapter 7, Temporal Difference Learning*, that this
+    is a rather important thing to do and addresses one of the critical concepts in
+    RL: the exploration versus exploitation dilemma.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Coming back to the original point of using DP in RL, the following is the **simplified**
+    Bellman equation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.10: Simplified Bellman equation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_10.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 5.10: Simplified Bellman equation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The only difference with the complete equation is we are not summing over ![b](img/B16182_05_10a.png),
+    which is valid in the case that we have a non-deterministic environment. Here
+    is the complete Bellman equation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.11: Complete Bellman equation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_11.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 5.11: Complete Bellman equation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the preceding equation, ![formula ](img/B16182_05_11a.png) is the value
+    function, the reward for being in a particular state. We will look more deeply
+    into it later. ![formula ](img/B16182_05_11b.png) is the reward of taking action
+    `a` and ![formula ](img/B16182_05_11c.png) is the reward of the next state. Two
+    things you can observe are the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The recursive nature between ![formula ](img/B16182_05_11d.png) and ![formula
+    ](img/B16182_05_11e.png), meaning ![formula ](img/B16182_05_11f.png) has an optimal
+    substructure.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The computation of ![formula ](img/B16182_05_11g.png) will have to be recomputed
+    at some point meaning it has overlapping subproblems. Both conditions of DP are
+    qualified so we can use it to speed up our solutions.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: As we will see later, the structure of the value function is similar to the
+    one we saw before in the coin denomination problem. Instead of saving the number
+    of ways to reach the sum, we are going to save the best ![c](img/B16182_05_11h.png),
+    that is, the best value of the value function that yields the highest return.
+    Next, we will look at policy and value iteration, which are the basic algorithms
+    that help us solve RL problems.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Policy and Value Iteration
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'The main idea of solving a RL problem is to search for the best policies (a
+    way to make decisions) using value functions. This method works well for simple
+    RL problems as we need information on the entire environment: the number of states
+    and the action space. We can use this method even in a continuous space, but the
+    exact solution is not possible in every case. During the updating process, we
+    will have to iterate over all the possible scenarios, and that''s the reason using
+    this method becomes infeasible when the state and action space is too high:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Policy Iteration: start with a random policy and iteratively converge to the
+    best one.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Value Iteration: state with random values and iteratively update them toward
+    convergence.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: State-Value Functions
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'The state-value function is an array that represents the reward for being in
+    that state. Imagine having four possible states in a particular game: `S1`, `S2`,
+    `S3`, and `S4`, with `S4` being the terminal (end) state. The state-value table
+    can be represented by an array, as indicated in the following table. Please note
+    that the values are simply examples. Every state has a "value," hence state-value
+    function. This table can be used to make decisions later on in the game:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.12: Sample table for the state-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_12.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 5.12: Sample table for the state-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: For instance, if you're in state `S3`, you have two possible choices, `S4` and
+    `S2`; you'd go to `S4` since the value of being in that state is higher than that
+    of `S2`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Action-Value Functions
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'The action-value function is a matrix that represents the reward for every
+    state-action pair. This again can be used to select the best action to take in
+    a particular state. Unlike the previous state-action table, this time, we have
+    rewards associated with every action as well, as depicted in the following table:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.13: Sample table for the action-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_13.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 5.13: Sample table for the action-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note these are just example values and will be calculated using a specific update
+    policy. We will be looking at more specific examples of updating policies in the
+    *Policy Improvement* section. The table will be later used in the value iteration
+    algorithm so we can update the table iteratively and not wait till the very end.
+    More on this is in the *Value Iteration* section.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'OpenAI Gym: Taxi-v3 Environment'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'We saw what an OpenAI Gym environment is in previous chapters, but we''ll be
+    playing a different game this time: Taxi-v3\. In this game, we will teach our
+    agent taxi driver to pick up and drop off passengers. The yellow block represents
+    the taxi. There are four possible locations that are labeled with different characters:
+    R, G, B, and Y for Red, Green, Blue, and Yellow, as you can see in the following
+    figure. The agent has to pick up the passenger at a location and drop them off
+    at a second location. Moreover, there are walls in the environment depicted by
+    a `|`. Whenever there''s a wall, the number of possible actions is limited as
+    the taxi is not allowed to pass through a wall. This makes the problem interesting
+    as the agent has to smartly navigate through the grid while avoiding the walls
+    and finding the best possible (shortest) solution:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.14: Taxi-v3 environment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_14.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 5.14: Taxi-v3 environment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following is the list of rewards offered for every action:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**+20**: On a successful drop-off.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**-1**: On every step you take. This is important since we are interested in
+    finding the shortest path.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**-10**: On an illegal drop-off or pickup.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Policy**'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Every state in the environment is encoded by a number. For instance, the state
+    in the previous photo can be represented by `54`. There are 500 such unique states
+    in this game. For every such state, we have a corresponding policy (that is, which
+    action to perform).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's now try the game ourselves.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Initialize the environment and print the possible number of states and the
+    action space, which are 500 and 6 currently. In real-world problems, this number
+    will be huge (in the billions) and we can''t use discrete agents. But let''s make
+    these assumptions for the sake of simplicity and solve it:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE32]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The preceding code will print the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.15: Initiating the Taxi-v3 environment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_15.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 5.15: Initiating the Taxi-v3 environment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As you can see, the grid represents the current (initial) state of the environment.
+    The yellow box represents the taxi. The six possible choices are: left, right,
+    up, down, pickup, and drop. Let''s go ahead and see how we can control the taxi.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Using the following code, we will randomly step through the environment and
+    look at the output. The `env.step` function is used to go from one state to another.
+    The argument it accepts is one of the valid actions in its action space. On stepping,
+    it returns a few values as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`new_state`: The new state (an integer denoting the next state)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`reward`: The reward obtained from transitioning to the next state'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`done`: If the environment needs to be reset (meaning you''ve reached a terminal
+    state)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`info`: Debug info that indicates transition probabilities'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Since we''re using a deterministic environment, we will always have transition
+    probabilities that are `1.0`. There are other environments that have non-1 transition
+    probability that indicate if you take a certain decision; for instance, if you
+    take a right turn, the environment will take a right turn with said probability,
+    meaning there''s a chance that you will stay in the same place even after taking
+    a specific action. The agent is not allowed to learn this information as it interacts
+    with the environment as, otherwise, it would be unfair if the agent knows the
+    environment information:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE33]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Using this code, we will take random (but valid) steps in the environment and
+    stop when we''ve reached the terminal state. If we execute the code, we will see
+    the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.16: Randomly stepping through the environment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_16.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 5.16: Randomly stepping through the environment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Looking at the output, we can see the new state that is stepped through after
+    taking an action and the reward received for taking the action; done will indicate
+    that we''ve arrived at a terminal stage; and some environment information such
+    as transition probabilities. Next, we will look at our first RL algorithm: policy
+    iteration.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Policy Iteration
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'As the name suggests, in policy iteration, we iterate over multiple policies
+    and then optimize them. The policy iteration algorithm works in two steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Policy evaluation
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Policy improvement
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Policy evaluation calculates the value function for the current policy, which
+    is initialized randomly. We then use the Bellman optimality equation to update
+    the values for every single state. Then, once we have a new value function, we
+    update the policy to maximize the rewards and update the policy, which is also
+    called policy improvement. Now if the policy is updated (that is, even if a single
+    decision in the policy is changed), this newer policy is guaranteed to be better
+    than the older once. If the policy doesn't update, it means that the current policy
+    is already the most optimal one (otherwise, it would have updated and found a
+    better one).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following are the steps in which the policy iteration algorithm works:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Start with a random policy.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Compute the value function for all the states.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Update the policy to choose the action that maximizes the rewards (Policy Improvement).
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Stop when the policy doesn't change. This indicates the optimal policy has been
+    obtained.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Let''s take a dry run through the algorithm manually and see how it is updated,
+    using a simple example:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Start with a random policy. The following table lists the possible actions
+    for an agent to take in a given position in the Taxi-v3 environment:![Figure 5.17:
+    Possible actions for an agent'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_17.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 5.17: Possible actions for an agent'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: In the preceding figure, the table is the environment and the boxes represent
+    the choices. The arrows indicate the action to take if the agent were in that
+    position.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Calculate the value function for all the unique states. The following table
+    lists the sample state values for each state of the agent. The values are initiated
+    with zeros (some variations of the algorithm also use small random values close
+    to 0):![Figure 5.18: Reward values for each state'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_18.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 5.18: Reward values for each state'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'To understand the update rule visually, let''s use an extremely simple example:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 5.19: Sample policy to understand the update rule'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_19.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 5.19: Sample policy to understand the update rule'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Starting from the blue position, the policy will end in the green (terminal)
+    position after the first `policy_evaluation` step. The values will be updated
+    the following way (one diagram for every iteration):'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 5.20: Reward multiplying at every step'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_20.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 5.20: Reward multiplying at every step'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: At every step, the reward is multiplied by gamma (`0.9` in this case). Also,
+    in this example, we already started out with an optimal policy, so the updated
+    policy will look exactly the same as the current one.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Update the policy. Let''s look at the update rule with a small example. Consider
+    the following as the current value function and the corresponding policy:![Figure
+    5.21: The sample value function and the corresponding policy.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_21.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 5.21: The sample value function and the corresponding policy.'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: As you can see in the preceding figure, the left table indicates the values,
+    and the right table indicates the policy (decision).
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Once we perform an update, imagine the value function changes to the following:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 5.22: Updated values of the sample value function'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_22.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 5.22: Updated values of the sample value function'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Now, the policy, in every cell, will update so that the action will take the
+    agent to the state that yields the highest reward and thus the corresponding policy
+    will look something like the following:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 5.23: Corresponding policy to the updated value function'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_23.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 5.23: Corresponding policy to the updated value function'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Repeat steps 1-3 until the policy no longer changes.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We will train the algorithm to iteratively approximate the true value function
+    and do that in episodes, which will give us the most optimal policy. One episode
+    is a series of actions until the agent reaches the terminal state. This can be
+    the goal (drop-off, for instance, in the Taxi-v3 environment) state or it can
+    be a number that defines the maximum number of steps the agent can take to avoid
+    infinite loops.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Let''s use the following code to initialize the environment and the value function
+    table. We will save the value function in the variable `V`. Furthermore, following
+    the first step in the algorithm, we will start out with a random policy using
+    the `env.action_space.sample()` method, which will return a random action every
+    time it''s called:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE34]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now, in the next section, we will define the variables and initialize them:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE35]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now comes the main loop, which will perform the iteration:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE36]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now that we have the basic setup ready, we will first do the policy evaluation
+    step using the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE37]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'In the following code, we will loop through the states and update ![c](img/B16182_05_23a.png):'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE38]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Next, we will use the Bellman optimality equation to update ![b](img/B16182_05_23b.png):'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE39]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Once we do the policy evaluation step, we will perform policy improvement with
+    the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE40]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Let''s start by defining all the required variables:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE41]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now, here, we will calculate the future reward by taking this action. Note
+    that we''re using a simplified equation because we don''t have non-one transition
+    probabilities:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE42]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Once the optimal policy is learned, we will test it on a fresh environment.
+    Now that both the parts are ready. Let''s call them using the `main` block of
+    code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE43]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Next, we will add a `play` function that will test the policy on a fresh environment:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE44]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Next, let''s define `max_steps`. This is essentially the maximum number of
+    steps the agent is allowed to take. If it doesn''t reach a solution in this time,
+    then we call it an episode and proceed:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE45]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Here, we will take the action that we saved in the policy earlier:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE46]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'After running the main block, we see the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 5.24: The agent drops the passenger in the correct location'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_24.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 5.24: The agent drops the passenger in the correct location'
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you can see, the agent drops the passenger in the right location. Note that
+    the output is truncated for presentation purposes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Value Iteration
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'As you saw in the previous section, we arrived at the optimal solution after
+    a few iterations, but policy iteration has one disadvantage: we get to improve
+    the policy only once after multiple iterations of evaluation.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The simplified Bellman equation can be updated in the following way. Note that
+    this is similar to the policy evaluation step, but the only addition is taking
+    the max value of the value function over all the possible actions:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.25: Updated Bellman equation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_25.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 5.25: Updated Bellman equation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The equation can be comprehended as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '"*For a given state, take all the possible actions and then store the one with
+    the highest V[s] value*."'
+  prefs: []
+  type: TYPE_NORMAL
+- en: It's as simple as that. Using this technique, we can combine both evaluation
+    and improvement in a single step as you will see now.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will start off as usual by defining the important variables, such as `gamma`,
+    `state_size`, and `policy`, and the value function dictionary:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE47]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'And using the equation defined before, we will take the same loop and make
+    the change in the ![formula ](img/B16182_05_25a.png) calculation part. We are
+    now using the updated Bellman equation, which was defined earlier:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE48]'
+  prefs: []
+  type: TYPE_PRE
+- en: Thus, we have successfully implemented the policy iteration and value iteration
+    for the Taxi-v3 environment.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next activity, we will be using the very popular FrozenLake-v0 environment
+    for policy and value iteration. Before we begin, let's quickly explore the basics
+    of the environment.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The FrozenLake-v0 Environment
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'The environment is based on a scenario in which there is a frozen lake, except
+    for some parts where the ice has melted. Suppose that a group of friends is playing
+    frisbee near the lake and one of them made a wild throw that landed the frisbee
+    right in the middle of the lake. The goal is to navigate across the lake and get
+    the frisbee back. Now, the fact that has to be considered here is that the ice
+    is slippery, and you cannot always move in the intended direction. The surface
+    is described using a grid as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE49]'
+  prefs: []
+  type: TYPE_PRE
+- en: Note that the episode ends when one of the players reaches the goal or falls
+    in the hole. The player is rewarded with a 1 or 0 respectively.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, in the Gym environment, the agent is supposed to control the movement of
+    the player accordingly. As you know, some tiles in the grid can be stepped upon
+    and some may land you directly into the hole where the ice has melted. Hence,
+    the movement of the player is highly unpredictable and is partially dependent
+    on the direction that the agent has chosen.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For more information on the FrozenLake-v0 environment, please refer to the
+    following link: [https://gym.openai.com/envs/FrozenLake-v0/](https://gym.openai.com/envs/FrozenLake-v0/)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's now implement the policy and value iteration techniques to solve the problem
+    and retrieve the frisbee.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Activity 5.01: Implementing Policy and Value Iteration on the FrozenLake-v0
+    Environment'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'In this activity, we will solve FrozenLake-v0 using policy and value iteration.
+    The goal of the activity is to define a safe path through the frozen lake and
+    retrieve the frisbee. The episode ends when the goal is achieved or when the agent
+    falls into the hole. The following steps will help you complete the activity:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Import the required libraries: `numpy` and `gym`.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Initialize the environment and reset the current one. Set `is_slippery=False`
+    in the initializer. Show the size of the action space and the number of possible
+    states.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Perform policy evaluation iterations until the smallest change is less than
+    `smallest_change`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Perform policy improvement using the Bellman optimality equation.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Find the most optimal policy for the FrozenLake-v0 environment using policy
+    iteration.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Perform a test pass on the FrozenLake-v0 environment.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Take steps through the FrozenLake-v0 environment randomly.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Perform value iteration to find the most optimal policy for the FrozenLake-v0
+    environment. Note that the aim here is to make sure the reward value for each
+    action should be one (or close to one) to ensure maximum rewards.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The output should be similar to the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.26: Expected output average score (1.0)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_05_26.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 5.26: Expected output average score (1.0)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: The solution to this activity can be found on page 711.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Thus, with this activity, we have successfully implemented the policy and value
+    iteration methods in the FrozenLake-v0 environment.
+  prefs: []
+  type: TYPE_NORMAL
+- en: With this, we have reached the end of the chapter, and you can now confidently
+    implement the techniques learned in this chapter for various environments and
+    scenarios.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we looked at the two most commonly used techniques to solve
+    DP problems. The first method, memoization, also called the top-bottom method
+    uses a dictionary (or HashMap-like structure) to store intermediate results in
+    a natural (unordered) manner. While the second method, the tabular method, also
+    called the bottom-up method, sequentially solves problems from small to large
+    and usually saves the result in a matrix-like structure.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Next, we also looked at how to use DP to solve RL problems using policy and
+    value iteration, and how we overcome the disadvantage of policy iteration by using
+    the modified Bellman equation. We implemented policy and value iteration in two
+    very popular environments: Taxi-v3 and FrozenLake-v0.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will be studying Monte Carlo methods, which are used
+    to simulate real-world scenarios and are some of the most widely used tools in
+    domains such as finance, mechanics, and trading.
+  prefs: []
+  type: TYPE_NORMAL

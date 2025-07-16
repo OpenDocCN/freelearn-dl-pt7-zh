@@ -1,0 +1,540 @@
+- en: Classifying Images Using Amazon SageMaker
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Image classification has been one of the leading research fields in the last
+    five years. This is not surprising because being able to successfully classify
+    images solves many business problems across a variety of industries. For example,
+    the entire autonomous vehicle industry is dependent on the accuracy of these image
+    classification and object detection models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we will look at how Amazon SageMaker drastically simplifies
+    the image classification problem. Aside from gathering a rich set of images for
+    training, we will look at how to specify hyperparameters (parameters internal
+    to the algorithm), train Docker images, and use infrastructure specifications
+    for training.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, we will cover the following topics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Walking through convolutional neural and residual networks
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Classifying images through transfer learning
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Performing inferences on images through Batch Transform
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Please use the following link to refer to the source code for this chapter :[https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services](https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Walking through convolutional neural and residual networks
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The SageMaker image classification algorithm is an implementation of **residual
+    networks** (**ResNets**). Before we delve into the details of the algorithm, let's
+    briefly understand **convolutional neural networks** (**CNN**) and ResNet and
+    how they learn patterns from images.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Like any other neural network, CNNs are made up of input, hidden, and output
+    layers. These networks have learnable parameters called weights and biases. These
+    weights and biases can be adjusted through an appropriate optimizer, such as **Stochastic
+    Gradient Descent** (**SGD**), with backpropagation. However, the difference between
+    any feedforward artificial neural network and CNNs is that the hidden layers in
+    CNNs are convolutional layers. Each convolutional layer consists of one or more
+    filters. The job of these filters is to recognize patterns in input images.
+  prefs: []
+  type: TYPE_NORMAL
+- en: These filters can have varying shapes, ranging from 1 x 1 to 3 x 3 and so on,
+    and are initialized with random weights. As the input image passes through the
+    convolutional layer, each filter will slide over every 3 x 3 block of pixels (in
+    the case of a 3 x 3 filter) until the entire image is covered. This sliding is
+    referred to as convolving. During the process of convolving, a dot product is
+    applied to the filter weights and pixel values in the 3 x 3 block, thus learning
+    about the image's features. The initial layers of the CNN learn basic geometric
+    shapes, such as edges and circles, while later layers learn about more sophisticated
+    objects, such as eyes, ears, feathers, beaks, cats, and dogs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: With deeper convolutional neural networks, as we stack more layers to learn
+    complex features, vanishing gradient problems arise. In other words, during the
+    training process, some neurons die (do not activate), causing a vanishing gradient.
+    This happens when an activation function receives input with varying distributions
+    (for example, if you're passing black and white images of cats as opposed to colored
+    ones through the network, the input raw pixels belong to a different distribution,
+    causing a vanishing gradient problem). If we restrict neuron output to the area
+    to around zero, we can ensure that each layer will pass a substantive gradient
+    back to the previous layers.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To solve the challenges that CNNs bring with them, deep residual learning combines
+    what has been learned from previous layers with what has been learned from shallower
+    models:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*![](img/81c15e7f-52f1-4cef-9ae2-3ce15e463a64.png)*'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Here, *![](img/59f4c0f0-897d-4e35-b86e-0d8299b3f806.png)* is a convolutional
+    layer or shallower model and ![](img/2bcc9ac6-3a27-4ef9-8ae4-02b8105d0834.png)
+    is the previous layer.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Residual networks, while addressing the challenges of CNNs, are an optimal approach
+    to use when classifying images. In the next section, we will look at transfer
+    learning as an approach to incrementally training an already-trained image classification
+    model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Classifying images through transfer learning in Amazon SageMaker
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: One of the key challenges in classifying images is the availability of large
+    training datasets. For example, to create Amazon Go-type experiences, the e-commerce
+    retailer may have trained their machine learning algorithms on large volumes of
+    images. When we don't have images covering all types of real-world scenarios –
+    scenarios ranging from time of the day (brightness), ambience around the target
+    item, and item angle – we're unable to train image classification algorithms that
+    are able to perform well in real-life environments. Furthermore, it takes a lot
+    of effort to build a convolutional neural network architecture that is optimal
+    for the dataset at hand. These considerations range from the number of convolutional
+    layers to the batch size, to the optimizer, and to dropout rates. It takes multiple
+    trial-and-error experiments to arrive at an optimal model iteration.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Because image classification requires a large number of images for training
+    convolutional networks, an alternative approach can be used to classify images
+    when the size of the training dataset is small. Transfer learning allows you to
+    apply the knowledge of an already trained model to a different but related problem.
+    We can reuse the weights of a pre-trained deep learning model that's been trained
+    on millions of images and fine-tune the network with a new/custom dataset that's
+    unique to our business case. Through transfer learning, low-level geometric features,
+    such as edges, can already be recognized by a pre-trained ResNet-18 (18 layer
+    network). However, for mid- to high-level feature learning, the top **fully connected**
+    (**FC**) layer is reinitialized with random weights. Then, the whole network is
+    fine-tuned with the new data—the random weights are adjusted by passing training
+    data through the network and using an optimization technique, for example, stochastic
+    gradient descent with backpropagation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we'll employ SageMaker's image classification algorithm in
+    transfer learning mode to classify some bakery and fast food items. We will use
+    the pre-trained ResNet-18 that's provided by Amazon SageMaker. The image classification
+    algorithm implements ResNets to categorize images. We can either train ResNets
+    from scratch or use pre-trained networks. Since we have a small image dataset
+    to train, we'll use an 18-layer pre-trained ResNet provided by Amazon SageMaker.
+    We can also experiment with ResNet50, a 50-layer residual network, to determine
+    which network yields a higher performance. Usually, deeper networks perform better
+    than shallow networks since they are able to represent images better. However,
+    given the type and complexity of the input images, the results can vary.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Our new dataset contains around 302 images with five categories (Hot Dog, Berry
+    Donut, Glazed Twist, Muffin, and Peanut Butter Cookie). Each of these items contains
+    40 to 90 images, covering the item from varying angles, as well as brightness,
+    contrast, and size.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The image classifier learns about the image''s low-level features from a pre-trained
+    ResNet and the high-level features by training the same ResNet-18 with a new dataset.
+    The following is an illustration of how the features—low, mid, and high-level—of
+    a Berry Donut are learned by SageMaker''s image classification algorithm:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/7a6fc71d-830a-4765-b9b6-d132bb3e8394.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: So far, we've reviewed what transfer learning is and when it is appropriate.
+    We've also briefly described the image dataset that we're going to feed to the
+    image classification algorithm in SageMaker. Let's get the images dataset prepared
+    for training.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating input for image classification
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Amazon SageMaker''s image classification algorithm accepts images in file mode
+    via two content types, namely:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: RecordIO (application/`x-recordio`)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Image (image/`.png`, image/`.jpeg`, and application/`x-image`)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In this chapter, we will use the RecordIO format. **RecordIO** is a binary format
+    for representing images efficiently and storing them in a compact format. Training
+    and validation images are available in a zipped format as part of the source code
+    associated with this chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In order to create RecordIO files for our training and validation datasets,
+    we will do the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Extract `.zip` files, both training and validation (via the `extract_zipfile`
+    function)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Create list files for training and validation (via the `create_listfile` function)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Create Record IO files for training and validation (via the `create_recordio`
+    function)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'For definitions of these functions, please refer to the accompanying source
+    code folder:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: To create a RecordIO format for training and validation datasets, we need to
+    create a list file that outlines the image index, followed by image classification
+    (note that we have five categories of images) and the location of the image itself.
+    We need to define these attributes for each of the images in the training and
+    validation datasets. To create a list file for images, we will use the **im2rec**
+    (**image to Recordio**) module of MXNet, an open-source deep-learning library
+    for training and deploying deep learning models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following code snippet illustrates how to create a list file using the
+    `im2rec` module. In order to create a list file, `im2rec` requires the location
+    of the images:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The `create_listfile()` function produces the following output. The following
+    is an excerpt of a sample list file:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/6442d6ce-5baf-450d-82ac-68680a82a7a1.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: From the list file we created, we produce a compressed representation of images
+    via the RecordIO format—again, using the im2rec module from MXNet.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will now upload the aforementioned training and validation datasets (`.rec`
+    files) to an S3 bucket. Additionally, we will upload test images, separately from
+    the training and validation images, to a test folder. Please refer to the accompanying
+    source code folder. The following screenshot shows the S3 bucket, along with the
+    relevant datasets:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/c3ec101d-0706-494b-8877-bbb71867f51f.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Now that we have all the datasets for training and inference, we are ready to
+    define the parameters of the image classification algorithm.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Defining hyperparameters for image classification
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'There are two kinds of parameter that we need to specify before fitting the
+    model to the training and validation datasets:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Parameters for the training job
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Hyperparameters that are specific to the algorithm
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The parameters for the training job deal with the input and output configuration,
+    including the type of infrastructure to provision.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To train the job configuration, we need to do the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, we need to define the image classification Docker image and training
+    input mode (file versus pipe mode. Pipe mode is a recent addition to the SageMaker
+    toolkit, where input data is fed on the fly to the algorithm's container with
+    no need to download it before training).
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Next, we define the location of the training output (`S3OutputPath`), along
+    with the number and type of EC2 instances, to provision and the hyperparameters.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: After that, we specify the *train* and *validation* channels, which are going
+    to be the locations of the training and validation data. As for distribution training,
+    the algorithm currently only supports `fullyreplicated` mode, where data is copied
+    onto each machine.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The following hyperparameters are specific to the algorithm:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`num_layers`: The number of layers for the network. In this example, we will
+    use the default 18 layers.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`image_shape`: Image dimensions (*width x height*).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`num_training_samples`: This is the total number of training data points. In
+    our case, this is set to `302`.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`num_classes`: This is the number of categories. For our dataset, this is 5\.
+    We will classify five pieces of merchandise.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`mini_batch_size`: The number of training samples that are used for each mini-batch.
+    In a single machine multi-GPU setting, each GPU handles `mini_batch_size`/num
+    of GPU samples. In the case of distributed training, where multiple machines are
+    involved, the actual batch size is the number of `machines` * `mini_batch_size`.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`epochs`: The number of iterations to go through to train the classification
+    algorithm.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`learning_rate`: This defines how big the steps should be when back-propagating
+    to reduce loss. In the case of transfer learning, we will take smaller steps so
+    that we can incrementally train the pre-trained network.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'In the following code, we''ve defined the values of each of the hyperparameters:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'It is now time for training: we will provide the *training parameters* that
+    we defined as input to the `create_training_job` method of SageMaker. The SageMaker
+    service is invoked using `boto3`, an Amazon Web Services SDK for Python. Once
+    the training job has been created, we can check its status.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Use the following code to create a training job in SageMaker:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will now plot the results to evaluate the training and validation accuracy
+    of ResNet-18\. We want to ensure that we''ve not overfitted the network—a scenario
+    where validation accuracy decreases as training accuracy increases. Let''s have
+    a look at the following graph:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/a248ee06-cc86-4884-8388-0b8fee7d2d96.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The results from training are available in the CloudWatch logs. The preceding
+    representation is a visual of how the accuracy of the training and validation
+    sets varies during the training period. The following code explains the blue and
+    orange lines in the preceding graph:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: As we can see, the trained ResNet model has picked up enough patterns from the
+    fast-food and bakery images. We deployed the trained model for inference.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Performing inference through Batch Transform
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this section, we will classify (in batch mode) a few images that form part
+    of the test dataset. Since we want to classify more than one image at a time,
+    we will create a Batch Transform job. Please refer to [Chapter 8](16e50aca-401b-47b0-87c3-34cc0346e66e.xhtml),
+    *Creating Machine Learning Inference Pipelines*, to learn about when and where
+    Batch Transform jobs are used and how they work.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Before we create a Batch Transform job, we need to provision the trained model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the following code snippet, we are going to do the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We will create a trained model by calling the `create_model()` function of the
+    SageMaker service (`boto3`, the AWS SDK for Python, is used to provision a low-level
+    interface to the SageMaker service).
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'We will pass a Docker image of the image classification algorithm and the path
+    to the trained model to this function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: Now that the trained model has been provisioned, we will need to create a Batch
+    Transform job.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'We will specify the transform input, output, and resources to configure a Batch
+    Transform job. The following are the definitions:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Transform input defines the location and format of images.
+  prefs:
+  - PREF_UL
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Transform output defines the location of the results of the inference.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Transform resources define the number and type of instances to provision.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'In the following code snippet, we call the `create_transform_job`functionof
+    the SageMaker service by passing job specifications as part of the `request`JSON
+    file:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the previous code, we used the `describe_transform_job()` function of the
+    SageMaker service to obtain the status of the Batch Transform job. The preceding
+    code will return the following message:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'It is now time to review the results. Let''s navigate to the Batch Transform
+    output and test dataset folders on the S3 bucket to review the results. For each
+    of the images in the test dataset, we will print their highest classification
+    probability, that is, what the trained model classifies an input image as:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The first image in the test dataset is a Hot Dog, as shown in the following
+    screenshot. The trained model identifies the Hot Dog with 92% probability.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The following is the result of the prediction, that is, label: `Hot_Dog_1`,
+    probability: `0.92`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/ab14c2e6-4f2d-4fd6-ba9d-8dfcb376585f.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The second image is of a Berry Donut, as shown in the following screenshot.
+    The trained model identifies the following screenshot as a Berry Donut with 99%
+    probability:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/990ed830-f963-4d25-9ff5-74c3a3f97108.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The third image is a Muffin, as shown in the following screenshot. The trained
+    model identifies the following screenshot as a Muffin with 66% probability:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/e139f0b1-4d1a-4cfd-89b1-05a79efce4a0.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'In the case of the fourth image, however, the trained model does not correctly
+    identify the image. While the real image is a Peanut Butter Cookie, the model
+    misidentifies it as a Muffin. One interesting thing to note here is that the Cookie
+    looks like a Muffin:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/6cc98739-63fd-4fa4-b439-cb7b9fff3326.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: As we can see, out of the four images three were classified correctly. To improve
+    the accuracy of the model, we can consider hyperparameter tuning and collecting
+    large volumes of fast-food and bakery images. Transfer learning, therefore, is
+    employed to incrementally train pre-trained image classification models with use-case-specific
+    images.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we've gone through an overview of convolutional neural and
+    residual networks. In addition, we've illustrated how SageMaker's image classification
+    algorithm can be used to identify fast-food and bakery images. Specifically, we've
+    reviewed training an image classification algorithm, including provisioning its
+    infrastructure; creating a compressed image format (RecordIO) for training and
+    validation datasets; and supplying formatted datasets for model fitting. For inference,
+    we've employed the Batch Transform feature of SageMaker to classify multiple images
+    in one go.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Most importantly, we've learned how to apply transfer learning to image classification.
+    This technique becomes very powerful in instances where you do not have large
+    amounts of training data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, you'll learn how to forecast retail sales using the DeepAR
+    algorithm from SageMaker—another use case where deep learning can be used to solve
+    real business challenges.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Further reading
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '**MXNet estimator in SageMaker**: [https://medium.com/devseed/use-label-maker-and-amazon-sagemaker-to-automatically-map-buildings-in-vietnam-a63090fb399f](https://medium.com/devseed/use-label-maker-and-amazon-sagemaker-to-automatically-map-buildings-in-vietnam-a63090fb399f)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Vanishing Gradient**: [https://towardsdatascience.com/intuit-and-implement-batch-normalization-c05480333c5b](https://towardsdatascience.com/intuit-and-implement-batch-normalization-c05480333c5b)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**AWS SageMaker Labs**: [https://github.com/awslabs/amazon-sagemaker-examples](https://github.com/awslabs/amazon-sagemaker-examples)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL

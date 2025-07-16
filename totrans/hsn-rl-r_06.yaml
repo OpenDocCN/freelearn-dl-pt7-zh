@@ -1,0 +1,1594 @@
+- en: Multi-Armed Bandit Models
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The multi-armed bandit problem is a classic reinforcement learning problem that
+    exemplifies the exploration versus exploitation dilemma. When we have a limited
+    set of resources to base our choices on, it becomes essential to adopt a method
+    to establish which of the alternative competing choices allow us to maximize the
+    expected profit. The name **multi**-**armed bandit** derives from the example
+    of a gambler struggling with a row of slot machines who must decide whether to
+    continue with the current machine or try a different machine.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we will get an overview of the basic concepts of the multi-armed
+    bandit model, discover the different techniques that are available to help resolve
+    this problem, and discover the meaning of the action-value implementation. Then,
+    we will learn how to address this problem using a contextual approach, how to
+    implement asynchronous actor-critic agents, and how to implement a multi-armed
+    bandit problem in R.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following topics will be covered in this chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Multi-armed bandit model
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Multi-armed bandit applications
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Action-value implementation
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Understanding problem solution techniques
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Implementing the contextual approach
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Understanding asynchronous actor-critic agents
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Online advertising using the MAB model
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Multi-armed bandit model
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: A common problem in learning theory is to identify the best option among a set
+    of options, without knowing a priori what benefits each one can give, while minimizing
+    the cost of doing so.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The **multi-armed bandit** (**MAB**) problem takes its name from a known problem
+    faced in decision theory. A gambler must choose which slot machine to play among
+    the many he has in front of him. After playing, he will have a certain degree
+    of knowledge about the rewards that are distributed by some machines, but he will
+    not know anything about the others, so he will be forced to choose between machines
+    that are partly known and machines that are not known.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This problem is ideal for modeling the compromises between the exploitation
+    of known opportunities and the exploration of unknown opportunities, as well as
+    to test strategies in the presence of a high degree of ignorance and uncertainty.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In more technical terms, each slot machine is modeled as a probability distribution,
+    with an average value and one standard deviation. These two parameters can vary
+    over time, either dependently or independently, for example, to model the evolution
+    over time or the dynamism of the competitive scenario, or in response to choices
+    that are made by one or more players to model competition or influence on the
+    context.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The distribution of probabilities is obviously not known to the players but
+    can be learned over time as values ​​are obtained from each slot machine.
+  prefs: []
+  type: TYPE_NORMAL
+- en: MAB problems were introduced by H. Robbins to model decision-making under uncertainty
+    when the environment is unknown. These problems were treated in the following
+    paper: *Some Aspects of the Sequential Design of Experiments*, Robbins, H. (1952), Bulletin
+    of the American Mathematical Society, 55, 527–535.
+  prefs: []
+  type: TYPE_NORMAL
+- en: At each time step, only one of the k levers is played and a stochastic reward
+    is observed, where each play of a lever k generates independent and identically
+    distributed samples resulting from some unknown distribution. The goal is to maximize
+    the sum of the rewards that are obtained during all the time steps for a defined
+    temporary interval.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Each algorithm that specifies which leverage should be played, given the past
+    history of the rewards already obtained, represents our policy. The metric that's
+    usually used to measure the performance of the latter is called regret, which
+    is a measure that indicates how much less gain we get, in anticipation, following
+    the chosen policy, than to follow the optimal one, in which the average of the
+    distributions is known a priori of earnings.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Since these distributions are unknown to our policy, it is necessary to learn
+    them through multiple plays, but at the same time, we also want to maximize the
+    reward by choosing to play with machines that have already been rated as good.
+    These two conflicting objectives – exploration of the unknown and exploitation
+    of what is known – exemplify a fundamental trade-off that's present in a wide
+    class of machine learning problems.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Mathematical model
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: A K-armed bandit problem is defined by the random variables *X[i, n]* for 1
+    ≤ i ≤ K and n ≥ 1 (n is the number of plays), where i is the index that identifies
+    a slot machine lever. By lowering the lever i, the rewards X[i, 1], X[i, 2], ·
+    · · are obtained, which are independent and identically distributed according
+    to an unknown probability law with an unknown expectation µi (expected value).
+    Also, the rewards between different levers maintain independence, that is, X[i,
+    s] and X[j, t] are independent (and generally not identically distributed) for
+    each 1 ≤ i <j ≤ K and for every s, t ≥ 1\. This problem is formally equivalent
+    to a one-state Markov decision-making process.
+  prefs: []
+  type: TYPE_NORMAL
+- en: An allocation strategy is an algorithm that chooses the next lever to be lowered
+    based on the sequence of previous bets and the rewards obtained. As we mentioned
+    previously, the concept of regret is used to measure the performance of the model,
+    which measures the accumulated loss of gains that are obtained by following the
+    chosen policy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let *T[i] (n)* be the number of times the lever *i* is played by the strategy
+    in the first *n* plays. Here, the regret of the strategy after *n* plays is defined
+    by the following formula:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/2ec52c5a-667a-4124-aa7c-b4737119a8b7.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Here, we have the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*µ* = max[i=1;:::k] µ[i]*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Ε(T[k](T))* is the expectation about the number of times the policy will play
+    machine k'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The goal is to minimize this regret or, equivalently, to maximize the sum of
+    the rewards obtained after n plays. In fact, we can interpret regret as the difference
+    between the maximum possible gain (having thrown the best lever n times, by definition
+    the one that returns µ* as a reward) and the actual gain.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next section, you will see practical examples of applications that can
+    be addressed with this technology.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Multi-armed bandit applications
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: So far, we have seen how to tackle a MAB problem from a mathematical point of
+    view. What are the real applications that can be modeled in this way? We'll look
+    at some examples in the following subsections.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Online advertising
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In online advertising, a MAB solution uses machine learning algorithms to dynamically
+    allocate advertisements to pages of websites that are performing well, while avoiding
+    ads that show lower performance. In theory, MABs should produce faster results
+    since there is no need to wait for a single winning variant.
+  prefs: []
+  type: TYPE_NORMAL
+- en: News allocation system
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Another application of MAB concerns news sites: when a new user accesses the
+    site, they must choose a news item from a series of articles and the site receives
+    the reward every time the user clicks on the article. Since the site''s goal is
+    to maximize the revenue, it wants to show the items that are most likely to get
+    a click. Naturally, the choice depends on the user''s characteristics. The problem
+    is that we do not know the probability that an article is clicked, which is the
+    parameter we want to learn about. We can clearly see that the exploration and
+    exploitation dilemma presented in the preceding scenario can be modeled as a MAB
+    problem.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Health care
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Various treatments are available in this area. The manager needs to decide which
+    treatment to use while minimizing the patient's losses. The treatments are experimental
+    and imply that the capacity of the treatment must be learned by performing it
+    on the patients. The aforementioned problem can be modeled as a MAB problem where
+    treatments such as arms and treatment efficiency must be learned. The manager
+    can explore their arms to learn about their success rate (efficiency) or choose
+    to exploit the arm with the best success rate so far.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Staff recruitment
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the selection of new personnel, the application of this methodology represents
+    a powerful tool that's available to employers or requesting services to complete
+    activities in a timely and economical manner. The employer's goal is to maximize
+    the number of tasks completed. The workers that are available act as weapons in
+    this case since they have qualities that are not known to the employer. So, this
+    problem can be posed as a MAB problem, in which the employer can explore their
+    arms to learn their qualities, or choose to exploit the best arm that's been identified
+    so far.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Selection of a financial portfolio
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The selection of an optimal portfolio is a typical decision problem, and as
+    such, its solution consists of the following elements: the identification of a
+    set of alternatives, using selection criteria to sort through the different possibilities,
+    and the solution of the problem. In order to optimize a financial portfolio, we
+    start by measuring the yield and risk of the products available. The risk-return
+    variables can be considered two sides of the same coin since a certain level of
+    risk will correspond to a given return.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The return can be defined as the sum of the results that are produced by the
+    investment in relation to the capital employed, while the concept of risk can
+    be translated into the degree of variability of returns associated with a given
+    financial instrument. This problem can be modeled as a MAB problem with financial
+    products such as arms and product performance as a result.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next section, we will learn how to estimate the action-value function
+    in order to implement the MAB algorithm.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Action-value implementation
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: A general solution to the problem of reinforcement learning is to estimate a
+    value function using the learning process. This function must be able to evaluate,
+    through the sum of the rewards, the convenience or otherwise of a specific policy.
+    To start, we will define the state-value function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: State-value function
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: A value function represents how good a state is for an agent. It is equal to
+    the total reward that's expected for an agent from the status s. The value function
+    depends on the policy that the agent selects the actions to be performed on.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'A policy π associates the probability π (s, a) to the pair (s, a), thus returning
+    the probability that the action a is executed in the state s. Based on this, we
+    can define a value function Vπ (s) as the expected value of the total reinforcement
+    R[t] following the policy π starting from the state s:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/fadd9841-a3b9-4187-b6cc-f72c5f23dc87.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Here, the sequence of rt is generated following the π policy starting from
+    the s state. In other words, the examples of the training pattern must guide the
+    learning process toward the evaluation of the optimal π * policy, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/6ccd9d16-54bb-4191-a50e-6cfcb2f71ea2.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Assuming δ (s, a) the function that determines the new state generated by the
+    pair (s, a), we can perform a lookahead search to choose the best action starting
+    from the s state since we can express the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/3a4e33aa-cecc-470e-9dd2-6eefbbc57fbc.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Here, r (s, a) represents the reward that''s obtained from executing an action
+    a in the state s. This solution is only acceptable if the functions are known,
+    as shown in the following equation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/37dd3b9c-c5cb-42b3-862d-46671bd3d51e.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: '![](img/3d4d0efc-3f05-4ee5-ae31-a01c95de43af.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: However, this scenario isn't always respected.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we understand the role that's played by the state-value function, we
+    can move on to the definition of the action-value function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Action-value function
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'When this scenario doesn''t happen, it is necessary to define a new function
+    similar to Vπ ∗:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/ea4da394-538a-44c2-8b43-6ec90a2de576.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'If the agent is able to estimate the function Q, it is possible to choose the
+    optimal action s, even without knowing the function δ:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/d2fe1391-eca0-4b32-9e17-3b6737e94f11.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The function Q is usually referred to as an action-value function. Following
+    a policy π, the action-value-function returns the expected reward for using action
+    a in a certain state s.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The main difference between the state-value and the action-value functions is
+    that the Q value allows you – at least in the first phase – to take a different
+    action than the one that was envisaged by the policy. This is because Q reasons
+    in terms of total reward, so in a specific state, it can also return a reward
+    lower than that paid by another action. The state-value function contains the
+    value of reaching a certain state, while the action-value-function contains the
+    value for choosing an action in a state. How is the best action chosen? Let's
+    take a look.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Choosing an action
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Suppose we select n-actions: a = a[1]… .a[n]. Each of these actions has its
+    own value of the action-value function. Its estimated value at t-t[h] pitch (play)
+    is Q[t] (a[k]). Recall that the true value of an action is the average reward
+    received when that action is chosen. A natural way to estimate this value is to
+    calculate the average of the rewards that was actually received when the action
+    was chosen. In other words, if at the t-th game the action a was chosen k times
+    before t, obtaining the rewards r[1], r[2], ..., r[ka], then its value is estimated
+    to be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/8e395896-9a16-48b1-9d9f-89d358fd694c.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Here, we have the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: For k[a] = 0, we set Q[t] (a[k]) to a default value, Q[0] (a[k]) = 0 (no estimate
+    available).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For k[a] → ∞, Q[t] (a[k]) → Q ^* (a[k]) (for the law of large numbers).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In all of these cases, the action-value function is calculated as an average
+    (sample-average method).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we've explored the basic concepts of this technology, we will move
+    on and explore the possible solutions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding problem solution techniques
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'So far, we have formalized the problem and we have seen what tools are available
+    to make the choice of actions that give us the least regret. Now, we can formulate
+    selection methods. We will look at the following problem-solving techniques in
+    the following subsections:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Greedy methods
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Upper confidence bound
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Greedy methods
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'This problem, which is much more complex than it may seem, can be tackled by
+    using a very naive strategy, though it''s not very effective:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Initially, each of the levers is played.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The lever is played that has returned, on average, the highest reward.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'In this algorithm, we can observe the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We allow the agent to have memory
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We store the value associated with different actions
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We choose the action that gave the greatest reward
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The best action is called the **greedy action** and the algorithm based on
+    this is called the **greedy** method. The following steps are performed:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'At time step t, estimate a value for each action, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/86e88567-c9b8-4e0b-8b8c-777cea11e2b1.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Select the action with the maximum value:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/7aff49af-1728-4099-8810-0c4a40e4f02b.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: In greedy methods, no alternative solutions are explored through this method.
+    Why do we have to choose an action that doesn't look the best? This is because
+    we explore different solutions since the reward is not deterministic. This implies
+    that we could achieve more with other actions because what matters is not the
+    instant reward but the sum of the rewards that's obtained. In the greedy solution,
+    the algorithm is completely based on exploitation. To improve the performance
+    of the model, it is necessary to introduce exploration. Let's see how.
+  prefs: []
+  type: TYPE_NORMAL
+- en: ε-greedy methods
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Here, it is necessary to maintain a predisposition to explore different actions.
+    Once again, we find ourselves dealing with a problem based on the exploration-exploitation
+    dilemma we addressed in detail in [Chapter 2](aed130c4-9d8b-42d1-826a-e26a4162ebcf.xhtml), *Building
+    Blocks of Reinforcement Learning*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Ideally, the agent must explore all the possible actions for each state, finding
+    the one that is actually most rewarded for exploiting it in achieving its goal.
+    Thus, decision-making involves a fundamental choice:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Exploitation**: Making the best decision given the current information'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Exploration**: Collecting more information'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In this process, the best long-term strategy can lead to considerable sacrifices
+    in the short term. Therefore, it is necessary to gather enough information to
+    make the best decisions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'I suppose that, with probability ε, a different action is chosen. This action
+    is chosen with a uniform probability between the n possible actions available.
+    The following steps are performed:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'At time step t, a value for each action is estimated, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/723adfc6-c091-4d4d-a1fb-0802a8bfddc0.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'With probability 1- 𝜀, the action with the maximum value is selected, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/3d5ca4b6-5d36-44e8-b0a1-3ab2de6d6134.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: With probability 𝜀, an action from all the actions with equal probability is
+    selected randomly.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The parameter value that's used the most is 𝜀 =0.1, but this can vary depending
+    on the context. In this approach, we introduce an element of exploration that
+    improves performance. However, if two actions have a very small difference between
+    their Q values, this algorithm will also choose the action that has a higher probability
+    than the others.
+  prefs: []
+  type: TYPE_NORMAL
+- en: ε-greedy methods with a progressive decrease
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The exploration that was introduced with the adoption of 𝜀 offers us the opportunity
+    to experiment with options that, so far, are unknown. Nevertheless, the random
+    component of the strategy means that actions that have already been taken that
+    have received poor results can be explored again. Such inefficient exploration
+    can be avoided by progressively reducing the random exploration component.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In other words, by reducing the parameter ε over time, we could explore even
+    less since we have gained confidence in the action, which has a strong potential
+    of optimal value. This strategy offers a highly exploratory behavior in the beginning
+    and a highly exploitative behavior in the end. Let's learn how to carry out exploitation
+    and exploration together.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Upper confidence bound
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: At the beginning of the game, we don't know which the best arm is. Therefore,
+    we cannot characterize any arm. Thus, the UCB algorithm states that all arms have
+    the same observed average value. So, a confidence limit for each arm will be created
+    and an arm will be selected at random.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this context, each arm will either give a reward or won't. If the arm that's
+    selected returns a mistake, the average that will be observed by the arm will
+    decrease, as well as the confidence limit. If the arm that's selected returns
+    a reward, the observed average and the confidence limit will increase. By taking
+    advantage of the best, we are decreasing the confidence limit. Adding more and
+    more rounds, the likelihood that the other arms are doing well also increases.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To implement this strategy, follow these steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'At each round, two variables are computed:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*R[i](n)*: The sum of the rewards obtained by the lever *i* after *n* plays'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*T**[i]**(n)*: The number of times the lever *i* is played by the strategy
+    in the first *n* plays'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'We calculate the average rewards obtained by the lever *i* after *n* plays
+    using the following formula:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/ec54ea62-c453-4a2c-b253-41aab5679c82.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'We calculate the confidence interval after *n* plays using the following formula:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/044dd621-9e6e-4245-8f96-f97a5124f599.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'We select the lever *i* that returns the maximum UCB as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/6edfa64f-85e2-449f-a9a5-09f9aa3311b0.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Both of these algorithms keep track of how much they know of any available arm
+    and pay no attention except to how much reward they have obtained from the arms.
+    On the contrary, the algorithms that we've analyzed so far have under-explored
+    the options whose initial experiences have not returned significant rewards, even
+    if they do not have enough data to be sure of those arms.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next section, we will introduce the concept of state, which represents
+    a description of the environment that the agent can use to perform targeted actions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Implementing the contextual approach
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: So far, in addressing the problem of the MAB, we have generated an action but
+    we have not exploited any information on the state of the environment (context).
+    The range of actions that are available to the agent consists of pulling one or
+    more arms of the bandit. In this way, a reward of +1 or -1 is received.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The problem is considered to be solved if the agent chooses the arm that increasingly
+    returns a positive reward. In this case, we can design an agent that completely
+    ignores the state of the environment since, in effect, there is always only one
+    immutable state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the contextual bandit, the concept of state is introduced, which represents
+    a description of the environment that the agent can use to carry out targeted
+    actions. This model extends the original one by linking the decision to the state
+    of the environment.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following diagram shows diagrams of the two models:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/e65917dc-f7e7-4900-aa21-89c343e8bbec.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The original problem is substantially modified in the sense that instead of
+    a single bandit, which we've considered so far, in the new formalization of the
+    problem, there are more bandits. The state of the environment tells us what bandit
+    we're dealing with and the agent's goal is to learn the best action for any available
+    bandit. Since each bandit will have different probabilities of reward for each
+    arm, our agent will have to learn to condition their action on the state of the
+    environment. Unless they do, they will not get the maximum possible reward over
+    time.
+  prefs: []
+  type: TYPE_NORMAL
+- en: With the **contextual bandit** model, you not only optimize the decision based
+    on the previous observations but also personalize the decisions for each situation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'From the preceding model, we can observe the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The algorithm observes a context.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The algorithm makes a decision by choosing an action from a series of alternative
+    actions.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We can observe the result of this decision, which returns a reward.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The goal is to maximize the average reward.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'An example of applying this algorithm to the real world is the problem of selecting
+    advertisements to be displayed on a website to optimize the clickthrough rate.
+    The context is information about the user: where it comes from, information about
+    the device that was used, pages of the site that were previously visited, geolocation,
+    and so on. An action corresponds to the choice of which ad to display. One result
+    is whether the user has clicked on a banner or not. A reward is binary: 0 if there
+    is no click, 1 if there is a click. Now, let''s learn how to alternate the evaluation
+    of the policy with the improvement of the policy.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding asynchronous actor-critic agents
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Actor–critic methods implement a generalized policy iteration, alternating between
+    a policy evaluation and a policy improvement step. There are two closely related
+    processes of actor improvement that aim at improving the current policy and critic
+    evaluation by evaluating the current policy. If the process that's defined by
+    the critic has the bootstrap, then the variance is reduced. By doing this, the
+    learning of the algorithm becomes more stable with respect to the methods of the
+    policy gradient.
+  prefs: []
+  type: TYPE_NORMAL
+- en: These methods have the characteristic of separating the memory structure to
+    make the policy independent of the value function. The policy block is known as
+    an actor because it chooses actions, while the estimated value function is called
+    the critic in the sense that it criticizes the actions that are performed by the
+    policy that is being followed. From this, we understand that learning is an on-policy
+    type – in fact, the critic learns and criticizes the work of politics.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We have already introduced the actor-critic model, so now, we will explain
+    the term asynchronous. This is very simple and has effective intuitions, such
+    as the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The model has several agents exploring the environment at the same time (each
+    agent has a copy of the entire environment).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The model gives different starting policies so that the agents are not related.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In the model, the global status is updated with the contributions of each agent
+    and the process restarts.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In 2016, the Google DeepMind group proposed an algorithm named **asynchronous
+    advantage actor-critic** (**A3C**). The algorithm proved to be faster and simpler
+    than most existing algorithms.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this algorithm, multiple instances of agents are treated, which have been
+    initialized differently in their separate environments. Each agent who begins
+    to act and learn gathers their own experiences. These experiences are then used
+    to update the global neural network shared by all agents. This network affects
+    all the agent actions and each new experience of each agent improves the overall
+    network faster. Because there are multiple instances of this agent, the training
+    will be much faster and more effective.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next section, we will apply the concepts we've learned about so far by
+    addressing a practical case.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Online advertising using the MAB model
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Online advertising falls into the new media category and takes advantage of
+    the web's ability to reach a significant number of people. Advertising plays a
+    decisive role for companies, which can easily reach a wide audience with lower
+    costs than traditional means. One of the main advantages of internet advertising
+    is the traceability of results or the effect it has on the public. This happens
+    thanks to the ad servers that, in the case of banners, measure the number of views
+    and the effective number of users, clicks.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In online advertising, we can distinguish between the following two types of
+    macros:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Contextual
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Behavioral advertising
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In contextual advertising, Google is the typical case where you can place ads
+    according to the words on the page or the type of site or topic that characterizes
+    the website. In behavioral advertising, we select the target using the information
+    we've collected regarding the behavior of each user on the web and on the app
+    (pages visited, searches made) in order to identify their interests and needs,
+    and then submit advertisements in line with them.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In both cases, it is clear the reference to the context needs to interact with
+    the environment. It''s also clear that we won''t know a priori how the user will
+    behave before an advertisement. These problems can be addressed through a model
+    based on MAB, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The context is represented by the characteristics of visitors and web pages.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Arms are represented by the types of ads that are available.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: An action is equivalent to the type of ad to be shown.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The rewards are returned by the visitor's behavior. By clicking on the ad shown,
+    you receive a reward of 1, while by not clicking on the ad, you receive a reward
+    of 0.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: To make this discussion as understandable as possible, we will limit the number
+    of ads we want to evaluate to three and aim to find which strategy offers the
+    maximum total click rate after a certain number of impressions. So, let's learn
+    how to tackle this problem by adopting the contextual approach.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Implementing the contextual package
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the *Contextual approach* section, we said that, in the contextual bandit,
+    the concept of state is introduced, which represents a description of the environment
+    that the agent can use to carry out targeted actions. This model extends the original
+    one by linking the decision to the state of the environment. In this section,
+    we will see some examples of applications of the armed bandit problem addressed
+    with the contextual approach. To do this, we will use the contextual package.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This package facilitates the simulation and evaluation of context-free and contextual
+    MAB policies or algorithms to ease the implementation, evaluation, and dissemination
+    of existing and new bandit algorithms and policies.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'A brief description of the `diagram` package, which has been extracted from
+    the official documentation, is shown in the following table:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '| Version | 0.9.8.2 |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Date | 2019-07-08 |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Maintainer | Robin van Emden |'
+  prefs: []
+  type: TYPE_TB
+- en: '| License | GPL-3 |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Authors | Robin van Emden, Maurits Kaptein |'
+  prefs: []
+  type: TYPE_TB
+- en: 'The `contextual` package was presented by the authors in the following paper:
+    van Emden, R. and Kaptein, M., 2018\. *Contextual: Evaluating Contextual Multi-Armed
+    Bandit Problems in R*. arXiv preprint arXiv:1811.01926.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this package, the MAB problems are addressed under the following assumptions:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The bandit is a set of arms where each arm is defined by some reward function
+    mapping dimensional context vector returning a reward for every time step until
+    the horizon.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The function of politics is the maximization of the cumulative reward. This
+    function is carried out by selecting one of the currently available bandit arms
+    in the sequence.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: During the learning process, the policy observes the current state of the environment,
+    which is represented by the vectors of the context characteristics. Afterward,
+    the policy selects one of the available actions using an arm selection strategy.
+    As a result, it receives a reward. This procedure allows the policy to update
+    the selection of strategic arms. This procedure is then repeated *T* times.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'To represent what has been said in the algorithm, we can say that, for each
+    round, a policy does the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Observes the current context feature vectors
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Selects an action
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Receives a reward
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Updates the arm-selection strategy parameters
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The goal of the policy is to optimize its cumulative reward.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Then, we apply the functions contained in the contextual package to a practical
+    case.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Online advertising context-free policies
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The first simulation we will perform will not consider the context. We will
+    simply evaluate how many clicks each advertisement receives after a certain number
+    of impressions. First, we need to set the initial settings. As anticipated, we
+    will only consider three announcements that correspond in the MAB formulation
+    to three arms of the bandit, each with a different probability of generating a
+    click. Let''s get started:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will use the following code to perform the analysis:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will analyze this code line by line. The first line loads the library:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: This library contains many functions that allow for the simulation and evaluation
+    of context-free and contextual MAB policies or algorithms.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let''s fix some necessary parameters to set the problem as MAB:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The horizon is the number of rounds that must be played. Let''s set the number
+    of simulations:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: The number of simulations indicates how many times to repeat the simulation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s move on and set the probability that a user clicks on an advertisement:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: A vector has been defined and contains the probabilities that each ad is clicked.
+    In MAB terms, they represent the probabilities associated with the three arms. At
+    this point, the initial parameters are fixed, so we can move on to defining the
+    objects.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The first will be the bandit:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Here, we used the `BasicBernoulliBandit()` function. This function simulates
+    k Bernoulli arms, where each arm issues a reward of one with uniform probability
+    p, otherwise a reward of zero. In a bandit scenario, this can be used to simulate
+    a hit or miss event, such as if a user clicks on a headline, ad, or recommended
+    product. Only one argument is expected (weights): it is a numeric vector that
+    represents the probability of reward values for each of the bandit''s k arms.
+    The `new()` method generates and instantiates a new `BasicBernoulliBandit` instance.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s move on to defining the policy:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Here, we used the `EpsilonFirstPolicy()` function to implement a naive policy
+    where a pure exploration phase is followed by a pure exploitation phase. Exploration
+    happens within the first N time steps that are defined. During this time, at each
+    time step t, `EpsilonFirstPolicy` selects an arm at random. Exploitation happens
+    in the following steps, where we select the best arm up until N for either the
+    remaining N trials or horizon T. Here, we used the `new()` method, which generates
+    a new `EpsilonFirstPolicy` object. Let''s move on:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The agent class is responsible for running one bandit/policy pair. The following
+    arguments are available:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`policy`: A policy instance.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`bandit`: A bandit instance.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`name character`: Sets the name of the Agent. If NULL (default), the agent
+    generates a name based on its policy instance''s name.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`sparse numeric`: Artificially reduces the data size by setting a sparsity
+    level for the current bandit and policy pair.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'In our case, only two arguments are passed: `policy` and `bandit`. Let''s move
+    on to running the simulation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This is the entry point of any simulation. The `Simulator` class encloses one
+    or more agents, creates an agent clone for each to be repeated simulation, runs
+    the agents, and saves the log of all agent interactions in a history object. The
+    following arguments are passed:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`agent`: An agent instance or a list of agent instances'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`horizon`: The number of pulls or time steps to run each agent, where t = 1,
+    . . . , T (integer value)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`simulations`: How many times to repeat each agent''s simulation over t = 1,
+    . . . , T, with a new seed on each repeat (integer value)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`do_parallel`: If running simulator processes in parallel (logical value)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'For a detailed list of all the topics that are covered by the R6 class simulator,
+    please refer to the official documentation: [https://CRAN.R-project.org/package=contextual](https://CRAN.R-project.org/package=contextual).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here, we used the `new()` method to generate a new simulator object. It''s
+    time to run the simulation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The `run()` method simply runs a simulator instance. At this point, we have
+    all the history of the simulation recorded in the history variable. Now, we can
+    use this data to draw graphs. First, we will analyze the average reward:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The `plot()` function generates plots from the history data. The following
+    plot types are available:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`cumulative`: Plots the cumulative regret or reward over time. If regret=TRUE
+    is passed, a cumulative regret is returned; if regret=FALSE is passed, a cumulative
+    reward is returned.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`average`: Plots the average regret or reward. If regret=TRUE is passed, a
+    cumulative regret is returned; if regret=FALSE is passed, a cumulative reward
+    is returned.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`arms`: Plots the percentage of simulations per time step where each arm was
+    chosen over time. If multiple agents have been run, it only plots the first agent.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The following plot is printed:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/24635d77-26f1-40f5-acbe-d84ea5160ff6.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Note that, after the first phase of exploration in which all the arms are tested
+    in equal measure, we pass this to the exploitation phase, in which the arms that
+    return the greatest rewards are preferred. The passage between the two phases
+    can be seen by the net increase in the average reward. Let''s move on the cumulative
+    plot:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following plot is returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/a7bc6048-9dcf-420a-85f0-305197e410d5.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The transition between the exploration and exploitation phases in this graph
+    is even more evident. After the first 100 steps in which only the exploration
+    phase has been used, the cumulative regret starts increasing with a logarithmic
+    profile. Finally, we will plot the arms type:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This type of plot returns the percentage of simulations per time step each
+    arm was chosen over time. The following plot is printed:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/0cf25153-6a72-484d-917b-fe1127469258.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: From the preceding graph, we can see that the most chosen arm is the number
+    3\. In fact, even in this case, after the first exploration phase in which the
+    three arms are chosen with comparable percentages, the choice of arm that's passed
+    to the exploitation phase falls exclusively on number 3.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Online advertising ε-greedy-based policies
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Now, we will address the same problem by adopting an ε-greedy policy. As we
+    mentioned previously, with this approach, we introduce an element of exploration
+    that improves performance. The following code shows the analysis process when
+    using the ε-greedy approach:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will analyze this code line by line. The first line loads the library:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, let''s fix some necessary parameters to set the problem as MAB:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The horizon is the number of rounds that must be played. Let''s set the number
+    of simulations:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s move on and set the probability that a user clicks on an advertisement:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The same probability vector that we used in the previous example has been adopted.
+    Let''s move on and define the objects:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'To define the bandit, we used the `BasicBernoulliBandit()` function. This function simulates
+    k Bernoulli arms, where each arm issues a reward of one with a uniform probability
+    p, and otherwise a reward of zero. Let''s move on to defining the policy:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Here, we used the `EpsilonGreedyPolicy()` function. This function chooses an
+    arm at random with a probability epsilon in the exploration phase; otherwise,
+    it greedily chooses the arm with the highest estimated reward in the exploitation
+    phase. Only the epsilon argument is passed, indicating the probability that the
+    arms are selected at random. The `new()` method is used to generate a new `EpsilonGreedyPolicy`
+    object. Finally, we will create an agent object, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The agent class is responsible for running one Bandit/Policy pair. Now, we
+    can run the simulation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following results are printed:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, we can run the simulation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The history of the simulation that we carried out is recorded in the history
+    variable. We can use this data to draw graphs. First, the regret average is plotted:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following plot is returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/16345297-ced0-4d21-9e49-785df4a4b960.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Then, we plot the cumulative regret:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following plot is returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/7d982342-a28b-48ef-998e-b4d89fb3be17.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Finally, the arm choice in percent is plotted:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following plot is returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/22cd39d2-2341-4381-967e-3b0d35639a76.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: In the preceding three graphs, a feature is highlighted (**Arm choice %**).
+    The reduction of the regret over time is progressive and does not undergo a discontinuity
+    like it did in the previous simulation (context-free policies-based example).
+    This is due to the fact that the algorithm simultaneously carries out the exploration
+    and exploitation phase. On one hand, it uniformly explores one of the advertisements
+    randomly ε of the time, while on the other hand, it exploits the ad with the best
+    current click rate 1-ε of the time.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Online advertising context-based policies
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'What happens if visitors are divided into two categories, male and female,
+    or young and adult? We can introduce a reference to the context in the models
+    we''ve analyzed so far. Recall that, in the contextual bandit, the concept of
+    state was introduced, which represents a description of the environment that the
+    agent can use to carry out targeted actions. This model extends the original one
+    by linking the decision to the state of the environment. The following code performs
+    an analysis using the context approach:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will analyze this code line by line. The first line loads the library:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, let''s fix some of the necessary parameters to set the problem as MAB:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The horizon is the number of rounds that must be played. Let''s set the number
+    of simulations:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE30]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s move on and set the probability that a user clicks on an advertisement.
+    In this case, the reference to a binary context is introduced. Two possible probability
+    distributions are defined, both of which correspond to two user profiles:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE31]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The first profile has a probability vector equal to (0.1, 0.3, 0.7), while
+    the second has a probability vector equal to (0.8, 0.4, 0.1). Let''s move on and
+    define the objects:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE32]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'To define the bandit, we used the `ContextualBinaryBandit()` function. This
+    function simulates a contextual Bernoulli MAB problem, where at least one context
+    feature is active at a time. In this case, the weights argument contains a d x
+    k numeric matrix with probabilities of reward for d contextual features per k arms. Let''s
+    move on and define the policy:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE33]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Here, we used the `EpsilonGreedyPolicy()` function. Finally, we will create
+    an agent object, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE34]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The agent class is responsible for running one Bandit/Policy pair. Now, we
+    can run the simulation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE35]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following results are printed:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE36]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, we can store the simulation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE37]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The history of the simulation is recorded in the history variable. Now, we
+    can use this data to draw graphs. In this case, only the arm choice in percent
+    is plotted:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE38]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following plot is returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/d992f12f-5ab6-4a6c-b505-3067ad9155b7.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: From this analysis, it is clear that the most chosen arm in percentage is number
+    1, then number 3, and finally number 2.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Comparison between solution techniques
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Several policies are available for the solution of the MAB problem. In the* Problem
+    solution techniques* section, we analyzed some of them. The contextual package proposes
+    some policies. The following is a list of those available policies:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`ContextualEpochGreedyPolicy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`ContextualEpsilonGreedyPolicy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`ContextualLogitBTSPolicy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`` `ContextualTSProbitPolicy` ``'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`EpsilonFirstPolicy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`EpsilonGreedyPolicy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`Exp3Policy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`FixedPolicy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`GittinsBrezziLaiPolicy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`GradientPolicy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`LifPolicy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`LinUCBDisjointOptimizedPolicy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`LinUCBDisjointPolicy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`LinUCBGeneralPolicy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`LinUCBHybridOptimizedPolicy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`LinUCBHybridPolicy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`OraclePolicy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`RandomPolicy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`SoftmaxPolicy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`ThompsonSamplingPolicy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`UCB1Policy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`UCB2Policy`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'For a detailed description of these policies, please refer to the official
+    documentation of the package, which is available at the following URL: [https://CRAN.R-project.org/package=contextual](https://cran.r-project.org/package=contextual).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Some of these have already been adopted in the examples we''ve looked at in
+    this chapter. To analyze the characteristics of some of these, we can make a comparison
+    based on the results we''ve obtained. Here is the full code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE39]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will analyze this code line by line. The first line loads the library:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE40]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, let''s fix some of the necessary parameters to set the problem as MAB:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE41]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s move on and set the probability that a user clicks on an advertisement:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE42]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s move on and define the bandit object:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE43]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Here, we used the `BasicBernoulliBandit()` function. Now, we will create a
+    list of agent objects, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE44]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Six agents were defined with different policies, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`OraclePolicy`: This policy knows the reward probabilities at all times, and
+    will always play the optimal arm. It is often used as a baseline to compare other
+    policies.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`UCB1Policy`: This policy constructs an optimistic estimate in the form of
+    an Upper Confidence Bound to create an estimate of the expected payoff of each
+    action and picks the action with the highest estimate. If the guess is wrong,
+    the optimistic guess quickly decreases until another action has a higher estimate.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`ThompsonSamplingPolicy`: The procedure that''s followed by this policy exploits
+    the memory of the average rewards of the weapons. To do this, use a beta-binomial
+    model with alpha and beta parameters, sample the values for each arm from the
+    previous step, and select the arm with the highest value. When an arm is pulled
+    and a Bernoulli reward is observed, it modifies the prior based on the reward.
+    This procedure is repeated for the next arm pull.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`EpsilonGreedyPolicy`: The procedure that''s followed by this policy foresees
+    the random choice of an arm with epsilon probability to explore the environment.
+    Otherwise, an arm is chosen greedily, with the highest estimated reward. By doing
+    this, the agent exploits the information that was acquired in the previous steps.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`SoftmaxPolicy`: This policy selects an arm based on the probability from the
+    Boltmann distribution. It makes use of a temperature parameter, tau, which specifies
+    how many arms we can explore. When tau is high, all the arms are explored equally,
+    and, when tau is low, the arms offering higher rewards will be chosen.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`Exp3Policy`: The procedure that''s followed by this policy uses a probability
+    distribution, which is a mixture of a uniform distribution. It also uses a distribution
+    that assigns each action an exponential mass of probability in the cumulative
+    reward that was estimated for that action.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Now, we can run the simulation and store its history:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE45]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Finally, we will plot the cumulative regrets of the agents that we simulated:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE46]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following plot is returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/dd38e685-12b0-4d9c-be60-e1c1a832ae86.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: As we anticipated, the OraclePolicy is the one that presents the lowest values
+    in absolute of the regret, which means it succeeds in making better use of the
+    arm that supplies better results.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we have learned about the basic concepts of the multi-armed
+    bandit model. This model is based on the dilemma of exploration and exploitation.
+    In the case of limited resources, which is what we base our choices on, it is
+    essential to know which competitive alternatives allow us to maximize the expected
+    profit. The name derives from the example of a player struggling with a row of
+    slot machines, who must decide whether to continue with the current machine or
+    try another machine. A mathematical model of the problem was described. Then,
+    we discovered the meaning of the action-value implementation and how it differs
+    from the value function. The state-value-function contains the value of reaching
+    a certain state, while the action-value-function contains the value for choosing
+    an action in a state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Several problem solution techniques were analyzed and the contextual approach
+    was addressed. We also looked at a list of practical applications of the MAB problem.
+    Finally, online advertising was treated using several MAB models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will learn about the basic concepts of optimization
+    techniques. We will learn how to decompose a problem into subproblems and how
+    to implement the various optimization techniques. Then, we will understand the
+    difference between recursion and memoization and discover how to use the dynamic
+    programming approach to make the most convenient choices.
+  prefs: []
+  type: TYPE_NORMAL

@@ -1,0 +1,598 @@
+- en: '7'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Finding the Right Hyperparameters
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In this chapter, you’ll dive into the key hyperparameters that govern performance
+    for top vision and language models, such as batch size, learning rate, and more.
+    First, we’ll start with a quick overview of hyperparameter tuning for those who
+    are new or need a light refresh, including key examples in vision and language.
+    Then, we’ll explore hyperparameter tuning in foundation models, both what is possible
+    today and where trends might emerge. Finally, we’ll learn how to do this on Amazon
+    SageMaker, taking incremental steps in a cluster size and changing each hyperparameter
+    as we do. In this chapter, we’re going to cover the following main topics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Hyperparameters – batch size, learning rate, and more
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Tuning strategies
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Tuning for foundation models
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Scaling up as a function of world size with SageMaker
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Hyperparameters – batch size, learning rate, and more
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '**Hyperparameters** determine a huge majority of critical decision points in
+    deep learning. They operate like an intermediary between you, your model, your
+    dataset, and your overall compute environment. You’ll pick up terms such as batch
+    size, learning rate, number of attention heads, and more to balance your overall
+    solution to the problem at hand, balance costs, and ensure optimal performance
+    of your model during both training and inference.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`Out of Memory` error. A large batch size helps you step through your training
+    loop quickly but runs the risk of failing to capture all the variation in your
+    dataset if you do not run the optimizer frequently enough. This core trade-off
+    is one you want to get familiar with and learn methods to solve. Hint, the entire
+    next section is dedicated to a method called **hyperparameter tuning**.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Learning rate** operates almost like a steering wheel for the entire learning
+    process the gradient descent optimization. Literally, it’s an amount you use that
+    parameterizes how much to update your trainable weights. A small learning rate
+    means you take small steps down the gradient, ideally down your loss curve, but
+    it can slow down your job considerably. A large learning rate means you are taking
+    large steps down the loss curve, which can speed up your job but runs the risk
+    of getting stuck in what’s called a **local minimum**, or a *small valley in the
+    gradient descent function*. Basically, that means your model underfits; the loop
+    will think it’s completed because the optimizer indicates that loss has plateaued,
+    but the model is just stuck in a small loss valley. As before, this introduces
+    another core trade-off that hyperparameter tuning is well suited to help us solve.
+    Learning rate schedulers are one step towards solving this problem, letting you
+    pick a large enough value at the beginning of the loop and decreasing this throughout.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let’s look at a variety of important hyperparameters that determine performance
+    across notable vision and language models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Key hyperparameters in vision and language
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Let’s look at a few key hyperparameters in vision and language:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Batch size** – The number of objects your model picks up into GPU memory
+    during each training step. A high number speeds up the job, while a lower number
+    can increase generalization performance. Gradient noise scales seem a promising
+    avenue for predicting the largest possible batch size.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Learning rate** – A term used to determine how much the trainable weights
+    should be updated during the gradient descent optimization process. A large number
+    speeds up the job and may overfit, while a lower number can underfit and fail
+    to adequately learn the training data. As mentioned previously, these are typically
+    paired with schedulers.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Number of epochs** – The number of total passes to make through your entire
+    dataset. A small number decreases the total runtime of your training job, while
+    a large number can increase accuracy. However, setting this number too large can
+    be wasteful and cause overfitting. In [*Chapter 9*](B18942_09.xhtml#_idTextAnchor138),
+    we learn how to use the scaling laws to solve this.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Number of attention heads** – The total number of self-attention heads used
+    in your model. This is a big determining factor in the overall size of your model
+    in trainable parameters. When you see the 10x jump in size from GPT-2 to GPT-3,
+    more often than not, it’s due to both more attention heads and larger heads.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Sequence length** – The total number of tokens used as one object during
+    the training loop. This is especially relevant in language models, where each
+    step in the training loop uses some part of the sentence to predict another part.
+    Tokens map, roughly speaking, to words. This means that sequence length can almost
+    be generally interpreted as the number of words in each prediction step. This
+    has a direct impact on both training and inference. For inference, it means this
+    is the maximum number of words this model can use. For training, it can directly
+    increase or decrease your GPU memory footprint.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: There are countless more hyperparameters. You’ll see hyperparameters that are
+    specific to different SDKs, such as Hugging Face’s `transformers` or `diffusers`,
+    which let you define aspects of your training job such as your base model name,
+    dataset name, data type, and more. SageMaker has hyperparameters for our distributed
+    training libraries, such as optimizer state sharding, tensor parallelism, activation
+    checkpointing and offloading, and more. In the SageMaker Training Job API, you
+    can also define and bring any arbitrary hyperparameter you like.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Tuning strategies
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In some sense, hyperparameter tuning is the art and science of *guessing and
+    checking at scale*. Using sophisticated algorithms and strategies, you can actually
+    train *whole fleets of models* to test entire ranges of hyperparameters in a huge
+    variety of configurations. Your *tuning strategy* will then help you find the
+    best models in the end, eventually identifying critical hyperparameters to use
+    at larger scales. I’ve seen hyperparameter tuning help customers get boosts in
+    accuracy of anywhere from less than 1 all the way up to over 15 percentage points.
+    If that’s a direct translation into business returns, you can see why it’s an
+    attractive proposition.
+  prefs: []
+  type: TYPE_NORMAL
+- en: There are many strategies and technical solutions for hyperparameter tuning.
+    These are all similar in that you, as the end user, will need to pick hyperparameters
+    and ranges for these that you’d like to test. Many hyperparameter tuning solutions
+    will provide defaults for you as a starting point, in addition to relevant documentation.
+    As you progress toward using your preferred hyperparameter tuning solution, I’d
+    suggest you budget a healthy amount of time researching at least some of these
+    hyperparameters in some detail. If you plan on interviewing for a data science
+    position someday, then spend a great amount of time understanding these, and especially
+    how they impact model performance.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Most hyperparameter tuning solutions will actually train anywhere from a few
+    to a few hundred models for you, each with slightly different hyperparameter configurations.
+    At the end of the tuning process, you should see an improvement in your preferred
+    metric, such as a decrease in your loss or an increase in your accuracy. How do
+    these solutions find and pick the optimal hyperparameters, you ask? Through a
+    **tuning strategy**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A tuning strategy is an optimization method that tests a variety of configurations
+    and evaluates each based on a pre-defined performance metric. These vary along
+    a few dimensions. Some of them are simply random guesses, others try to logically
+    fill a space, some use basic machine learning, and some use extremely sophisticated
+    machine learning algorithms. In addition to the search method, they will also
+    vary in the timing of their search. Some tuning methods run all experiments at
+    the same time, or concurrently, which is valuable because the overall job will
+    complete more quickly. Others run sequentially, testing some configurations and
+    running another set after these are completed. This is valuable because you may
+    ultimately hit a higher accuracy, but it comes with the downside of a longer overall
+    runtime. Let’s look at some common hyperparameter tuning strategies, along with
+    their trade-offs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here are some common hyperparameter tuning strategies:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Random search** – Just as it sounds, random search is a tuning strategy that
+    will simply use randomness to evaluate your search space. For example, let’s say
+    you want to explore batch sizes from 2 to 26, and using random search, you indicate
+    that you want a total of 4 jobs to be run. You’d probably have 4 jobs run at the
+    same time, each with a randomly selected batch size, for example, 4, 7, 17, and
+    22\. Your tuning solution should tell you which job gives you the best performance
+    on your preferred metric.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Grid search** – In contrast to random search, grid search will establish
+    an orderly set of experiments to run that balances your available search space.
+    For example, using the same configuration as the previous on batch size, but using
+    grid search, you might end up running 4 jobs at the same time with 8, 14, 20,
+    and 26\. Like last time, these jobs will run at the same time and give you the
+    best-performing model.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Bayesian search** – Bayesian search flips this basic idea on its head in
+    two ways:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: First, it’s a sequential tuning strategy. This means it runs a few jobs at the
+    same time, then evaluates the results of them, and initiates another set of experiments
+    to run.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Second, it’s actually using a machine learning algorithm to select the hyperparameters.
+    Commonly, this is a simple logistic regression; using the metadata of the model
+    as an input, it predicts the values for the next hyperparameters to evaluate.
+    We’ve had this available in Amazon SageMaker since at least 2018! For the record,
+    SageMaker also has random and grid search.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Hyperband** – Presented by a *research team* *(1)* in 2018, the Hyperband
+    strategy actually focuses on optimizing the random search. They developed an infinite-armed
+    bandit to adaptively explore and select tuning configurations, using predefined
+    preferences. This is very similar to reinforcement learning! At AWS, we’ve combined
+    this with a massively parallel strategy known as **Asynchronous Successive Halving
+    Algorithm** (**ASHA**) *(2)*, which exploits parallelism and aggressive early
+    stopping. We’ve shown that these solutions together enable large-scale tuning,
+    such as for vision and language models. Our *tests* *(3)* demonstrate a ~5x and
+    ~4.5x speedup relative to random and Bayesian strategies, respectively.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: As you may have noticed, I’ve essentially listed the search strategies from
+    simple to complex. In your learning journey, you can consider that a good target
+    path for yourself as well. Start with the easiest and most simple tuning strategies,
+    then slowly build yourself up to ones that are more complex over time.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Another theme you may have already guessed by now is the critical need to *balance
+    cost with accuracy gains*. Take a look at where and how your search strategy is
+    running; are they using compute efficiently or inefficiently? Will they continue
+    running jobs and experiments for you even after the gains have slowed down, or
+    will they aggressively shut down your resources when the gains stop?
+  prefs: []
+  type: TYPE_NORMAL
+- en: Lastly, it’s helpful to know that when you have a full application built around
+    your model, you will most likely want to integrate a tuning strategy in your retraining
+    pipeline. Say you have a vision or language model deployed on SageMaker; when
+    new data arrives, you trigger a pipeline that retrains your model. A great asset
+    in that pipeline would be tuning your model to ensure you have the highest possible
+    accuracy. More on that in [*Chapter 14*](B18942_14.xhtml#_idTextAnchor217)!
+  prefs: []
+  type: TYPE_NORMAL
+- en: For now, let’s explore unique challenges and approaches for tuning hyperparameters
+    in foundation models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Hyperparameter tuning for foundation models
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Foundation models present some unique challenges for hyperparameter tuning.
+    Let’s try to understand them:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Model size** – Possibly the largest obstacle to tuning foundation models
+    is their sheer size. Many of the classic tuning strategies we looked at previously
+    *rely on training the model as many times as possible*. When simply holding one
+    copy of the model in memory requires tens of accelerators, the economics around
+    this approach fall apart.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Volume of downstream tasks** – As we’ve seen throughout the book, the sheer
+    volume of candidate downstream tasks for foundation models is enormous. This makes
+    hyperparameter tuning much more complex because the objective metrics for each
+    of these tasks are unique. Picking the right downstream task itself could be a
+    kind of tuning challenge!'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Variety of hyperparameters** – At these scales, the relevant hyperparameters
+    aren’t just indicators of the training procedure. They are also about the distribution
+    techniques, such as model and data parallel, as we learned about previously.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: How should we think about overcoming these challenges? One approach is suggested
+    here; basically, you can tune hyperparameters efficiently on a tiny sample of
+    your dataset. This means you can do large-scale searches for hyperparameters using
+    1% of your data, and this helps you find the right settings at the start of your
+    job.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Another approach, as we mentioned previously, is a much more efficient tuning
+    strategy called **Hyberband**. Following this example post *(4)*, you can see
+    how to integrate this with SageMaker Training, with an example for Cifar10.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Is that the end of the story? I don’t think so. Today, so much of the foundation
+    model development world relies on following work that others have done, including
+    reusing their exact same hyperparameters or running very lightweight experiments
+    on massive datasets and accelerator scales; it seems only natural to me that this
+    will converge with hyperparameter tuning strategies someday. Also, given some
+    of the parameter efficient fine-tuning strategies we’ll learn about in Chapters
+    10 and 15, we may see hyperparameter tuning become even more relevant when adapting
+    a model after the pretraining process. We will also look at strategies for *tuning
+    inference requests* in [*Chapter 13*](B18942_13.xhtml#_idTextAnchor198).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, let’s look at how we think about scaling up our tuning experiments to
+    handle large models and datasets, in addition to working with hyperparameter tuning
+    on SageMaker.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Scaling up as a function of world size with SageMaker
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this section, we’ll break down two critical concepts that you need to master
+    hyperparameter tuning, especially in the context of distributed training. The
+    first one is the concept of scaling, especially using hyperparameter tuning as
+    a method to run smaller experiments before ultimately running your large training
+    job. The second is using tips and tricks available on SageMaker for hyperparameter
+    tuning generally.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Tuning on a sample of your data and updating based on world size
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: As you’ve learned in this chapter, hyperparameter tuning is a great way to eke
+    out performance gains, but it can require intensive compute that executes a large
+    number of experiments. You might be wondering, *How do I easily apply this to
+    my use case with a dataset size of at least a few hundred GB, and maybe a few
+    TB or more?* The answer is just to start with a tiny sample!
+  prefs: []
+  type: TYPE_NORMAL
+- en: The goal of tuning at a tiny fraction of your dataset is *to see how sensitive
+    your model is to changes in its key hyperparameters*. At a 1% sample, you might
+    be interested in core algorithmic settings such as the number of attention heads,
+    variations in the optimizer or layer operations, sequence length, and any other
+    critical settings in your overall training loop. If you see a big boost, that’s
+    a signal that you may want to pay more attention to this hyperparameter and either
+    integrate tuning into your training job directly or simply add a check to determine
+    what setting will give you the best performance at scale. You might also tune
+    the batch size and learning rate, including its warm-up, to see which performs
+    best.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As I hope you are thinking already, if you’re tuning on only 1% of your entire
+    dataset, then you’ll only need a tiny fraction of your overall compute! That means
+    you can and should plan on using very small instances for hyperparameter tuning,
+    such as `ml.g5.12xlarge` or smaller. Once you’re ready to move up to more instances,
+    however, you’ll want to update your key hyperparameters as a function of your
+    overall world size.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Remember, the world size is just a phrase for counting all of the GPUs or accelerators
+    available in your training cluster. If you have 2 instances with 8 GPUs each,
+    that means your overall world size is 16 GPUs. Some of your hyperparameters should
+    be updated every time you change your world size because they govern how your
+    model interacts with the training environment. These are especially batch size
+    and learning rate.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For example, in our previous 16 GPU example, let’s say you used hyperparameter
+    tuning to find a good per-device batch size of 22 and a learning rate of 5e-5\.
+    Next, maybe you want to move up to 4 instances, each with 8 GPUs, giving you a
+    total world size of 32 GPUs. That jump from 16 to 32 is clearly a doubling, increasing
+    the number of accelerators by a multiple of 2\. We’ll apply this same factor to
+    the global batch size and learning rate, so they scale up to the same degree as
+    the world size.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Simple hyperparameter tuning scale-up example
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'Let’s go through the examples as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Original*:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Two instances, each with eight GPUS
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: World size = 16
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Per device batch size = 22
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Learning rate = 5e-5
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Increased* *cluster size*:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Four instances, each with eight GPUs
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: World size = 32
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Per device batch size = 22
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Notice that the *per-device* batch size won’t necessarily change as you increase
+    the world size. Depending on your script, however, make sure you know whether
+    you are supplying the per-device or the global batch size. The global batch size
+    will, of course, need to be changed!
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Learning rate = 5e-5 * 2 =* *0.0001*'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'On top of updating the batch size and learning rate as you scale up in your
+    overall world size, make sure you are *also considering the size of the model
+    itself*. This might include adding more parameters, more attention heads, more
+    layers, and so on. As we’ve seen, this is a strong indicator of ultimately getting
+    a more accurate model. For example, in our public examples *(4)* of training large-scale
+    GPT-2 models, we provide three different configurations of the model, with hyperparameters
+    selected for each model size:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.1 – Model config parameters](img/B18942_Figure_7.01.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.1 – Model config parameters
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can see that for a model size of `30b` parameters, we’d suggest setting
+    the number of heads to `64`, layers to `48`, hidden width to `7168`, and train
+    batch size to *5*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: However, for a much smaller model size of only `1.5b` parameters, we set the
+    number of heads to `24`, hidden width to `1536`, and a train batch size of `2`.
+    Why would a smaller model use a smaller batch size, you ask? Isn’t it somewhat
+    counterintuitive, since a smaller model should have a smaller GPU footprint, allowing
+    you to increase batch size?
+  prefs: []
+  type: TYPE_NORMAL
+- en: The answer to that question is yes, theoretically, a smaller model should have
+    a *larger* batch size, but in this case, because we implement *significant model
+    parallelism* on the large model, it actually counteracts this influence and has
+    a net smaller GPU memory footprint.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The hidden width parameter, if you’re curious, is simply the size of the inner
+    layers in your neural networks. We call them hidden because they are inside the
+    black box; one step after the input layer and one step before the output layer.
+    This very logically follows from the overall model size; a larger model in parameter
+    count should absolutely have a larger hidden width.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Lastly, let’s take a quick look at hyperparameter tuning on SageMaker.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Tuning with Amazon SageMaker
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Using SageMaker for hyperparameter tuning is quite simple, and you have a few
+    options. First, as always, you can simply add any tuning strategy directly inside
+    your script and execute it on the training cluster directly. You might do this
+    with grid search, simply bringing your own scripts in and running them.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As you scale, however, and especially as you build tuning into your retrain
+    pipeline, you may want to eventually use our fully managed `HyperparameterTuner`.
+    This is essentially an object that takes your training job, in the form of a prebuilt
+    estimator, along with a few other specifications:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.2 – Defining the tuning object](img/B18942_Figure_7.02.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.2 – Defining the tuning object
+  prefs: []
+  type: TYPE_NORMAL
+- en: You define your objective metric, your hyperparameters, and their ranges, along
+    with the total number of jobs you’d like to run and the ones in parallel. These
+    default settings will then use Bayesian optimization. In fact, in this example,
+    they’d spin up a maximum of three instances at the same time, reusing them to
+    run up to nine total jobs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: You might enhance this with early stopping, or with the **Hyperband** algorithm
+    we learned about earlier. You can point to the strategy just by adding it as another
+    argument to this function. *(5)*
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In terms of the objective metric, you’ll be happy to know that you can bring
+    whatever you want. What we do for that is walk through the CloudWatch logs for
+    your job and look for the metric definition. Honestly, I’ve found this to be the
+    single hardest part of the process: matching your regex string exactly to what’s
+    coming out of your training job. In a PyTorch MNIST example, here’s what this
+    looks like:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.3 – Defining a tuning metric for the job config](img/B18942_Figure_7.03.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.3 – Defining a tuning metric for the job config
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'You can see we’re asking you to write a regex string and supply that in this
+    object. This then should directly match what is defined in the training script
+    here:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.4 – Defining a tuning metric in your training script](img/B18942_Figure_7.04.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.4 – Defining a tuning metric in your training script
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For good measure, here’s a visual of the hyperparameter ranges so you can see
+    how they’re defined:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.5 – Defining hyperparameter ranges](img/B18942_Figure_7.05.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.5 – Defining hyperparameter ranges
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We have another method I think is particularly well designed. It lets you run
+    analytics on your tuning job by porting it into a pandas DataFrame! The notebook
+    for this is here *(6)*:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.6 – Calling tuner.dataframe()](img/B18942_Figure_7.06.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.6 – Calling tuner.dataframe()
+  prefs: []
+  type: TYPE_NORMAL
+- en: And that’s a wrap! Let’s quickly take a look at everything you learned in this
+    chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter on hyperparameter tuning, you learned about what hyperparameters
+    are, including batch size, learning rate, number of epochs, number of attention
+    heads, sequence length, and more. You learned how to use hyperparameter tuning
+    to improve the performance of your model, along with top strategies for doing
+    so. You learned how to scale up your tuning, starting at 1% of your dataset, then
+    modifying your key hyperparameters as a function of your overall GPU world size.
+    Finally, you learned about key features for doing all of this on Amazon SageMaker.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we’ll learn about large-scale distributed training!
+  prefs: []
+  type: TYPE_NORMAL
+- en: References
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '*Hyperband: A Novel Bandit-Based Approach to Hyperparameter* *Optimization*:
+    [https://arxiv.org/pdf/1603.06560.pdf](https://arxiv.org/pdf/1603.06560.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*A SYSTEM FOR MASSIVELY PARALLEL HYPERPARAMETER* *TUNING*: [https://arxiv.org/pdf/1810.05934.pdf](https://arxiv.org/pdf/1810.05934.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Amazon SageMaker Automatic Model Tuning now provides up to three times faster
+    hyperparameter tuning with* *Hyperband*:[https://aws.amazon.com/blogs/machine-learning/amazon-sagemaker-automatic-model-tuning-now-provides-up-to-three-times-faster-hyperparameter-tuning-with-hyperband/](https://aws.amazon.com/blogs/machine-learning/amazon-sagemaker-automatic-model-tuning-now-provides-up-to-three-times-faster-hyperparameter-tuning-with-hyperband/)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*amazon-sagemaker-examples*: [https://github.com/aws/amazon-sagemaker-examples/blob/main/training/distributed_training/pytorch/model_parallel/gpt2/smp-train-gpt-simple.ipynb](https://github.com/aws/amazon-sagemaker-examples/blob/main/training/distributed_training/pytorch/model_parallel/gpt2/smp-train-gpt-simple.ipynb)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*HyperparameterTuner*: [https://sagemaker.readthedocs.io/en/stable/api/training/tuner.html](https://sagemaker.readthedocs.io/en/stable/api/training/tuner.html)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*amazon-sagemaker-examples*: [https://github.com/aws/amazon-sagemaker-examples/blob/main/hyperparameter_tuning/analyze_results/HPO_Analyze_TuningJob_Results.ipynb](https://github.com/aws/amazon-sagemaker-examples/blob/main/hyperparameter_tuning/analyze_results/HPO_Analyze_TuningJob_Results.ipynb)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL

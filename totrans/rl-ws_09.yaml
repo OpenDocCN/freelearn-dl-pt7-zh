@@ -1,0 +1,2791 @@
+- en: 9\. What Is Deep Q-Learning?
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Overview
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we will be learning about deep Q learning in detail along with
+    all other possible variations. You will learn how to implement the Q function
+    and use the Q learning algorithm along with deep learning to solve complex **Reinforcement
+    Learning** (**RL**) problems. By the end of this chapter, you will be able to
+    describe and implement the deep Q learning algorithm in PyTorch, and we will also
+    do a hands-on implementation of some of the advanced variants of deep Q learning,
+    such as double deep Q learning with PyTorch.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Introduction
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the previous chapter, we learned about the **Multi-Armed Bandit** (**MAB**)
+    problem – a popular sequential decision-making problem that aims to maximize your
+    reward when playing on the slot machines in a casino. In this chapter, we will
+    combine deep learning techniques with a popular **Reinforcement Learning** (**RL**)
+    technique called Q learning. Put simply, Q learning is an RL algorithm that decides
+    the best action to be taken by an agent for maximum rewards. The "Q" in Q learning
+    represents the quality of the action that is used to gain future rewards. In many
+    RL environments, we may not have state transition dynamics (that is, the probability
+    of going from one state to another), or it is too complex to gather state transition
+    dynamics. In these complex RL environments, we can use the Q learning approach
+    to implement RL.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we will start by understanding the very basics of deep learning,
+    such as what a perceptron and a gradient descent are and what steps need to be
+    followed to build a deep learning model. Next, we will learn about PyTorch and
+    how to build deep learning models using PyTorch. Once you have been introduced
+    to Q learning, we will learn and implement a **Deep Q Network** (**DQN**) with
+    the help of PyTorch. Then, we will improve the performance of DQNs with the help
+    of experience replay and target networks. Finally, you will implement another
+    variant of DQN called a **Double Deep Q Network** (**DDQN**).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Basics of Deep Learning
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: We have already implemented deep learning algorithms in *Chapter 03*, *Deep
+    Learning in Practice using TensorFlow 2*. Before we begin with deep Q learning,
+    which is the focus of this chapter, it is essential that we quickly revise the
+    basics of deep learning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let us first understand what a perceptron is before we look into neural networks.
+    The following figure represents a general perceptron:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.1: Perceptron'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_01.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.1: Perceptron'
+  prefs: []
+  type: TYPE_NORMAL
+- en: A perceptron is a binary linear classifier, where the inputs are first multiplied
+    by the weights, and then we take a weighted sum of all these multiplied values.
+    Then, we pass this weighted sum through an activation function or step function.
+    The activation function is used to convert the input values into certain values,
+    such as (0,1), as output for binary classification. This whole process can be
+    visualized in the preceding figure.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Deep feedforward networks, which we also refer to as **Multilayer Perceptrons**
+    (**MLPs**), have multiple perceptrons at multiple layers, as shown in *Figure
+    9.2*. The goal of MLPs is to approximate any function. For example, for a classifier,
+    the function ![A drawing of a person
+  prefs: []
+  type: TYPE_NORMAL
+- en: Description automatically generated](img/B16182_09_01a.png), maps an input,
+    ![A picture containing drawing
+  prefs: []
+  type: TYPE_NORMAL
+- en: Description automatically generated](img/B16182_09_01b.png), to a category of
+    y (for binary classification, either to 0 or 1) by learning the value of parameter
+    ![A picture containing furniture, table, stool, drawing
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Description automatically generated](img/B16182_09_01c.png)or the weights.
+    The following figure shows a general deep neural network:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.2: A deep neural network'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_02.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.2: A deep neural network'
+  prefs: []
+  type: TYPE_NORMAL
+- en: A basic building block of MLPs consists of artificial neurons (also called nodes).
+    They automatically learn the optimal weight coefficients that are then multiplied
+    with the input's features in order to decide whether a neuron fires or not. The
+    network consists of multiple layers where the first layer is called the input
+    layer and the last layer is called the output layer. The intermediate layers are
+    called hidden layers. The number of hidden layers can be of size "one" or more
+    depending on how deep you want to make the network.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following figure represents the general steps that are needed to train
+    a deep learning model:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.3: Deep learning model training flow'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_03.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.3: Deep learning model training flow'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The training process of a typical deep learning model can be explained as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Decide on the network architecture**:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: To begin, we first need to decide on the network architecture, such as how many
+    layers we will have in the network and how many nodes each of these layers will have.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '**Initialize the weights and biases**:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In the network, each neuron in a layer will be connected to all of the neurons
+    in the previous layer. These connections between the neurons have a corresponding
+    weight associated with them. During the training of the whole neural network,
+    we first initialize the values of these weights. Each of the neurons will also
+    have an associated bias component attached to it. This initialization is a one-time
+    process.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '`sigmoid`, `relu`, or `tanh`) to produce a non-linear output. These values
+    get propagated through each of the hidden layers and finally produce the output
+    at the output layer.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**Calculate the loss**:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The output of the network is then compared with the true/actual values or labels
+    of the training dataset to calculate the loss of the network. The loss of the
+    network is a measure of how well the network is performing. The lower the loss,
+    the better the performance of the network.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '**Update the weights (backpropagation)**:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Once we have calculated the loss of the network, the aim is to then minimize
+    the loss of the network. This is done by using the gradient descent algorithm
+    to adjust the weights associated with each node. Gradient descent is an optimization
+    algorithm used for minimizing the loss in various machine learning algorithms:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 9.4: Gradient descent'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_04.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 9.4: Gradient descent'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Loss minimization, in turn, pushes the predicted values closer to the actual
+    values during the training process. The learning rate plays a crucial part in
+    deciding the rate at which these weights are updated. Other examples of optimizers
+    are Adam, RMSProp, and Momentum.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Continue the iteration:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The preceding steps (*steps 3 to 5*) will be continued until the loss is minimized
+    to a certain threshold or we have completed a certain number of iterations to
+    complete the training process.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'The following lists a few of the hyperparameters that should be tuned during
+    the training process:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The number of layers in the network
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The number of neurons or nodes in each of the layers
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The choice of activation functions in each of the layers
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The choice of learning rate
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The choice of variants of the gradient algorithm
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The batch size if we are using the mini-batch gradient descent algorithm
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The number of iterations to be done for weight optimization
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Now that we have a good recollection of the basic concepts of deep learning,
+    let's move toward understanding PyTorch.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Basics of PyTorch
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In this chapter, we will use PyTorch to build deep learning solutions. The
+    obvious question that comes to mind is, why PyTorch? The following describes a
+    number of reasons as to why we should use PyTorch to build deep learning models:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Pythonic deep integration**:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The learning curve of PyTorch is smooth due to the Pythonic approach of the
+    coding style and the adoption of object-oriented methods. One example of this
+    is deep integration with the NumPy Python library, where you can easily convert
+    a NumPy array into a torch tensor and vice versa. Also, Python debuggers work
+    smoothly with PyTorch, which makes code debugging easier when using PyTorch.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '**Dynamic graph computation**:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Many other deep learning frameworks come with a static computation graph; however,
+    in PyTorch, dynamic graph computation is supported, which gives the developer
+    a far more in-depth understanding of what is going on in each algorithm and allows
+    them to change the network behavior programmatically at runtime.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '**OpenAI adoption of PyTorch**:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In general academics for RL, PyTorch gained a huge momentum due to its speed
+    and ease of use. As you will have already noted, nowadays, OpenAI Gym is often
+    the default environment for solving RL problems. Recently, OpenAI announced that
+    it is adopting PyTorch as its primary framework for research and development work.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'The following are a few steps that should be followed in order to build a deep
+    neural network in PyTorch:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Import the required libraries, prepare the data, and define the source and target
+    data. Please note that you will need to convert your data into torch tensors when
+    working with any PyTorch models.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Build the model architecture using a class.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Define the loss function and optimizer to be used.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Train the model.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Make predictions using the model.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Let's do an exercise to build a simple PyTorch deep learning model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Exercise 9.01: Building a Simple Deep Learning Model in PyTorch'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'The aim of this exercise is to build a working end-to-end deep learning model
+    in PyTorch. This exercise will take you through the steps of how to create a neural
+    network model in PyTorch and how to train the same model in PyTorch using sample
+    data. This will demonstrate the backbone process in PyTorch, which we will later
+    use in the *Deep Q Learning* section:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Open a new Jupyter notebook. We will import the required libraries:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Then, using a NumPy array, we will convert the source and target data into
+    torch tensors. Please remember that for the PyTorch model to work, you should
+    always convert the source and target data into torch tensors, as shown in the
+    following code snippet:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: It is very important to be aware of the input and target dataset shapes. This
+    is because the deep learning model should be compatible with the shapes of the
+    input and target data for the matrix multiplication operations.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Define the network architecture as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Once we have the source and target data in tensor format, we should create a
+    class for the neural network model architecture. This class inherits the properties
+    from the `nn` base class using a package called `Module`. This new class, called
+    `Model`, will have a forward function along with a regular constructor, called
+    (`__init__`).
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: The `__init__` method, at first, will call the `super` method to gain access
+    to the base class. Then, all the layer definitions will be written within this
+    constructor method. The role of the forward method is to provide the steps that
+    are required to do the forward propagation steps of the neural network.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '`nn.Linear()` has the syntax of (input size, output size) to define the linear
+    layers of the model. We can use a non-linear function such as `relu` or `tanh`
+    in combination with the linear layers in the forward function.'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: The neural network architecture represents the 3 nodes in the input layer, 10
+    in the hidden layer, and 1 in the output layer. Inside the forward function, we
+    will use the `relu` activation function in the hidden layer. Once we define the
+    model class, then we must instantiate the model.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Now you should have successfully created and initiated a model.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Now define the loss function and optimizer. The exercise we are working on is
+    a regression problem; we generally use the mean squared error as the loss function
+    in regression problems. In PyTorch, we use the `MSELoss()` function for a regression
+    problem. Generally, the loss is assigned to `criterion`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The `Model` parameter and learning rate must be passed as mandatory arguments
+    to the optimizers for backpropagation. Model parameters can be accessed using
+    the `model.parameters()` function. Now define the loss function and optimizer
+    using the Adam optimizer. While creating the Adam optimizer, pass `0.01` as the
+    learning rate along with the model parameter:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: At this point, you should have successfully defined the loss and optimization functions.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Note
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '`torch.optim` package.'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Train the model for 20 epochs and monitor the loss. To form a training loop,
+    create a variable called `n_epochs` and initialize the value as 20\. Create a
+    `for` loop to run the loop for `n_epoch` times. Inside the loop, complete these
+    steps: zero out the parameter gradients using `optimizer.zero_grad()`. Pass the
+    input through the model to get the output. Obtain the loss using `criterion` by
+    passing the outputs and targets. Use `loss.backward()` and `optimizer.step()`
+    to do the backpropagation step. Print the loss after every epoch:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: PyTorch, by default, accumulates the gradients calculated at each step. We need
+    to handle this during the training process so that the weights are updated with
+    their proper gradients. `optimizer.zero_grad()` will zero out the gradients from
+    the previous training step to stop the gradient accumulations. This step should
+    be done before calculating the gradients at each epoch. To calculate the loss,
+    we should pass the predicted and actual values to the loss function. The `criterion(outputs,
+    targets)` step is used to calculate the loss. The `loss.backward()` step is used
+    to calculate the weight gradients, and we will use these gradients to update the
+    weights to get our optimum weights. Weight updates are done using the `optimizer.step()`
+    function.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: As you can see, the output prints the loss after every epoch. You should closely
+    monitor the training loss. From the preceding output, we can see that training
+    loss decreases.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Once the model is trained, we can use the trained model to make predictions.
+    Pass the input data through the model to get the predictions and observe the output:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output is as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The preceding output shows the model prediction of the corresponding input data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: To access the source code for this specific section, please refer to [https://packt.live/3e2DscY](https://packt.live/3e2DscY).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also run this example online at [https://packt.live/37q0J68](https://packt.live/37q0J68).
+  prefs: []
+  type: TYPE_NORMAL
+- en: We now know how a PyTorch model works. This example will be useful for you when
+    training your deep Q neural network. However, in addition to this, there are few
+    other important PyTorch utilities that you should be aware of, which you will
+    study in the next section. Understanding these utilities is essential for the
+    implementation of deep Q learning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: PyTorch Utilities
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'To work with the utilities, first, we will create a torch tensor of size 10
+    with numbers starting from 1 to 9 using the `arange` function of PyTorch. A torch
+    tensor is essentially a matrix of elements that belongs to a single data type,
+    which can have multiple dimensions. Please note that, like Python, PyTorch also
+    excludes the number given in the `arange` function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: Let's now begin exploring the various functions, one by one.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The view Function
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'Use the `view` function to reshape your tensor as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s try a new shape now:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: The squeeze Function
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'The `squeeze` function is used to remove any dimensions with a value of 1\.
+    The following is an example of a tensor with a shape of (5,1):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Apply the `squeeze` function to the tensor:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs: []
+  type: TYPE_PRE
+- en: As you can see, after using `squeeze`, the dimension of 1 is removed.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The unsqueeze Function
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: As the name suggests, the `unsqueeze` function does the reverse of `squeeze`.
+    It adds a dimension of 1 to the input data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Consider the following example. First, we create a tensor of shape `5`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Apply the `unsqueeze` function to the tensor:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs: []
+  type: TYPE_PRE
+- en: As you can see, a dimension of 1 has been added to the tensor.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The max Function
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: If a multidimensional tensor is passed to the `max` function, the function returns
+    the max values and corresponding index in the specified axis. Please refer to
+    the code comments for more details.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, we create a tensor of dimensions `(4, 4)`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, let''s apply the `max` function to the tensor:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s now try to find the max values from the tensor:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'To find the index of the max values, use the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE30]'
+  prefs: []
+  type: TYPE_PRE
+- en: As you can see, the indices of the max values have been displayed.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The gather Function
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'The `gather` function works by collecting values along an axis specified by
+    `dim`. The general syntax of the `gather` function is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE31]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The syntax can be explained as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`input` (tensor): Specify the source tensor here.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`dim` (python:int): Specify the axis along which to index.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`index` (`LongTensor`): Specify the indices of elements to gather.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'In the following example, we have `q_values`, which is a torch tensor of shape
+    (`4,4`), and the action is a `LongTensor` that has indexes that we want to extract
+    from the `q_values` tensor:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE32]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE33]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we will apply `LongTensor` to specify the indices of the elements of
+    the tensor that are to be gathered:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE34]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Then, find the shape of the `q_values` tensor:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE35]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE36]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s now apply the `gather` function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE37]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE38]'
+  prefs: []
+  type: TYPE_PRE
+- en: Now you have a basic understanding of neural networks and how to implement a
+    simple neural network in PyTorch. Aside from a vanilla neural network (the combination
+    of linear layers with a non-linear activation function), there are two other variants
+    called **Convolutional Neural Networks** (**CNNs**) and **Recurrent Neural Networks**
+    (**RNNs**). A CNN is mainly used for image classification and image segmentation
+    tasks, and an RNN is used for data with a sequential pattern, such as time series
+    data, or for language translation tasks.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, as we have gained some knowledge of deep learning and how to build deep
+    learning models in PyTorch, we will shift our focus to Q learning and how to use
+    deep learning in RL with the help of PyTorch. First, we will start with the state-value
+    function and the Bellman equation, and then we will move on to Q learning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The State-Value Function and the Bellman Equation
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: As we are slowly moving toward the Q function and Q learning process, let's
+    revisit the Bellman equation, which is the backbone of the Q learning process.
+    In the following section, we will first revise our definition of an "expected
+    value" and how it is used in a Bellman equation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Expected Value
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'The following figure depicts the expected value in a state space:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.5: Expected value'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_05.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.5: Expected value'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Suppose that an agent is in state `S`, and it has two paths on which it can
+    travel. The first path has a transition probability of 0.6 and an associated reward
+    of 1, and the second path has a transition probability of 0.4 and an associated
+    reward of 0\.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, the expected value or reward of state `S` would be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE39]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Mathematically, it can be expressed as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.6: Expression for the expected value'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_06.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.6: Expression for the expected value'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Value Function
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: When an agent is in an environment, the value function provides the required
+    information about the states. The value function provides a methodology through
+    which an agent can know how good any given state is for the agent. So, if an agent
+    has the option of going two states from the current state, the agent will always
+    choose the state with the larger value function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The value function can be expressed recursively using the value function of
+    future states. When we are working in a stochastic environment, we will use the
+    concept of expected values, as discussed in the previous section.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Value Function for a Deterministic Environment
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: For a deterministic world, the value of a state is just the sum of all future
+    rewards.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The value function of state 1 can be expressed as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.7: Value function of state 1'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_07.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.7: Value function of state 1'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The value function of state 1 can be expressed in terms of state 2, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.8: Value function of state 2'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_08.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.8: Value function of state 2'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The simplified value function of state 1, using the value function of state
+    2, can be expressed as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.9: Simplified value function of state 1 using the value function
+    of state 2'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_09.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.9: Simplified value function of state 1 using the value function of
+    state 2'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The simplified value function of state 1 with the discount factor can be expressed
+    as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.10: Simplified value function of state 1 with the discount factor'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_10.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.10: Simplified value function of state 1 with the discount factor'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In general, we can rewrite the value function as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.11: Value function for a deterministic environment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_11.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.11: Value function for a deterministic environment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The Value Function for a Stochastic Environment:'
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'For stochastic behavior, due to the randomness or uncertainty that is present
+    in the environment, instead of taking the raw future rewards, we take the expected
+    total reward from a state to come up with the value function. The new addition
+    to the preceding equation is the expectation part. The equation is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.12: Value function for a stochastic environment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_12.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.12: Value function for a stochastic environment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Here, `s` is the current state, ![A picture containing table, drawing
+  prefs: []
+  type: TYPE_NORMAL
+- en: Description automatically generated](img/B16182_09_12a.png)is the next state,
+    and `r` is the reward of going from `s` to ![A picture containing table, drawing
+  prefs: []
+  type: TYPE_NORMAL
+- en: Description automatically generated](img/B16182_09_12b.png).
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Action-Value Function (Q Value Function)
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In the previous sections, we learned about the state-value function, which
+    tells us how rewarding it is to be in a particular state for an agent. Now we
+    will learn about another function where we can combine the state with actions.
+    The action-value function will tell us how good it is for the agent to take any
+    given action from a given state. We also call the action value the **Q value**.
+    The equation can be written as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.13: Expression for the Q value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_13.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.13: Expression for the Q value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The preceding equation can be written in an iterative fashion, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.14: Expression for the Q value function with iterations'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_14.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.14: Expression for the Q value function with iterations'
+  prefs: []
+  type: TYPE_NORMAL
+- en: This equation is also known as the **bellman equation**. From the equation,
+    we can express ![A drawing of a face
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Description automatically generated](img/B16182_09_14a.png)recursively in terms
+    of the Q value of the next state, ![c](img/B16182_09_14b.png). A Bellman equation
+    can be described as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*"The total expected reward being in state s and taking action a is the sum
+    of two components: the reward (which is r) that we can get from state ''s'' by
+    taking action a, plus the maximum expected discounted return **![c](img/B16182_09_14c.png)
+    that we can get from any possible next state-action pair (s′, a′). a′ is the next
+    best possible action."*'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Implementing Q Learning to Find Optimal Actions
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'The process of finding the optimal action from any state using the Q function
+    is called Q learning. Q learning is also a tabular method, where state and action
+    combinations are stored in a tabular format. In the following section, we will
+    learn how to find the optimal action using the Q learning method in a stepwise
+    fashion. Consider the following table:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.15: Sample table for Q learning'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_15.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.15: Sample table for Q learning'
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you can see in the preceding table, the Q values are stored in terms of a
+    table, where the rows represent the states that are present in the environment,
+    and the columns represent all of the possible actions for the agent. You can see
+    that all of the states are represented as rows, and all the actions, such as going
+    up, down, right, and left, are stored as columns.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The values present in the intersection of any row and column is the Q value
+    for that particular state-action pair.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Initially, all values of state-action pairs are initialized with zero. The agent,
+    being in a state, will choose the action with the highest Q value. For example,
+    as shown in the preceding figure, being in state 001, the agent will choose to
+    go right, which has the highest Q value (0.98).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'During the initial phase, when most of the state-action pairs will have zero
+    values, we will make use of the previously discussed epsilon-greedy strategy to
+    tackle the exploration-exploitation dilemma as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Set the value of ε (a high value such as 0.90).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Choose a random number between 0 and 1:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE40]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The state with a higher value of ε decays gradually. The idea then would be
+    to initially explore and then exploit.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Using the **Temporal Difference** (**TD**) method described in the previous
+    chapter, we iteratively update the Q values as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.16: Updating the Q values using iterations'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_16.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.16: Updating the Q values using iterations'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The timestamp, `t`, is the current iteration, and timestamp `(t-1)` is the previous
+    iteration. In this way, we are updating the previous timestamp's Q value with
+    the `TD` method and pushing the Q value as close as we can to the optimal Q value,
+    which is also called ![A picture containing drawing
+  prefs: []
+  type: TYPE_NORMAL
+- en: Description automatically generated](img/B16182_09_16a.png).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We can rewrite the preceding equation as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.17: Updated expression for updating Q values'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_17.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.17: Updated expression for updating Q values'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Using simple math, we can further simplify the equation as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.18: Updated equation for Q values'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_18.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.18: Updated equation for Q values'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The learning rate decides how big or small the steps we should take should be
+    in order to update the Q values. This iteration and updating of Q values will
+    continue until the Q values come closer to ![A picture containing table
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Description automatically generated](img/B16182_09_18a.png) or if we reach
+    a certain predefined number of iterations. The iteration can be visualized as
+    follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.19: The Q learning process'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_19.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.19: The Q learning process'
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you can see, after multiple iterations, the Q table is finally ready.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Advantages of Q Learning
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'The following describes the advantages of using Q learning in the RL domain:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We don't need to know the full transition dynamic; this means that we don't
+    have to know all of the state transition probabilities that may not be available
+    for some environments.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: As we store the state-action combination in a tabular format, it is easy to
+    understand and implement the Q learning algorithm by fetching the details from
+    the tables.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We don't have to wait for the entire episode to finish to update the Q value
+    for any state due to the continuous online update of the learning process, unlike
+    in the Monte Carlo method where we have to wait for an episode to finish in order
+    to update the action-value function.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: It works well when the combination of states and action spaces is low.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: As we have now learned about the basics of Q learning, we can implement Q learning
+    using an OpenAI Gym environment. So, before going ahead with the exercise, let's
+    review the concept of OpenAI Gym.
+  prefs: []
+  type: TYPE_NORMAL
+- en: OpenAI Gym Review
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Before we implement the Q learning tabular method, let''s quickly review and
+    revisit the Gym environment. OpenAI Gym is a toolkit for developing RL algorithms.
+    It supports teaching agents everything from walking to playing games such as CartPole
+    or FrozenLake-v0\. Gym provides an environment, and it is up to the developer
+    to write and implement any RL algorithms such as tabular methods or deep Q learning.
+    We can also write algorithms using existing deep learning frameworks, such as
+    PyTorch or TensorFlow. The following is a sample code example to work with an
+    existing Gym environment:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.20: Gym environment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_20.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.20: Gym environment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s understand a few parts of the code as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`gym.make("CartPole-v1")`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This creates an existing Gym environment (`CartPole-v1`).
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '`env.reset()`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This resets the environment, so the environment will be at the starting state.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '`env.action_space.sample()`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This selects a random action from the action space (a collection of available actions).
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '`env.step(action)`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This performs the action selected from the previous step. Once you take the
+    actions, the environment will return the `new_state`, `reward`, and `done` flags
+    (to indicate whether the game is over), and some extra information.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '`env.render()`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This renders to see the agent performing the actions or playing the game.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: We now have a theoretical understanding of the Q learning process, and we have
+    also reviewed the Gym environment. Now it's your turn to implement Q learning
+    using a Gym environment.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Exercise 9.02: Implementing the Q Learning Tabular Method'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'In this exercise, we will implement the tabular Q Learning method using the
+    OpenAI Gym environment. We will use the `FrozenLake-v0` Gym environment to implement
+    the tabular Q learning method. The goal is to play and collect maximum rewards
+    with the help of the Q learning process. You should already be familiar with the
+    FrozenLake-v0 environment from *Chapter 5*, *Dynamic Programming*. The following
+    steps will help you to complete the exercise:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Open a new Jupyter notebook file.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Import the required libraries:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE41]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create the Gym environment with `''FrozenLake-v0''` for a stochastic environment:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE42]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Fetch the number of states and actions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE43]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE44]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create the Q table with details fetched from the previous step:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE45]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output is as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE46]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Now we know the shape of the Q table and that the initial values are all zero
+    for every state-action pair.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Set all of the required hyperparameter values to be used for Q learning:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE47]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create empty lists to store the values of the rewards and the decayed egreedy
+    values for visualization:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE48]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Implement the Q learning training process to play the episode for a fixed number
+    of episodes. Use the previously learned Q learning process (from the *Implementing
+    Q Learning to Find Optimal Actions* section) in order to find the optimal actions
+    from any given state.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Create a `for` loop to iterate for `NUMBER_OF_EPISODES`. Reset the environment
+    and set the `done` flag equal to `False` and `current_episode_rewards` as `zero`.
+    Create another `for` loop to run a single episode for `MAX_STEPS`. Inside the
+    `for` loop, choose the best action using the epsilon-greedy strategy. Perform
+    the action and update the Q values using the equation shown in *Figure 9.18*.
+    Collect the reward and assign `new_state` as the current state. If the episode
+    is over, break out from the loop, else continue taking the steps. Decay the epsilon
+    value to be able to continue for the next episode:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE49]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Implement a function called `rewards_split` that will split the 10,000 rewards
+    into 1,000 individual lists of rewards, and calculate the average rewards for
+    each of these 1,000 lists of rewards:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE50]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Visualize the average rewards or percentage of completed episodes:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE51]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output is as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 9.21: Visualizing the percentage of episodes completed'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_21.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 9.21: Visualizing the percentage of episodes completed'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: As you can see from the preceding figure, the episodes are completed, and the
+    percentage rises exponentially until it reaches a point where it becomes constant.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Now we will visualize the `Egreedy` value decay:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE52]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The plot will be produced as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 9.22: Egreedy value decay'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_22.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 9.22: Egreedy value decay'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In *Figure 9.22*, we can see the `Egreedy` value has been gradually decayed
+    with the increasing number of steps. This means that, as the value drops toward
+    zero, the algorithm becomes more and more greedy, taking the action with maximum
+    reward without exploring the less rewarding actions, which, with enough exploration,
+    may turn out to be more rewarding in the long term, but we do not know enough
+    about the model in the initial stages.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This highlights the need for a higher exploration of the environment when we
+    are in the early stages of learning. This is achieved with higher epsilon values.
+    The epsilon value is reduced as training progresses. This results in less exploration
+    and more exploitation of knowledge gained from past runs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Thus, we have successfully implemented the tabular method of Q learning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: To access the source code for this specific section, please refer to [https://packt.live/2B3NziM](https://packt.live/2B3NziM).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also run this example online at [https://packt.live/2AjbACJ](https://packt.live/2AjbACJ).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now that we have a good understanding of the required entities, we will study
+    another important concept of RL: deep Q learning.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Deep Q Learning
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Before diving into the details of the deep Q learning process, let's first discuss
+    the disadvantages of the traditional tabular Q learning process, and then we will
+    look at how combining deep learning with Q learning can help us to resolve these
+    disadvantages of tabular methods.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following describes several disadvantages of the tabular Q learning approach:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Performance issues: When the state spaces are very large, the tabular iterative
+    lookup operations will be much slower and more costly.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Storage issues: Along with the performance issues, storage will also be costly
+    when it comes to storing the tabular data for large combinations of state and
+    action spaces.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The tabular method will work well only when an agent comes across seen discrete
+    states that are present in the Q table. For the unseen states that are not present
+    in the Q table, the agent's performance may be the optimal performance.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For continuous state spaces for the previously mentioned issues, the tabular
+    Q learning method won't be able to approximate the Q values in an efficient or
+    proper manner.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Keeping all of these issues in mind, we can consider using a function approximator
+    that will work as a mapping between states and Q values. In machine learning terms,
+    we can think of this problem as using a non-linear function approximator to solve
+    regression problems. Since we are thinking of a function approximator, a neural
+    network works best as a function approximator through which we can approximate
+    the Q values for each state-action pair. This act of combining Q learning with
+    a neural network is called deep Q learning or DQN.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s break down and explain each part of this puzzle:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Inputs to the DQN**:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The neural network accepts the states of the environment as input. For example,
+    in the case of the FrozenLake-v0 environment, a state can be a simple coordinate
+    of the grid at any given point in time. For more complex games such as Atari,
+    the input can be a few consecutive snapshots of the screen in the form of an image
+    as state representation. The number of nodes in the input layer will be the same
+    as the number of states present in the environment.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '**Outputs from the DQN**:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The output would be the Q values for each action. For example, for any given
+    environment, if there are four possible actions, then the output would have four
+    Q values for each action. To choose the optimal action, we will select the action
+    with the maximum Q value.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '**The loss function and learning process**:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The DQN will accept states from the environment and, for each given input or
+    state, the network will output an estimated Q value for each action. The objective
+    of this is that it approximates the optimal Q value, which will satisfy the right-hand
+    side of the Bellman equation, as shown in the following expression:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 9.23: Bellman equation'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_23.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 9.23: Bellman equation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: To calculate the loss, we need the target Q value and the Q values coming from
+    the network. From the preceding Bellman equation, the target Q values are calculated
+    on the right-hand side of the equation. The loss from the DQN is calculated by
+    comparing the output Q values from the DQN to the target Q values. Once we calculate
+    the loss, we then update the weights of the DQN via backpropagation to minimize
+    the loss and to push the DQN-output Q values closer to the optimal Q values. In
+    this way, with the help of DQN, we treat the RL problem as a supervised learning
+    problem with a source and a target.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The DQN implementation can be visualized as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.24: DQN'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_24.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.24: DQN'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We can write the steps of the deep Q learning process as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Initialize the weights to get an initial approximation of `Q(s,a)`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE53]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'As you can see, we have initialized the DQN class with the weights. The two
+    code lines in the `__init__` functions, where we create the neural network, are
+    responsible for giving random weights to the network connections. We can also
+    explicitly initialize the weights. A common practice nowadays is to let PyTorch
+    or TensorFlow use their internal default initialization logic to create initial
+    weight vectors, as you can see in the following sample code:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE54]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Doing one forward pass through the network, obtain the flags (`state`, `action`,
+    `reward`, and `new_state`). The action is selected by taking the argmax of the
+    Q values (selecting the index of the max Q value) or by taking random actions
+    during the exploration phase. We can achieve this using the following code sample:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE55]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: As you can see in the preceding code snippet, the egreedy algorithm is being
+    used to select the action. The `select_action` function passes the state through
+    the DQN to obtain the Q values and selects the action with the highest Q value
+    during exploitation. The `if` statement decides whether the exploration should
+    be carried out or not.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'If the episode is ended, the target Q value will be the reward obtained; otherwise,
+    use the Bellman equation to estimate the target Q value. You can realize this
+    in the following code sample:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE56]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The loss obtained is as follows.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: If the episode ended, then the loss will be ![A drawing of a face
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Description automatically generated](img/B16182_09_24a.png).
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Otherwise, the loss will be termed as ![A close up of a logo
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Description automatically generated](img/B16182_09_24b.png) .
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'The following is sample code for `loss`:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE57]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Using backpropagation, we update the network weights (θ). This iteration will
+    run for each state until we sufficiently minimize the loss and get an approximate
+    optimal Q function. The following is the sample code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE58]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Now that we have a fair understanding of the implementation of deep Q learning,
+    let's test our understanding with an exercise.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Exercise 9.03: Implementing a Working DQN Network with PyTorch in a CartPole-v0
+    Environment'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In this exercise, we will implement the deep Q learning algorithm with the OpenAI
+    Gym CartPole environment. The aim of this exercise is to build a PyTorch-based
+    DQN model that will learn to balance the cart in the CartPole environment. Please
+    refer to the PyTorch example for building neural networks, which was explained
+    at the start of this chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Our main aims are to apply a Q learning algorithm, keep the pole steady during
+    each step, and collect the maximum reward during each episode. A reward of +1
+    is given for every step when the pole remains straight. The episode will end when
+    the pole is more than 15 degrees away from the vertical position or when the cart
+    moves more than 2.4 units away from the center position in the CartPole environment:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Open a new Jupyter notebook and import the required libraries:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE59]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a device based on the availability of a **Graphics Processing Unit**
+    (**GPU**) environment:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE60]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a Gym environment using the `''CartPole-v0''` environment:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE61]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Set the `seed` for torch and the environment to guarantee reproducible results:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE62]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Set all of the hyperparameter values required for the DQN process:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE63]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Implement a function for decaying the epsilon values after every step. We will
+    decay with the epsilon value exponentially. The epsilon value will start with
+    the value of `EGREEDY` and will be decayed until it reaches the value of `EGREEDY_FINAL`.
+    Use the following formula:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE64]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The code will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE65]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Fetch the number of states and actions from the environment:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE66]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE67]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a class, called `DQN`, that accepts the number of states as inputs and
+    outputs Q values for the number of actions present in the environment, and has
+    a network with a hidden layer of size `64`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE68]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a `DQN_Agent` class and implement the constructor''s `_init_` function.
+    This function will create an instance of the DQN class within which the hidden
+    layer size is passed. It will also define the `MSE` as a loss criterion. Next,
+    define `Adam` as the optimizer with model parameters and a predefined learning
+    rate:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE69]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Next, define the `select_action` function that will accept `state` and egreedy
+    values as input parameters. Use the `egreedy` algorithm to select the action.
+    This function will pass the `state` through the DQN to get the Q value, and then
+    select the action with the highest Q value using the `torch.max` operation during
+    the exploitation phase. During this process, gradient computation is not required;
+    that''s why we use the `torch.no_grad()` function to turn off the gradient calculation:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE70]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define the `optimize` function that will accept `state`, `action`, `new_state`,
+    `reward`, and `done` as inputs and convert them into tensors, keeping their compatibility
+    with the device used. If the episode is over, then we make the reward the target
+    value; otherwise, the new state is passed through the DQN (which is used to detach
+    and turn off the gradient calculation) to calculate the max part present in the
+    right-hand side of the Bellman equation. Using the reward obtained and the discount
+    factor, we can calculate the target value:![Figure 9.25: Target value equation'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_25.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE71]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Write a training process using a `for` loop. At first, instantiate the DQN
+    agent using the class created earlier. Create a `steps_total` empty list to collect
+    the total number of steps for each episode. Initialize `steps_counter` with zero
+    and use it to calculate the decayed epsilon value for each step. Use two loops
+    during the training process. The first one is to play the game for a certain number
+    of steps. The second loop ensures that each episode goes on for a fixed number
+    of steps. Inside the second `for` loop, the first step is to calculate the epsilon
+    value for the current step. Using the present state and epsilon value, you select
+    the action to perform. The next step is to take the action. Once you take the
+    action, the environment returns the `new_state`, `reward`, and `done` flags. Using
+    the `optimize` function, perform one step of gradient descent to optimize the
+    DQN. Now make the new state the present state for the next iteration. Finally,
+    check whether the episode is over or not. If the episode is over, you can collect
+    and record the reward for the current episode:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE72]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now observe the reward, as the reward is scalar feedback and gives you an indication
+    of how well the agent is performing. You should look at the average reward and
+    the average reward for the last 100 episodes:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE73]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE74]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Perform the graphical representation of rewards. Check how the agent is performing
+    while playing more episodes, and check what the reward average is for the last
+    100 episodes:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE75]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output plot should be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 9.26: Rewards collected'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_26.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 9.26: Rewards collected'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Figure 9.26* shows that the initial number of steps and rewards is low. However,
+    with the increasing numbers of steps, we have collected a stable and higher value
+    of rewards with the help of the DQN algorithm.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: To access the source code for this specific section, please refer to [https://packt.live/3cUE8Q9](https://packt.live/3cUE8Q9).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also run this example online at [https://packt.live/37zeUpz](https://packt.live/37zeUpz).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Thus, we have successfully implemented a working DQN using PyTorch in a CartPole
+    environment. Let's now look at a few challenging aspects of DQN.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Challenges in DQN
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Everything that was explained in the preceding sections looks good; however,
+    there are a few challenges with DQNs. Here are a couple of the challenges of a
+    DQN:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The correlation between the steps causes a convergence issue during the training
+    process
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The challenge of having a non-stationary target.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: These challenges and their corresponding solutions are explained in the following sections.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Correlation between Steps and the Convergence Issue
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: From the previous exercise, we have seen that, during Q learning, we treat the
+    RL problem as a supervised machine learning problem, where we have predictions
+    and target values, and, using gradient descent optimization, we try to reduce
+    the loss to find the optimal Q function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The gradient descent algorithm assumes that the training data points are independent
+    and identically distributed (that is, `i.i.d`), which is generally true in the
+    case of traditional machine learning data. However, in the case of RL, each data
+    point is highly correlated and dependent on the other. Put simply, the next state
+    depends on the action taken from the previous state. Due to the correlation present
+    in the RL data, we have a convergence issue in the case of the gradient descent
+    algorithm.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To solve this issue of convergence, we will now look at a possible solution,
+    known as **Experience Replay**, in the following section.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Experience Replay
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: To break the correlation between the data points in the case of RL, we can use
+    a technique called experience replay. Here, at each timestep during training,
+    we store the agent's experience in a **Replay Buffer** (which is just a Python
+    list).
+  prefs: []
+  type: TYPE_NORMAL
+- en: For example, during the training at time t, the following agent experience is
+    stored as a tuple in the replay buffer ![A picture containing object, clock
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Description automatically generated](img/B16182_09_26a.png), where:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![a](img/B16182_09_26b.png)- current state'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![b](img/B16182_09_26c.png)- action taken'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![c](img/B16182_09_26d.png)- new state'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![d](img/B16182_09_26e.png)- reward'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![d](img/B16182_09_26f.png)- indicates whether the episode is complete or not'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We set a maximum size for the replay buffer; we will keep on adding new tuples
+    of experience as we encounter them. So, when we reach the maximum size, we will
+    throw out the oldest value. At any given point in time, the replay buffer will
+    always store the latest experience of maximum size.
+  prefs: []
+  type: TYPE_NORMAL
+- en: During training, to break the correlation, we will randomly sample these experiences
+    from the replay buffer to train the DQN. This process of gaining experience and
+    sampling from the replay buffer that stores these experiences is called experience replay.
+  prefs: []
+  type: TYPE_NORMAL
+- en: During the Python implementation, we will use a push function to store the experiences
+    in the replay buffer. An example function will be implemented to sample the experience
+    from the buffer, the pointer, and the length method, which will help us to keep
+    track of the replay buffer size.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The following is a detailed code implementation example of experience replay.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will implement an `ExperienceReplay` class with all of the functionality
+    explained earlier. In the class, the constructor will contain the following variables:
+    `capacity`, which indicates the maximum size of the replay buffer; `buffer`, which
+    is an empty Python list that acts as the memory buffer; and `pointer`, which points
+    to the current location of the memory buffer while pushing the memory to the buffer.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The class will contain the `push` function, which checks whether there is any
+    space in the buffer using the `pointer` variable. If there is an empty space,
+    `push` adds an experience tuple at the end of the buffer, else the function will
+    replace the memory from the starting point of the buffer. It also contains the
+    `sample` function, which will return the experience tuple of the batch size, and
+    the `__len__` function, which will return the length of the current buffer, as
+    part of the implementation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The following is an example of how the pointer, capacity, and modular division
+    will work in experience replay.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We initialize the pointer with zero and capacity with three. After every operation,
+    we increase the pointer value and, using modular division, we get the current
+    value of the pointer. When the pointer exceeds the maximum capacity, the value
+    will reset to zero:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.27: Pointer, capacity, and modular division in the experience replay
+    class'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_27.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.27: Pointer, capacity, and modular division in the experience replay
+    class'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Adding all of the previously mentioned functionality, we can implement the
+    `ExperienceReplay` class as shown in the following code snippet:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE76]'
+  prefs: []
+  type: TYPE_PRE
+- en: As you can see, the experience class has been initiated.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Challenge of a Non-Stationary Target
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Consider the following code snippet. If you look closely at the following `optimize`
+    function, you will see that we have two passes through the DQN network: one pass
+    to calculate the target Q value (using the Bellman equation) and the other pass
+    to calculate the predicted Q value. After that, we have calculated the loss:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE77]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The first pass is just an approximation of the optimal Q value using the Bellman
+    equation; however, to calculate the target and predicted Q values, we use the
+    same weights from the network. This process makes the whole deep Q learning process
+    unstable. Consider the following equation during the loss calculation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.28: Expression for the loss calculation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_28.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.28: Expression for the loss calculation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: After the loss is calculated, we perform one step of gradient descent and optimize
+    the weights to minimize the loss. Once the weights are updated, the predicted
+    Q value will change. However, our target Q values will also change because, to
+    calculate the target Q values, we are using the same weights. Due to the unavailability
+    of the fixed target Q value, this whole process is unstable in the current architecture.
+  prefs: []
+  type: TYPE_NORMAL
+- en: One solution to this problem would be to have a fixed target Q value during
+    the whole training process.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Concept of a Target Network
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: To resolve the issue of the non-stationary target, we can fix the issue by introducing
+    a target neural network architecture in the pipeline. We call this network the
+    **Target Network**. The target network will have the same network architecture
+    as the base neural network in the architecture. We can call this base neural network
+    the predicted DQN.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As discussed previously, to calculate the loss, we must do two passes through
+    the DQN: one pass is to calculate the target Q values, and the second one is to
+    calculate the predicted Q values.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Due to the architectural change, target Q values will be calculated using the
+    target network and the predicted Q values process will remain the same, as shown
+    in the following figure:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.29: Target network'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_29.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.29: Target network'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As inferred from the preceding figure, the loss function can be written as
+    follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.30: Expression for the loss function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_30.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.30: Expression for the loss function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The entire purpose of the target network is to calculate the max part in the
+    Bellman equation using the new state-action pair.
+  prefs: []
+  type: TYPE_NORMAL
+- en: At this point in time, the obvious question you may ask is, what about the weights
+    or parameters of this target, and how can we get the target values in an optimum
+    way from this target network? To ensure a balance between fixing the target value
+    and the optimal target approximation using the target network, we will update
+    the weights of the target network from the predicted values after every fixed
+    iteration. But after how many iterations should we update the weights of the target
+    network from the prediction network? Well, that's a hyperparameter that should
+    be tuned during the training process of the DQN. This whole process makes the
+    training process stable as the target Q values are fixed for a while.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We can summarize the steps of training a DQN with experience replay and a target
+    network as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Initialize the replay buffer.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Create and initialize the prediction network.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Create a copy of the prediction network as a target network.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Run through the fixed number of episodes.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Within every episode, perform the following steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Use the egreedy algorithm to choose an action.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Perform the action and collect the reward and new state.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Store the whole experience in the replay buffer.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select a random batch of experience from the replay buffer.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Pass the batch of states through the prediction network to get the predicted
+    Q values.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Using a new state, pass through the target network to calculate the target Q value.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Perform gradient descent to optimize the weights of the prediction network.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: After a fixed iteration, clone the weights of the prediction network to the
+    target network.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Now we understand the concept of DQN, the disadvantages of DQN, and how we can
+    overcome these disadvantages of DQN using experience replay and a target network;
+    we can combine all of these to build a robust DQN algorithm. Let's implement our
+    learning in the following exercise.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Exercise 9.04: Implementing a Working DQN Network with Experience Replay and
+    a Target Network in PyTorch'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'In the previous exercise, you implemented a working DQN to work with the CartPole
+    environment. Then, we looked at the disadvantages of a DQN. Now, in this exercise,
+    let''s implement the DQN network with experience replay and a target network using
+    the same CartPole environment in PyTorch to build a more stable DQN learning process:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Open a new Jupyter notebook and import the required libraries:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE78]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Write code that will create a device based on the availability of a GPU environment:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE79]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a `gym` environment using the `''CartPole-v0''` environment:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE80]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Set the seed for torch and the environment for reproducibility:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE81]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Fetch the number of states and actions from the environment:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE82]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output is as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE83]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Set all of the hyperparameter values required for the DQN process. Please add
+    several new hyperparameters, as stated here, along with the usual parameters:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '`REPLAY_BUFFER_SIZE` – This sets the replay buffer''s maximum length size.'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '`BATCH_SIZE` – This indicates how many sets of experiences ![A picture containing
+    object, clock'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Description automatically generated](img/B16182_09_30a.png) are to be drawn
+    to train the DQN.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '`UPDATE_TARGET_FREQUENCY` – This is the periodic frequency at which target
+    network weights will be refreshed from the prediction network:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE84]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Use the previously implemented `calculate_epsilon` function to decay the epsilon
+    value with increasing values of steps:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE85]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a class, called `DQN`, that accepts the number of states as inputs and
+    outputs Q values for the number of actions present in the environment, with the
+    network that has a hidden layer of size `64`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE86]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Implement the `ExperienceReplay` class:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE87]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now instantiate the `ExperienceReplay` class by passing the buffer size as input:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE88]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Implement the `DQN_Agent` class.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Please note, here are several changes in the `DQN_Agent` class (which we used
+    in *Exercise 9.03*, *Implementing a Working DQN Network with PyTorch in a CartPole-v0
+    Environment*) that need to be incorporated with the previously implemented `DQN_Agent`
+    class.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Create a replica of the normal DQN network and name it `target_dqn`. Use `target_dqn_update_counter`
+    to periodically update the weights of the target DQN from the DQN network. Add
+    the following steps. `memory.sample(BATCH_SIZE)` will randomly pull the experiences
+    from the replay buffer for training. Pass `new_state` in the target network to
+    get the target Q values from the target network. Finally, update the weights of
+    the target network from the normal or predicted DQN after a certain iteration
+    is specified in `UPDATE_TARGET_FREQUENCY`.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Note that we have used the `gather`, `squeeze`, and `unsqueeze` functions,
+    which we studied in the dedicated *PyTorch Utilities* section:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE89]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Write the training process of the DQN network. The training process with experience
+    relay and target DQN simplifies the process with less code.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'First, instantiate the DQN agent using the class created earlier. Create a
+    `steps_total` empty list to collect the total number of steps for each episode.
+    Initialize `steps_counter` with zero and use it to calculate the decayed epsilon
+    value for each step. Use two loops during the training process: the first one
+    to play the game for a certain number of episodes; the second loop ensures that
+    each episode goes on for a fixed number of steps.'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Inside the second `for` loop, the first step is to calculate the epsilon value
+    for the current step. Using the present state and epsilon value, you select the
+    action to perform.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: The next step is to take the action. Once you take the action, the environment
+    returns the `new_state`, `reward`, and `done` flags. Push `new_state`, `reward`,
+    `done`, and `info` in the experience replay buffer. Using the `optimize` function,
+    perform one step of gradient descent to optimize the DQN.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Now make the new state the present state for the next iteration. Finally, check
+    whether the episode is over or not. If the episode is over, then you can collect
+    and record the reward for the current episode:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE90]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now observe the reward. As the reward is scalar feedback and gives you an indication
+    of how well the agent is performing, you should look at the average reward and
+    the average reward for the last 100 episodes. Also, perform the graphical representation
+    of rewards. Check how the agent is performing while playing more episodes and
+    what the reward average is for the last 100 episodes:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE91]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE92]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Now we can see that the average reward for the last 100 episodes is higher for
+    the DQN with experience replay, and the fixed target is higher than the vanilla
+    DQN implemented in the previous exercise. This is because we have achieved stability
+    during the DQN training process and because we have incorporated experience replay
+    and a target network.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Plot the rewards in the y axis along with the number of steps in the x axis
+    to see how the rewards have been collected with the increasing number of steps:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE93]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '![Figure 9.31: Rewards collected'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_31.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 9.31: Rewards collected'
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you can see in the preceding plot, using experience replay with the target
+    network, the rewards are initially a bit low compared to the previous version
+    (refer to *Figure 9.26*); however, after certain episodes, the rewards are relatively
+    stable and the average rewards are high in the last 100 episodes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: To access the source code for this specific section, please refer to [https://packt.live/2C1KikL](https://packt.live/2C1KikL).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also run this example online at [https://packt.live/3dVwiqB](https://packt.live/3dVwiqB).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this exercise, we have added experience replay and a target network in the
+    vanilla DQN network (which was explained in *Exercise 9.03*, *Implementing a Working
+    DQN Network with PyTorch in a CartPole-v0 Environment*) to overcome the drawbacks
+    of a vanilla DQN. This results in much better performance in terms of rewards,
+    as we have seen a more stable performance in terms of the average reward for the
+    last 100 episodes. A comparison of the outputs is shown here:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Vanilla DQN Outputs**:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE94]'
+  prefs: []
+  type: TYPE_PRE
+- en: '**DQN with Experience Replay and Target Network Outputs**:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE95]'
+  prefs: []
+  type: TYPE_PRE
+- en: Still, we have another issue with the DQN process, that is, overestimation in
+    the DQN. We will learn more about this and how to tackle it in the next section.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Challenge of Overestimation in a DQN
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'In the previous section, we introduced a target network as a solution to fix
+    the non-stationary target problem. Using this target network, we calculated the
+    target Q value and calculated the loss. This whole process of introducing a new
+    target network to calculate a fixed target value has somehow made the training
+    process a bit more stable. However, in 2015, *Hado van Hasselt*, in his paper
+    called *Deep Reinforcement Learning with Double Q-learning*, showed through multiple
+    experiments that this process overestimates the target Q values and makes the
+    whole training process unstable:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.32: Q value estimation in DQN and DDQN'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_32.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.32: Q value estimation in DQN and DDQN'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The preceding diagram has been sourced from the paper *Deep Reinforcement Learning
+    with Double Q-learning* by *Hasselt et al., 2015*. Please refer to the following
+    link for more in-depth reading on DDQN: [https://arxiv.org/pdf/1509.06461.pdf](https://arxiv.org/pdf/1509.06461.pdf).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: After performing experiments on multiple Atari games, the authors of the paper
+    showed that using a DQN network can lead to a high estimation of Q values (shown
+    in orange), which indicates a high deviation from the true DQN values. In the
+    paper, the authors proposed a new algorithm called **Double DQN**. We can see
+    that, by using Double DQN, Q value estimations are much closer to true values
+    and any overestimations are much lower. Now, let's discuss what Double DQN is
+    and how it is different from a DQN with a target network.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Double Deep Q Network (DDQN)
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'In comparison to a DQN with a target network, the minor differences of a DDQN
+    are given as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: A DDQN uses our prediction network to select the best action to take for the
+    next state, by selecting the action with the highest Q values.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: A DDQN uses the action from the prediction network to calculate the corresponding
+    estimate of the target Q value (using the target network) at the next state.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'As described in the *Deep Q Learning* section, the loss function for a DQN
+    is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.33: Loss function for a DQN'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_33.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.33: Loss function for a DQN'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The updated loss function for a DDQN will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.34: Updated loss function for a DDQN'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_34.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.34: Updated loss function for a DDQN'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following figure depicts the functioning of a typical DDQN:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.35: DDQN'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_35.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 9.35: DDQN'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following outlines the required changes in the optimize function for a
+    DDQN implementation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Select an action using the prediction network.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'We will pass the `new_state` through the prediction network to get the Q values
+    for the `new_state`, as shown in the following code:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE96]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'To select the action, we will select the max index value from the output Q
+    values, as shown here:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE97]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Select the Q value for the best action using the target network.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'We will pass the `new_state` through the target network to get the Q values
+    for the `new_state`, as shown in the following code:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE98]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'For the Q values associated with the best action in the `new_state`, we use
+    the target network, as shown in the following code:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE99]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The `gather` function is used to select the Q values using the indexes fetched
+    from the prediction network.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'The following is a complete implementation of the DDQN with the required changes:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE100]'
+  prefs: []
+  type: TYPE_PRE
+- en: Now that we have studied the various concepts of DQN and DDQN, let's now concretize
+    our understanding with an activity.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Activity 9.01: Implementing a Double Deep Q Network in PyTorch for the CartPole
+    Environment'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In this activity, you are tasked with implementing a DDQN in PyTorch for the
+    CartPole environment to tackle the issue of overestimation in a DQN. We can summarize
+    the steps of training a DQN with experience replay and the target network.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following steps will help you to complete the activity:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Open a new Jupyter notebook and import the required libraries:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE101]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Write code that will create a device based on the availability of a GPU environment.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Create a `gym` environment using the `CartPole-v0` environment.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Set the seed for torch and the environment for reproducibility.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Fetch the number of states and actions from the environment.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Set all of the hyperparameter values required for the DQN process.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Implement the `calculate_epsilon` function.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Create a class, called `DQN`, that accepts the number of states as inputs and
+    outputs Q values for the number of actions present in the environment, with the
+    network that has a hidden layer of size 64.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Initialize the replay buffer.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Create and initialize the prediction network in the `DQN_Agent` class, as shown
+    in *Exercise 9.03*, *Implementing a Working DQN Network with Experience Replay
+    and a Target Network in PyTorch*. Create a copy of the prediction network as the
+    target network.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Make changes to the `optimize` function of the `DQN_Agent` class according to
+    the code example shown in the *Double Deep Q Network (DDQN)* section.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Run through a fixed number of episodes. Inside the episode, use the egreedy
+    algorithm to choose an action.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Perform the action and collect the reward and new state. Store the whole experience
+    in the replay buffer.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select a random batch of experience from the replay buffer. Pass the batch of
+    states through the prediction network to get the predicted Q values.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Use our prediction network to select the best action to take for the next state
+    by selecting the action with the highest Q values. Use the action from the prediction
+    network to calculate the corresponding estimate of the target Q value at the next state.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Perform gradient descent to optimize the weights of the prediction network.
+    After a fixed iteration, clone the weights of the prediction network to the target network.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Check the average reward and the average reward for the last 100 episodes once
+    you have trained the DDQN agent.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Plot the rewards collected in the y axis and the number of episodes in the x
+    axis to visualize how the rewards have been collected with the increasing number
+    of episodes.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The output for the average rewards should be similar to the following:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE102]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The plot for the rewards should be similar to the following:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 9.36: Plot for the rewards collected'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_09_36.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 9.36: Plot for the rewards collected'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: The solution to this activity can be found on page 743.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Before we end the chapter, we present the following comparison of the average
+    rewards for different DQN techniques and DDQN:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Vanilla DQN Outputs:**'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE103]'
+  prefs: []
+  type: TYPE_PRE
+- en: '**DQN with Experience Replay and Target Network Outputs:**'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE104]'
+  prefs: []
+  type: TYPE_PRE
+- en: '**DDQN Outputs:**'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE105]'
+  prefs: []
+  type: TYPE_PRE
+- en: As you can see from the preceding figure, along with the comparison of the results
+    shown earlier, DDQN has the highest average reward, compared to other DQN implementations,
+    and the average reward for the last 100 episodes is also higher. We can say that
+    DDQN improves performance significantly in comparison to the other two DQN techniques.
+    After completing this whole activity, we have learned how to combine a DDQN network
+    with experience replay to overcome the issues of a vanilla DQN and achieve more
+    stable rewards.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we started with an introduction to deep learning, and we looked
+    at the different components of the deep learning process. Then, we learned how
+    to build deep learning models using PyTorch.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, we slowly shifted our focus to RL, where we learned about value functions
+    and Q learning. We demonstrated how Q learning can help us to build RL solutions
+    without knowing the transition dynamics of the environment. We also investigated
+    the problems associated with tabular Q learning and how to solve those performance
+    and memory-related issues with deep Q learning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Then, we looked into the issues related to a vanilla DQN implementation and
+    how we can use a target network and experience replay mechanism to overcome issues
+    such as correlated data and non-stationary targets during the training of a DQN.
+    Finally, we learned how double deep Q learning helps us to overcome the issue
+    of overestimation in a DQN. In the next chapter, you will learn how to use CNNs
+    and RNNs in combination with a DQN to play the very popular Atari game Breakout.
+  prefs: []
+  type: TYPE_NORMAL

@@ -1,0 +1,659 @@
+- en: '12'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: How to Deploy Your Model
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we’ll introduce you to a variety of techniques for deploying
+    your model, including real-time endpoints, serverless, batch options, and more.
+    These concepts apply to many compute environments, but we’ll focus on the capabilities
+    available on AWS within Amazon SageMaker. We’ll talk about why you should try
+    to shrink the size of your model before deploying, along with techniques for this
+    across vision and language. We’ll also cover distributed hosting techniques for
+    scenarios when you can’t or don’t need to shrink your model. Lastly, we’ll explore
+    model-serving techniques and concepts that can help you optimize the end-to-end
+    performance of your model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will cover the following topics in the chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: What is model deployment?
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: What is the best way to host my model?
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Model deployment options on AWS with SageMaker
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Techniques for reducing your model size
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Hosting distributed models on SageMaker
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Model servers and end-to-end hosting optimizations
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: What is model deployment?
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: After you’ve spent weeks to months working on your custom model, from optimizing
+    the datasets to the distributed training environment, evaluating it, and reducing
+    bias, you must be hungry to finally release it to your customers! In this entire
+    section of the book, we’ll focus on all the key topics related to model deployment.
+    But first, let’s try to explain the term itself.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Model deployment** refers to *integrating your model into an application*.
+    It means that beyond using your model for local analysis in a notebook, or for
+    running reports, you connect it to other software applications. Most commonly,
+    you’re integrating that model into an application. This application could be simply
+    an analytics dashboard. It might be a fraud detection system, a natural language
+    chat, a general search, an autonomous vehicle, or even a video game. In the next
+    chapter, we’ll provide even more ideas for use cases across organizations, especially
+    those that are supercharged by large pre-trained vision and language models.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: To me, one of the biggest differentiators in data science teams is whether or
+    not they deploy models. If they do, it usually means their model interacts with
+    customers in an automated fashion and driving business value. This is typically
+    a signal their team builds products as a primary output. Alternatively, you might
+    see data science teams building knowledge as their primary output. This is common
+    in some financial services, health care, and public sector organizations. They
+    might focus on answering analytical questions for business stakeholders, with
+    a smaller focus on delivering products and a higher focus on understanding their
+    vast and complex datasets. Most of this book is dedicated to data science teams
+    with a stronger focus on products, but many of the tools and concepts relate.
+    Much of this chapter will be overwhelmingly relevant to building products. Why?
+    Because the model becomes part of the product. Deployment is the step where this
+    happens.
+  prefs: []
+  type: TYPE_NORMAL
+- en: It is common for data science teams to offload model deployment to engineering.
+    This is usually so that the data scientists and applied scientists can focus on
+    the core research and development, while engineering can focus on optimizing the
+    application end to end. Some teams include both data science and platform engineering,
+    and some people are just insatiably curious about the entire flow! In [*Chapter
+    14*](B18942_14.xhtml#_idTextAnchor217), we’ll dive into the operations questions,
+    today known as MLOps, that will help you develop people, processes, and technology
+    to streamline deployments. This usually includes model monitoring, auditing, automatic
+    retraining, tuning, and more.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Most of the deployment patterns we’ll focus on in this book explicitly keep
+    the model in the cloud. This is to streamline your end-to-end operations. However,
+    some applications can’t afford the extra latency of a round-trip hop to the cloud,
+    no matter how low we drive this down. These include autonomous vehicles, video
+    game execution, mobile phone deployments, low-internet connectivity scenarios,
+    robotics, and more. These applications usually integrate the model artifact and
+    inference scripts into the SDK builds directly. This is only possible, however,
+    if the model is small enough to fit on the target deployment device. This is relevant
+    for Meta’s smaller LLaMA models *(1)*, Stable Diffusion, and other single-GPU
+    models. This means that the same model reduction techniques we’ll cover later
+    in this chapter are relevant for both cloud and on-device deployments.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In 2021, I led a team at AWS to deliver a 35-page whitepaper on **Hybrid Machine
+    Learning**. This is available online for free right here: [https://docs.aws.amazon.com/pdfs/whitepapers/latest/hybrid-machine-learning/hybrid-machine-learning.pdf](https://docs.aws.amazon.com/pdfs/whitepapers/latest/hybrid-machine-learning/hybrid-machine-learning.pdf)
+    *(2)*. It includes prescriptive guidance for and the advantages and disadvantages
+    of each architecture. Similar to this book, many of the concepts apply to a variety
+    of compute environments but offer deep technical information for working on AWS.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that you have a better idea of the concept of model deployment, let’s explore
+    your available options!
+  prefs: []
+  type: TYPE_NORMAL
+- en: What is the best way to host my model?
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'As you probably expected, the answer to this question completely depends on
+    the application you’re building. To begin, most customers start with one big question:
+    do you need responses from your model in a real-time or synchronous manner? This
+    would be the case for searches, recommendations, chat, and other applications.
+    Most real-time model deployments use a *hosted endpoint*, which is an instance
+    that stays on in the cloud to interact with requests. This is usually contrasted
+    with its opposite: *batch*. Batch jobs take your model and inference data, spin
+    up compute clusters to execute the inference script on all of the requested data,
+    and spin back down. The key difference between real-time deployments and batch
+    jobs is the amount of waiting time between new data and model inference requests.
+    With real-time deployments, you’re getting the fastest possible model responses
+    and paying more for the premium. With batch jobs, you won’t get a model response
+    until the job has been completed. You’ll wait several minutes for the response
+    but pay much less.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let’s explore the real-time endpoints in more detail first, then we’ll unpack
+    batch and even more options. For those of you who are already familiar with hosting
+    on SageMaker and would like to jump straight to questions about how to host foundation
+    models, please feel free to go ahead straight to the following sections.
+  prefs: []
+  type: TYPE_NORMAL
+- en: One of our earliest features on Amazon SageMaker was our real-time endpoints.
+    These are fully managed APIs that host your model and your scripts. As you can
+    see in the following figure, when specified, they run on multiple instances across
+    availability zones. They can be auto-scaled by SageMaker, spinning up and down
+    based on customer traffic. SageMaker manages a load balancer to send traffic to
+    them, all front-ended by the endpoint itself, which interacts with the request
+    traffic.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 12.1 – Example architecture pointing to a SageMaker endpoint](img/B18942_Figure_12_01.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 12.1 – Example architecture pointing to a SageMaker endpoint
+  prefs: []
+  type: TYPE_NORMAL
+- en: The endpoint then interacts with an interface, for example, a Lambda function
+    or simply an API gateway. The gateway then interacts with the client application
+    directly. For example, you might be hosting a web application on premises, such
+    as searching for airline flights. Based on the customer’s preferences and flight
+    history, you’d want to use a recommendation algorithm. Your data science team
+    might analyze that data in another account, training models and optimizing the
+    ROI of that model. Once they’ve found a reasonably performant artifact, they can
+    load it onto a SageMaker endpoint using their own scripts, packages, and objects.
+    You might then promote that artifact into your production account, running penetration
+    and security tests. After deployment, this new endpoint can interact with API
+    requests. The website hosting team can then simply point to your new API hosted
+    in the cloud, while your data science team updates and monitors the model independently.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We’ll cover many more of these architectural best practices in the upcoming
+    chapters, but for now, let’s look at some of the model deployment options already
+    available in your AWS accounts.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Model deployment options on AWS with SageMaker
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'The following terms are some of the model deployment options already available
+    in your AWS accounts:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Real-time endpoints**: As mentioned earlier, real-time endpoints are always-on
+    fully managed compute resources available through SageMaker. You bring your model
+    and inference scripts; we bring the entire RESTful API for you. This includes
+    the ability to spin up with increasing traffic and spin down with decreasing traffic.
+    This impacts your costs because you are paying per instance per minute. Real-time
+    endpoints come with many more features, such as the ability to run on GPUs, distributed
+    hosting, multi-model endpoints, asynchronous endpoints, and more. Currently, they
+    have a max payload size of 6 megabytes and a max request runtime of 60 seconds.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Batch transform and scheduled notebooks**: There are two big alternatives
+    to real-time endpoints:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Batch** **transform jobs**'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Scheduled** **notebook jobs**'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: With **batch transform** on SageMaker, you start in a similar place as the real-time
+    endpoint, with a trained model and an inference script, but you also point to
+    a dataset known at runtime. This means you will start a batch transform job pointing
+    to a known dataset. You will also identify the compute resources you need for
+    this job. SageMaker will spin up these resources, invoke your model against your
+    data on them, store the inference responses in S3, and spin the compute resources
+    down.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A similar service is a *notebook job*. Instead of taking a pre-trained model
+    artifact, this takes a whole notebook as the starting point. You might use notebook
+    jobs when you want to run a set of Python functions or data analysis steps, creating
+    multiple graphs and charts as the result of your analysis. You can write your
+    notebook in SageMaker Studio and simply create a scheduled notebook job without
+    writing any code!
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Asynchronous endpoints**: If you expect to host large models, or if you plan
+    to have a lot of computations in your inference script, then it is likely the
+    inference request will not be complete within 60 seconds. When this is the case,
+    you may want to consider asynchronous endpoints. These can give you up to 15 minutes
+    of runtime and come with managed queues to handle all your requests. You will
+    have a max payload size of 1 GB, giving you a significant uplift from the payload
+    limit of 6 MB on real-time endpoints. Asynchronous endpoints are great for document
+    processing, such as entity recognition and extraction.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Multi-model endpoints**: When using real-time endpoints, you have the extra
+    option of hosting *more than one model* on your endpoint. This itself comes in
+    three varieties. First, you can use one container hosted on the endpoint with
+    limitless models in S3\. This is great for solving use cases involving thousands
+    of models, such as training small linear models for every customer in your database.
+    You store as many models as you want in S3, so long as they use the same hosting
+    image, and you send the name of the model to the SageMaker multi-model endpoint.
+    We will load that model from S3 for you and move it into RAM, responding to the
+    request. This is then cached for future traffic and sent back to S3 when no longer
+    needed.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Another simpler option is *storing multiple containers on one endpoint*. In
+    this pattern, you will create multiple containers, such as one using XGBoost,
+    another using PyTorch, another using `pandas`, and so on. Your endpoint can host
+    all of these, so long as it is large enough, and you can determine which container
+    to use on request.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Finally, you can also use what is called a **serial inference pipeline**. This
+    also uses multiple containers, but each is invoked one after the other, similar
+    to a pipeline. You might use this for feature preprocessing, such as running an
+    LDA or a VAE, and then invoke it against your model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Serverless endpoints**: Another option for hosting your models on SageMaker
+    is a serverless endpoint. This is great for CPU-based models, such as KNNs or
+    logistic regressions, when you are expecting intermittent traffic. This might
+    include long periods without any inference requests, with a sudden burst of traffic.
+    Serverless options are very cost-effective, so if you are able to meet your latency
+    goals on serverless, then this tends to be a great choice. Given that Lambda functions
+    can now hold up to 10 GB of memory (*3*), you might be able to shrink an already
+    small foundation model down to those runtime requirements. The CPU-based runtime
+    will be challenging, but if a slower response time doesn’t block you, serverless
+    may be an option.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: There are so many other aspects of hosting on SageMaker. You can monitor your
+    models, enable auto-scaling, explain them, validate models safely, apply shadow
+    tests, catalog models in a registry, enable A/B testing, audit them, and more.
+    We’ll dive into these topics and more in [*Chapter 14*](B18942_14.xhtml#_idTextAnchor217).
+    For now, let’s learn about methods for reducing the size of our models for inference.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Why should I shrink my model, and how?
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'After learning all about how the power of large models can boost your accuracy,
+    you may be wondering, why would I ever consider shrinking my model? The reality
+    is that large models can be very slow to respond to inference requests and expensive
+    to deploy. This is especially true for language and vision applications, including
+    everything from visual searching to dialogue, image-to-music generation, open-domain
+    question-answering, and more. While this isn’t necessarily an issue for training,
+    because the only person waiting for your model to finish is you, it becomes a
+    massive bottleneck in hosting when you are trying to keep your customers happy.
+    As has been well studied, in digital experiences, every millisecond counts. Customers
+    very strictly prefer fast, simple, and efficient interfaces online. This is why
+    we have a variety of techniques in the industry to speed up your model inference
+    without introducing drops in accuracy. Here, we’ll cover three key techniques
+    for this: compilation, knowledge distillation, and quantization.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Model compilation
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: As we learned earlier, **compilation** is a technique you can use for GPU-based
+    deep learning models. Depending on the operator support in your compiler, you
+    may be able to compile a pre-trained model for your preferred target devices.
+    AWS has a managed feature for this, SageMaker Neo, which runs a compilation job
+    to transform your artifact for a specified environment. This works for deployments
+    both in the cloud and on-device. While Neo can decrease the size of your model
+    by up to 10 times, there’s no guarantee it will work for any arbitrary neural
+    network, so proceed with caution.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Knowledge distillation
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: '**Knowledge distillation** is a fascinating technique that uses a larger model,
+    called a teacher model, to impact the performance of a smaller model, called a
+    student model. Through gradient descent, specifically a KL divergence that computes
+    the difference between two distributions, we can teach the student model to mimic
+    the behavior of the teacher model. A very logical use for this is after large-scale
+    pretraining! Scaling up the size of the model to match the size of your data,
+    for example, with the scaling laws, helps you maximize all your potential for
+    accuracy and computational intelligence. After this, however, you can use knowledge
+    distillation to optimize that model for performance in production. Depending on
+    the gap in model sizes between your teacher and student, you could easily boost
+    inference runtime by 10 times or more, while losing only a few points on accuracy.
+    Here’s a visual rendition of knowledge distillation, as presented by Jianping
+    Gou (*3*) et al. in their 2021 survey on the domain.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 12.2 – Knowledge transfer through distillation](img/B18942_Figure_12_02.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 12.2 – Knowledge transfer through distillation
+  prefs: []
+  type: TYPE_NORMAL
+- en: While the teacher model and the student model receive the same datasets, we
+    *transfer knowledge* to the student by comparing the probabilities that both of
+    them generate. Then, we simply update the student to minimize the difference between
+    them!
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Knowledge distillation is also useful in other applications, including machine
+    translation and **reinforcement learning from human feedback** (**RLHF**). Pro
+    tip: RLHF is one key underlying technology behind ChatGPT! We learned more about
+    that in [*Chapter 10*](B18942_10.xhtml#_idTextAnchor152). Distillation is also
+    responsible for DistiliBert *(4)*, a model presented by the Hugging Face team
+    in 2019.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Quantization
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: '**Quantization** is another technique to reduce the runtime of your model.
+    In this case, rather than strictly reducing the memory footprint of your model,
+    which both compilation and distillation do, we refactor your network to use a
+    lower precision data type. Here, data type refers to bit representations, usually
+    ranging from a high of FP32 and dropping down to FP16 or even INT8\. Integers
+    are easier to represent computationally, so the literal storage required to hold
+    them is smaller. However, floats are obviously more expressive, given that they
+    can point to quite literally an infinite range of numbers between integers. Converting
+    data representation, as you do with quantization, is useful, because when you
+    convert your data types from floats in training into integers in hosting, the
+    overall memory consumption drops. Instructions for how to do this vary across
+    frameworks, with details about doing so in PyTorch right here (*5*) and NVIDIA’s
+    TensorRT here *(6)*. Quantization does have trade-offs. Make sure you test a quantized
+    model robustly before deploying it, so you know how it impacts both speed and
+    accuracy.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now that you’ve learned a few ways to reduce the footprint of your model, let’s
+    cover techniques you can use when this isn’t an option for you: distributed model
+    hosting!'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Hosting distributed models on SageMaker
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In [*Chapter 5*](B18942_05.xhtml#_idTextAnchor085), we covered distribution
+    fundamentals, where you learned how to think about splitting up your model and
+    datasets across multiple GPUs. The good news is that you can use this same logic
+    to host the model. In this case, you’ll be more interested in model parallel,
+    placing layers and tensors on multiple GPU partitions. You won’t actually need
+    a data parallel framework, because we’re not using backpropagation. We’re only
+    running a forward pass through the network and getting inference results. There’s
+    no gradient descent or weight updating involved.
+  prefs: []
+  type: TYPE_NORMAL
+- en: When would you use distributed model hosting? To integrate extremely large models
+    into your applications! Generally, this is scoped to large language models. It’s
+    rare to see vision models stretch beyond single GPUs. Remember, in [*Chapter 4*](B18942_04.xhtml#_idTextAnchor066),
+    *Containers and Accelerators on the Cloud*, we learned about different sizes of
+    GPU memory. This is just as relevant for hosting as it is for training. One simple
+    way of estimating the GB size of your model is to just read the footprint when
+    it’s stored on disk. While the size will vary slightly as the object moves from
+    disk to memory, the overall disk footprint is still a good estimate.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For extremely large models in the GPT-3 range of 175B parameters, it’s not uncommon
+    for the model to require at least 350 GB of storage! In this case study *(7)*
+    for hosting large models on SageMaker, we show hosting a model of this size on
+    one p4d instance, using only 8 A100s. That’s one `ml.p4d.24xlarge` instance, which
+    on public SageMaker pricing, is about $37 per hour! Granted, while this is a fraction
+    of the cost of training, which can easily be 10 times or more for extremely large
+    foundation models, it’s still painful to see this on your bill.
+  prefs: []
+  type: TYPE_NORMAL
+- en: On top of the massive cost of this cluster, you’re also introducing the extra
+    latency cost to your customer. Imagine running any process across 8 GPUs. Even
+    with pipeline and tensor parallelism, that is still not going to be particularly
+    fast.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, let’s learn about a few key underlying technologies that bring all of this
+    together. Then, we’ll look at a few examples of hosting models at the 6B and 175B
+    scales.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Large model hosting containers on SageMaker
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Just as we learned about in training foundation models, it all comes down to
+    the base container and the relevant packages you’re using to accomplish your goal.
+    For hosting large models on SageMaker, we provide dedicated deep learning containers
+    for this explicit purpose. These are open sourced on GitHub *(8)*, so you can
+    easily view and build on top of them.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The large model inference containers package and provide two key technologies
+    for you: DJLServing and DeepSpeed. The **Deep Java Library** (**DJL**) *(9)* was
+    originally built for Java developers to build ML models and applications. They
+    built a universal model-serving solution that is programming language-agnostic,
+    providing a single common denominator to serve models across frameworks such as
+    TensorFlow, ONNX, TensorRT, and Python. They also natively support multi-GPU hosting,
+    through MPI and socket connections. This makes it an attractive proposition for
+    distributed hosting!'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The second key technology provided in the AWS large model hosting container
+    is DeepSpeed. Notably, DeepSpeed is helpful because it shards your tensors across
+    multiple GPUs, and it finds the best partitioning strategies for this automatically.
+    As my colleagues discuss in this blog post *(10)*, DeepSpeed evaluates both inference
+    latency and cost in determining the optimal sharding regime.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For hands-on examples of this in detail, feel free to look at our 6B GPT-J
+    notebook: [https://github.com/aws/amazon-sagemaker-examples/blob/main/inference/generativeai/deepspeed/GPT-J-6B_DJLServing_with_PySDK.ipynb](https://github.com/aws/amazon-sagemaker-examples/blob/main/inference/generativeai/deepspeed/GPT-J-6B_DJLServing_with_PySDK.ipynb).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The smaller example is a good starting point because it gives you very simple,
+    practical, and less expensive content for hosting models across multiple GPUs.
+    Once you’ve tested this, then you can upgrade to a much larger example of hosting
+    175B parameters with this BLOOM notebook: [https://github.com/aws/amazon-sagemaker-examples/blob/main/inference/nlp/realtime/llm/bloom_176b/djl_deepspeed_deploy.ipynb](https://github.com/aws/amazon-sagemaker-examples/blob/main/inference/nlp/realtime/llm/bloom_176b/djl_deepspeed_deploy.ipynb).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we’ve walked through a few options for distributed hosting, let’s close
+    out the chapter with a quick discussion on model servers and optimizing the end-to-end
+    hosting experience.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Model servers and end-to-end hosting optimizations
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'You might be wondering: if SageMaker is hosting my model artifact and my inference
+    script, how do I convert that into a real-time service that can respond to live
+    traffic? The answer is model servers! For those of you who aren’t particularly
+    interested in learning how to convert your model inference response into a RESTful
+    interface, you’ll be happy to know this is largely abstracted on SageMaker for
+    easy and fast prototyping. However, if you’d like to optimize your inference stack
+    to deliver state-of-the-art model responses, read on.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'There are five key types of latency to trim down as you are improving your
+    model hosting response. Here’s how we can summarize them:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Container latency**: This refers to the time overhead involved in entering
+    and exiting one of your containers. As we learned earlier, on SageMaker, you might
+    host a variety of containers in a *serial inference pipeline*. This is pictured
+    here. Container latency is the time to invoke and exit one of your containers.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Model latency**: This includes the invocation and exit time of all containers
+    on the endpoint. As you can see below in *Figure 12**.13*, the latency for an
+    individual container may be much smaller than the entire latency for the model.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Overhead latency**: This refers to the time for SageMaker to route your request,
+    receive the request from the client, and return it, minus the model''s latency.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**End-to-end latency**. This is primarily calculated from the perspective of
+    the client. It is impacted by the client’s requesting bandwidth, the connection
+    to the cloud, any processing in front of SageMaker, the overhead latency, and
+    the model''s latency.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Let’s look at all these pieces together:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 12.3 – End-to-end model latency on SageMaker](img/B18942_Figure_12_03.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 12.3 – End-to-end model latency on SageMaker
+  prefs: []
+  type: TYPE_NORMAL
+- en: As a consumer of this service, you have a few optimization techniques you can
+    deploy. First, and this is true for any application on AWS, *push the application
+    to where your customers are!* A major reason to use AWS is that we have the single
+    largest global infrastructure of any CSP. We have more regions, at higher availability
+    designs, than any other cloud on the planet. Make this your asset when you push
+    your application to a geographic region or point of presence that is closest to
+    your customers. This will immediately reduce the amount of time it takes for their
+    request to hit the cloud because it will have fewer miles to travel on the network.
+  prefs: []
+  type: TYPE_NORMAL
+- en: My colleagues at AWS delivered a spectacular blog post on *optimizing the container*
+    for your SageMaker hosting workloads. In particular, they explored NVIDIA’s Triton,
+    an open source project that delivers ultra-low latency model inference results,
+    as in, single-digit milliseconds.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For more details about Triton, in addition to end-to-end optimizations for
+    SageMaker hosting, See their blog post on the topic here: [https://aws.amazon.com/blogs/machine-learning/achieve-hyperscale-performance-for-model-serving-using-nvidia-triton-inference-server-on-amazon-sagemaker/](https://aws.amazon.com/blogs/machine-learning/achieve-hyperscale-performance-for-model-serving-using-nvidia-triton-inference-server-on-amazon-sagemaker/)
+    *(11)*.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Lastly, I’d like to also call out SageMaker’s **inference recommender** *(12)*,
+    which you can use to help you pick the right instance type, count, and configurations
+    based on your expected traffic. In fact, my team used the inference recommender
+    to run their tests on Triton!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that you have a much better understanding of what model servers are and
+    how you can use them to optimize your end-to-end hosting performance, let’s close
+    out the chapter with an overall recap.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: We defined model deployment as integrating your model into a client application.
+    We talked about the characteristics of data science teams that may commonly deploy
+    their own models, versus those who may specialize in more general analysis. We
+    introduced a variety of use cases where model deployment is a critical part of
+    the entire application. While noting a variety of hybrid architectures, we focused
+    explicitly on deployments in the cloud. We learned about some of the best ways
+    to host your models, including options on SageMaker such as real-time endpoints,
+    batch transform and notebook jobs, asynchronous endpoints, multi-model endpoints,
+    serverless endpoints, and more. We learned about options for reducing the size
+    of your model, from compilation to distillation and quantization. We covered distributed
+    model hosting and closed out with a review of model servers and end-to-end hosting
+    optimization tips on SageMaker.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Next up, we’ll dive into a set of techniques you can use to interact with foundation
+    models to eke out the best performance: prompt engineering!'
+  prefs: []
+  type: TYPE_NORMAL
+- en: References
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '*LLaMA: Open and Efficient Foundation Language* *Models*: [https://arxiv.org/pdf/2302.13971.pdf](https://arxiv.org/pdf/2302.13971.pdf
+    )'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Lambda* *quotas*: https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Knowledge Distillation: A* *Survey*: [https://arxiv.org/pdf/2006.05525.pdf](https://arxiv.org/pdf/2006.05525.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*DistilBERT, a distilled version of BERT: smaller, faster, cheaper and* *lighter*:
+    https://arxiv.org/pdf/1910.01108.pdf'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*QUANTIZATION*: [https://pytorch.org/docs/stable/quantization.html](https://pytorch.org/docs/stable/quantization.html)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Achieve hyperscale performance for model serving using NVIDIA Triton Inference
+    Server on Amazon* *SageMaker*: [https://aws.amazon.com/blogs/machine-learning/achieve-hyperscale-performance-for-model-serving-using-nvidia-triton-inference-server-on-amazon-sagemaker/](https://aws.amazon.com/blogs/machine-learning/achieve-hyperscale-performance-for-model-serving-using-nvidia-triton-inference-server-on-amazon-sagemaker/)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Deploy BLOOM-176B and OPT-30B on Amazon SageMaker with large model inference
+    Deep Learning Containers and* *DeepSpeed*: [https://aws.amazon.com/blogs/machine-learning/deploy-bloom-176b-and-opt-30b-on-amazon-sagemaker-with-large-model-inference-deep-learning-containers-and-deepspeed/](https://aws.amazon.com/blogs/machine-learning/deploy-bloom-176b-and-opt-30b-on-amazon-sagemaker-with-large-model-inference-deep-learning-containers-and-deepspeed/)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Large Model Inference* *Containers*: [https://github.com/aws/deep-learning-containers/blob/master/available_images.md#large-model-inference-containers](https://github.com/aws/deep-learning-containers/blob/master/available_images.md#large-model-inference-containers)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Deep Java* *Library*: [https://djl.ai/](https://djl.ai/)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Deploy large models on Amazon SageMaker using DJLServing and DeepSpeed model
+    parallel* *inference*: [https://aws.amazon.com/blogs/machine-learning/deploy-large-models-on-amazon-sagemaker-using-djlserving-and-deepspeed-model-parallel-inference/](https://aws.amazon.com/blogs/machine-learning/deploy-large-models-on-amazon-sagemaker-using-djlserving-and-deepspeed-model-parallel-inference/)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Achieve hyperscale performance for model serving using NVIDIA Triton Inference
+    Server on Amazon* *SageMaker*: https://aws.amazon.com/blogs/machine-learning/achieve-hyperscale-performance-for-model-serving-using-nvidia-triton-inference-server-on-amazon-sagemaker/'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Amazon SageMaker Inference* *Recommender*: [https://docs.aws.amazon.com/sagemaker/latest/dg/inference-recommender.html](https://docs.aws.amazon.com/sagemaker/latest/dg/inference-recommender.html)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Part 5: Deploy Your Model'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In part 5, you’ll learn how to deploy your model. You’ll use techniques such
+    as distillation, quantization, and compilation to reduce your model’s overall
+    footprint. You’ll identify top use cases to scale your model across organizations,
+    and learn about ongoing operations, monitoring, and maintenance.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This section has the following chapters:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[*Chapter 13*](B18942_13.xhtml#_idTextAnchor198)*, Prompt Engineering*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[*Chapter 14*](B18942_14.xhtml#_idTextAnchor217), *MLOps for Vision and Language*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[*Chapter 15*](B18942_15.xhtml#_idTextAnchor229), *Future Trends in Pretraining
+    Foundation Models*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL

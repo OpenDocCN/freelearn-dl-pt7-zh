@@ -1,0 +1,828 @@
+- en: '*Chapter 12*: AI and NLP in Healthcare'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the previous chapter, we covered how AWS AI services can be used to set up
+    a chatbot with your document workflows using **Amazon Lex** and **Amazon Kendra**.
+    In this chapter, we will talk about how **Amazon Textract** and **Amazon Comprehend
+    Medical** can help digitize medical claims in healthcare. We will talk about the
+    healthcare industry's claims processing system and why it's important to automate
+    medical claims. Then, we will walk you through how you can use Amazon Textract
+    to digitize these claims in paper form and use postprocessing to validate them.
+    Then, we will show you how you can extract NLP insights from these claims, such
+    as whether the person was diabetic or not, using Amazon Comprehend Medical APIs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For invalid claims, we will show you how to easily set up notifications to notify
+    the person submitting the claims to resubmit it with the right data, such as ZIP
+    code or claim ID. Lastly, we will show you some architecture patterns that help
+    automate everything using AWS Lambda functions. By doing so, you will spin up
+    an end-to-end serverless solution that will reduce time to market for the claims
+    processing workflow. This happens because you do not have to set up and manage
+    servers or scale to process millions of such claims.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will cover the following topics in this chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Introducing the automated claims processing use case
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Understanding how to extract and validate data from medical intake forms
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Understanding clinical data with Amazon Comprehend Medical
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Understanding invalid medical form processing with notifications
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Understanding how to create a serverless pipeline for medical claims
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'For this chapter, you will need access to an AWS account:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Please make sure that you follow the instructions specified in the *Technical
+    requirements* section of [*Chapter 2*](B17528_02_Final_SB_ePub.xhtml#_idTextAnchor027),
+    *Introducing Amazon Textract*, to create your AWS account.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Log into the AWS Management Console before trying the steps in the *Improving
+    the accuracy of document processing workflows* section.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The Python code and sample datasets for our solution can be found at [https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/tree/main/Chapter%2012](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/tree/main/Chapter%2012).
+    Please use the instructions in the following sections, along with the code in
+    the preceding repository, to build the solution.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Check out the following video to see the Code in Action at [https://bit.ly/3GrClSK](https://bit.ly/3GrClSK).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Introducing the automated claims processing use case
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the healthcare industry, there were approximately 6.1 billion medical claims
+    submitted in 2018 according to the *2018 CAHQ index report* ([https://www.caqh.org/sites/default/files/explorations/index/report/2018-index-report.pdf](https://www.caqh.org/sites/default/files/explorations/index/report/2018-index-report.pdf)),
+    and this number is expected to continue rising in the upcoming years.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Healthcare payer companies are constantly looking for efficient and cost-effective
+    ways to process such volumes of claims in a scalable manner. With the current
+    manual process of claim processing, it takes too much time to process these claims.
+    So, healthcare companies are looking at AI and ML approaches to automating and
+    digitizing these claims. Once they can digitize these, it becomes really easy
+    to drive insights such as improving the population's overall health. Moreover,
+    analyzing these claim documents might help you identify behaviors that can help
+    prevent a medical condition from being developed. Also, healthcare payers are
+    looking for a solution that is also compliant, such as *HIPAA-compliant*. For
+    those of you outside the US, HIPAA is a healthcare-specific compliance law for
+    the healthcare industry in the US.
+  prefs: []
+  type: TYPE_NORMAL
+- en: So, we now understand why automating claims is so important. Now, we will talk
+    about how we can help you automate this pipeline using AWS AI services such as
+    Amazon Textract to digitize the claim process. You can do this by extracting text
+    from these scanned claim documents and verifying them using NLP, along with Amazon
+    Comprehend Medical, to get some patient health insights from these claims.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this use case, our fictitious company, *LiveRight Holdings Private Limited*,
+    is working with a healthcare insurance provider known as *AwakenLife* to process
+    the claims that have been submitted by their insurance holders. These claims are
+    mostly scanned images and most of their time and effort is spent on processing
+    these claims since some of them are invalid. This leads to a loss to the organization.
+    Since LiveRight has already been using Amazon Textract to automate, digitize,
+    and further innovate their document processing workflows in the preceding chapters,
+    they have recommended using *AwakenLife* so that they can use some of these AWS
+    AI services to improve and automate their overall claims process. In this chapter,
+    we will set up a simple AI-based workflow to validate the claims for AwakenLife,
+    which can further reduce their overall processing time.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This solution is highly cost-effective and scalable as these services are serverless
+    and scale to process documents based on your need. In this chapter, we will walk
+    you through the following architecture:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 12.1 – Medical claim processing architecture for the notebook'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_12_01.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 12.1 – Medical claim processing architecture for the notebook
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the preceding diagram, we can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: You have your medical intake forms, which can be in image or PDF format, that
+    are sent to Amazon Textract for digitization or text extraction.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Amazon Textract extracts text from these highly unstructured medical intake
+    documents.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: You must *postprocess* Amazon Textract's response to validate the claims. For
+    this blog, we are using a ZIP code and claim ID to make sure the claims are valid.
+    You can customize these validation rules based on your business case.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Once the ZIP code and claim ID have been validated, valid data is sent to Amazon
+    Comprehend Medical to gain insights and entities such as patient procedure.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: If the ZIP code and claim ID are not valid, an email is sent to the stakeholder,
+    notifying them that it's an invalid claim.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We will walk through the previous architecture using a Jupyter notebook. Once
+    we've done this, we will cover an architecture on how to make this implementation
+    automated using event-based lambda functions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next section, we will talk about how you can use Amazon Textract to extract
+    data from medical intake forms.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding how to extract and validate data from medical intake forms
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this section, we will show you how to use Amazon Textract to extract key-value
+    pairs or form data from a medical intake form. Then, using simple logic, you will
+    verify whether the extracted values are valid or invalid.
+  prefs: []
+  type: TYPE_NORMAL
+- en: If you have not done so in the previous chapters, you will have to create an
+    Amazon SageMaker Jupyter notebook and set up `Chapter 12` folder, and open the
+    `ch 12 automating claims processing.ipynb` notebook.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Note:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Make sure that the IAM role in the notebook has **AmazonSNSFullAccess**, **AmazonComprehendMedicalFullAccess**,
+    and **AmazonTextractFullAccess**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, using this notebook, we will learn how to extract data using Textract
+    APIs and validate them using some postprocessing logic via a sample medical intake
+    form:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will use the following sample medical intake form to get started. Run the
+    following code block to load the sample medical form, which is a valid medical
+    form for claims:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You will see that the following medical intake form has been loaded:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 12.2 – Sample valid medical intake form'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B17528_12_02.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'With that, we''ve defined a Textract function. Now, we will call this function
+    by passing the scanned medical intake form. We will get a Textract response back.
+    Run the following cell:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'If the response from Textract is a success, you will get the following message,
+    along with a JSON response with extracted data:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 12.3 – Textract JSON response for the medical form'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B17528_12_03.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 12.3 – Textract JSON response for the medical form
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: The preceding response contains a lot of information, such as geometry, pages,
+    and text in document metadata.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Now, we will create a function to parse form data or key-value text responses
+    from this JSON response. We are using a Textract parser to parse this JSON response.
+    Here, we have created a method that accepts a JSON response and uses a Textract
+    parser to parse the form key values and return a key-value pair:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now, we will pass the Textract JSON response to the `def getformkeyvalue(response)`
+    method to get the key-value pairs or form data from the Textract JSON response:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You will get the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 12.4 – Parsed Textract form data from the JSON response'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B17528_12_04.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 12.4 – Parsed Textract form data from the JSON response
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: All the form entries are extracted as key-value pairs.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Now, we will check whether these key-value or form entries are valid using
+    some defined business rules. For this book, we are checking for form validity
+    based on a valid ZIP Code and Claim ID. You can also modify the validation code
+    based on your business needs. We have created a method that accepts key-value
+    pairs and checks whether the ZIP Code or ID Number information that has been extracted
+    from Textract is valid. If it is valid, it will return the required ID, while
+    if it is not valid, it will return a message stating that Claim ID and ZIP Code
+    are not valid:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now, we will test this validation method for a valid medical form by sending
+    the key-value pair we extracted from the `getformdata(response)` method:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Since it''s a valid claim, both ZIP code and Claim ID are valid, and this method
+    returns a true response (a valid response):'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 12.5 – Valid claim response'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_12_05.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 12.5 – Valid claim response
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you can see, we get an `Ok` response, along with the valid claim ID.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, going back to the architecture, two things can happen:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: If the form is valid or the response from this method is `Ok`, we will send
+    this data to Comprehend Medical to gain insights, as we will cover in the next
+    section.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: If the form is invalid, we will notify the customer, using Amazon **Simple Notification
+    Service** (**SNS**), that this service is used to send email or phone notifications.
+    We will cover this in the last section, *Understanding how to create a serverless
+    pipeline for medical claims*.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In this section, we covered how you can use the Amazon Textract Analyze Document
+    API to extract the form values from a medical intake form. We also covered how
+    you can validate a Textract response.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Since the response is valid for the medical intake form, in the next section,
+    we will show you how you can use Amazon Comprehend Medical to extract medical
+    insights.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding clinical data with Amazon Comprehend Medical
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In this section, we will talk about how you can use **Amazon Comprehend Medical**
+    to gain insights from a valid medical intake form. We covered Amazon Comprehend''s
+    features in [*Chapter 3*](B17528_03_Final_SB_ePub.xhtml#_idTextAnchor049), *Introducing
+    Amazon Comprehend*. In this chapter, we will learn how to use the Amazon Comprehend
+    Medical Entity API to extract entities such as *patient diagnosis* and PHI data
+    types such as *claim ID* from the medical intake form. Let''s get started:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Go back to your notebook and run the following cell to use the Comprehend Medical
+    `boto3` API:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now, we will use the `comprehend.detect_entities_v2` API ([https://docs.aws.amazon.com/comprehend/latest/dg/API_medical_DetectEntitiesV2.html](https://docs.aws.amazon.com/comprehend/latest/dg/API_medical_DetectEntitiesV2.html))
+    to analyze the clinical text data from medical intake forms and return entities
+    specific to the medical text, such as type or diagnosis. Run the following cell
+    to see what entities we are going to get from the valid medical intake form:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You will get the following medical insights by using this API:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 12.6 – Medical entities'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B17528_12_06.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 12.6 – Medical entities
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: It was able to determine the phone number and medical ID as PHI. If you have
+    regulatory requirements, you can mask or redact these entity types easily as they
+    have been correctly identified by this API.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Now that we have extracted the entities, we will save this extracted data in
+    Amazon S3 in a CSV file. For large-scale medical intake form processing, you would
+    want to save all these insights in a CSV file, in an S3 bucket, and analyze them
+    by using an analytics service such as *Amazon Athena*, which we covered in [*Chapter
+    8*](B17528_08_Final_SB_ePub.xhtml#_idTextAnchor106), *Leveraging NLP to Monetize
+    Your Media Content*. We have created a function that takes Comprehend Medical''s
+    response and validated ID from the medical intake form and saves it in Amazon
+    S3\. Run the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now, we will call the `printtocsv(cm_json_data,formid)` method by passing the
+    JSON response from the Comprehend Medical Entity API and `formid` from the validation
+    logic:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You will get the following response:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: In this section, we covered how you can extract medical insights or entities
+    using the Amazon Comprehend Medical API for valid claims from Amazon Textract.
+    In the next section, we will take an invalid claim form and extract data using
+    Amazon Textract and postprocess this data to check for validation. If it's not
+    valid, we will show you how you can set up SNs to notify the stakeholder via email.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding invalid medical form processing with notifications
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In this section, we will walk through the architecture specified in *Figure
+    12.1* when the claim is identified as invalid by Textract postprocessing. We will
+    send the message to the stakeholder via Amazon SNS. Let''s go back to the notebook:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the notebook, we will start by loading the scanned medical intake form by
+    running the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You will get the following sample medical form, which we will check for invalid
+    use cases:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 12.7 – Medical intake invalid claim form'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B17528_12_07.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 12.7 – Medical intake invalid claim form
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: In this form, **ZIP CODE** and **ID NUMBER** have been entered incorrectly.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Now, we will call the `calltextract(document)` function that we created in
+    the previous section and pass this document to extract the text or data using
+    the Amazon Textract Sync API. To do so, run the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'After this, we will call the `getformdata(response)` method that we defined
+    in the previous sections, which takes Textract''s response as input and returns
+    the form''s key-value data:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You will get the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 12.8 – Extracted form data using Textract'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B17528_12_08.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 12.8 – Extracted form data using Textract
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Here, we get all the key-value pairs or form data.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Now, we will check whether the extracted key-value pairs, such as `ZIP CODE`
+    and `ID NUMBER`, are valid by sending this as input to the `validate(body)` method
+    that we defined in the previous section. This method returns true if the content
+    is valid but will return false if invalid claim data is submitted concerning `ZIP
+    CODE` and `ID NUMBER`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You will get the following response:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 12.9 – Invalid claim response'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B17528_12_09.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 12.9 – Invalid claim response
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: The valid method returns an invalid claim and `false`, along with the invalid
+    claim ID.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Now, we want to notify the users that this claim is invalid. To do this, we
+    will walk you through how you can set up **Amazon SNS** through the Amazon SNS
+    console. Go to this link to create a topic where you will publish this invalid
+    message: [https://console.aws.amazon.com/sns/v3/home?region=us-east-1#/create-topic](https://console.aws.amazon.com/sns/v3/home?region=us-east-1#/create-topic).'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: For `invalid-claims-notify`, as shown in the following screenshot:![Figure 12.10
+    – Creating a topic in the SNS AWS console
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_12_10.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 12.10 – Creating a topic in the SNS AWS console
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Make sure you choose the **Standard** topic type.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Scroll down and click on the **Create topic** button.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: After creating a topic, we must add subscribers or people who are going to subscribe
+    to this topic for notifications by going to [https://console.aws.amazon.com/sns/v3/home?region=us-east-1#/create-subscription](https://console.aws.amazon.com/sns/v3/home?region=us-east-1#/create-subscription).
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select your **topic ARN** from the drop-down menu, set **Email** for **Protocol**,
+    and enter your email ID in the **Endpoint** box, as shown in the following screenshot:![Figure
+    12.11 – Subscribing to the topic via email
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_12_11.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 12.11 – Subscribing to the topic via email
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Scroll down and click on **Create Subscription**.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: An email will be sent to the address you just used to subscribe. Check your
+    email or spam for an email from SNS with a form email ID of **AWS Notification
+    - Subscription Confirmation** and click on **Confirm Subscription**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Note:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: It's important to confirm the subscription; otherwise, you will not be notified.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Now, go back to [https://console.aws.amazon.com/sns/v3/home?region=us-east-1#/topics](https://console.aws.amazon.com/sns/v3/home?region=us-east-1#/topics)
+    to copy the `invalid-claims-notify`:![Figure 12.12 – Copying the topic's ARN from
+    the AWS console
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_12_12.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 12.12 – Copying the topic's ARN from the AWS console
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'After copying this ARN, go back to the notebook and paste it into the following
+    notebook cell to load the SNS `boto3` client. Here, enter a topic:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now, we will convert the invalid message into a payload that we can publish
+    to this topic:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Next, we will use the `sns.publish` Python `boto3` API ([https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sns.html#SNS.Client.publish](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sns.html#SNS.Client.publish))
+    to send an invalid email message in the body to the registered email:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You will get the following response:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 12.13 – Pushing the invalid claim message to the topic'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B17528_12_13.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 12.13 – Pushing the invalid claim message to the topic
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Check the email address you subscribed with for an email notifying you of invalid
+    medical claims:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 12.14 – Email notification sent'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_12_14.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 12.14 – Email notification sent
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can always opt out of the topic you have created.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this section, we covered how to process a medical claim using Amazon Textract,
+    check for invalid medical claims, and notify the stakeholders about this. Next,
+    we'll learn how to create a serverless pipeline for medical claims.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding how to create a serverless pipeline for medical claims
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In the previous sections, we covered the building blocks of the architecture
+    by using the Amazon Textract Sync API, the Amazon Comprehend Medical Detect Entities
+    Sync API, and Amazon SNS to send invalid claims. We defined functions for this
+    workflow and called the text extraction and validation functions to showcase the
+    use case or workflow with both a valid and invalid medical claim form. These functions
+    can be moved into lambda code and, along with **S3 event notifications**, can
+    be invoked to create a scalable pipeline for medical claims processing. We can
+    do this by using the following architecture:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 12.15 – Automating an architecture for scale with AWS Lambda'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_12_15.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 12.15 – Automating an architecture for scale with AWS Lambda
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We walked through a Jupyter notebook showing individual code components for
+    processing medical claims using a single intake form. We created Python functions
+    to extract data, validate data, gather insights, and convert those insights into
+    CSV files. To process millions of such documents, we will learn how to make the
+    code functions AWS Lambda functions to create an end-to-end automated serverless
+    architecture using the preceding diagram. The medical claims form we''ll be using
+    has been dropped into an Amazon S3 bucket by payers of *AwakenLife Ltd*:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Amazon S3 claims that the upload creates an Amazon S3 event notification, which
+    triggers the lambda function.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In this lambda, you can call the `textract` function we defined in the *Understanding
+    how to extract and validate data from medical intake forms* section and call Amazon
+    Textract by passing this image as input.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: You get a text response back. This extracted text can be sent to the `validation`
+    function we defined in the previous section.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For valid claims, valid claim data is sent to Amazon Comprehend Medical to extract
+    insights. Extracted insights are sent back to AWS Lambda.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: You can move the code for the `printtocsv` (`cm_json_data`, `formid`) function,
+    which we defined in the *Understanding clinical data with Amazon Comprehend Medical*
+    section, to this lambda function to convert this extracted insight into a CSV
+    file and save it to Amazon S3.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For invalid claims, you can use SNS to notify the stakeholders.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We can use scale and process medical claims documents at a large scale with
+    just a few lines of code. This architecture can be quickly automated and deployed
+    in the form of a *CloudFormation template*, which lets you set up **Infrastructure
+    as Code** (**IaC**). We have provided a similar scalable implementation in the
+    form of a blog in the *Further reading* section if you're interested.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this section, we covered how to use the code we defined in the previous sections
+    and move that to an AWS Lambda section to architect an end-to-end automated workflow
+    using a walkthrough architecture. Now, let's summarize this chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we introduced the medical claim processing use case. We then
+    covered how you can use AWS AI services such as Amazon Textract to extract form
+    data from these scanned medical forms. Then, we spoke about how you can perform
+    some postprocessing on the extracted text based on your business rules to validate
+    their form data. Once the form data had been validated, we showed you how to use
+    Amazon Comprehend Medical, as covered in [*Chapter 3*](B17528_03_Final_SB_ePub.xhtml#_idTextAnchor049),
+    *Introducing Amazon Comprehend*, to extract medical insights. Once you have medical
+    insights, this data can be converted into a CSV file and saved in Amazon S3\.
+    Once you've done this, you can analyze this data for population health analytics
+    by using **Amazon Athena** or **Amazon QuickSight**. We also discussed how to
+    handle invalid claims processing by showing how to quickly configure Amazon SNS
+    through the AWS console and add subscribers. You can notify your subscribers by
+    email regarding the medical claims that have been submitted as invalid.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Lastly, we showed you how to architect a serverless scalable solution using
+    AWS Lambda to call these Textract Sync and Amazon Comprehend Medical Sync APIs.
+    This ensures that you have an end-to-end working automated architecture with the
+    claim documents you uploaded in Amazon S3.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will cover how to improve the accuracy of your existing
+    document processing workflows using *Amazon Augmented AI* with the human-in-the-loop
+    process. We will also deep dive into aspects of why you need a human-in-the-loop
+    process and how it helps improve the accuracy of your existing AI predictions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Further reading
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'To learn more about the topics that were covered in this chapter, take a look
+    at the following resource:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Automating claims adjudication workflows using Amazon Textract and Amazon
+    Comprehend Medical*, by Sonali Sahu and Ujjwal Ratan ([https://aws.amazon.com/blogs/industries/automating-claims-adjudication-workflows-using-amazon-textract-and-amazon-comprehend-medical/](https://aws.amazon.com/blogs/industries/automating-claims-adjudication-workflows-using-amazon-textract-and-amazon-comprehend-medical/))'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL

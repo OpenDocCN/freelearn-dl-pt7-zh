@@ -1,0 +1,2385 @@
+- en: 2\. Markov Decision Processes and Bellman Equations
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Overview
+  prefs: []
+  type: TYPE_NORMAL
+- en: This chapter will cover more of the theory behind reinforcement learning. We
+    will cover Markov chains, Markov reward processes, and Markov decision processes.
+    We will learn about the concepts of state values and action values along with
+    Bellman equations to calculate previous quantities. By the end of this chapter,
+    you will be able to solve Markov decision processes using linear programming methods.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Introduction
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the previous chapter, we studied the main elements of **Reinforcement Learning**
+    (**RL**). We described an agent as an entity that can perceive an environment's
+    state and act by modifying the environment state in order to achieve a goal. An
+    agent acts through a policy that represents its behavior, and the way the agent
+    selects an action is based on the environment state. In the second half of the
+    previous chapter, we introduced Gym and Baselines, two Python libraries that simplify
+    the environment representation and the algorithm implementation, respectively.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We mentioned that RL considers problems as **Markov Decision Processes** (**MDPs**),
+    without entering into the details and without giving a formal definition.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we will formally describe what an MDP is, its properties, and
+    its characteristics. When facing a new problem in RL, we have to ensure that the
+    problem can be formalized as an MDP; otherwise, applying RL techniques is impossible.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Before presenting a formal definition of MDPs, we need to understand **Markov
+    Chains** (**MCs**) and **Markov Reward Processes** (**MRPs**). MCs and MRPs are
+    specific cases (simplified) of MDPs. An MC only focuses on state transitions without
+    modeling rewards and actions. Consider the example of the game of snakes and ladders,
+    where the next action is completely dependent on the number displayed on the dice.
+    MRPs also include the reward component in the state transition. MRPs and MCs are
+    useful in understanding the characteristics of MDPs gradually. We will be looking
+    at specific examples of MCs and MRPs later in the chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Along with MDPs, this chapter also presents the concepts of the state-value
+    function and the action-value function, which are used to evaluate how good a
+    state is for an agent and how good an action taken in a given state is. State-value
+    functions and action-value functions are the building blocks of the algorithms
+    used to solve real-world problems. The concepts of state-value functions and action-value
+    functions are highly related to the agent's policy and the environment dynamics,
+    as we will learn later in this chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The final part of this chapter presents two **Bellman equations**, namely the
+    **Bellman expectation equation** and the **Bellman optimality equation**. These
+    equations are helpful in the context of RL in order to evaluate the behavior of
+    an agent and find a policy that maximizes the agent's performance in an MDP.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we will practice with some MDP examples, such as the student
+    MDP and Gridworld. We will implement the solution methods and equations explained
+    in this chapter using Python, SciPy, and NumPy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Markov Processes
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the previous chapter, we described the RL loop as an agent observing a representation
+    of the environment state, interacting with an environment through actions, and
+    receiving a reward based on the action and the environment state. This interaction
+    process is called an MDP. In this section, we will understand what an MDP is,
+    starting with the simplest case of an MDP, an MC. Before describing the various
+    types of MDPs, it is useful to formalize the underlying property of all these
+    processes, the Markov property.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Markov Property
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Let''s start with two examples to help us to understand what the Markov property
+    is. Consider a Rubik''s cube. When formalizing the solving of a Rubik''s cube
+    as an RL task, we can define the environment state as the state of the cube. The
+    agent can perform actions corresponding to the rotation of the cube''s faces.
+    The action results in a state transition that changes the cube. Here, the history
+    is not important – that is, the sequence of actions yielding the current state
+    – in determining the next state. The current state and the present action are
+    the only components that influence the future state:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/B16182_02_01.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 2.1: Rubik''s cube representation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Looking at the preceding figure, suppose the current environment state is the
+    cube with the `Present` label. The current state can be reached by the two states
+    to its left, with the labels `Past #1` and `Past #2`, using two different actions,
+    represented as black arrows. By rotating the face on the left downwards, in the
+    current state, we get the future state on the right, denoted by the label `Future`.
+    The next state, in this case, is independent of the past, in the sense that only
+    the present state and action determine it. It does not matter what the former
+    state was, whether it was `Past #1` or `Past #2`; in both cases, we end up with
+    the same future state.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s now consider another classic example: the Breakout game.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Breakout is a classic Atari game. In the game, there is a layer of bricks at
+    the top of the screen; the goal is to break the bricks using a ball, without allowing
+    the ball to touch the bottom of the screen. The player can only move a paddle
+    horizontally. When formalizing the Breakout game as an RL task, we can define
+    the environment state as the image pixels at a certain moment. The agent has at
+    its disposal three possible actions, "Left," "Right," and "None," corresponding
+    to the paddle's movement.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Here, there is a difference with respect to the Rubik's cube example. [*Figure
+    2.2*](B16182_02_Final_SZ_ePub.xhtml#_idTextAnchor100) explains the difference
+    visually. If we represent the environment state using only the current frame,
+    the future is not determined only by the current state and the current action.
+    We can easily visualize this problem by looking at the ball.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the left part of [*Figure 2.2*](B16182_02_Final_SZ_ePub.xhtml#_idTextAnchor100),
+    we can see two possible past states yielding the same present state. With the
+    arrow, we represent the ball movement. In both cases, the agent's action is "Left."
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the right part of the figure, we have two possible future states, `Future
+    #1` and `Future #2`, starting from the present state and performing the same action
+    (the "Left" action).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: By looking only at the current state, it is not possible to decide with certainty
+    which of the two future states will be the next one, as we cannot infer the ball's
+    direction, whether it is going toward the top of the screen or the bottom. We
+    need to know the history, that is, which of the two previous states was the actual
+    previous state, in order to understand what the next state will be.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this case, the future state is not independent of the past:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: Notice that the arrow is not actually present in the environment state. We have
+    drawn it in the frame for ease of presentation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.2: Atari game representation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_02.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.2: Atari game representation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the Rubik''s cube example, the current state contained enough information
+    to determine, together with the current action, the next state. In the Atari example,
+    this is not true. The current state does not contain a crucial piece of information:
+    the movement component. In this case, we need not only the current state but also
+    the past states to determine the next ones.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Markov property explains exactly the difference between the two examples
+    in mathematical terms. The Markov property states that "the future is independent
+    of the past, given the present."
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This means that the future state depends only on the present state, the present
+    state is the only thing influencing the future state, and that we can get rid
+    of the past states. The Markov property can be formalized in the following way:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.3: Expression for the Markov property'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_03.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.3: Expression for the Markov property'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The probability, ![1](img/B16182_02_03a.png), of the next state, ![2](img/B16182_02_03b.png),
+    given the current one, ![3](img/B16182_02_03c.png), is equal to the probability
+    of the next state given the state history, ![4](img/B16182_02_03d.png). This means
+    that the past states, ![a](img/B16182_02_03e.png), have no influence over the
+    next state distribution.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In other words, to describe the probability distribution of the next state,
+    we only need the information contained in the current state. Almost all RL environments,
+    being MDPs, assume that the Markov property holds true. We need to remember this
+    property when designing RL tasks; otherwise, the main RL assumptions won't be
+    true anymore, causing the algorithms to fail miserably.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: In statistical language, the term "given" means that the probability is influenced
+    by some information. In other words, the probability function depends on some
+    other information.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Most of the time, the Markov property holds true; however, there are cases
+    in which we need to design the environment state to ensure the independence of
+    the next state from the past states. This is exactly the case in Breakout. To
+    restore the Markov property, we can define the state as multiple consequent frames
+    so that it is possible to infer the ball direction. Refer to the following figure
+    for a visual representation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.4: Markov state for Breakout'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_04.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.4: Markov state for Breakout'
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you can see in the preceding figure, the state is represented by three consequent
+    frames.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: There are other tricks you can use to restore the Markov property. One of these
+    tricks consists of using policies represented as **Recurrent Neural Networks**
+    (**RNNs**). Using RNNs, the agent can also take into account past states when
+    determining the current action. The usage of RNNs as RL policies will be discussed
+    later on in the book.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the context of MDPs, the probability of the next state given the current
+    one, ![6](img/B16182_02_04a.png) is referred to as a transition function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'If the state space is finite, composed of *N* states, we can arrange the transition
+    functions evaluated for each couple of states in an N x N matrix, where the sum
+    of all the columns is 1, as we are summing a probability distribution over transition
+    function elements:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.5: Transition probability matrix'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_05.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.5: Transition probability matrix'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the rows, we have the source states, and in the columns, we have the destination
+    states.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The probability matrix summarizes the transition function. It can be read as
+    follows: ![7](img/B16182_02_05a.png) is the probability of landing in state ![8](img/B16182_02_05b.png)
+    starting from state ![9](img/B16182_02_05c.png).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Markov Chains
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'An MC, or, simply, a Markov process, is defined as a tuple of state space ![10](img/B16182_02_05d.png)
+    and transition function ![12](img/B16182_02_05e.png). The state space, together
+    with the transition function, defines a memory-less sequence of random states,
+    ![11](img/B16182_02_05f.png), satisfying the Markov property. A sample from a
+    Markov process is simply a sequence of states, which is also called an episode
+    in the context of RL:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.6: MC with three states'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_06.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.6: MC with three states'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Consider the preceding MC. As you can see, we have three states represented
+    by circles. The probability function evaluated for the state pairs is reported
+    on the edges connecting the different states. Looking at the edges starting from
+    each state, we can see that the sum of the probabilities associated with each
+    edge is 1, as it defines a probability distribution. The transition function for
+    a couple of states that are not linked by an edge is 0.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The transition function can be arranged in a matrix, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.7: Transition matrix for the MC in Figure 2.6'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_07.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.7: Transition matrix for the MC in Figure 2.6'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The matrix form of the transition function is very convenient from a programming
+    perspective as it allows us to perform calculations easily.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Markov Reward Processes
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: An MRP is an MC with values associated with state transitions, called rewards.
+    The reward function evaluates how useful it is to transition from one state to
+    another.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'An MRP is a tuple of ![15](img/B16182_02_07a.png) such that the following is
+    true:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: S is a finite set of states.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: P is the transition probability, where ![16](img/B16182_02_07b.png) is the probability
+    of transitioning from state ![17](img/B16182_02_07c.png) to state ![18](img/B16182_02_07d.png).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: R is a reward function, where ![19](img/B16182_02_07e.png) is the reward associated
+    with the transition from state ![21](img/B16182_02_07f.png) to state ![20](img/B16182_02_07g.png).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![21](img/B16182_02_07h.png) is the discount factor associated with future
+    rewards, ![22](img/B16182_02_07i.png):'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![Figure 2.8: An example of an MRP'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_08.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.8: An example of an MRP'
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you can see in the previous figure, the rewards are represented by `r` and
+    are associated with state transitions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's consider the MRP in *Figure 2.8*. The highest reward (`10`) is associated
+    with transitions *1->3* and the self-loop, *3->3*. The lowest reward is associated
+    with transitions *3->2*, and it is equal to `-1`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In an MRP, it is possible to calculate the discounted return as the cumulative
+    sum of discounted rewards.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this context, we use the term "trajectory" or "episode" to denote a sequence
+    of states traversed by the process.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's now calculate the discounted return for a given trajectory; for example,
+    the trajectory of 1-2-3-3-3 with discount factor ![23](img/B16182_02_08a.png).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The discounted return is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.9: Discounted return for the trajectory of 1-2-3-3-3'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_09.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.9: Discounted return for the trajectory of 1-2-3-3-3'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We can also calculate the discounted return for a different trajectory, for
+    example, 1-3-3-3-3:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.10: Discounted return for the trajectory of 1-3-3-3-3'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_10.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.10: Discounted return for the trajectory of 1-3-3-3-3'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this example, the second trajectory is more convenient than the first one,
+    having a higher return. This means that the associated path is better in comparison
+    to the first one. The return does not represent an absolute feature of a trajectory;
+    it represents the relative goodness with respect to the other trajectories. Trajectory
+    returns of different MRPs are not comparable to each other.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Considering an MRP composed of N states, the reward function can be represented
+    in an N x N matrix, similar to the transition matrix:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.11: Reward matrix'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_11.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.11: Reward matrix'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the rows, we represent the source states, and in the columns, we represent
+    the destination states.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The reward matrix can be read as follows: ![24](img/B16182_02_11a.png) is the
+    reward associated with the state transition, ![25](img/B16182_02_11b.png).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For the example in *Figure 2.11*, the reward function arranged in a matrix
+    is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.12: Reward matrix for the MRP example'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_12.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.12: Reward matrix for the MRP example'
+  prefs: []
+  type: TYPE_NORMAL
+- en: When a reward is not specified, we assume that the reward is `0`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Using Python and NumPy, we can represent the transition matrix in this way:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In a similar way, the reward matrix can be represented like this:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: We are now ready to introduce the concepts of value functions and Bellman equations
+    for MRPs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Value Functions and Bellman Equations for MRPs
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: The **value function** in an MRP evaluates the long-term value of a given state,
+    intended as the expected return starting from that state. In this way, the value
+    function expresses a preference over states. A state with a higher value in comparison
+    to another state represents a better state – in other words, a state that it is
+    more rewarding to be in.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Mathematically, the value function is formalized as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.13: Expression for the value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_13.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.13: Expression for the value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The value function of state ![ formula](img/B16182_02_13a.png) is represented
+    by ![ formula](img/B16182_02_13b.png). The expectation on the right side of the
+    equation is the expected value, represented by ![ formula](img/B16182_02_13c.png)
+    of the return, ![ formula](img/B16182_02_13d.png), considering the fact that the
+    current state is precisely equal to state ![ formula](img/B16182_02_13e.png) –
+    the state for which we are evaluating the value function. The expectation is taken
+    according to the transition function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The value function can be decomposed into two parts by considering the immediate
+    reward and the discounted value function of the successor state:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.14: Decomposition of the value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_14.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.14: Decomposition of the value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The last equation is a recursive equation, known as the **Bellman expectation
+    equation for MRPs**, in which the value function of given states depends on the
+    value function of the successor states.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To highlight the dependency of the equation on the transition function, we can
+    rewrite the expectation as a summation of the possible states weighted by the
+    transition probability. We define with ![ formula](img/B16182_02_14a.png) the
+    expectation of the reward function in state ![ formula](img/B16182_02_14b.png),
+    which can also be defined as the average reward.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We can write ![ formula](img/B16182_02_14c.png) in the following ways:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.15: Expression for the expectation of the reward function in state
+    s'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_15.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.15: Expression for the expectation of the reward function in state
+    s'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We can now rewrite the value function in a more convenient way:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.16: Revised expression for the expectation of the value function
+    in state s'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_16.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.16: Revised expression for the expectation of the value function in
+    state s'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This expression can be translated into code, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the preceding code, we calculated the expected reward for each state by multiplying
+    element-wise the probability matrix and the reward matrix. Please note that the
+    `keepdims` parameter is required to obtain a column vector.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This formulation makes it possible to rewrite the Bellman equation using matrix
+    notation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.17: Matrix form of the Bellman equation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_17.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.17: Matrix form of the Bellman equation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here, `V` is a column vector with state values, ![a](img/B16182_02_17a.png)
+    is the expected reward for each state, and `P` is the transition matrix:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.18: Matrix form of the Bellman equation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_18.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.18: Matrix form of the Bellman equation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Using matrix notation, it is also possible to solve the Bellman equation for
+    `V`, finding the value function associated with each state:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.19: Value function using the Bellman equation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_19.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.19: Value function using the Bellman equation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Here, `I` is an identity matrix of size N x N, and `N` is the number of states
+    in the MRP.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Solving Linear Systems of an Equation Using SciPy
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: SciPy ([https://github.com/scipy/scipy](https://github.com/scipy/scipy)) is
+    a Python library used for scientific computing based on NumPy. SciPy offers, inside
+    the `linalg` module (linear algebra), useful methods for solving systems of equations.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In particular, we can use `linalg.solve(A, b)` to solve a system of equations
+    in the form of ![ formula](img/B16182_02_19a.png). This is precisely the method
+    we can use to solve the system ![ formula](img/B16182_02_19b.png), where ![ formula](img/B16182_02_19c.png)
+    is the matrix, `A`; `V` is the vector of variables, `x`; and ![ formula](img/B16182_02_19d.png)
+    is the vector, `b`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'When translated into code, it should look like this:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: As you can see, we have declared the elements of the Bellman equation and are
+    using `scipy.linalg` to calculate the `value` function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's now strengthen our understanding further by completing an exercise.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Exercise 2.01: Finding the Value Function in an MRP'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'In this exercise, we are going to solve the Bellman expectation equation by
+    finding the value function for the MRP in the following figure. We will use `scipy`
+    and the `linalg` module to solve the linear equation presented in the previous
+    section. We will also demonstrate how to define a transition probability matrix
+    and how to calculate the expected reward for each state:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.20: Example of an MRP with three states'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_20.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.20: Example of an MRP with three states'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Import the required NumPy and SciPy packages:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define the transition probability matrix:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You should obtain the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Let's check the correctness of the matrix. The probability of going from state
+    1 to state 1 is ![ formula](img/B16182_02_20a.png). This is correct as there are
+    no self-loops in state 1\. The probability of going from state 1 to state 2 is
+    ![ formula](img/B16182_02_20b.png) as it's the probability associated with edge
+    *1->2*. This can be done for all elements of the transition matrix. Note that,
+    here, the transition matrix elements are indexed by the state, not by their position
+    in the matrix. This means that with ![ formula](img/B16182_02_20c.png), we refer
+    to element 0,0 of the matrix.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Check that the sum of all the columns is exactly equal to `1`, being a probability
+    matrix:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The `assert` function is used to ensure that a particular condition will return
+    `true`. In this case, the `assert` function will make sure that the sum of all
+    the columns is exactly `1`.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'We can calculate the expected immediate reward for each state using the reward
+    matrix and the transition probability matrix:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You should obtain the following column vector:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The `R_expected` vector is the expected immediate reward for each state. State
+    1 has an expected reward of `3.7`, which is exactly equal to *0.7 * 1 + 0.3*10*.
+    The same logic applies to state 2 and state 3.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Now we need to define `gamma`, and we are ready to solve the Bellman equation
+    as a linear equation, ![ formula](img/B16182_02_20d.png). We have ![ formula](img/B16182_02_20e.png)
+    and ![ formula](img/B16182_02_20f.png):'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You should obtain the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The vector, `V`, represents the value for each state. State 3 has the highest
+    value (`77.58`). This means that state 3 is the state providing the highest expected
+    return. It is the best state in this MRP. Intuitively, state 3 is the best state
+    because, with a high probability (0.9), the transition brings the agent to the
+    same state, and the reward associated with the transition is high (+10).
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Note
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: To access the source code for this specific section, please refer to [https://packt.live/37o5ZH4](
+    https://packt.live/37o5ZH4).
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: You can also run this example online at [https://packt.live/3dU8cfW](https://packt.live/3dU8cfW).
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: In this exercise, we solved the Bellman equation for an MRP by finding the state
+    values for our toy problem. The state values describe quantitatively the benefit
+    of being in each state. We described the MRP in terms of a transition probability
+    matrix and a reward matrix. These two matrices permit us to solve the linear system
+    associated with the Bellman equation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: The computational complexity of the solution of the Bellman equation is `O(n`3`)`
+    ; it is cubic in the number of states. Therefore, it is only possible for small
+    MRPs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next section, we will consider an active agent that can perform actions,
+    thus arriving at the description of an MDP.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Markov Decision Processes
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: An MDP is an MRP with decisions. In this context, we have a set of actions available
+    to an agent that can condition the transition probability to the next state. While,
+    in MRPs, the transition probability depends only on the state of the environment,
+    in MDPs, the agent can perform actions influencing the transition probability.
+    In this way, the agent becomes an active entity in the framework, interacting
+    with the environment through actions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Formally, an MDP is a tuple, ![ formula](img/B16182_02_20g.png), in which the
+    following is true:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![ formula](img/B16182_02_20h.png) is the set of states.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![ formula](img/B16182_02_20i.png) is the set of actions.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![b](img/B16182_02_20j.png) is the reward function, ![ formula](img/B16182_02_20k.png).
+    ![ formula](img/B16182_02_20l.png) is the expected reward resulting in action
+    ![ formula](img/B16182_02_20m.png) and state ![ formula](img/B16182_02_20n.png).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![ formula](img/B16182_02_20o.png) is the transition probability function in
+    which ![ formula](img/B16182_02_20p.png) is the probability of landing in state
+    ![ formula](img/B16182_02_20q.png) starting from the current state, ![b](img/B16182_02_20r.png),
+    and performing an action, ![ formula](img/B16182_02_20s.png).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![ formula](img/B16182_02_20t.png) is the discount factor associated with future
+    rewards, ![ formula](img/B16182_02_20u.png).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The difference between an MRP and an MDP is the fact that the agent has at
+    its disposal a set of actions from which it can choose to condition the transition
+    probability to have a higher possibility of landing in good states. If an MRP
+    and MC are only a description of Markov processes without an objective, an MDP
+    contains the concept of a policy and a goal. In an MDP, the agent should take
+    decisions about which action to take, maximizing the discounted return:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.21: A student MDP'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_21.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.21: A student MDP'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Figure 2.21* is an example of an MDP representing the day of a university
+    student. There are six possible states: `Class 1`, `Class 2`, `Class 3`, `Social`,
+    `Bed`, and `Pub`. The edges between the states represent state transitions. On
+    the edges, we have the action and the reward, denoted by `r`. Possible actions
+    are `Study`, `Social`, `Beer`, and `Sleep`. The initial state, represented by
+    the incoming arrow, is `Class 1`. The goal of the student is to select the best
+    actions in each state, maximizing their return.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the following paragraphs, we will discuss some possible strategies for this
+    MDP.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A student agent starts from `Class 1`. They can decide to study and complete
+    all of the lessons. Each study decision comes with a small negative reward, `-2`.
+    If the student decides to sleep after `Class 3`, they will land in the absorbing
+    state, `Bed`, with a high positive reward of `+10`. This represents a very common
+    situation in daily routines. You have to sacrifice some immediate reward in order
+    to obtain a higher reward in the future. In this case, by deciding to study in
+    `Class 1` and `2`, you obtain a negative reward but are compensated by the positive
+    reward after `Class 3`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Another possible strategy in this MDP is to select a `Social` action right after
+    the `Class 1` state. This action comes with a small negative reward. The student
+    can continue doing the same action, and each time they get the same reward. The
+    student can also decide to `Study` from the `Social` state (notice that `Social`
+    is both a state and an action) by returning to `Class 1`. Feeling guilty, in `Class
+    1`, the student can decide to study. After having studied a bit, they may feel
+    tired and decide to sleep for a little while, ending up in the `Bed` state. Having
+    performed the `Social` action, the agent has cumulated a negative return.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s evaluate the possible strategies for this example. We will assume a
+    discount factor of ![ formula](img/B16182_02_21a.png), that is, no discount:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Strategy: Good student. The good student strategy was the first strategy that
+    was described. Supposing the student will end in `Class 1`, they can perform the
+    following actions: `Study`, `Study`, and `Study`. The associated sequence of states
+    is thus `Class 1`, `Class 2`, `Class 3`, and `Sleep`. The associated return is,
+    therefore, the sum of the rewards along the trajectory:![Figure 2.22: Return for
+    the good student'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_22.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 2.22: Return for the good student'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Strategy: Social student. The social student strategy is the second strategy
+    described. The student can perform the following actions: `Social`, `Social`,
+    `Social`, `Study`, `Study`, and `Sleep`. The associated sequence of states is
+    `Class 1`, `Social`, `Social`, `Social`, `Class 1`, `Class 2`, and `Bed`. The
+    associated return is, in this case, as follows:![Figure 2.23: Return for the social
+    student'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_23.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 2.23: Return for the social student'
+  prefs: []
+  type: TYPE_NORMAL
+- en: By looking at the associated return, we can see that the good student strategy
+    is a better strategy in comparison to the social student strategy, having a higher
+    return.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The question you may ask at this point is how can an agent decide which action
+    to take in order to maximize the return? To answer the question, we need to introduce
+    two useful functions: the state-value function and the action-value function.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The State-Value Function and the Action-Value Function
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: In the context of MDPs, we can define a function by evaluating how good it is
+    to be in a given state. However, we should take into account the agent's policy,
+    as it defines the agent's decisions and conditions the probability over trajectories,
+    that is, the sequence of future states. So, the value function depends on the
+    agent policy, ![ formula](img/B16182_02_23a.png).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The `s` and follows the policy, ![ formula](img/B16182_02_23c.png):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.24: Definition of the state-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_24.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.24: Definition of the state-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In MDPs, we are also interested in defining the benefit of taking an action
+    in a given state. This function is called the action-value function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The **action-value function**, ![ formula](img/B16182_02_24a.png), (also called
+    the q-function), can be termed as the expected return starting from state ![ formula](img/B16182_02_24b.png),
+    which takes action ![ formula](img/B16182_02_24c.png) and follows the policy ![
+    formula](img/B16182_02_24d.png):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.25: Definition of the action-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_25.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.25: Definition of the action-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The state-value function, as we will learn later in the book, provides information
+    that is only useful when it comes to evaluating a policy. The action-value function
+    also provides information about control, that is, for selecting an action in a
+    state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Suppose that we know the action-value function for an MDP. If we are in given
+    state, ![a](img/B16182_02_25a.png), which action would be the best one?
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Well, the best action is the one that yields the highest discounted return.
+    The action-value function measures the discounted return that is obtained by starting
+    from a state and performing an action. In this way, the action-value function
+    provides an ordering (or a preference) over the actions in a state. The best action
+    to perform is the one with the highest q-function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.26: Best action using the action-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_26.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.26: Best action using the action-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note that, in this case, we are only doing a one-step optimization of the current
+    policy; that is, we are modifying, possibly, the action in a given state under
+    the assumption that the following actions are taken with the current policy. If
+    we do this, we do not select the best action in this state, but we select the
+    best action under this policy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Just like in an MRP, in an MDP, the state-value function and the action-value
+    function can be decomposed in a recursive way:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.27: The state-value function in an MDP'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_27.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.27: The state-value function in an MDP'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.28: The action-value function in an MDP'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_28.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.28: The action-value function in an MDP'
+  prefs: []
+  type: TYPE_NORMAL
+- en: These equations are known as the Bellman expectation equations for MDPs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Bellman expectation equations are recursive as the state-value function of a
+    given state depends on the state-value function of another state. This is also
+    true for the action-value function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the action-value function equation, the action, ![ formula](img/B16182_02_28a.png),
+    for which we are evaluating the function, is an arbitrary action. It is not taken
+    from the action distribution defined by the policy. Instead, the action, ![ formula](img/B16182_02_28b.png),
+    taken in the following step, is taken according to the action distribution defined
+    in state ![ formula](img/B16182_02_28c.png).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s rewrite the state-value function and the action-value function to highlight
+    the contribution of the agent''s policy, ![ formula](img/B16182_02_28d.png):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.29: The state-value function to highlight the policy contribution'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_29.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.29: The state-value function to highlight the policy contribution'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s analyze the two terms of the equation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![ formula](img/B16182_02_29a.png): This term is the expectation of the immediate
+    rewards given the action distribution defined by the agent''s policy. Each immediate
+    reward for a state-action pair is weighted by the probability of the action given
+    the state, which is defined as ![ formula](img/B16182_02_29b.png).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![ formula](img/B16182_02_29c.png) is the discounted expected value of the
+    state-value function, given the state distribution defined by the transition function.
+    Note that here the action, `a`, is defined by the agent''s policy. Being an expected
+    value, every state value, ![ formula](img/B16182_02_29d.png), is weighed by the
+    probability of the transition from state ![ formula](img/B16182_02_29e.png) to
+    state ![ formula](img/B16182_02_29f.png), given the action, ![ formula](img/B16182_02_29g.png).
+    This is represented by ![ formula](img/B16182_02_29h.png) .'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The action-value function can be rewritten to highlight the dependency on the
+    transition and value functions:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.30: The action-value function, highlighting the dependency on the
+    transition and value functions of the next state'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_30.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.30: The action-value function, highlighting the dependency on the
+    transition and value functions of the next state'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The action-value function, therefore, is given by the summation of the immediate
+    reward and the expected value of the state-value function of the successor state
+    under the environment dynamic (`P`).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'By comparing the two equations, we obtain an important relationship between
+    the state value and the action value:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.31: Expression for the state-value function, in terms of the action-value
+    function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_31.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.31: Expression for the state-value function, in terms of the action-value
+    function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In other words, the state-value state, ![ formula](img/B16182_02_31a.png), under
+    the policy, ![ formula](img/B16182_02_31b.png), is the expected value of the action-value
+    function under the actions selected by ![ formula](img/B16182_02_31c.png). Each
+    action-value function is weighted by the probability of the action given the state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The state-value function can also be rewritten in matrix form, as in the MRP
+    case:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.32: Matrix form for the state-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_32.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.32: Matrix form for the state-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'There is a direct solution, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.33: Direct solution for the state values'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_33.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.33: Direct solution for the state values'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here, you can see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![ formula](img/B16182_02_33a.png) (column vector) is the expected value of
+    the immediate reward induced by the policy for each state:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![Figure 2.34: Expected immediate reward'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_34.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.34: Expected immediate reward'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![ formula](img/B16182_02_34a.png) is the column vector of the state values
+    for each state.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![ formula](img/B16182_02_34b.png) is the transition matrix based on the action
+    distribution. It is an ![ formula](img/B16182_02_34c.png) matrix, where ![ formula](img/B16182_02_34d.png)
+    is the number of states in the MDP. Given two states, ![ formula](img/B16182_02_34e.png)
+    and ![ formula](img/B16182_02_34f.png), we have the following:![Figure 2.35: Transition
+    matrix conditioned on an action distribution'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_35.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 2.35: Transition matrix conditioned on an action distribution'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Therefore, the transition matrix is the probability of transitioning from state
+    ![ formula](img/B16182_02_35a.png) to state ![ formula](img/B16182_02_35b.png)
+    given the actions selected by the policy and the transition function defined by
+    the MDP.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Following the same steps, we can also find the matrix form of the action-value
+    function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.36: Matrix form equation for the action-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_36.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.36: Matrix form equation for the action-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Here, ![ formula](img/B16182_02_36a.png) is a column vector with ![ formula](img/B16182_02_36b.png)
+    entries. ![ formula](img/B16182_02_36c.png) is the vector of immediate rewards
+    with the same shape of ![ formula](img/B16182_02_36d.png). ![ formula](img/B16182_02_36e.png)
+    is the transition matrix with a shape of ![ formula](img/B16182_02_36f.png) rows
+    and ![ formula](img/B16182_02_36g.png) columns. ![ formula](img/B16182_02_36h.png)
+    represents the state values for each state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The explicit form of ![b](img/B16182_02_36i.png) and ![ formula](img/B16182_02_36j.png)
+    is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.37: Explicit matrix form of the action-value function and the transition
+    function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_37.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.37: Explicit matrix form of the action-value function and the transition
+    function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Here, the number of actions associated with state ![ formula](img/B16182_02_37a.png)
+    is indicated by ![ formula](img/B16182_02_37b.png), thus ![ formula](img/B16182_02_37c.png).
+    The number of actions of the MDP is obtained by summing up the actions associated
+    with each state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's now implement our understanding of the state- and action-value functions
+    for our student MDP example. In this example, we will use the calculation of the
+    state-value function and the action-value function for the student MDP in *Figure
+    2.21*. We will consider the case of an undecided student, that is, a student with
+    a random policy for each state. This means that the probability of each action
+    for each state is exactly 0.5.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We will examine a different case for a myopic student in the following example.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Import the required libraries as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Define the environment properties:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: '`P_pi` contains the contribution of the transition matrix and the policy of
+    the agent. `R` is the reward matrix.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will use the following state encoding:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`0`: Class 1'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`1`: Class 2'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`2`: Class 3'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`3`: Social'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`4`: Pub'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`5`: Bed'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Create the transition matrix by considering a random policy:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Print `P_pi`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Create the reward matrix, `R`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Print `R`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Being a probability matrix, the sum of all the columns of `P_pi` should be
+    `1`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs: []
+  type: TYPE_PRE
+- en: The assertion should be verified.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We can now calculate the expected reward for each state, using `R` and `P_pi`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The expected reward, in this case, is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs: []
+  type: TYPE_PRE
+- en: The `R_expected` vector contains the expected immediate reward for each state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We are ready to solve the Bellman equation to find the value for each state.
+    For this, we can use `scipy.linalg.solve`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The vector, `V`, contains the following values:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This is the vector of the state values. State `0` has a value of `-1.7`, state
+    `1` has a value of `4.4`, and so on:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.38: State values of the student MDP for'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_38.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.38: State values of the student MDP for ![b](img/B16182_02_38caption.png)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s examine how the results change with ![ formula](img/B16182_02_38a.png),
+    which is the condition assumed for a myopic random student:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The visual representation is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.39: State values of the student MDP for γ=0'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_39.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.39: State values of the student MDP for γ=0'
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you can see, using ![ formula](img/B16182_02_39a.png), the value of each
+    state is exactly equal to the expected immediate reward according to the policy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now we can calculate the action-value function. We need to use a different
+    form of immediate reward using a matrix with a shape of ![ formula](img/B16182_02_39b.png).
+    Each row corresponds to a state-action pair, and the value is the immediate reward
+    for that pair:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.40: Immediate rewards'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_40.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.40: Immediate rewards'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Translate it into code as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We now have to define the transition matrix of the student MDP. The transition
+    matrix contains the probability of landing in a given state, starting from a state
+    and an action. In the rows, we have the source state and action, and in the columns,
+    we have the landing state:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.41: Transition matrix of the student MDP'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_41.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.41: Transition matrix of the student MDP'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'When translating the probability transition matrix into code, you should see
+    the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We can now calculate the action-value function using ![a](img/B16182_02_41a.png):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE30]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The action-value vector contains the following values:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE31]'
+  prefs: []
+  type: TYPE_PRE
+- en: '`Q_sa_pi` is the action-value vector. For each state-action pair, we have the
+    value of the action in that state. The action-value function is represented in
+    the following figure. Action values are represented with ![ formula](img/B16182_02_41b.png):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.42: Action values for the student MDP'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_42.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.42: Action values for the student MDP'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We are now interested in extracting the best action for each state:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE32]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE33]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In this way, performing the `argmax` function, we obtain the index of the best
+    action in each state:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE34]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The `best_actions` vector contains the following values:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE35]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The best actions can be visualized as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.43: The student MDP best actions'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_42.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.43: The student MDP best actions'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In *Figure 2.43*, the dotted arrows are the best actions in each state. We can
+    easily find them by looking at the action maximizing the `q` function in each
+    state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'From the action-value calculation, we can see that when ![ formula](img/B16182_02_43a.png),
+    the action-value function is equal to the expected immediate reward:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE36]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE37]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Reshape the columns with `n_actions = 2`, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE38]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE39]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'By performing the `argmax` function, we obtain the index of the best action
+    in each state as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE40]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE41]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The state diagram can be visualized as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.44: The best actions and the action-value function for the student
+    MDP when'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_44.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.44: The best actions and the action-value function for the student
+    MDP when ![formula](img/B16182_02_44_caption.png)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: It is interesting to note how the best actions are changed by only modifying
+    the discount factor. Here, the best action the agent can take, starting from `Class
+    1`, is `Social` as it provides a bigger immediate reward compared to the `Study`
+    action. The `Social` action brings the agent to state `Social`. Here, the best
+    the agent can do is to repeat the `Social` action, cumulating negative rewards.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this example, we learned how to calculate the state-value function using
+    `scipy.linalg.solve` and how to calculate the action-value function using the
+    matrix form. We noticed that both the state values and the action values depend
+    on the discount factor.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next section, we will illustrate the Bellman optimality equation, which
+    makes it possible to solve MDPs by finding the best policy and the best state
+    values.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Bellman Optimality Equation
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: It is natural to ask whether it is possible to define an order for policies
+    that determines whether one policy is better than another one. It turns out that
+    the value function provides ordering over policies.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Policy ![ formula](img/B16182_02_44a.png) can be considered better than or
+    equal to ![ formula](img/B16182_02_44b.png) policy ![ formula](img/B16182_02_44c.png)
+    if the expected return from that policy is greater than or equal to the expected
+    return of ![ formula](img/B16182_02_44d.png) for all states:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.45: Preference over policies'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_45.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.45: Preference over policies'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this example, we substituted the expected return in a state with the state-value
+    function, using the state-value function definition.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Following the previous definition, an optimal policy is a policy that is better
+    than or equal to all other policies in all states. The optimal state-value function,
+    ![ formula](img/B16182_02_45a.png), and the optimal action-value function, ![
+    formula](img/B16182_02_45b.png), are simply the ones associated with the best
+    policy:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.46: Optimal state-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_46.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.46: Optimal state-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.47: Optimal action-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_47.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.47: Optimal action-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Some important properties of MDPs are as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: There is always at least one optimal (deterministic) policy maximizing the state-value
+    function in every state.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: All optimal policies share the same optimal state-value function.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: An MDP is solved if we know the optimal state-value function and the optimal
+    action-value function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Knowing the optimal value function, ![ formula](img/B16182_02_47a.png), makes
+    it possible to find the optimal policy of the MDP by maximizing over ![ formula](img/B16182_02_47b.png).
+    We can define the optimal policy associated with the optimal action-value function
+    as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.48: Optimal policy associated with the optimal action-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_48.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.48: Optimal policy associated with the optimal action-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you can see, this policy is simply telling us to perform the action, ![ formula](img/B16182_02_48a.png),
+    with a probability of 1 (essentially, in a deterministic way) if the action, ![
+    formula](img/B16182_02_48b.png), maximizes the action-value function in this state.
+    In other words, we need to take the action that guarantees the highest discounted
+    return following the optimal policy. All other actions, being suboptimal, are
+    taken with probability 0; therefore, they are, essentially, never taken. Notice
+    that the policy obtained in this way is deterministic, not stochastic.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Analyzing this result, we uncover two essential facts:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: There is always a deterministic optimal policy for any MDP.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The optimal policy is determined by the knowledge of the optimal action-value
+    function, ![ formula](img/B16182_02_48c.png).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The optimal value functions are related to the Bellman optimality equation.
+    The Bellman optimality equation states that the optimal state-value function in
+    a state is equal to the overall maximum actions of the optimal action-value function
+    in the same state:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.49: The Bellman optimality equation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_49.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.49: The Bellman optimality equation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Using the definition of the action-value function, we can expand the previous
+    equation to a more explicit form:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.50: The Bellman optimality equation in terms of the action-value
+    function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_50.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.50: The Bellman optimality equation in terms of the action-value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The previous equation tells us that the optimal value function of a state is
+    equal to the maximum over actions of the immediate reward, ![ formula](img/B16182_02_50a.png),
+    plus the discounted ![ formula](img/B16182_02_50b.png), expected optimal value
+    of the successor state, ![ formula](img/B16182_02_50c.png), where the expected
+    value is determined by the transition function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Also, the optimal action-value function has an explicit formulation, known
+    as the Bellman optimality equation, for ![ formula](img/B16182_02_50d.png):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.51: The Bellman optimality equation for q'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_51.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.51: The Bellman optimality equation for q'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This can be rewritten only in terms of ![ formula](img/B16182_02_51a.png) by
+    using the relationship between ![ formula](img/B16182_02_51b.png) and ![ formula](img/B16182_02_51c.png):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.52: The Bellman optimality equation, using the relationship between
+    and'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_52.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.52: The Bellman optimality equation, using the relationship between
+    ![a](img/B16182_02_52_Caption1.png) and ![b](img/B16182_02_45a.png)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Bellman optimality equation for ![ formula](img/B16182_02_52a.png) expresses
+    the fact that the optimal state-value function must equal the expected return
+    for the best action in that state. Similarly, the Bellman optimality equation
+    for ![ formula](img/B16182_02_52b.png) expresses the fact that the optimal q-function
+    must equal the immediate reward plus the discounted return of the best action
+    in the next state according to the environment dynamic.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Solving the Bellman Optimality Equation
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: The presence of a maximization makes the Bellman optimality equation non-linear.
+    This means that we do not have a closed-form solution for these equations in the
+    general case. However, there are many iterative solution methods that we will
+    analyze in the next sections and chapters.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The main methods include value iteration, policy iteration, Q learning, and
+    SARSA, which we will study in later chapters.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Solving MDPs
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Now that we have gained a fair understanding of all the important concepts and
+    equations, let's move on to solving actual MDPs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Algorithm Categorization
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'Before considering the different algorithms for solving MDPs, it is beneficial
+    for us to understand the family of algorithms along with their pros and cons.
+    Knowing the main family of algorithms makes it possible for us to select the correct
+    family based on our task:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.53: Taxonomy of RL algorithms'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_53.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.53: Taxonomy of RL algorithms'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The first main distinction is between model-based algorithms and model-free
+    algorithms:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'A model-based algorithm requires knowledge of the environment dynamic (model).
+    This is a strong requirement, as the environment model is usually unknown. Let''s
+    consider an autonomous driving problem. Here, knowing the environment dynamic
+    means that we should know exactly how the agent''s actions influence the environment
+    and the next state distribution. This depends on many factors: the street state,
+    weather conditions, car characteristics, and much more. For many problems, the
+    dynamic is unknown, too complex, or too inaccurate to be used successfully. Nonetheless,
+    the dynamic provides beneficial information for solving the task.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: When the model is known (`Model Exploiting`), model-based algorithms are preferred
+    over their counterparts for their sample efficiency, as they require fewer samples
+    to learn good policies.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: The environment model in these cases can also be unknown; the algorithm itself
+    explicitly learns an environment model (`Model Learning`) and uses it to plan
+    its actions. Dynamic programming algorithms use this model knowledge to perform
+    bootstrapping, which uses a previous estimation for the estimate of another quantity.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Model-free algorithms do not require a model of the environment. These types
+    of algorithms are, therefore, preferred for real-world applications. Note that
+    these algorithms may build an environment representation internally, taking into
+    account the environment dynamic. However, usually, this process is implicit, and
+    the users just don't care about these aspects.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Model-free algorithms can also be classified as value-based algorithms or policy-search
+    algorithms.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Value-Based Algorithms
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: A value-based algorithm focuses on learning the action-value function and the
+    state-value function. Learning the value functions is done by using the Bellman
+    equations presented in the previous sections. An example of a value-based algorithm
+    is Q learning, where the objective is to learn the action-value function, which,
+    in turn, is used for control. A deep Q network is an extension of Q learning in
+    which a neural network is used to approximate the q-function. Value-based algorithms
+    are usually off-policy, which means they can reuse previous samples collected
+    with a different policy with respect to the policy being optimized at the moment.
+    This is a very powerful property as it allows us to obtain more efficient algorithms
+    in terms of samples. We will learn about Q learning and deep Q networks in more
+    detail in *Chapter 9*, *What Is Deep Q-Learning?*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Policy Search Algorithms
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: '**Policy Search** (**PS**) methods explore the policy space directly. In PS,
+    the RL problem is formalized as the maximization of the performance measure depending
+    on the policy parameters. You will study PS methods and policy gradients in more
+    detail in *Chapter 11*, *Policy-Based Methods for Reinforcement Learning*.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Linear Programming
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Linear programming is an optimization technique that is used for problems with
+    linear constraints and linear objective functions. The objective function describes
+    the quantity to be optimized. In the case of RL, this quantity is the expected
+    discounted return of all the states weighted by the initial state distribution,
+    which is the probability of starting an episode in that state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: When the starting state is precisely one, this simplifies to the optimization
+    of the expected discounted return starting from the initial state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Linear programming is a model-based, model-exploiting technique. Solving an
+    MDP with linear programming, therefore, requires perfect knowledge of the environment
+    dynamics, which translates into knowledge of the transition probability matrix,
+    ![ formula](img/B16182_02_53a.png). Using linear programming, we can solve MDPs
+    by finding the best state values for each state. From our knowledge of state values,
+    we can derive knowledge of the optimal action-value function. In this way, we
+    can find a control policy for our agent and maximize its performance in the given
+    task.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The basic idea follows on from the definition of ordering over policies; we
+    want to find the state-value function by maximizing the value of each state weighted
+    by the initial state distribution, ![ formula](img/B16182_02_53b.png), subject
+    to a feasibility constraint:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.54: Linear programming formulation for solving MDPs'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_54.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.54: Linear programming formulation for solving MDPs'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Here, we have ![ formula](img/B16182_02_54a.png) variables and ![ formula](img/B16182_02_54b.png)
+    constraints. The variables are the values, ![ formula](img/B16182_02_54c.png),
+    for each state, `s`, in the state space, `S`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note that the maximization role is taken by the constraints, while we need to
+    minimize the objective function because, otherwise, an optimal solution would
+    have infinite values for all variables, ![ formula](img/B16182_02_54d.png).
+  prefs: []
+  type: TYPE_NORMAL
+- en: The constraints are based on the idea that the value of a state must be greater
+    than or equal to the immediate reward plus the discounted expected value of the
+    successor states. This must be true for all states and all actions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The huge number of variables and constraints makes it possible to use linear
+    programming techniques for only finite-state and finite-action MDPs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will be using the following notation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.55: Linear programming notation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_55.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.55: Linear programming notation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the preceding notation, `c` is the vector of coefficients of the objective
+    function, ![ formula](img/B16182_02_55a.png) is the matrix of the upper bound
+    constraints, and ![ formula](img/B16182_02_55b.png) is the associated coefficient
+    vector.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In Python, SciPy offers the `linprog` function (inside the `optimize` module,
+    `scipy.optimize.linprog`), which optimizes linear programs given the objective
+    function and the constraints.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The signature of the function is `scipy.optimize.linprog(c, A_ub, b_ub)`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To rephrase the problem using upper bounds, we have the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.56: Linear programming constraints using upper bounds'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_56.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.56: Linear programming constraints using upper bounds'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For further reading on linear programming for MDPs, refer to the following
+    paper from *de Farias, D. P. (2002): The Linear Programming Approach to Approximate
+    Dynamic Programming: Theory and Application*: [http://www.mit.edu/~pucci/discountedLP.pdf](http://www.mit.edu/~pucci/discountedLP.pdf).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's now solve a quick exercise to strengthen our understanding of linear programming.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Exercise 2.02: Determining the Best Policy for an MDP Using Linear Programming'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'The goal of this exercise is to solve the MDP in the following figure using
+    linear programming. In this MDP, the environment model is straightforward and
+    the transition function is deterministic, determined uniquely by the action. We
+    will be finding the best action (the one with the maximum reward) taken by the
+    agent, which determines the best policy of the environment, using linear programming:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.57: Simple MDP with three states and two actions'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_57.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.57: Simple MDP with three states and two actions'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The variables of the linear program are the state values. The coefficients are
+    given by the initial state distribution, which, in our case, is a deterministic
+    function, as state 1 is the initial state. Therefore, the coefficients of the
+    objective function are `[1, 0, 0]`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We are now ready to tackle our problem:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As always, import the required libraries:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE42]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define the number of states and actions and the discount factor for this problem:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE43]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define the initial state distribution. In our case, it is a deterministic function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE44]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE45]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now we need to build the upper bound coefficients for action `A`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE46]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE47]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define the transition matrix for action `A`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE48]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE49]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We are ready to build the upper bound matrix for action `A`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE50]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE51]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We need to do the same for action `B`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE52]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE53]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We are ready to concatenate the results for the two actions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE54]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The only thing we have to do now is to solve the linear program using `scipy.optimize.linprog`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE55]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Let''s collect the results:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE56]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Let''s analyze the results. We can see that the value of state 2 is the lowest
+    one, as expected. The values of states 1 and 3 are very close to each other and
+    are approximately equal to 1e+2:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 2.58: Representation of the optimal value function for the MDP'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_58.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 2.58: Representation of the optimal value function for the MDP'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Now we can calculate the optimal policy by calculating the optimal action-value
+    function for each state-action pair:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE57]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE58]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Use the action-value formula to calculate the action values for each state-action
+    pair:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE59]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output is as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE60]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Reshape and use the `argmax` function to better understand the best actions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE61]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE62]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Use the following code to better understand the best actions:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE63]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE64]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'By visually inspecting the result, we can see that action `B` is the best action
+    for all states, having acquired the highest q values for all states. Thus, the
+    optimal policy decides to always take action `B`. Doing this, we will land in
+    state `3`, and we will follow the self-loop, cumulating high positive rewards:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 2.59: Representation of the optimal policy and the optimal'
+  prefs: []
+  type: TYPE_NORMAL
+- en: value function for the MDP
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_59.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.59: Representation of the optimal policy and the optimal value function
+    for the MDP'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The optimal policy is represented in *Figure 2.59*. The dotted arrows represent
+    the best action for each state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: To access the source code for this specific section, please refer to [https://packt.live/2Arr9rO](https://packt.live/2Arr9rO).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also run this example online at [https://packt.live/2Ck6neR](https://packt.live/2Ck6neR).
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this exercise, we used linear programming techniques to solve a simple MDP
+    with finite states and actions. By using the correspondence between the state-value
+    function and the action-value function, we extracted the value of each state-action
+    pair. From this knowledge, we extracted the optimal policy for this environment.
+    In this case, the best policy is always just to take action `B`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next activity, we will use the Bellman expectation equation to evaluate
+    a policy for a more complex task. Before that, let's explore the environment that
+    we are going to use in the activity, Gridworld.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Gridworld
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Gridworld is a classical RL environment with many variants. The following figure
+    displays the visual representation of the environment:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 2.60: The Gridworld environment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_60.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.60: The Gridworld environment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As you can see, the states are represented by cells, and there are 25 states
+    arranged in a 5 x 5 grid. There are four available actions: left, right, up, and
+    down. These actions move the current state in the direction of the action, and
+    the associated reward is 0 for all actions. The exceptions are as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Border cells: If an action takes the agent outside of the grid, the agent state
+    does not change, and the agent receives a reward of -1.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Good cells: ![ formula](img/B16182_02_60a.png)and ![ formula](img/B16182_02_60b.png)
+    are good cells. For these cells, each action brings the agent to states ![ formula](img/B16182_02_60c.png)
+    and ![ formula](img/B16182_02_60d.png), respectively. The associated reward is
+    +10 for going outside state ![ formula](img/B16182_02_60e.png) and +5 for going
+    outside state ![ formula](img/B16182_02_60f.png).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Bad cells: ![ formula](img/B16182_02_60g.png) and ![ formula](img/B16182_02_60h.png)
+    are bad cells. For these cells, the associated reward is -1 for all actions.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Now that we have an understanding of the environment, let's attempt an activity
+    that implements it.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Activity 2.01: Solving Gridworld'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In this activity, we will be working on the Gridworld environment. The goal
+    of the activity is to calculate and visually represent the state values for a
+    random policy, in which the agent selects each action with an equal probability
+    (1/4) in all states. The discount factor is assumed to be equal to 0.9\.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following steps will help you to complete the activity:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Import the required libraries. Import `Enum` and `auto` from `enum`, `matplotlib.pyplot`,
+    `scipy`, and `numpy`, and import `tuple` from `typing`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Define the visualization function and the possible actions for the agent.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Write a policy class that returns the action probability in a given state; for
+    a random policy, the state can be ignored.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Write an `Environment` class with a step function that returns the next state
+    and the associated reward given the current state and action.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Loop for all states and actions and build a transition matrix (width*height,
+    width*height) and a reward matrix of the same dimension. The transition matrix
+    contains the probability of going from one state to another, so the sum of the
+    first axis should be equal to 1 for all rows.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Use the matrix form of the Bellman expectation equation to compute the state
+    values for each state. You can use `scipy.linalg.solve` or directly compute the
+    inverse matrix and solve the system.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 2.61: State values of Gridworld'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_02_61.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 2.61: State values of Gridworld'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: It is useful to visualize the state values and the expected reward, so write
+    a function visually representing the calculated matrices.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The solution to this activity can found on page 689.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In this chapter, we learned the differences between MCs, MRPs, and MDPs. An
+    MC is the most straightforward description of a generic process that is composed
+    of states and a probability function that describes the transition between states.
+    An MRP includes the concept of rewards as a measure of how good a transition is.
+    The MDP is what we are most interested in; it includes the concept of actions,
+    policies, and goals.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the context of Markov processes, we introduced Bellman equations in different
+    forms and also analyzed the relationship between the state-value function and
+    the action-value function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We discussed various methods for solving MDPs, categorizing algorithms based
+    on the information they require and on the methods they use. These algorithms
+    will be presented in more detail in the following chapters. We focused on linear
+    programming, showing how it is possible to solve MDPs using these techniques.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, you will learn how to use TensorFlow 2 to implement deep
+    learning algorithms and machine learning models.
+  prefs: []
+  type: TYPE_NORMAL

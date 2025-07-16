@@ -1,0 +1,736 @@
+- en: Generative Models for IoT
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '**Machine learning** (**ML**) and **Artificial Intelligence** (**AI**) have
+    touched almost all fields related to man. Agriculture, music, health, defense—you
+    won''t find a single field where AI hasn''t left its mark. The enormous success
+    of AI/ML, besides the presence of computational powers, also depends on the generation
+    of a significant amount of data. The majority of the data generated is unlabeled,
+    and hence understanding the inherent distribution of the data is an important
+    ML task. It''s here that generative models come into the picture.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the past few years, deep generative models have shown great success in understanding
+    data distribution and have been used in a variety of applications. Two of the
+    most popular generative models are **Variational Autoencoders** (**VAEs**) and
+    **Generative Adversarial Networks** (**GANs**).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, we''ll learn about both VAEs and GANs and use them to generate
+    images. After reading this chapter, you''ll have covered the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Knowing the difference between generative networks and discriminative networks
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Learning about VAEs
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Understanding the intuitive functioning of GANs
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Implementing a vanilla GAN and using it to generate handwritten digits
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Knowing the most popular variation of GAN, the Deep Convolutional GAN
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Implementing the Deep Convolutional GAN in TensorFlow and using it to generate
+    faces
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Knowing further modifications and applications of GANs
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Introduction
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Generative models are an exciting new branch of deep learning models that learn
+    through unsupervised learning. The main idea is to generate new samples having
+    the same distribution as the given training data; for example, a network trained
+    on handwritten digits can create new digits that aren't in the dataset but are
+    similar to them. Formally, we can say that if the training data follows the distribution
+    *P*[data](*x*), then the goal of generative models is to estimate the probability
+    density function *P*[model](*x*), which is similar to *P*[data](*x*).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Generative models can be classified into two types:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Explicit generative models**: Here, the probability density function *P*[model](*x*)
+    is explicitly defined and solved. The density function may be tractable as in
+    the case of PixelRNN/CNN, or an approximation of the density function as in the
+    case of VAE.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Implicit generative models**: In these, the network learns to generate a
+    sample from *P*[model](*x*) without explicitly defining it. GANs are an example
+    of this type of generative model.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In this chapter, we'll explore VAE, an explicit generative model, and GAN, an
+    implicit generative model. Generative models can be instrumental in generating
+    realistic samples, and they can be used to perform super-resolution, colorization,
+    and so on. With time series data, we can even use them for simulation and planning.
+    And last but not least, they can also help us in understanding the latent representation
+    of data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Generating images using VAEs
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'From [Chapter 4](cb9d27c5-e98d-44b6-a947-691b0bc64766.xhtml), *Deep Learning
+    for IOT*, you should be familiar with autoencoders and their functions. VAEs are
+    a type of autoencoder; here, we retain the (trained) **Decoder** part, which can
+    be used by feeding random latent features **z** to generate data similar to the
+    training data. Now, if you remember, in autoencoders, the **Encoder** results
+    in the generation of low-dimensional features, **z**:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/dd786420-2201-4898-975f-21491a2ed0b9.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The architecture of autoencoders
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The VAEs are concerned with finding the likelihood function *p*(*x*) from the
+    latent features *z*:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/74b8ddce-feed-42ca-93ee-c4dcb085498b.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'This is an intractable density function, and it isn''t possible to directly
+    optimize it; instead, we obtain a lower bound by using a simple Gaussian prior
+    *p*(*z*) and making both **Encoder** and **Decoder** networks probabilistic:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/7cd997c5-acba-4732-9b5b-bb83ca6d0bab.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Architecture of a VAE
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This allows us to define a tractable lower bound on the log likelihood, given
+    by the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/18eabc97-25f9-481b-926c-b58f879c28d2.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'In the preceding, *θ* represents the decoder network parameters and *φ* the
+    encoder network parameters. The network is trained by maximizing this lower bound:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/70d81705-2637-40ce-803f-b8c5ac9882b8.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The first term in the lower bound is responsible for the reconstruction of the
+    input data, and the second term for making the approximate posterior distribution
+    close to prior. Once trained, the encoder network works as a recognition or inference
+    network, and the decoder network acts as the generator.
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can refer to the detailed derivation in the paper titled *Auto-Encoding
+    Variational Bayes* by Diederik P Kingma and Max Welling, presented at ICLR 2014
+    ([https://arxiv.org/abs/1312.6114](https://arxiv.org/abs/1312.6114)).
+  prefs: []
+  type: TYPE_NORMAL
+- en: VAEs in TensorFlow
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Let''s now see VAE in action. In this example code, we''ll be using the standard
+    MNIST dataset and train a VAE to generate handwritten digits. Since the MNIST
+    dataset is simple, the encoder and decoder network will consist of only fully
+    connected layers; this will allow us to concentrate on the VAE architecture. If
+    you plan to generate complex images (such as CIFAR-10), you''ll need to modify
+    the encoder and decoder network to convolution and deconvolution networks:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The first step as in all previous cases is to import all of the necessary modules.
+    Here, we''ll use the TensorFlow higher API, `tf.contrib`, to make the fully connected
+    layers. Note that this saves us from the hassle of declaring weights and biases
+    for each layer independently:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We read the data. The MNIST dataset is available in TensorFlow tutorials, so
+    we''ll take it directly from there:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We define the `VariationalAutoencoder` class; this class is the core code.
+    It contains methods for defining the encoder and decoder network. The encoder
+    generates the mean and variance of the latent feature *z* as `z_mu` and `z_sigma`
+    respectively. Using these, a sample `Z` is taken. The latent feature *z* is then
+    passed to the decoder network to generate `x_hat`. The network minimizes the sum
+    of the reconstruction loss and latent loss using the Adam optimizer. The class
+    also defines methods for reconstruction, generation, transformation (to latent
+    space), and training a single step:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'With all ingredients in place, let''s train our VAE. We do this with the help
+    of the `train` function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the following screenshot, you can see the reconstructed digits (left) and
+    generated handwritten digits (right) for a VAE with the latent space of size 10:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/786be619-47b5-41ef-a066-a0167120a6e3.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'As discussed earlier, the encoder network reduces the dimensions of the input
+    space. To make it clearer, we reduce the dimension of latent space to 2\. In the
+    following, you can see that each label is separated in the two-dimensional z-space:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/76b1c36f-0c79-4c05-ac28-458193f9e3ba.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The reconstructed and generated digits from a VAE with a latent space of the
+    dimension 2 are as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/412c3c17-5bea-4042-b19b-205bdd11b800.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The interesting thing to note from the preceding screenshot (right) is how
+    changing the values of the two-dimensional *z* results in different strokes and
+    different numbers. The complete code is on GitHub in `Chapter 07`, in the file
+    named `VariationalAutoEncoders_MNIST.ipynb`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: The layers (contrib) is a higher level package included in TensorFlow. It provides operations for
+    building neural network layers, regularizers, summaries, and so on. In the preceding code,
+    we used the `tf.contrib.layers.fully_connected()` operation , defined in [tensorflow/contrib/layers/python/layers/layers.py](https://www.github.com/tensorflow/tensorflow/blob/r1.10/tensorflow/contrib/layers/python/layers/layers.py),
+    which adds a fully connected layer. By default, it creates weights representing
+    a fully connected interconnection matrix, initialized by default using the Xavier
+    initialization. It also creates biases initialized to zero. It provides an option
+    for choosing normalization and activation function as well.
+  prefs: []
+  type: TYPE_NORMAL
+- en: GANs
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: GANs are implicit generative networks. During a session at Quora, Yann LeCun,
+    Director of AI Research at Facebook and Professor at NYU, described GANs as *the
+    most interesting idea in the last 10 years in ML*. At present, lots of research
+    is happening in GANs. Major AI/ML conferences conducted in the last few years
+    have reported a majority of papers related to GANs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'GANs were proposed by Ian J. Goodfellow and Yoshua Bengio in the paper *Generative
+    Adversarial Networks* in the year 2014 ([https://arxiv.org/abs/1406.2661](https://arxiv.org/abs/1406.2661)).
+    They''re inspired by the two-player game scenario. Like the two players of the
+    game, in GANs, two networks—one called the **discriminative network** and the
+    other the **generative network**—compete with each other. The generative network
+    tries to generate data similar to the input data, and the discriminator network
+    has to identify whether the data it''s seeing is real or fake (that is, generated
+    by a generator). Every time the discriminator finds a difference between the distribution
+    of true input and fake data, the generator adjusts its weights to reduce the difference.
+    To summarize, the discriminative network tries to learn the boundary between counterfeit
+    and real data, and the generative network tries to learn the distribution of training
+    data. As the training ends, the generator learns to produce images exactly like
+    the input data distribution, and the discriminator can no longer differentiate
+    the two. The general architecture of a GAN is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/ea57cdf9-8c57-41a7-ba6d-0b89d7ca7c72.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Architecture of GANs
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s now delve deep into how GANs learn. Both the discriminator and generator
+    take turns to learn. The learning can be divided into two steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here the **Discriminator**, *D*(*x*), learns. The **Generator**, *G*(*z*),
+    is used to generate **Fake Images** from random noise **z** (which follows some
+    **Prior** distribution *P*(*z*)). The **Fake Images** from the **Generator** and
+    the **Real Images** from the training dataset are both fed to the **Discriminator**
+    and it performs supervised learning trying to separate fake from real. If *P*[data](*x*)
+    is the training dataset distribution, then the **Discriminator Network** tries
+    to maximize its objective so that *D*(*x*) is close to 1 when the input data is
+    real, and close to 0 when the input data is fake. This can be achieved by performing
+    the gradient ascent on the following objective function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/e5e9e9e9-9f1c-49c5-82dd-b419df342f52.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'In the next step, the **Generator Network** learns. Its goal is to fool the
+    **Discriminator Network** into thinking that generated *G*(*z*) is real, that
+    is, force *D*(*G*(*z*)) close to 1\. To achieve this, the **Generator Network**
+    minimizes the objective:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/8310f3e2-5c6d-4d72-9e72-0f2539a3d99d.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The two steps are repeated sequentially. Once the training ends, the discriminator
+    is no longer able to discriminate between real and fake data and the generator
+    becomes a pro at creating data very similar to the training data. Well, it''s
+    easier said than done: as you experiment with GANs, you''ll find that the training
+    isn''t very stable. It''s an open research issue, and many variants of GAN have
+    been proposed to rectify the problem.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Implementing a vanilla GAN in TensorFlow
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In this section, we''ll write a TensorFlow code to implement a GAN, as we learned
+    in the previous section. We''ll use simple MLP networks for both the discriminator
+    and generator. And for simplicity, we''ll use the MNIST dataset:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As always, the first step is to add all of the necessary modules. Since we''ll
+    need to access and train the generator and discriminator parameters alternatively,
+    we''ll define our weights and biases in the present code for clarity. It''s always
+    better to initialize weights using the Xavier initialization and biases to all
+    zeros. So, we also import from TensorFlow a method to perform Xavier initialization,
+    from `tensorflow.contrib.layers import xavier_initializer`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s read the data and define hyperparameters:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We define the training parameters for both generator and discriminator. We
+    also define the placeholders for input `X` and latent `Z`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now that we have the placeholders and weights in place, we define functions
+    for generating random noise from `Z`. Here, we''re using a uniform distribution
+    to generate noise; people have also experimented with using Gaussian noise—to
+    do so, you just change the random function from `uniform` to `normal`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We construct the discriminator and generator networks:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We''ll also need a helper function to plot the handwritten digits generated.
+    The following function plots 25 samples generated in a grid of 5×5:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, we define the TensorFlow operations to generate a sample from the generator
+    and a prediction from the discriminator for both fake and real input data:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we define cross-entropy losses for the generator and discriminator network,
+    and alternatively, minimize them, keeping the other weight parameters frozen:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Finally, let''s perform the training within a TensorFlow session:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the following screenshot, you can see how the loss for both the generative
+    and discriminatives network varies:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/46606566-7484-44ab-88c4-36848eeae909.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Loss for both generative and discriminatives network
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s also see the handwritten digits generated at different epochs:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/877d7611-dfc9-411e-87e9-9b024bde1493.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Handwritten digits
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'While the handwritten digits are good enough, we can see that a lot of improvements
+    can be made. Some approaches used by researchers to stabilize the performance
+    are as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Normalize the input images from (0,1) to (-1,1). And, instead of the sigmoid
+    as the activation function for the final output of the generator, use the tangent
+    hyperbolic activation function.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Instead of minimizing the generator loss minimum `log 1-D`, we can maximize
+    the loss maximum `log D`; this can be achieved in TensorFlow by simply flipping
+    the labels while training the generator, for example (convert real into fake and
+    fake into real).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Another approach is to store previously generated images and train the discriminator
+    by choosing randomly from them. (Yes, you guessed right—it's similar to the experience
+    replay buffer we learned in [Chapter 6](01e534ff-b0a2-4b5e-bc9a-fd65c527ac7d.xhtml),
+    *Reinforcement Learning for IoT*.)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: People have also experimented with updating the generator or discriminator only
+    if their loss is above a certain threshold.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Instead of the ReLU activation function for the hidden layers of the discriminator
+    and generator, use Leaky ReLU.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Deep Convolutional GANs
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In 2016, Alec Radford *et al.* proposed a variation of the GAN called the **Deep
+    Convolutional GAN** (**DCGAN**). (The link to the full paper is: [https://arxiv.org/abs/1511.06434](https://arxiv.org/abs/1511.06434).)
+    They replaced the MLP layers with convolutional layers. They also added batch
+    normalization in both the generator and discriminator networks. We''ll implement
+    DCGAN here on a celebrity images dataset. You can download the ZIP file, `img_align_celeba.zip`,
+    from [http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html).
+    We make use of the `loader_celebA.py` file we made in [Chapter 2](4351f888-1bf0-4945-a8a6-ddd71bd464dd.xhtml),
+    *Data Access and Distributed Processing for IoT,* to unzip and read the images:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We''ll import statements for all of the modules we''ll be requiring:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We use `loader_celebA.py` to unzip `img_align_celeba.zip`. Since the number
+    of images is very high, we use the `get_batches` function defined in this file
+    to generate batches for training the network:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the following, you can see the dataset images:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/39ae09d7-88db-49d3-8484-11960687886b.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'We define the discriminator network. It consists of three convolutional layers
+    with `64`, `128`, and `256` filters respectively, each of size 5×5\. The first
+    two layers use a stride of `2` and the third convolutional layer uses a stride
+    of `1`. All three convolutional layers use `leakyReLU` as the activation function. Each
+    convolutional layer is also followed by a batch normalization layer. The result
+    of the third convolutional layer is flattened and passed to the last fully connected
+    (dense) layer with the sigmoid activation function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The generator network is the reverse of the discriminator; the input to the
+    generator is first fed to a dense layer with 2×2×512 units. The output of the
+    dense layer is reshaped so that we can feed it to the convolution stack. We use
+    the `tf.layers.conv2d_transpose()` method to get the transposed convolution output.
+    The generator has three transposed convolutional layers. All of the layers except
+    the last convolutional layer have `leakyReLU` as the activation function. The
+    last transposed convolution layer uses the tangent hyperbolic activation function
+    so that output lies in the range (`-1` to `1`):'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We define functions to calculate the model loss; it defines both the generator
+    and discriminator loss and returns them:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We next need to define optimizers to make the discriminator and generator learn
+    sequentially. To achieve this, we make use of `tf.trainable_variables()` to get
+    a list of all training variables, and then first optimize only the discriminator
+    training variables, and then the generator training variables:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, we have all of the necessary ingredients to train the DCGAN. It''s always
+    good to keep an eye how the generator has learned, so we define a helper function
+    to display the images generated by the generator network as it learns:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Finally, comes the training part. Here, we use the `ops` defined previously
+    to train the DCGAN, and the images are fed to the network in batches:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s now define the parameters of our data and train it:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'After each batch, you can see that the generator output is improving:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/4e8528a7-4430-4938-bc2c-93cddef80907.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: DCGAN generator output as learning progresses
+  prefs: []
+  type: TYPE_NORMAL
+- en: Variants of GAN and its cool applications
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the last few years, a large number of variants of GANs have been proposed.
+    You can access the complete list of different variants of GAN from the GAN Zoo
+    GitHub: [https://github.com/hindupuravinash/the-gan-zoo](https://github.com/hindupuravinash/the-gan-zoo).
+    In this section, we'll list some of the more popular and successful variants.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Cycle GAN
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'At the beginning of the 2018, the Berkeley AI research lab published a paper
+    entitled *Unpaired Image-to-Image Translation using Cycle-Consistent Adversarial
+    Networks *(arXiv link: [https://arxiv.org/pdf/1703.10593.pdf](https://arxiv.org/pdf/1703.10593.pdf)).
+    This paper is special not only because it proposed a new architecture, CycleGAN,
+    with improved stability, but also because they demonstrated that such an architecture
+    can be used for complex image transformations. The following diagram shows the
+    architecture of a cycle GAN; the two sections highlight the **Generator** and
+    **Discriminators** playing a role in calculating the two adversarial losses:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/d5036aa6-77cf-41c1-8828-11436977198e.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The architecture of CycleGAN
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The CycleGAN consists of two GANs. They are trained on two different datasets, *x*∼*P*[data](*x*)
+    and *y*∼*P*[data](y). The generator is trained to perform the mappings, namely, *G[A]:
+    x→y* and *G[B]: y→x* respectively. Each discriminator is trained so that it can
+    differentiate between the image *x* and transformed image *G[B](y)*, hence resulting
+    in the adversary loss functions for the two transformations, defined as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/6f374cc4-833a-4d25-b3df-960cdac65753.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'And, the second is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/f1ddf7ab-4912-476c-a8e0-71f929e061f7.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The generators of the two GANs are connected to each other in a cyclic fashion,
+    so that if the output of one is fed to another and the corresponding output fed
+    back to the first one, we get the same data. Let''s make it clearer with an example;
+    let''s say the **Generator A** (**G[A]**) is fed an image *x*, so the output is
+    a transformation G[A](*x*). This transformed image now is fed to **Generator B**
+    (**G[B]**) *G[B](G[A](x))≈x* and the result should be the initial image *x*. Similarly,
+    we shall have G[A](G[B](*y*)≈*y*. This is made possible by introducing a cyclic
+    loss term:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/bbc7c74a-a887-4084-82d7-bb139d4ce839.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Hence, the net objective function is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/ca90af46-a700-49ca-beb6-5b27653e1502.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Here, *λ* controls the relative importance of the two objectives. They also
+    retained previous images in an experience buffer to train the discriminator. In
+    the following screenshot, you can see some of the results obtained from the CycleGANs
+    as reported in the paper:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/63324eaf-fd29-46d0-a7cc-02b9c1f9e7fb.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Results of CycleGAN (taken from the original paper)
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The authors showed that CycleGANs can be used for the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Image transformation**: Such as changing horses to zebra and vice versa'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Enhancing the resolution**: The CycleGAN, when trained by a dataset consisting
+    of low-resolution and super-resolution images, could perform super-resolution
+    when given with low-resolution images'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Style transfer**: Given an image, it can be transformed into different painting
+    styles'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Applications of GANs
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'GANs are indeed interesting networks; besides the applications you''ve seen,
+    GANs have been explored in many other exciting applications. In the following,
+    we list a few:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Music generation**: MIDINet, a convolutional GAN, has been demonstrated to
+    generate melodies. You can refer to the paper here: [https://arxiv.org/pdf/1703.10847.pdf](https://arxiv.org/pdf/1703.10847.pdf).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Medical anomaly detection**: AnoGAN is a DCGAN shown by Thomas Schlegl et
+    al*.* to learn a manifold of normal anatomical variability. They were able to
+    train the network to label anomalies on optical coherence tomography images of
+    the retina. If the work interests you, you can see the related paper on arXiv
+    at [https://arxiv.org/pdf/1703.05921.pdf](https://arxiv.org/pdf/1703.05921.pdf).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Vector arithmetic on faces using GANs**: In the joint research paper by Indico
+    Research and Facebook, they demonstrated that it''s possible to use GANs and perform
+    image arithmetic. For example, *Man with glasses*—*Man without glasses* + *Woman
+    without glasses* = *Woman with glasses*. It''s an interesting paper and you can
+    read more about it on Arxiv ([https://arxiv.org/pdf/1511.06434.pdf](https://arxiv.org/pdf/1511.06434.pdf)).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Text to image synthesis**: GANs have been demonstrated to generate images of
+    birds and flowers from human-written textual descriptions. The model uses DCGAN
+    along with a hybrid character level convolutional recurrent network. The details
+    of the work are given in the paper, *Generative Adversarial Text to Image Synthesis*.
+    The link to the paper is [https://arxiv.org/pdf/1605.05396.pdf](https://arxiv.org/pdf/1605.05396.pdf).[ ](https://arxiv.org/pdf/1605.05396.pdf)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: This was an interesting chapter, and I hope you enjoyed reading it as much as
+    I enjoyed writing it. It's at present the hot topic of research. This chapter
+    introduced generative models and their classification, namely implicit generative
+    models and explicit generative models. The first generative model that was covered
+    is VAEs; they're an explicit generative model and try to estimate the lower bound
+    on the density function. The VAEs were implemented in TensorFlow and were used
+    to generate handwritten digits.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This chapter then moved on to a more popular explicit generative model: GANs.
+    The GAN architecture, especially how the discriminator network and generative
+    network compete with each other, was explained. We implemented a GAN using TensorFlow
+    for generating handwritten digits. This chapter then moved on to the more successful
+    variation of GAN: the DCGAN. We implemented a DCGAN to generate celebrity images.
+    This chapter also covered the architecture details of CycleGAN, a recently proposed
+    GAN, and some of its cool applications.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: With this chapter, we mark the end of part one of this book. Till now, we concentrated
+    on different ML and DL models, which we'll require to understand our data and
+    use it for prediction/classification, and other tasks. From the next chapter onward,
+    we'll be talking more about the data itself and how we can process the data in
+    the present IoT-driven environment.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we'll move toward distributed processing, a necessity when
+    dealing with a large amount of data, and explore two platforms that offer distributed
+    processing.
+  prefs: []
+  type: TYPE_NORMAL

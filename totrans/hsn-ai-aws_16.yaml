@@ -1,0 +1,836 @@
+- en: Model Accuracy Degradation and Feedback Loops
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we will learn about the concept of model performance deterioration
+    using an example of ad-click conversion. Our goal is to identify ad-clicks that
+    result in mobile app downloads. In this case, the ads are for marketing mobile
+    apps.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To address the deterioration of model performance, we will learn about **feedback
+    loops**, pipelines in which we retrain models as new data becomes available and
+    assess model performance. Consequently, trained models are constantly kept up
+    to date with the changing patterns in input or training data. The feedback loop
+    is very important when it comes to making sound business decisions based on model
+    output. If a trained model does not adequately capture patterns in dynamic data,
+    it is likely to produce sub-optimal results.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will cover the following topics in this chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Monitoring models for degraded performance
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Developing a use case for evolving training data—ad-click conversion
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Creating a machine learning feedback loop
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: This book's GitHub repository, which contains the source code for this chapter,
+    can be found at [https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services](https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Monitoring models for degraded performance
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In real-world scenarios, the performance of deployed machine learning models
+    degrades over time. To explain this in the case of fraud detection, the models
+    may not capture evolving fraudulent behaviors. Because fraudsters adapt their
+    methods and processes over time to game systems, it is important to retrain fraud
+    detection engines on the latest and greatest data (reflecting anomalous behavior)
+    available. Take a look at the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/32953d5b-29e3-4a6b-bd0a-5497eae93a7b.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The preceding diagram shows how models degrade in terms of predictive performance
+    when they are deployed in production. As another example, in the case of recommender
+    systems, customer preferences keep changing based on a number of contextual and
+    environmental factors. Therefore, it becomes important for personalization engines
+    to capture such preferences and present the most relevant suggestions to customers.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Developing a use case for evolving training data – ad-click conversion
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Fraud risk is prevalent in almost every industry, for example, airlines, retail,
+    financial services, and so on. The risk is especially high in online advertising.
+    For companies investing in digital marketing, it is important to contain costs
+    from fraudulent clicks on ads. Online advertising can become cost-prohibitive
+    if fraudulent behavior is rampant across online ad channels. In this chapter,
+    we will look at ad-click data for mobile apps and predict which clicks will likely
+    yield app downloads. The outcome of this prediction exercise will allow mobile
+    app developers to efficiently allocate online marketing dollars.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Ad-click behavior is very dynamic. This behavior changes across time, location,
+    and ad channels. A fraudster can develop software to automate clicking on mobile
+    app ads and conceal the identity of clicks—clicks can be generated from multiple
+    IP addresses, devices, operating systems, and channels. To catch this dynamic
+    behavior, it is important to retrain classification models to cover new and emerging
+    patterns. Implementing a feedback loop becomes critical if we wish to accurately
+    determine which clicks will result in app downloads. For instance, clicks on ads
+    for the Helix Jump app may not result in app downloads if these clicks are generated
+    during the eleventh hour, are from the same IP address, and are a few minutes
+    apart. However, if these clicks are produced during business hours, are from different
+    IP addresses, and are spread across the day, then they will result in app downloads.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following diagram describes ad-click behavior, along with a binary outcome—whether
+    the mobile app is downloaded or not:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/0add18fb-1208-4d27-a39e-b35cc99141df.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Depending on how the ad is clicked by the user—whether a device, operating system,
+    or a channel is used, when it is clicked, and for what app—the click may or may
+    not convert into a mobile app download. We will use this dynamic click behavior
+    to illustrate the importance of a feedback loop in machine learning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating a machine learning feedback loop
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this section, we will demonstrate how retraining a classification model as
+    new data becomes available will enhance model performance; that is, it will predict
+    which ad-clicks will result in mobile app downloads.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We have created a synthetic/artificial dataset simulating 2.4 million clicks
+    across four days (Monday through Thursday; July 2 to July 5 of 2018). The dataset
+    can be found here: [https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/tree/master/Ch12_ModelPerformanceDegradation/Data](https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/tree/master/Ch12_ModelPerformanceDegradation/Data)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The dataset contains the following elements:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`ip`: the IP address of the click'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`app`: The type of mobile app'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`device`: The type of device the click is coming from (for example, iPhone
+    6 plus, iPhone 7)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`os`: The type of operating system the click is coming from'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`channel`: The type of channel the click is coming from'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`click_time`: The timestamp of the click (UTC)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`is_downloaded`: The target that is to be predicted, indicating the app was
+    downloaded'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Having access to the latest and greatest data is a challenge. Data lake and
+    data warehouse environments typically lag by a day (24 hours). When predicting
+    whether clicks that occurred toward the end of the day on Thursday will result
+    in app downloads, it is important to have current data up to and including Thursday,
+    excluding the clicks that we are scoring, for model training.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To understand the significance of a feedback loop, we will train a tree-based
+    model (XGBoost) to predict the probability of an ad-click (related to an app)
+    that results in the app being download. We will run three different experiments:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Experiment 1**: Train on the click data for Monday and predict/score a portion
+    of the clicks from Thursday (clicks from a later part of the day).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Experiment 2**: Let''s assume that we have more data available in the data
+    lake environment to retrain the classification model. We will train on the click
+    data for Monday, Tuesday, and Wednesday and predict/score a portion of the clicks
+    from Thursday.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Experiment 3**: Similarly, we will train on click data for Monday, Tuesday,
+    Wednesday and part of Thursday and predict/score a portion of the clicks from
+    Thursday.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'With each iteration or experiment, you will see the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The classification model's performance measured by **area under curve** (**AUC**)
+    increases. AUC is measured by plotting the true positive rate against the false
+    positive rate.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: That a random classifier has an AUC of 0.5.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For an optimal model, the AUC should be closer to 1.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In other words, the true positive rate (the proportion of the app downloads
+    that you've correctly identified) should be higher than the false positive rate
+    (the proportion of clicks that did not result in any app downloads but has been
+    identified as yielding app downloads).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Now we need to load and explore the data to determine the best indicators for
+    predicting app downloads.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Exploring data
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Amazon SageMaker offers built-in tools and capabilities for creating machine
+    learning pipelines that incorporate feedback loops. Since machine learning pipelines
+    were covered in [Chapter 8](16e50aca-401b-47b0-87c3-34cc0346e66e.xhtml), *Creating
+    Machine Learning Inference Pipelines*, here, we will focus on the significance
+    of incorporating a feedback loop. Let''s begin:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Install the relevant Python packages and set the locations for the training,
+    validation, and model outputs on the S3 bucket, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Read the prepared synthetic dataset from the local SageMaker instance, as shown
+    in the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will now explore the data so that we can prepare features that indicate
+    the following:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**Where** the ad-clicks are coming from, that is, `ip`, `device`, and `os`'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**When** they come, that is, `day` and `hr`'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**How** they come, that is, `channel`'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: A combination of where, when, and how
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Create chunks of data for each of the experiments. We will use the `pandas`
+    library to aggregate ad-clicks by days in the experiment, as shown in the following
+    code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: Let's understand whether the most frequently occurring factors, such as the
+    type of app, device, channel, operating system, and IP address the click is originating
+    from, result in app downloads.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Popular apps, which are defined by the number of relevant ad-clicks, are not
+    the same when an app is not downloaded as opposed to when it is downloaded. In
+    other words, although certain mobile app ads are frequently clicked, they are
+    not necessarily those that are downloaded.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Top Apps for Monday**: Let''s plot the distribution of the number of ad-clicks
+    by app when apps are downloaded as opposed to when they aren''t, as shown in the
+    following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'For the definition of the `plot_clickcnt_ftr()` function from this code, please
+    refer to the associated source code for this chapter. The first bar chart shows
+    when apps are not downloaded, while the second one reflects when apps are downloaded:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/c9781558-870a-43b9-9265-87981e467763.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: As we saw previously, apps 12, 3, 9, and 15 are the top 4 apps in terms of apps
+    that aren't downloaded. On the other hand, apps 19, 34, 29, and 9 are popular
+    apps when ad-clicks result in app downloads.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Top Devices for Monday**: Now let''s plot the distribution of the number
+    of ad-clicks by device when apps are downloaded as opposed to when they aren''t,
+    as shown in the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The same theme holds true; popular devices when clicks do not result in app
+    downloads are different from those when clicks result in app downloads, as shown
+    in the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/1eaedb61-1d2b-4f07-a0cd-cc6fc496fc4a.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Even in terms of the operating system and the channel, the same theme is sustained.
+    Therefore, it seems reasonable to note that ad-clicks coming from certain devices,
+    operating systems, and channels for certain apps are indicative of app downloads.
+    It may also be possible that clicks originating from a popular channel, operating
+    system, or device for popular apps may have a higher incidence of being converted
+    into app downloads. Popular is synonymous with a high volume of clicks.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating features
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Now that we have explored the data, it is time to create some features. Let's
+    begin by looking at categorical variables in the data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The unique IDs of each of the category columns, namely `app`, `device`, `os`,
+    and `channel`, are not useful in and of themselves. For a tree-based model, for
+    example, a lower app ID is not better than a higher app ID or vice versa in terms
+    of predicting app downloads. Therefore, we will calculate the frequency of each
+    of these categorical variables, as shown in the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: First, we create a list of categorical variables called `cat_ftrs`*.* We do
+    this for each of the categorical variables.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We calculate the frequency by dividing the number of clicks originating from
+    the variable by the total number of clicks in the dataset.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'For each of these experiments, we call the `encode_cat_ftrs()` function to
+    create frequency-related features for all the categorical variables, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: Now let's look at time-related features. From the `click_time` column, we'll
+    create a variety of time-related features, that is, `day`, `hour`, `minute`, and
+    `second`. These features may help uncover click patterns given the day of the
+    week and hour of the day.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'From the `datetime` column, we extract `day`, `hour`, `minute`, and `second`,
+    as shown in the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: We use the `dt` accessor object of the datetime column to obtain time-related
+    features. As with calling `encode_cat_ftrs`on each of the datasets related to
+    the experiments, we will call `create_date_ftrs` on each of them.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Finally, let''s create features that reflect `when` and `where` the clicks
+    are coming from. Therefore, we will count clicks via the following:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: IP Address, Day, and Hour
+  prefs:
+  - PREF_UL
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: IP Address, Channel, and Hour
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: IP Address, Operating System, and Hour
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: IP Address, App, and Hour
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: IP Address, Device, and Hour
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For information on the function used to count clicks by each of the combinations,
+    `count_clicks`, please refer to the source code associated with this chapter.
+    `count_clicks`is called on each of the datasets pertaining to the experiments.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now let''s take a look at the prepared dataset after feature engineering:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/504c654d-6de0-4bc3-a0fd-b64c7a31ad15.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'As you can see, we have all the engineered features:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/0022597d-d201-4c31-a608-a90ba71bdafd.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'In the preceding screenshot, we have:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`day`, `hour`, `minute`, and `second` for each ad-click'
+  prefs:
+  - PREF_UL
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`app`, `device`, operating system (`os`), and channel frequency'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Number of clicks by when (`time`), where (`os`, `device`, and `ip` address),
+    and how (`channel`)
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Now let''s see how all of these features are related to each other. We will
+    use a correlation matrix to view the relationship among all the attributes, as
+    shown in the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following is part of the correlation matrix generated by the `corr`function
+    of the `pandas` DataFrame:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/daddaa01-eacf-4a4f-9b09-4788cb89961f.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: As we can see, the type of app, the proportion of clicks originating from the
+    device and channel, and the proportion of clicks for an app are key indicators
+    that are predictive of app downloads. Plotting a heatmap for each of the experiments
+    also indicates that these observations are valid. Please refer to the source code
+    associated with this chapter for more information.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Using Amazon's SageMaker XGBoost algorithm to classify ad-click data
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: To understand the significance of a feedback loop, we will train a tree-based
+    model (XGBoost) to predict the probability that an ad-click results in an app
+    download.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For all of these experiments, we have one test dataset. This contains ad-clicks,
+    along with apps that were downloaded during the later part of the day on Thursday—the
+    last 120,000 clicks from the day. Let''s get started:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will select 5% of the clicks from the third dataset, which contains clicks
+    from Monday, Tuesday, Wednesday, and Thursday. The third dataset is sorted by
+    time, so we pick the last 120,000 clicks that were generated on Thursday, as shown
+    in the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: We will also need to rearrange the datasets for all the experiments, so `is_downloaded`,
+    our target variable, is the first column in the dataset. This format is required
+    by the SageMaker XGBoost algorithm.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Now we need to rearrange the test dataset, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: For each experiment, we will start by creating training and validation datasets.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'We will split the current experiment data into training and validation sets,
+    as shown in the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: We use NumPy's split function to do so. 70% of the data is allocated for training,
+    while 30% is allocated for validation.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Once we have the training, validation, and test datasets, we upload them to
+    S3\. Please refer to the source code associated with this chapter for details.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'It is time to prepare for model training. To train the XGBoost model, the following
+    hyperparameters are defined (only a few are reported). For detailed information,
+    please refer to the AWS docs ([https://docs.aws.amazon.com/sagemaker/latest/dg/xgboost_hyperparameters.html](https://docs.aws.amazon.com/sagemaker/latest/dg/xgboost_hyperparameters.html)):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`max_depth`: The maximum number of levels between the tree''s root and a leaf.'
+  prefs:
+  - PREF_UL
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`eta`: Learning rate.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`gamma`: The node is only split when the resulting split gives a positive reduction
+    in the loss function. Gamma specifies the minimum loss reduction required to make
+    a split.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`min_child_weight`: This is used to control tree complexity and the minimum
+    sum of instance weight needed in a child. If this threshold is not met, then tree
+    partitioning will stop.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`subsample`: The fraction of observations to be randomly sampled for each tree.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`colsample_bytree`: The fraction of columns to be randomly sampled for each
+    tree.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`scale_pos_weight`: The dataset is highly imbalanced, where we have a large
+    number of clicks (> 90%) that did not result in app downloads. To account for
+    this, the `scale_pos_weight` hyperparameter is used to give clicks that resulted
+    in app downloads more weight. These clicks are heavily underrepresented in the
+    dataset.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`alpha`: A regularization parameter to prevent overfitting. Alpha is used to
+    implement L1 regularization, where the sum of the weights of leaves is part of
+    the regularization term (of the objective function).'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`lambda`: This is used to control L2 regularization, where the sum of the squares
+    of weights is part of the regularization term.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Then, we define some of the hyperparameters of the XGBoost algorithm, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: While most of the default values for the hyperparameters are accepted, some
+    are explicitly defined here. For instance, `min_child_weight` is set to `6`, while
+    the default value is `1`. This means that a leaf node should have a sizeable number
+    of instances or data points before it can be split further. These values can be
+    tuned for the data in question. **Hyperparameter optimization** (**HPO**), from
+    SageMaker, can be used to automate the process of finding optimal values for hyperparameters.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will now fit the XGBoost algorithm to the experiment data (training and
+    validation), as shown in the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: The `fit()`function of the XGBoost estimator module (SageMaker Python SDK) is
+    invoked for model training. The location of both the training and validation datasets
+    is passed as an input for model training.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once training concludes, the trained model will be persisted to the location
+    specified (in the S3 bucket). We will need to repeat the same training steps for
+    each of the experiments. In the end, we will have three trained models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Evaluating model performance
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this section, we will evaluate the performance of the three trained models.
+    Our hypothesis is that the first model, which was trained on clicks from Monday
+    and Tuesday, is less predictive of app downloads on the later part of Thursday
+    compared to the second and third models. Similarly, the performance of the second
+    model, which was trained on clicks from Monday through Wednesday, should be less
+    than that of the third model, which was trained on clicks from Monday through
+    the majority of Thursday.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will begin by analyzing the features that are deemed important for each
+    of the models, as shown in the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The preceding code is explained as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, we retrieve the location of the trained model for each of the three experiments.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Then, we pass the location to the `plot_ftr_imp()` function to create a diagram
+    showing feature importance. To plot feature importance, the function does the
+    following:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Extracts the trained model from the `.tar` file
+  prefs:
+  - PREF_UL
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Loads the XGBoost model
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Calls the `plot_importance()` function on the loaded model
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The following diagram shows feature importance for the three trained models,
+    starting with the first model on the left:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '| ![](img/d4efc18f-145a-42f1-a0a9-174774a46d58.png) | ![](img/82248f02-45d1-45d2-8df7-332989aa7f6e.png)
+    | ![](img/69c54e56-120d-47c4-851a-3c55e12d5ecc.png) |'
+  prefs: []
+  type: TYPE_TB
+- en: '| ![](img/6fc43f97-7778-4b7e-9f3e-01cfe317c2c5.png) | ![](img/a87d63c2-f943-4198-aca4-b02963191d94.png)
+    | ![](img/82855b16-6eb2-4123-9bf4-4e4d2078aacb.png) |'
+  prefs: []
+  type: TYPE_TB
+- en: 'As we can see, most key predictors have maintained their importance as more
+    data became available, while the order of importance changed. To see how the features
+    look when mapped, take a look at the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/3754c4e4-d804-42c7-b980-5f0b7b2aa52f.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: XGBoost numbers the features from the input dataset, where the first column
+    is the target variable, while features are ordered from the second column onward.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now we will evaluate performance across all three experiments. Let''s deploy
+    all three trained models as endpoints as shown in the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding code, for each of the experiments, to deploy a trained model
+    as an endpoint, we will do the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, we will retrieve the trained model from the location (S3 bucket) where
+    it is saved.
+  prefs:
+  - PREF_UL
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Then, we will create a SageMaker model by passing the trained model, a Docker
+    image of the XGBoost algorithm, and SageMaker's execution role.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Finally, we will invoke the `deploy` method of the newly created XGBoost Model
+    object. We pass in the number of EC2 instances to provision, along with the type
+    of instance, to the deploy function.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The following screenshot shows the endpoints that were created after the trained
+    models were deployed:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/473a4807-67d2-41fc-bc96-66f1f5bc7963.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: To view the deployed models, navigate to SageMaker service and expand the Inference
+    section. Under this section, click on Endpoints to view endpoint names, the creation
+    time, the status, and the last updated time.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Now it is time to predict app downloads for the last 120,000 clicks on Thursday.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will create a `RealTimePredictor` object for this, as shown in the following
+    code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: The `RealTimePredictor` object is created by passing the name of the `endpoint`,
+    the current `sagemaker` session, and the `content` type.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Collect the `predictions` for the test data, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: As we can see, we invoke the predict method of `RealTimePredictor` (the SageMaker
+    Python SDK) by passing the first 10,000 data clicks.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We are now ready to compare the predicted results with the actual app downloads.
+    We use the `confusion_matrix` module from the `sklearn` library to obtain the
+    true positive rate and the false positive rate. We also use the `roc_auc_score`
+    and `accuracy_score` modules from `sklearn` to compute the area under curve and
+    accuracy, respectively.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following is the output for each of the experiments:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/45690c8f-7dfd-4b86-9629-414f9fd6fbf6.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The following is the AUC, which shows the performance of all the experiments:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/8250dcc2-b8fc-42ad-9370-750d81170f3c.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: As we can see **Experiment2** performed better than **Experiment1**, while **Experiment3**
+    performed the best since it had the highest **AUC**. In **Experiment3**, the true
+    positive rate is higher than the false positive rate relative to **Experiment1**
+    and **Experiment2**. Accuracy remained the same across all the experiments. Since
+    AUC is independent of the underlying class distribution of the test dataset, it
+    is an important and key metric when it comes to measuring the model's discriminative
+    power. On the other hand, metrics such as accuracy, recall, and precision are
+    likely to change as the test set changes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Therefore, after the trained model is deployed in production, it is important
+    to seek feedback while the model is in operation. As patterns in data change and
+    as new data becomes available, it becomes important to retrain and tune models
+    for optimal performance.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we have learned why it is important to monitor models for degraded
+    performance. To illustrate this idea, we used a synthetic dataset that captures
+    ad-click behavior for mobile app downloads. First, we explored the data to understand
+    the relationship between app downloads and ad-clicks. Then, we created features
+    by aggregating existing click attributes in multiple dimensions. Next, we created
+    three different datasets on which to run three experiments to explain the idea
+    of model performance deterioration as new data becomes available. Next, we fitted
+    the XGBoost model for each of the experiments. Finally, we evaluated performance
+    across all the experiments to conclude that the model with the best performance
+    is the one that took into account the latest and greatest click behavior.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Consequently, implementing a feedback loop in a machine learning life cycle
+    is critical to maintaining and enhancing model performance and adequately addressing
+    business objectives, whether it is for fraud detection or capturing user preferences
+    for recommendations.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, which is the final one, we'll summarize all the concepts
+    we've learned about in this book and highlight some machine and deep learning
+    services from Amazon Web Services that are worth exploring.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Further reading
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Refer to the following link for more information on model accuracy degradation
+    and feedback loops: [https://docs.aws.amazon.com/sagemaker/latest/dg/xgboost_hyperparameters.html](https://docs.aws.amazon.com/sagemaker/latest/dg/xgboost_hyperparameters.html).'
+  prefs: []
+  type: TYPE_NORMAL

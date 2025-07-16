@@ -1,0 +1,919 @@
+- en: '3'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Model Preparation
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, you’ll learn how to decide which model will be most useful
+    to serve as a basis for your pretraining regime. You’ll learn how to think about
+    the size of the model in parameters, along with the key loss functions and how
+    they determine performance in production. Finally, you’ll combine the scaling
+    laws with the expected size of your dataset to select ceiling and floor model
+    sizes that you’ll use to guide your experiments.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, we will cover the following topics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Finding your best base model
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Finding your pretraining loss function
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Solving for your model size
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Planning future experiments
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Finding your best base model
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'At this point in the book, you should have learned how to pick your use case,
+    how to find a dataset, and how to compare that with research datasets. You should
+    have particularly learned how to compare that dataset with those available in
+    the open source community. Now comes the fun part: picking your model!'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Most likely, you already have a few candidates in mind. If you’re working with
+    natural language, you’re probably thinking about something in the family of **Generative
+    Pretrained Transformers** (**GPT**) for a generative use case, BERT for classification,
+    or T5 for something akin to translation. For vision, you may be looking at CoCa
+    *(1)*, CLIP *(2)*, or a jointly masked vision and language model *(3)*. For multimodal
+    datasets, you might pick one straight from the vision examples or something much
+    more unique based on your specific use case.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In [*Chapter 1*](B18942_01.xhtml#_idTextAnchor016), *An Introduction to Pretraining
+    Foundation Models*, we briefly introduced some of these state-of-the-art models
+    and dove into the core transformer-based neural network architecture that makes
+    them tick. Let’s briefly recap each of these models and reinforce why they matter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Encoders**. Broadly speaking, an encoder architecture takes a lengthy input,
+    such as a long sentence or a long embedding, and compresses it into something
+    denser. An encoder might take an input of length 500 and, through a series of
+    neural networks, compress this into an output of length 50\. Encoder-only models
+    were popularized by the BERT model and all of its subsequent relatives, including
+    DeBERTa, RoBERTa, XLM, AlBERT, and so on. If you’re curious, DeBERTa is included
+    here because, despite its updated attention mechanism, which uses a disentangling
+    objective function with a novel enhanced mask decoder, it is still generally appropriate
+    for classification tasks.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Important note
+  prefs: []
+  type: TYPE_NORMAL
+- en: Pick an encoder-only model architecture if you want to keep your model smaller
+    and you’re confident you won’t need any generative abilities. This means you should
+    plan on not using this model for text generation, zero-shot performance, summarization,
+    and the final step in question answering.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Decoders**: A decoder model architecture does exactly the reverse of an encoder.
+    It takes dense input, say, of length 50, and uses learnable feedforward networks
+    to recompose that back into a larger space, for example, of length 250\. We’ll
+    dive into the mechanics of how that happens later in this chapter (hint: it’s
+    all about the *pretraining loss function*). Decoder-only models came to the global
+    stage with the GPT-4 model *(4)*, and open source options such as OPT and BLOOM
+    are now available.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Pick a decoder-only model (i.e., diffusion) if you want to focus on your model’s
+    generative ability. If you need strong summarization, generation, or the ability
+    to generate quality images, decoder-only models are the way to go.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Diffusion models**: If you want to pretrain an image generation model, such
+    as DALL-E 2 *(5)*, Imagen *(6)*, Flamingo *(7)*, and Stable Diffusion, then you’re
+    looking at using a diffusion model. Diffusion models, which we’ll explore later
+    in the book, are really interesting training systems that use multiple pretrained
+    models to embed joint vision and language pairs. This ultimately joins them through
+    a U-Net, which progressively adds, then removes, noise during the training process.
+    The models learn to generate images by comparing the generated image from the
+    provided caption and updating the model weights based on how far the image is
+    from the caption provided.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Combination encoder-decoder models**: The most common use case for a mixture
+    of encoders and decoders in the same neural network today is overwhelmingly translation.
+    Models in this category came to fame with T5 *(8)*, which was known to be able
+    to take strings in one language paired with their translations in another at very
+    large scales. T5 has since evolved into BART, FLAN-T5, M2M, MBart, BigBird, and
+    others.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Pick a combination encoder-decoder model when you are certain that translation
+    is core to your use case. This might be the case for writing code from prompts,
+    summarizing documents, or transferring styles.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, think to yourself, which of these do I need? Hopefully, at this point,
+    you can settle on one of these major categories.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Starting with the smallest base model you can
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Throughout this chapter, we’ll learn how to solve for the size of our model
+    using scaling laws. However, at this point, it’s helpful to introduce the concept
+    of a **base model**. A base model is usually the absolute smallest version of
+    a model available. You can find this on the Hugging Face Hub, for example, or
+    on the GitHub site associated with the paper. Base models are usually in the order
+    of a few hundred million parameters in size, so they tend to fit on a single GPU.
+    They don’t take up a lot of GPU memory, and they fit nicely when stored on disk
+    in most environments. Base models are fast in production because the literal size
+    of the neural network is smaller, computations can happen faster, and the data
+    has fewer layers to pass through until the final output. All these benefits mean
+    that putting a base model into production and working with it across your entire
+    pipeline is going to be a lot easier than working with something larger. For this
+    reason, when working with customers, I strongly recommend beginning experiments
+    with the smallest model you can and increasing in size only when that stops giving
+    you the mileage you need.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Later in this chapter, we’ll talk about when, where, and how to design experiments
+    that incorporate a larger model. In [*Chapter 14*](B18942_14.xhtml#_idTextAnchor217),
+    we’ll learn how to operationalize these with MLOps pipelines!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Trade-off – simplicity versus complexity
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'One aspect that is helpful to consider when applying machine learning is this
+    simple dimension: simplicity versus complexity. A simple model may be smaller.
+    It might have fewer novel operations. Its writeup on the Hugging Face Hub may
+    literally be shorter. It may have fewer GitHub issues but more associated papers.
+    Starting with a simple artifact is a good way to give your teams a healthy beginning.
+    You want to start projects with early success rather than failing to get off the
+    ground. A simple project with a simple model may be fine-tuning BERT on just a
+    few GB of data. After you’ve tested this on a real use case, and when you have
+    more unsupervised data, you may simply try continuing to pretrain on this unsupervised
+    set.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Important note
+  prefs: []
+  type: TYPE_NORMAL
+- en: Starting with a simple artifact is a good way to give your teams a healthy beginning.
+    You want to start projects with early success rather than failing to get off the
+    ground.
+  prefs: []
+  type: TYPE_NORMAL
+- en: On the other hand, complexity may be able to boost your model performance beyond
+    what is possible with simpler models. This includes scaling the models, datasets,
+    and computation sizes, in addition to incorporating multiple models throughout
+    your preprocessing, training, and deployment pipelines.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As we’ve seen throughout the book, scale alone is a promising tactic for many
+    use cases. In the chapter on fine-tuning, however, we’ll explore how techniques
+    such as instruction fine-tuning, chain-of-thought tuning, and reinforcement learning
+    with human feedback can all boost model performance without necessarily scaling
+    parameter size. These are promising trends!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Trade-off – applying to many use cases versus being narrow to only one
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'Another key aspect to consider in the design of your overall solution, or product,
+    is your ability to extend to as many use cases as possible. This follows the basic
+    economics of maximizing a return on your investment. In this project, you will
+    have two big investments:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Your time
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Your compute costs, which we’ll dive into in the upcoming chapter on GPUs
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Both of these are allocations from your organization in order to produce some
+    output, or, in this case, a model. Every use case this model is able to solve
+    *is a potential path to value for your project*. Every time you fine-tune this
+    model, deploy it into production for an application, use it for downstream analysis,
+    or integrate it into a demonstration or report, you create a way for your organization
+    to get value from its investment in your project. You set yourself up for success
+    when your project is positioned to be able to solve as many use cases as you can.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the case of pretraining and fine-tuning, this is an easy problem to solve.
+    First, look at how many models are already deployed in your organization. If these
+    are transformer-based models, then odds are they are fine-tuned artifacts from
+    some set of open source models. Look at those open source models as your target
+    range. Do your teams use BERT? RoBERTa? GPT-2? Pick the model that covers as many
+    downstream tasks as you can.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Alternatively, you may consider solving a much smaller number of use cases if
+    these are extremely high value. Search is a great example of this. From e-commerce
+    to hospitality, customer service to product delivery, when a search engine gets
+    a lot of traffic, it is probably a high-value business. Search is a top application
+    for large, pretrained models, especially for new projects looking to leverage
+    cutting-edge technologies for the highest impact.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Tactical approaches to finding your best base model
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Practically speaking, here’s how I think about finding your best base model.
+    First, as you did in [*Chapter 2*](B18942_02.xhtml#_idTextAnchor034), list out
+    the key use cases you want your model to address. Look at model leader boards,
+    such as those we discussed in [*Chapter 1*](B18942_01.xhtml#_idTextAnchor016),
+    to see which ones seem to consistently hit the top. Consider the base architecture
+    of this model and compare it to your top use cases. If you find a recent one with
+    open source code samples and model weights, and it seems to map reasonably well
+    to the use cases you’re exploring, then I’d use that to start with.
+  prefs: []
+  type: TYPE_NORMAL
+- en: If you want to push yourself, try to reimagine lower-level aspects of that model
+    as areas for improvement. This might be updates to the neural networks, combinations
+    of these, or even custom operators that might improve your overall goal. Remember
+    that you want to keep both accuracy and efficiency as key indicators!
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Once you’ve settled on your best base model or set of top models you want to
+    consider, it’s time to dig into a key element of this model that determines its
+    ability to learn: the pretraining loss function.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Finding your pretraining loss function
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'We introduced this topic in [*Chapter 1*](B18942_01.xhtml#_idTextAnchor016)
+    as a *pretraining objective*, or in vision as a *pretext task*. Remember that
+    these are essentially different words for the same thing: the mathematical quantity
+    your model will optimize for while performing **self-supervised learning**. This
+    is valuable because it opens you up to a plethora of unsupervised data, which
+    is, on average, more available than supervised data. Usually, this pretraining
+    function injects some type of noise and then tries to learn what the real data
+    patterns look like from the false ones (**causal language modeling as with GPT**).
+    Some functions inject masks and learn how to predict which words have been masked
+    (**masked language modeling as with BERT**). Others substitute some words with
+    reasonable alternatives that reduce the overall size of the needed dataset (**token
+    detection as** **with DeBERTa**).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Important note
+  prefs: []
+  type: TYPE_NORMAL
+- en: When we pretrain our models, we use a pretraining loss function to create the
+    ability for the model to recognize aspects of the dataset, which eventually predicts
+    truth from falsehoods.
+  prefs: []
+  type: TYPE_NORMAL
+- en: But what gives? Why do we care about pretraining objectives so much? How will
+    it impact your project? The reason you should care about a pretraining loss function
+    is that it is the primary factor in determining where your model can be used and
+    how well it will perform. In the previous section, we mapped certain types of
+    model architectures (encoders, decoders, and mixtures) to different machine learning
+    use cases (classification, generation, and translation). The real reason why this
+    mapping exists is because of the pretraining loss function!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Consider decoder-only models, notably GPT-3 and similar candidates. The pretraining
+    function here is called *causal* because it works from left to right. The pretraining
+    function picks up some base text string, say, half a sentence, and then uses the
+    decoder to try to generate the rest of the sentence. Commonly, you’ll pair this
+    with an objective metric, such as perplexity, to consider how close to the root
+    text your generated strings were. As the training run continues, the neural network
+    optimizes this perplexity metric to change the weights such that the overall loss
+    decreases, pushing up the performance of your model step by step.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Interestingly, given the recent performance of GPT-based models, we’re starting
+    to see these being applied across a variety of use cases with zero-shot performance.
+    This means that once you train your GPT-based model at scale, you can then use
+    it for prompting scenarios without providing previous examples, offering classification,
+    entity extraction, sentiment analysis, question answering, and more. While you’re
+    still performing text generation, strictly speaking, the way this is used can
+    solve more than just open-ended content generation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, let’s examine the pretraining loss functions across different models in
+    vision, language, and multimodal scenarios.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Pretraining loss functions in vision – ViT and CoCa
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: We’ve learned a lot about the core transformer model architecture, and now you
+    should feel somewhat comfortable about how this works in natural language processing.
+    But what about computer vision? The Vision Transformer *(9)* took a step in this
+    direction, bridging the gap from advancements in NLP and making these available
+    to the vision community. Notably, the **Vision Transformer, or ViT,** showed that
+    convolution could be removed entirely from the model. A pretrained ViT reduced
+    the overall amount of computational resources necessary to train downstream models
+    that achieved results comparable with top convolution-based approaches of its
+    time.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To be sure, CNNs are absolutely still in use today, and there are many cases
+    where they clearly outperfom ViTs. At its core, a CNN maintains the visual structure
+    of an image well. The core process of convolution is a left-to-right, top-to-bottom
+    rendering of all the pixels of the image into dense representations. One benefit
+    of this approach is **inductive bias**, a learned preference the model develops
+    for pixels in relation to each other while training. This is a core part of why
+    CNNs learn vision well. ViTs lack this ability, instead working with the pixels
+    as tokens. ViTs offer some benefits of scaling, due to their core self-attention
+    operations, but CNNs may be more common in smaller datasets and models. Recent
+    work *(5)* has begun bridging this gap for ViTs, bringing inductive bias to them.
+  prefs: []
+  type: TYPE_NORMAL
+- en: But how does it work? Through an encoder! The solution starts with a basic data
+    processing technique that flattens the input. A 2D image is taken and simply reshaped
+    into a sequence of *flattened 2D patches*. Then, the encoder applies a *linear
+    projection* process to merge all of the parts of the image into a single row,
+    including positional terms, so the location of the content is still known to the
+    model. This single row is fed into the transformer encoder, which itself uses
+    the self-attention process. The encoder reduces the size of the rows until it
+    hits the final row, the labels. The model then selects one of the available classes.
+    Finally, the loss function, in connection with the ground truth, provides a learnable
+    signal for the model to update its weights and improve accuracy on the next epoch.
+    Let’s take a look at this process.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 3.1 – The ViT](img/B18942_03_01.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 3.1 – The ViT
+  prefs: []
+  type: TYPE_NORMAL
+- en: Notably, the ViT *is still effectively a supervised learning process*. Clearly,
+    the learning method here relies on labels known ahead of time. This is a big difference
+    from the pretraining regimes in language where the labels are unknown. But this
+    base vision transfer still serves as an accuracy boost to enhance downstream models,
+    so it’s worth evaluating. While there are some projects *(10)* that attempt truly
+    unsupervised approaches in vision, personally, I haven’t yet seen a case in vision
+    where this strictly outperforms a supervised approach. Perhaps this is a core
+    difference between the two domains. Perhaps I’ll be proved wrong next month.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Another pretraining loss function that is key to the vision domain is contrastive.
+    We introduced this in the first chapter, but now I’d like to take you deeper.
+    We’ll spotlight one model using this: **CoCA**. Interestingly, the authors attempt
+    to unify all three model architectures we’ve mentioned so far: encoder-only, decoder-only,
+    and mixed encoder-decoder. Their trained model is able to solve use cases such
+    as visual recognition, vision-language alignment, image captioning, end-to-end
+    fine-tuning, frozen feature evaluation, and multimodal understanding with zero-shot
+    transfer (more on zero-shot later in the book). In fact, CoCa uses two pretraining
+    objectives: one to handle the images and the other to handle the text. Let’s break
+    it down!'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The image part of the workflow looks similar to ViT; it takes an image, applies
+    a flattening process, and feeds this into an encoder. In fact, the base implementation
+    of CoCa uses ViT by default! However, instead of directly producing classification
+    at the end of the encoder, these dense arrays are used in two ways:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, as an input to the final decoder
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Second, as an input to an *intermediary* *loss function*
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'This is called **contrastive loss** because it effectively contrasts the visual
+    content with the textual. The final output then applies a **captioning loss**,
+    increasing the accuracy of the text produced at the final stage of the model to
+    label, or caption, the provided image. This is why the model is named CoCa: Contrastive
+    Captioners.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 3.2 – Contrastive and captioning loss](img/B18942_03_02.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 3.2 – Contrastive and captioning loss
+  prefs: []
+  type: TYPE_NORMAL
+- en: On the language side of the workflow, we see a decoder. The decoder takes a
+    provided textual input, such as the original caption of the image. Then, it applies
+    another flattening process to tokenize and embed the words, preparing them for
+    the decoder. The decoder then reduces the dimensionality of the words, outputting
+    a denser representation of the caption. This is then provided as an input to the
+    contrastive loss function, better enabling the joint comparison between image
+    and text.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/B18942_03_F01.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'This is the weighted loss function for CoCa:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/B18942_03_F02.png) = Overall loss for CoCa'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![](img/B18942_03_F03.png) = Contrastive loss'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![](img/B18942_03_F04.png) = Captioning loss'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![](img/B18942_03_F05.png) = Hyperparameter to weight the contrastive loss'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![](img/B18942_03_F06.png) = Hyperparameter to weight the captioning loss'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Finally, the entire model uses a weighted combination of both loss functions
+    to serve as the global loss function. How do they determine the weights, you ask?
+    Through experimentation! This experimentation is almost certainly dependent on
+    the dataset and task at hand. If you were using CoCa to solve a use case with
+    extremely rich visual data but very weak language data, you might consider starting
+    with a higher weight on contrastive loss. However, if your language data was excellent
+    from the start and your visual data was only mildly informative, you might start
+    with a higher weight on captioning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this way, you can start to understand how we pick hyperparameters for our
+    models. This is the subject of a different chapter later on, so for now, I want
+    you to develop the intuition that *the precise implementation of each of these
+    models can be highly personalized to your datasets and use cases*. Reading these
+    papers and learning about how these state-of-the-art models work is a helpful
+    step to provide more depth to your own analysis and understanding. You can and
+    should apply this knowledge for gain back at work!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Pretraining loss functions in language – Alexa Teacher Model
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: At this point, you should feel pretty comfortable with the **masked language
+    modeling** we discussed, especially how it makes encoder-only models happen in
+    language, such as BERT. You should also know about **causal language modeling**,
+    which enables decoder-only models such as GPT. Now let’s find out what happens
+    when we mix the two!
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The Alexa Teacher Model (11) came out just a few weeks ago as of writing this,
+    and as an Amazonian, I can tell you it feels great to see a large language model
+    come out of your own organization! But that’s not the only reason I’m mentioning
+    it here. There are two reasons I think you should know about the **Alexa Teacher**
+    **Model** (**AlexaTM**):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, it uses a concept called *few-shot learning* to easily transfer its knowledge
+    about human verbal communication from one language to another. As we’ll learn
+    in [*Chapter 13*](B18942_13.xhtml#_idTextAnchor198) on prompt engineering, few-shot
+    learning means you pass a few examples to the model on *inference*. These few
+    examples work wonders in prompting the model to respond more accurately. This
+    is especially useful for language, because it allows language researchers to develop
+    solutions for *low-resource languages*, enabling some digital technology in relevant
+    communities.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Second, using this few-shot learning approach, a 20-billion parameter version
+    of AlexaTM was able to outperform a model 27 times its size, PaLM, at 540B on
+    the same problem *(12)*. This is a critical juncture to internalize and a trend
+    that I hope we’ll continue to see more of over the years. While bigger can sometimes
+    be better in machine learning models, it isn’t always, and sometimes it’s worse.
+    Remember, smaller models are faster to train, easier to work with, and faster
+    for inference, so if the accuracy is the same or better, always move to a small
+    model.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Now, how does it work? Similar to the CoCa example, there are now two loss
+    functions we’re tracking. The first you’re already familiar with: **causal language
+    modeling**, or **CLM** for short. Here, the CLM process tries to predict the end
+    of a sentence. Now, AlexaTM 20B combines that with a **denoising loss function**.
+    The denoising process was introduced in BART *(13)* as a way to jointly learn
+    on the combination of encoders and decoders, notably *through introducing noise*.
+    A given document is intentionally corrupted by introducing masks via the encoder.
+    The decoder is then asked to predict the likelihood of the document being original.
+    Actually, the process of adding noise and then trying to discriminate noise from
+    truth is a bit similar to adversarial learning in general.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 3.3 – Alexa Teacher Model](img/B18942_03_03.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 3.3 – Alexa Teacher Model
+  prefs: []
+  type: TYPE_NORMAL
+- en: Interestingly, the AlexaTM 20B uses the CLM pretraining objective *only 20%
+    of the time*. This is to introduce the ability of the model to work well in few-shot
+    cases. During this time, the model does not produce noise at all; it simply tries
+    to complete sentences. This is denoted via a signal provided to the beginning
+    of 20% of the sentences [CLM]. The authors also randomly fed the model 20% and
+    80% of the document to ensure it performs well in both short and long cases. To
+    start the training quickly, they also began with a 10B pretrained encoder, which
+    they unfroze after hitting 100,000 steps. This overall process took 120 days on
+    128 A100 GPUs (NVIDIA hardware), which translates to only 16 `ml.p4d.24xlarge`
+    on Amazon SageMaker distributed training. More on SageMaker training to come!
+  prefs: []
+  type: TYPE_NORMAL
+- en: For your reference, the “Teacher” in AlexaTM refers to a process called **distillation**.
+    **Distillation** is another way to transfer knowledge, comparable to fine-tuning.
+    In fine-tuning, we attach extra layers to a larger base model, then we usually
+    run it on a smaller set of supervised data. In distillation, we pair one larger
+    “teacher” model with a much smaller “student” model. The student model is then
+    trained to generate the same probability distribution as the teacher model but
+    at a much smaller computational cost. All of [*Chapter 10*](B18942_10.xhtml#_idTextAnchor152)
+    is dedicated to methods for fine-tuning your model and comes with coding examples.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Changing your pretraining loss function
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Now that we’ve surveyed some of the top pretraining loss functions across vision,
+    language, and multimodal scenarios, you might be wondering: is that it? What do
+    I do with this information?'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The answer to this question largely depends on your years of experience in machine
+    learning. If you are just getting started, then you certainly don’t need to be
+    overly fixated on this aspect of your project. Simply pick your top model, understand
+    how it learns, and get on with your project. However, as your level of experience
+    increases, you may start to want to experiment with the pretraining loss regime
+    itself, which is excellent! As you grow in machine learning, particularly as a
+    developer or a scientist, it becomes extremely valuable to contribute your own
+    novel ideas back to the community. Inventing new pretraining loss functions or,
+    for that matter, any new optimization you come across in the entire modeling journey,
+    is both incredibly valuable and deeply fulfilling. This is where you can truly
+    establish a new state of the art in a given domain, possibly even a new domain
+    that you yourself invent!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Solving for your model size
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Now that you’ve picked your best base model(s), you understand its pretraining
+    regime, and you identified your dataset and its overall size in the last chapter,
+    let’s start to understand the sizes of models you can target!
+  prefs: []
+  type: TYPE_NORMAL
+- en: You may remember that in [*Chapter 1*](B18942_01.xhtml#_idTextAnchor016), we
+    introduced a core concept called *the scaling laws*. Introduced by Kaplan et al.
+    in 2020, this bold idea suggests a formal relationship between the overall sizes
+    of your compute training cluster, your dataset, and your model. Prior to Kaplan,
+    most machine learning practitioners had understood there to be a general relationship
+    between these three, but his team took the bold task of proving this empirically
+    via power laws.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The basic thing you need to understand can be demonstrated with a simple graphic.
+    To train your model well, both in terms of producing the highest accuracy you
+    can and in getting the most value out of your overall compute budget, it’s helpful
+    to think about the following key items as a fundamental relationship.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Personally, I find it helpful to consider this visually. The fundamental way
+    your model is going to learn anything about the real world is through the dataset
+    itself. Naturally, you can see that as the size of the model increases, you’ll
+    want the dataset to also increase in some capacity. As the dataset increases,
+    the model should also increase to some degree.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 3.4 – The inter-relationship of machine learning](img/B18942_03_04.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 3.4 – The inter-relationship of machine learning
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can even think about it in terms of human learning. As we gain more experience,
+    more knowledge, and more understanding, our brain literally builds new pathways
+    to interpret, store, and learn from these experiences. The more new experiences
+    you have and the more problems you solve, the more your brain evolves to store
+    the necessary information. On the flip side, as our experiences and new challenges
+    decrease, our brain loses some of its elasticity to respond in kind. This is an
+    example of biological optimization at work!
+  prefs: []
+  type: TYPE_NORMAL
+- en: To complete the analogy, our lived human experiences are like a dataset. Every
+    new challenge, new relationship, new experience, and new problem is like adding
+    extra records and aspects to the dataset. Similarly, our brains are like a model.
+    Organically, our bodies handle building and releasing pathways in the brain dynamically
+    with our most recent experiences. What we are trying to do as computer scientists
+    is replicate this process with code through a process called *training*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In terms of pretraining across vision, language, and multimodal scenarios, know
+    that this relationship still applies. If you pair a large, complex model with
+    a small dataset, it’s likely that *your model will overfit.* Overfitting means
+    you may get an extremely high level of accuracy on your training sets but completely
+    fail to generalize well and provide meaningful results outside of the training
+    procedure. On the other hand, if you pair a tiny model with an extremely large
+    dataset, *you may well be underfitting.* This means you may not even perform well
+    on the training set, let alone elsewhere.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Pairing the compute with the model and dataset sizes is all about cost optimization.
+    There are inherent trade-offs in *scaling horizontally*, which means adding more
+    compute to your cluster. This is different from *scaling vertically*, which means
+    upgrading your instances to larger and more recent versions. Most teams find a
+    natural balance between throwing as many machines as they can at a model to get
+    the runtime low versus using as few machines as possible but taking many days,
+    weeks, or even months to complete the training run. You want to find a natural
+    middle ground between these two. We’ll dive into these topics, including core
+    distribution methods such as model and data parallelism, in [*Chapter 5*](B18942_05.xhtml#_idTextAnchor085),
+    *Distribution Fundamentals*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Case study – Amazon Search speeds up runtime seven-fold with distributed training
+  prefs: []
+  type: TYPE_NORMAL
+- en: One great example of finding the natural balance between speed and per-hour
+    cost is *Amazon Search*! Search is, as you might expect, the team responsible
+    for helping you find the products you are most interested in on [amazon.com](http://amazon.com).
+    Every time you try to find something on Amazon, the query runs through our search
+    engine to find exactly what you’re looking for.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Scientists and developers value the ability to iterate quickly. They love testing
+    out ideas as fast as possible, getting feedback on them, and quickly jumping into
+    the next version. This allows them to *optimize*, or simply improve their ideas
+    rapidly. Staying agile on experimentation helps you keep the overall cost of research
+    and development down, because it reduces the time it takes to move from initial
+    product ideation to full release.
+  prefs: []
+  type: TYPE_NORMAL
+- en: At Amazon, SageMaker partnered with Search to release native support for PyTorch
+    Lightning with an optimized inter-node communication project, Distributed Data
+    Parallel. As a result, Search was able to move from training on 1 node up to 8
+    nodes, reducing the overall time to train from 99 minutes down to 13.5!
+  prefs: []
+  type: TYPE_NORMAL
+- en: They didn’t change the model size or dataset. They kept both constant and simply
+    added a data parallel strategy to make copies of the model and shared the data
+    out to all accelerators (GPUs). This allowed them to scale horizontally, adding
+    extra nodes to their cluster and reducing the overall job time.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We’ll dive into these distributed concepts in later chapters, but for now, simply
+    know that *you can decrease the amount of time it takes to train your model when
+    you use a distribution strategy with extra nodes in* *your cluster*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Practical approaches to solving for your model size
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Now that you have a good understanding of the relationship between data, model,
+    and compute sizes, let’s get down to the nuts and bolts of figuring out which
+    ones are right for you!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Most teams will consider the compute budget as fixed. Think of this number as
+    what you should plan on asking your senior leadership to approve for your project.
+    As we learned in [*Chapter 2*](B18942_02.xhtml#_idTextAnchor034), you should think
+    of this number as some fraction of the overall value that increased accuracy will
+    have on your business.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The second true bottleneck is your dataset size. Figure out how large your candidate
+    dataset is. In vision, you might be counting images. In language, you might count
+    tokens. I still like to baseline at GB, because this is easily understood and
+    translatable across domains. Generally speaking, a good way to get started is
+    just to find the models and ppaers you are inspired by, dive into them, understand
+    how large their datasets were, and use that as your baseline. This will range
+    from 10’s of GB’s to a few PB. For those of you who are new to machine learning,
+    that’s a great place to start. Following the standard paths of proven expertise
+    is a great way to get yourself started toward successful projects. However, for
+    those of you who aren’t new to machine learning, let’s take a quick look at using
+    the scaling laws to solve for your optimal model size.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Not all scaling laws are created equal
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: First, it’s helpful to know that while the general relationship between your
+    model, data, and compute size is intuitively understandable, the precise mathematical
+    formulas actually can vary quite a bit. As we learned in [*Chapter 2*](B18942_02.xhtml#_idTextAnchor034),
+    Kaplan used the mathematical term, ![](img/B18942_03_F07.png) which indicates
+    that two quantities are “proportional” to each other. In other words, when two
+    terms are equated by the proportional sign, we know that the two quantities are
+    certainly linked, but we don’t know precisely which constant terms govern that
+    relationship.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This is the case in large deep learning models. Different papers and research
+    terms have preferences for certain aspects of this, such as Kaplan preferring
+    to keep model sizes large but datasets somewhat smaller and Hoffman suggesting
+    to increase both equally. Kaplan originally presented autoregressive models, or
+    decoder-based models, as the most *sample efficient.* However, the AlexaTM project
+    indicated that joint encoders and decoders could actually be *more* efficient.
+    All this is to say that while the scaling laws can suggest optimal model settings,
+    results will vary.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, let’s try to define the lower and upper model sizes you want to build
+    up toward in your experiments.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Planning future experiments
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Now that you have an idea of what model size you’d like to target given your
+    compute budget and data constraints, let’s learn how to think about each run of
+    your job *as an experiment*. Fundamentally, each stage in the machine learning
+    process is ultimately a unique experiment. Some of your inputs to each stage in
+    the project stay the same; you could call these your **dependent variables**.
+    Some of your inputs to the project change; these are your *independent variables*.
+    it takes time to build up skills on your project Simply put, change something
+    and see what happens. Just make sure you’re only changing one thing, so it’s empirically
+    clear what the result is!
+  prefs: []
+  type: TYPE_NORMAL
+- en: It’s critical to understand that the whole scope of your project is *not* going
+    to happen all at once. A lot of this is because it takes time to build up skills
+    on your time. Even if you are starting with a completely experienced team, which
+    frankly happens very rarely, the ecosystem of machine learning itself changes
+    so rapidly that every few months, you’ll be learning about something new. So,
+    plan on adding extra time to learn about all the newest releases.
+  prefs: []
+  type: TYPE_NORMAL
+- en: At the beginning, start with the smallest possible experiment you can. Get the
+    smallest version of your model up and running on your local IDE. Depending on
+    the size of the model and the corresponding hardware you’ll need, you can do this
+    on a variety of compute options, from Jupyter notebooks and more robust options
+    to your laptop, free compute experimental environments, and more. On AWS, we provide
+    a wide variety of these options through our fully managed machine learning service,
+    Amazon SageMaker.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'After demonstrating interesting results on a tiny fraction of the dataset,
+    I like to move directly into a remote SageMaker training job. You’ll learn more
+    about training on SageMaker in the next chapter, but for now, I’d simply like
+    you to know that *you can easily and seamlessly scale up and down your training
+    needs on Amazon SageMaker*. All of the practical guidance in this book will focus
+    on how to do this efficiently. In terms of your project, you might consider working
+    on the SageMaker Training API until you have a successful job run. I’d keep at
+    this until you are running on a single instance with multiple GPUs: my go-to is
+    the `g` family with four GPUs. This can be either `ml.g4dn.12xlarge`, or `ml.g5.12xlarge`.
+    More on what this means in the chapters to come! Using multiple GPUs *will require
+    a data and/or model parallelization strategy*, which is the entire content of
+    [*Chapter 5*](B18942_05.xhtml#_idTextAnchor085).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once you are running successfully both on SageMaker remote training and across
+    multiple GPUs, then it’s time to increase everything. Bump up the size of your
+    data. Remember that model, data, compute, and key hyperparameters such as learning
+    rate and batch size, in addition to the model architecture itself, are all interrelated.
+    Finding the right settings for this is the entire content of [*Chapter 7*](B18942_07.xhtml#_idTextAnchor116).
+  prefs: []
+  type: TYPE_NORMAL
+- en: As soon as you start increasing, extra complications arise. You want to make
+    sure your loss is decreasing sufficiently, but you also want to keep GPU utilization
+    high. You want to debug and improve the operators and communications in your job,
+    but you also want to evaluate training throughput. When your job breaks, which
+    it will with almost perfect certainty, you want to get it back online as quickly
+    as possible, but accurately as well.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Diving into these nuances, unpacking them, and helping you get your project
+    back on track to avoid as many of the roadblocks and capitalize on as many known
+    issues is the entire focus of *Part 3*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In short, there are many different discrete phases of pretraining a large model.
+    This entire book aims to help you navigate them safely. In the next chapter, we’ll
+    dive into the GPU itself and uncover how to best utilize these efficient processors,
+    also known as **accelerators**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, you learned how to find your best base model, including the
+    basics of architecture and the most common use cases and modalities, and you were
+    given general guidance to start with the smallest model you can. You learned about
+    key trade-offs, such as simplicity versus complexity, and applying many use cases
+    versus applying only one. You received tactical guidance on how to find a base
+    model with good support. You learned how to find your pretraining loss function,
+    including masked language modeling, causal language modeling, and those common
+    in vision models such as ViT and CoCa. We looked at the Alexa Teacher Model, and
+    we learned how to use the scaling laws to solve for our model size, with help
+    from a case study from Amazon Search.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Next up: working with accelerators!'
+  prefs: []
+  type: TYPE_NORMAL
+- en: References
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Please go through the following content for more information on a few topics
+    covered in the chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*CoCa: Contrastive Captioners are Image-Text Foundation Models:* [https://arxiv.org/abs/2205.01917](https://arxiv.org/abs/2205.01917)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*CLIP: Connecting text and* *images:* [https://openai.com/blog/clip/](https://openai.com/blog/clip/)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*MASKED VISION AND LANGUAGE MODELING FOR MULTI-MODAL REPRESENTATION* *LEARNING:*
+    [https://arxiv.org/pdf/2208.02131.pdf](https://arxiv.org/pdf/2208.02131.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Language Models are Few-Shot* *Learners:* [https://arxiv.org/abs/2005.14165](https://arxiv.org/abs/2005.14165)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Hierarchical Text-Conditional Image Generation with CLIP* *Latents:* [https://cdn.openai.com/papers/dall-e-2.pdf](https://cdn.openai.com/papers/dall-e-2.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Photorealistic Text-to-Image Diffusion Models with Deep Language* *Understanding:*
+    [https://arxiv.org/abs/2205.11487](https://arxiv.org/abs/2205.11487)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Flamingo: a Visual Language Model for Few-Shot* *Learning:* [https://arxiv.org/pdf/2204.14198.pdf](https://arxiv.org/pdf/2204.14198.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Exploring the Limits of Transfer Learning with a Unified Text-to-Text* *Transformer:*
+    [https://arxiv.org/pdf/1910.10683.pdf](https://arxiv.org/pdf/1910.10683.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*AN IMAGE IS WORTH 16X16 WORDS: TRANSFORMERS FOR IMAGE RECOGNITION AT* *SCALE:*
+    [https://arxiv.org/pdf/2010.11929.pdf](https://arxiv.org/pdf/2010.11929.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Unsupervised Pre-Training of Image Features on Non-Curated Data:* [https://arxiv.org/pdf/1905.01278.pdf](https://arxiv.org/pdf/1905.01278.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Alexa Teacher Model: Pretraining and Distilling Multi-Billion-Parameter Encoders
+    for Natural Language Understanding* *Systems:* [https://arxiv.org/pdf/2206.07808.pdf](https://arxiv.org/pdf/2206.07808.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Alexa Teacher Model: Pretraining and Distilling Multi-Billion-Parameter Encoders
+    for Natural Language Understanding Systems:* [https://arxiv.org/pdf/2208.01448.pdf](https://arxiv.org/pdf/2208.01448.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*BART: Denoising Sequence-to-Sequence Pre-training for Natural Language Generation,
+    Translation, and* *Comprehension:* [https://arxiv.org/pdf/1910.13461.pdf](https://arxiv.org/pdf/1910.13461.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Part 2: Configure Your Environment'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In part 2, you’ll learn how to configure your environment for large-scale pretraining.
+    We’ll dive into **graphics processing units** (**GPUs**), parallelization basics,
+    and the second part of dataset preparation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This section has the following chapters:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[*Chapter 4*](B18942_04.xhtml#_idTextAnchor066), *Containers and Accelerators
+    on the Cloud*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[*Chapter 5*](B18942_05.xhtml#_idTextAnchor085), *Distribution Fundamentals*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[*Chapter 6*](B18942_06.xhtml#_idTextAnchor106), *Dataset Preparation: Part
+    Two, the Data Loader*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL

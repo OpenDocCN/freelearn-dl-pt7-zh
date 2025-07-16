@@ -1,0 +1,895 @@
+- en: Your First Artificial Neural Networks
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the past few chapters, we learned about the basics of machine learning, and
+    how to get our environments set up for creating **Artificial Intelligence** (**AI**)
+    applications. Now that we've learned the basics, it's time to put our knowledge
+    to use.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, we''ll focus on:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: How to construct basic AI applications, starting with constructing a basic feedforward
+    network with TensorFlow
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We'll discuss the essential elements of **Artificial Neural Networks** (**ANNs**),
+    and then code up an example of a basic feedforward network to illustrate this
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: ANNs allow us to define complex non-linear problems, and as we delve into the
+    mechanics of true deep learning, you'll begin to see how powerful AI applications
+    can be ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'We''ll be utilizing the GPU-enabled TensorFlow environment that we developed
+    in the previous chapter. You will need:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Python 3.6
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: GPU TensorFlow
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: PyTorch
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Network building blocks
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The most basic form of an ANN is known as a **feedforward network**, sometimes
+    called a **multi-layer perceptron**. These models, while simplistic in nature,
+    contain the core building blocks for the various types of ANN that we will examine
+    going forward.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In essence, a feedforward neural network is nothing more than a **directed
+    graph**; there are no loops of recurrent connections between the layers, and information
+    simply flows forward through the graph. Traditionally, when these networks are
+    illustrated, you''ll see them represented as in the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/a351a10d-ed3d-4470-8556-4b53f75d5c7f.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: A feedforward neural network
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this most basic form, ANNs are typically ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Network layers
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The **input layer** consists of the features that we are passing to our neural
+    network. If we had, say, a *10 x 10* pixel image as our input, we would have 100
+    input units. Nothing is actually done in the input layer, but it is the connection
+    between the input and hidden layers that is important.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Our input layer connections perform a linear transformation on the input vectors,
+    and sends the results of that transformation to the hidden layer, through which
+    the results are transformed through the **activation function**. Once we perform
+    this computation, we pass the results onto the hidden layer. **Hidden layers**
+    are where our activation functions live, and our network can have any number of
+    them. Hidden layers are so called such because they compute values that are not
+    seen in the training set; their job is to transform the network's input into something
+    that the output layer can use. They allow us to learn more complicated features
+    in a dataset.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The output of the last hidden layer gets sent to the final layer, the **output
+    layer**. The output layer is the final layer in our network; it transforms the
+    results of the hidden layers into whatever you''d like the output to be binary
+    classification, real numbers, and so on. We do this by utilizing special types
+    of activation function. In general:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: For classification problems, we'll often use a function called a **softmax**
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For regression tasks, we'll use a **linear** function
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Your choice of activation function really depends on your loss function, as
+    we'd like to make the derivative of the loss function easy to compute during training.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Naming and sizing neural networks
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'We refer to networks by the amount of **fully connected layers** that they
+    have, minus the input layer. The network in the following figure, therefore, would
+    be a two-layer neural network. A single-layer network would not have an input
+    layer; sometimes, you''ll hear logistic regressions described as a special case
+    of a single-layer network, one utilizing a **sigmoid** activation function. When
+    we talk about deepneural networks in particular, we are referring to networks
+    that have several hidden layers as shown in the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/f9f29bc5-4dc8-45bc-97c9-c26607fb64dc.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Networks are typically sized in terms of the number of parameters that they
+    have ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Setting up network parameters in our MNIST example
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Looking at our MNIST example, we can now set up our overall network parameters.
+    We''ll define `input_layer_size` as the size of the incoming data, `784`. This
+    will give us the number of neurons in the input layer. The parameters `hidden_one`
+    and `hidden_two` will define the amount of neurons in the hidden layer. Meanwhile,
+    `number_classes` constructs the output layer as the potential number of classes
+    that a piece of input data could be classified as:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: In total, these will define the size of our network's input and output layers
+    with respect to the size of the `MNIST` dataset's shape.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Activation functions
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '**Activation functions** are the building blocks that make neural networks
+    able to do what they do: convert inputs into desired outputs within ANNs in a
+    nonlinear fashion. As such, they are frequently referred to as **nonlinearities**.Putting
+    this together with what we learned earlier, in a neural network we compute the
+    sum of products of input (*X*) and their corresponding weights *w*, and apply
+    an activation function *f* (*x*) to it to get the output of that layer and feed
+    it as an input to the next layer.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Without a nonlinearity, a unit would be just a simple linear function, and our
+    network something such as a linear regression. When we think about traditional
+    analytical models, such as linear regression or support vector machines, ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Historically popular activation functions
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Three activation functions that you will commonly see used are the `sigmoid`,
+    `tanh`, and **Rectified Linear Unit** (**ReLU**)functions. While popular, each
+    of these has a caveat that frequently comes with their use.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'During the mid-early 2010s, it was popular to use sigmoids or tanh activation
+    functions in the fully connected layers of a network. Sigmoids have fallen out
+    of fashion, but you might still see them around. They are bounded between the
+    values of 0 and 1 (that is: they can represent any value between that range).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We can easily plot a `sigmoid` function in Python to take a look:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: '![](img/b858f3d1-92ee-48ac-a873-4015595f3bdf.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The function is also built into TensorFlow simply as `tf.sigmoid.` The `tanh`
+    is a very similar function; it''s simply a rescaled version of the sigmoid:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: '![](img/92357548-d753-4494-aa20-1248929c1fee.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Likewise, the `tanh` function is available in TensorFlow simply as `tf.tanh`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Both of these are prone to the vanishing gradient problem**.** Both `sigmoid`
+    and `tanh` are both prone to what is known as **saturation**. When a unit saturates
+    at either end of these functions, the gradient when weights are initialized too
+    large, they become saturated.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Both the `sigmoid` and `tanh` functions are fundamentally bounded—they have
+    limits. Nonlinearities become saturated when they take on values too close to
+    the boundaries of these functions. `Tanh`, unlike `sigmoid`, is always centered
+    on zero, and therefore, less likely to saturate. As such, it is always preferable
+    to use `tanh` over `sigmoid`for your activation function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As a result of the finicky nature of these activation functions, a new function
+    began to be utilized in the late 2000s called **ReLU**:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/964d22d8-c6d2-45e8-8ccd-14ad6065c908.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'ReLU is a simple and efficient nonlinearity that computes the maximum:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/de4fdd39-2523-47fb-9566-ebce0b8b0170.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: ReLU makes convergence (having a small error rate) much faster because of its
+    linear and non-saturating nature, and its computational efficiency. ReLUs utilize
+    matrices of zeros, which is significantly more efficient than the exponentials
+    that sigmoids or tanh functions utilize, sometimes making them up to six times
+    faster than tanh. ReLUs, on the other hand, run into an issue known as the *dying
+    neuron problem*. ReLU nonlinearities can die in training when large gradients
+    combined with odd weight updating causes the function to output a gradient of
+    zero, as a result of having a large valued learning rate. Like the other activations
+    function, ReLu is available in TensorFlow as `tf.nn.relu`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In recent years, practitioners have backed away from the `sigmoid` and `tanh`
+    functions and created more stable methods based on ReLU.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Modern approaches to activation functions
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In recent years, several modifications have been made to the ReLU function
+    to solve the dying neuron problem and make them more robust. Most notable of these
+    is a solution called the **Leaky ReLU**. Leaky ReLU introduces a small slope to
+    the ReLU function to keep potentially dead neurons alive, by allowing a small
+    **gradient** to keep the units active. The Leaky ReLu function is available in
+    TensorFlow as:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: Another adaption, the **Parametric Rectified Linear Unit** (**PreLU**), takes
+    this further by making that small gradient a parameter that can be adjusted during
+    training. Instead of predefining a slope of the function, the slope becomes an
+    adaptable parameter, hence ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Weights and bias factors
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Two key parts of ANNs are weights and biases. These elements help us squash
+    and stretch our nonlinearities to help us better approximate a function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Weights** are applied at every transformation in a neural network, and help
+    us stretch a function. They essentially change the steepness of the nonlinearity.
+    **Bias factors** are important parts of ANNs as well; you''ve probably noticed
+    them in the diagrams shown so far in this chapter. Bias factors are values that
+    allow us to shift our activation function left or right to help us best approximate
+    a natural function.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'How does this work in practice? Let''s say you have a simple two-neuron setup
+    such as the one in the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/bed4a48b-499c-4eaf-9467-b5e65ca0c058.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Let''s see how adding weights into the mix can help change a function. In Python,
+    we can represent this as a simple setup as a function that takes in the input
+    data `x`, a weights matrix `w`, computes the dot product between them, and runs
+    them through a non-linearity:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We can then run the function with various weight values, and plot it''s output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'If you run this code, you should see something such as the following chart:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/ec15c41f-7fa6-4914-8223-67b179782588.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'As you can see, the simple weight factor is bending our sigmoid depending on
+    it''s magnitude! Now, let''s say that you want the network to output 0.5, when
+    the input equals 5\. With the help of a bias factor, we can achieve transformations
+    of the sort:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/617d445b-f770-413e-8f87-614bca9e72d0.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'In Python, we simply have to add the bias factor to shift the output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Run the following code to see how different bias values can shift the curve
+    from left and right; we''ll set all of the weights to 1, so that we can clearly
+    see the shift:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The code should produce a curve such as the following. As you can see in the
+    following graph, we''ve shifted the curve so that it better approximates the function
+    we want:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/ebcd39ae-f6f4-4225-850e-fa1b3cb7a601.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Weights and biases are updated during the training of a neural network. One
+    of the goals of learning to adjust out weights and biases is so that our transformations
+    throughout our network result in a value that is as close as possible to reality.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Utilizing weights and biases in our MNIST example
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Let''s get back to our MNIST example. Let''s set up our weights and biases
+    based on the network parameters that we defined before. We''ll denote our weights
+    for connections between our input layer and first hidden layer at `w1`, those
+    between our first hidden layer and second hidden layer as `w*2*`, and those between
+    our second hidden layer and output layer as `w_out`*. *Notice how the weights
+    track the incoming size and the outgoing size of the data at a given layer:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: Loss functions
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '**Loss functions** are another essential building block of neural networks,
+    and they measure the difference between our predictions and reality.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We tend to think of functions as mathematical expressions; which they are,
+    but they also have a shape and surface, or topology. Topology in itself is an
+    entire branch of mathematics and too much for the contents of this book, but the
+    important takeaway is that these functions have topologies of peaks and valleys,
+    much such as a real topological map would:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/ebbc3fff-0a99-4cc5-b826-a48caa7e47a4.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: In the AI field, when creating neural networks, we seek to find the minimum
+    point on these loss functions, called the **global minima**. This represents the
+    point at which our rate of error (how far off we are) between our actual and predicted
+    values is smallest. The process of getting to the global minima is called **convergence**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Loss functions come in two variations:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Convex loss functions**: Loss functions that curve down, such as a bowl.
+    These loss functions are the easiest way to find the global minima.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Non-convex loss functions**: Loss functions that look like the preceding
+    example, with many peaks and valleys. These loss functions are the most difficult
+    when it comes to finding the local minima.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Non-convex loss functions are difficult, because they may have two hazards
+    called **local minima** and **saddle points**. Local minima are exactly what they
+    sound such as: the valleys in the loss function that are not the lowest valleys
+    across the entire topology:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/cce5d22f-4497-4db0-86cf-2d2a99427eff.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Saddle points are areas in the topology where the **gradient** is equal to zero.
+    Learning algorithms get stuck at these points, and we'll address how to remedy
+    this in our next section on the core learning algorithm of neural networks: **gradient
+    descent**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: So, how do we choose a loss function for our network? The problem that we are
+    trying to solve will determine which loss function we should choose for our network.
+    Choosing an appropriate loss, function can be a lengthy task, so for now we'll
+    focus on a few general rules. We can start with using the **mean square error**
+    (**MSE**) loss function for regression problems.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Using a loss function for simple regression
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Linear regression is one of the simplest models we can implement; you've probably
+    used it before in your own job. Simple regression attempts to find the **line
+    of best fit** for two linearly distributed variables. We can use all of the principles
+    that we've precedingly learned about weights, biases, and loss functions, and
+    apply them to a simple regression to see how they work together.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let''s get back to loss functions. MSE measures the average squared difference
+    between an observation’s actual and predicted values. The output is a single number
+    representing the cost or score associated with our current set of weights:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's develop a linear regression in TensorFlow to see how `loss` functions,
+    ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Using cross-entropy for binary classification problems
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: While we can use MSE for regression problems, we need to use a different type
+    of loss for classification problems. For that, we use a function known as **cross-entropy**.
+    Cross entropy measure the performance of a classification model whose outputs
+    are between 0 and 1\. A low cross entropy means that a predicted classification
+    is similar to the actual classification. A high cross entropy, on the other hand,
+    means that a predicted classification is different from the real classification.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'It''s also known as **Bernoulli negative log-likelihood** and **Binary cross-entropy**:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: Defining `loss` functions for classification problems with more than one right
+    answer can be a bit more tricky; we'll cover this as we work through multi-class
+    classification in the following chapters. We'll talk about customizing your `loss`
+    functions towards the end of this book.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Defining a loss function in our MNIST example
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Since we have a basic binary classification task of, recognizing digits, we''re
+    going to utilize `cross entropy` as our `loss` function. We can easily implement
+    it with a built-in function in TensorFlow:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: Stochastic gradient descent
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '**Gradient descent** is the means by which we find the global minima in our
+    loss function, and it''s how neural networks learn. In gradient descent, we calculate
+    the value of individual **gradients**, or slopes of the loss function. This helps
+    us reach our minima. Think about descending a hill blindfolded; the only way you
+    can reach the bottom is by feeling the slope of the ground. In gradient descent,
+    we use calculus to feel what the slope of the ground is, to make sure we are headed
+    in the right direction towards our minima''s.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In bland old gradient descent, we have to calculate the loss of every single
+    sample that is being passed into the network at a given time, resulting in many
+    redundant calculations.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We can mitigate this redundancy by utilizing a method called **stochastic gradient
+    descent**. Stochastic gradient descent is actually one of the simplest procedures
+    available for optimization. It just so happens that it also works surprisingly
+    well. Typically with deep learning, we are working with high-dimensional data.
+    Unlike with vanilla gradient descent, with stochastic gradient descent we're able
+    to approximate the gradient from a given pass by sampling the loss of one particular
+    data point at a time, reducing redundancy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Learning rates
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Because stochastic gradient descent randomly samples, our location along the
+    surface of our loss function jumps all over the place! We can mitigate this behavior
+    by decreasing a parameter known as our **learning rate**. The learning rate is
+    something called a **hyperparameter**, a parameter that controls the training
+    process of the network. Learning rates control how much we are adjusting the weights
+    of our network, with respect to the gradient of the loss function. In other words,
+    it determines how quickly or slowly we descend while trying to reach our global
+    minimum. The lower the value, the slower we descend downhill, just like on the
+    right in the diagram as described as follows. Think of slowly rolling a tire down
+    a hill - the ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Utilizing the Adam optimizer in our MNIST example
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The **adaptive gradient descent method** (**Adam**) takes an initial learning
+    rate and adaptively computes updates to it. Adam stores an exponentially decaying
+    average of past squared gradients and of past gradients, which amounts to measuring
+    something similar to momentum. This helps us prevent overshooting or undershooting
+    during our training process.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Adam is easily implemented in TensorFlow with the following command line:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: The `tf.train` class contains various different optimizers that are executed
+    at runtime and contain TensorFlow's version of the Adam optimizer; it takes our
+    initially defined `learning_rate` as a parameter. We then call the `minimize` method
+    and pass it to our `loss` function, wrapping up our learning processing into one
+    object, called `optimizer`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Regularization
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Recall from the [Chapter 2](c72aa49d-41f1-4a15-bee5-9efc9190f282.xhtml), *Machine
+    Learning Basics* that overfitting and underfitting can happen when a machine learning
+    model learns it's training dataset too well, or when it doesn't learn it well
+    enough. Artificial neural networks are not immune from this problem! Overfitting
+    often occurs in neural network because the amount of parameters that they have
+    is too large for the training data. In other words, the model is too complex for
+    the amount of data that it is being trained on.
+  prefs: []
+  type: TYPE_NORMAL
+- en: One way that we can prevent overfitting in our networks is through a technique
+    called **regularization**. Regularization works by shrinking the parameters of
+    a model to create a less-complex model, thereby reducing overfitting. Let's say
+    we have a loss ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: The training process
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Training is the process by which we teach a neural network to learn, and it''s
+    controlled programmatically in our code. Recall, from [Chapter 2](c72aa49d-41f1-4a15-bee5-9efc9190f282.xhtml), *Machine
+    Learning Basics*, that there are two forms of learning in the AI world: supervised
+    learning and unsupervised learning. In general, most ANNs are supervised learners,
+    and they learn by example from a **training set**. A singular unit in a training
+    cycle in a neural network is called an **epoch.** By the end of one epoch, your
+    network has been exposed to every data point in the dataset once. At the end of
+    one epoch, epochs are defined as a **hyperparameter** when first setting up your
+    network.Each of these epochs contain two processes: **forward propagation** and
+    **backpropagation**.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Within an epoch we have **iterations**, which tell us what proportion of the
+    data has gone through both forward propagation and backpropagation. For instance,
+    if we have a dataset with 1,000 data points and send them all through forward
+    propagation and backpropagation at once, we would have one iteration within an
+    epoch; however, sometimes, to speed up training, we want to break down the amount
+    of data to go through in one pass, so we **minibatch** the data. We could minibatch
+    the 1,000-point dataset into four iterations of 250 data points each, all within
+    a singular epoch.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Putting it all together
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Now that we''ve gone through all of the elements of a basic feedforward neural
+    network, it''s time to begin assembling the pieces. The first thing we''ll do
+    is define our **hyperparameters. **We''ll train the network for 50 epochs, each
+    time feeding a batch of 100 samples into the network. At the end of each epoch,
+    the `batch_size` parameters will tell the network to print out the current value
+    of the loss, as well as the accuracy of the network:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we''ll create `placeholders` for our MNIST data features (*x*) and their
+    correct label (*y*), which we''ll use to represent the data while constructing
+    the network:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: Forward propagation
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Forward propagation is the process of how information flows through our network
+    during the learning phase of training. Before we walk through the process, let''s
+    return to our MNIST example. First, we need to initialize the feedforward network
+    that we precedingly created. To do that, we can simply create an instance of the
+    function, and feed it the input placeholder, as well as the weight and bias dictionaries:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This model instance gets fed into our `loss` function that we preceedingly
+    defined:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Which subsequently gets fed into the optimizer we defined:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: With all of this defined, you can begin to see why placeholders are so essential
+    in TensorFlow. The placeholders for the input, as well as the randomly initialized
+    weights and biases, provide a basis for which TensorFlow builds the model from.
+    Without these, the program wouldn't know how to compile the network because it
+    wouldn't have any concept of the input, output, weight, and bias values.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Training happens behind the scenes in TensorFlow, so let''s walk through the
+    process manually to gain a better understanding of what''s under the hood. At
+    its simplest, forward propagation is just matrix multiplications offset by a bias
+    unit, and then processed through activation functions. Let''s look at the example
+    of the following singular unit, where *X1*:*X3* represents our input layer (plus
+    a bias value), and the empty unit represents a node in the hidden layer:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/c99a9d52-28a8-4c79-96ea-f3f28cfaf1ca.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Each connection between an input value and a hidden layer unit represents a
+    multiplication of the input value times the weight:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/4b2376cd-a9e4-4238-9c7f-c88e0216a829.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Remember, both our inputs as well as our weights are matrices, so we represent
+    their multiplication as the **dot product**. We take those values and sum them
+    all together, so ![](img/353132e0-4b32-407a-9915-23719ad9bf0f.png). Finally, we
+    take the result of that operation, and feed it through our hidden layer's activation
+    function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s say that we are utilizing a ReLU as the activation function of our hidden
+    layer units; then our unit computes:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/1bada7b2-7db0-48c2-ab4c-83928390baf1.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The output of this function is then multiplied by a second set of weight matrices,
+    just as we did with the output of the first layer. This process can be repeated
+    over and over depending on how many hidden layers are in our network:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/6f001240-3f74-4364-9499-62d4142e4f22.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Our last layer of the network often contains a squashing function, such as a
+    softmax to output prediction values. At the end of this whole process, our error
+    from that pass is calculated, and the error is sent back through the network in
+    a process called **backpropagation**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Backpropagation
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '**Backpropagation**, or **Backprop**, is a core learning algorithm that we
+    utilize in AI applications, and learning about it will be essential to creating
+    and debugging your neural networks going forward. Short for **backpropagation
+    of error**, it is the means by which ANNs calculate how erroneous they are with
+    their predictions.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can think of it as the complement to the gradient descent optimization algorithm
+    that we precedingly discussed. Recall that at their core, ANNs seek to learn a
+    set of weight parameters that help them approximate a function that replicates
+    our training data. Backpropagation measures how error changes after each training
+    cycle, and gradient descent tries to optimize the error. Backprop computes the
+    gradient ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Forwardprop and backprop with MNIST
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Remember that, to run a training process in TensorFlow, we run our computations
+    through a session. To get started, let's open a new training session.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In TensorFlow, before we enter the training process, we need to initialize
+    our model class as an object, and bring all of our variable placeholders online
+    with the `tf.global_variables_initializer()` command:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, we can write the core of the training process, which is what we call the
+    training loop. We''ll define the loop by the number of training epochs for the
+    model. In it, we''ll first batch out our incoming data; our model cannot and should
+    not handle all of the data at once, and so we define the total amount of the incoming
+    samples by the batch size of 100 that we precedingly defined. So in this case,
+    for each epoch in the 15 epochs that we''ve told the network to train, we''ll
+    run 100 samples of the training data through each time:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Within the same loop, we''ll create another loop that runs the training process
+    by batch. We''ll create a batch for the x and y data, and run those examples through
+    a TensorFlow session that runs the training procedure and computes the loss:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'So far, we''ve defined the bare minimum that''s necessary to train a model
+    in TensorFlow. In addition to the training procedure itself, you''ll also often
+    see a procedure to keep track of the current value of the loss, as well as accuracy
+    metrics so that we know how well (or poorly) our model is training. For that,
+    we''ll define a loop that''s at the level of the batching loop precedingly defined,
+    so that it runs at the end of each training epoch. In it, fetch the predictions
+    from the network at that epoch by running the output of the network through a
+    `softmax` function. Softmax functions spit out probabilities for which class a
+    sample potentially belongs to in a classification problem:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Once we have those probabilities, we need to select the highest probability
+    from the tensor that''s returned out of the softmax. Fortunately for us, TensorFlow
+    has an easy function for this called `tf.argmax`. Once we have that, we can compare
+    it against the actual value of y that we should have expected:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Once we have the correct prediction, we can calculate the `accuracy`, save
+    a model checkpoint, and return the current epoch, value of the loss function,
+    and accuracy of the model at that step:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'At the end of the training process, you should see an output such as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/08249642-3522-4a54-b87b-ca3c05bcb3d8.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Now that we've setup our network and trained it, let's go ahead and look at
+    a few tools that can help us inspect it's training progress.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Managing a TensorFlow model
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: TensorBoard is a tool built into TensorFlow that visualizes the values of your
+    network's parameters over the coarse of the training process. It can also help
+    to visualize data, and can run several exploratory analysis algorithms. It helps
+    you explore the underlying TensorFlow graph in a simple, easy to use graphical
+    interface.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once a TensorFlow model is trained, say the MNIST example defined precedingly,
+    TensorFlow allows us to create something called a **Model Summary**. Summaries
+    are, as you probably guessed, condensed versions of a model that contain the necessary
+    key aspects that we need to use TensorBoard.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To create a summary, we first need to initialize the `writer`; we'll insert
+    the line preceding just before ...
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Saving model checkpoints
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In Tensorflow, a checkpoint is a binary file that contains the model weights
+    and gradients that were calculated during training. Should you want to load up
+    a model for further training, or access the model at a certain point during training,
+    we can save and restore checkpoints with all of the training information that
+    we need. To save a checkpoint, we can use a saver utility that is provided to
+    us in native TensorFlow:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Then, during the training cycle, we can periodically save checkpoints by calling
+    the `saver`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Note that you can choose to save the model checkpoints in whatever directory
+    that you wish. A TensorFlow saver will create three files:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: A `.meta` file that describes the structure of the saved graph
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: A `.data` file that stores the values of all of the variables in the graph (The
+    weights and gradients)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: A `.index` file which identifies the particular checkpoint
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'To re-load a TensorFlow model from it''s checkpoints, we load the meta graph,
+    and then restore the values of the graph''s variables within a TensorFlow session.
+    Here, `meta_dir` is the location of the `.meta` file, and `restore_dir` is the
+    location of the `.data` file:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs: []
+  type: TYPE_PRE
+- en: TensorFlow checkpoints can only be used in training, not for deploying a model.
+    There is a separate process for readying a model for deployment, and we will cover
+    it in [Chapter 13](765cdda6-7a90-4553-aa8c-3b3d5775f23b.xhtml), *Deploy and Maintaining
+    AI Applications*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Feedforward networks are a basic and essential class of network. This chapter
+    has helped us study the building blocks of neural networks, and will help illuminate
+    network topics going forward.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Feedforward neural networks are best represented as directed graphs; information
+    flows through in one direction and is transformed by matrix multiplications and
+    activation functions. Training cycles in ANNs are broken into epochs, each of
+    which contains a forward pass and a backwards pass. On the forward pass, information
+    flows from the input layer, is transformed via its connections with the output
+    layers and their activation functions, and is put through an output layer function
+    that renders the output in the form we want it; probabilities, ...
+  prefs: []
+  type: TYPE_NORMAL

@@ -1,0 +1,946 @@
+- en: Monte Carlo Methods for Predictions
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The Monte Carlo methods for estimating the value function and discovering excellent
+    policies do not require the presence of a model of the environment. You can learn
+    through the use of the agent's experience alone, or from samples of state sequences,
+    actions, and rewards obtained from the interactions between agent and environment.
+    The experience can be acquired by the agent in line with the learning process,
+    or emulated by a previously populated dataset. In this chapter, we will learn
+    how to use Monte Carlo methods to predict an optimal strategy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: By the end of the chapter, you should be familiar with the basic concepts of
+    forecasting techniques and should have learned how to apply Monte Carlo methods
+    in order to forecast environment behavior. We will also learn the model-free approach
+    to deal with reinforcement learning problems, how to estimate the action value,
+    and how learning the value of the optimal policy regardless of the agent's actions
+    constitutes an off-policy algorithm.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, we will cover the following topics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Overview of forecasting
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Understanding Monte Carlo methods
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Approaching model-free algorithms
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Estimation of action values
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Blackjack strategy prediction using the Monte Carlo approach
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Check out the following video to see the Code in Action:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[http://bit.ly/2qONScL](http://bit.ly/2qONScL)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Overview of forecasting
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: An attempt to predict the future has ancient roots and has covered the entire
+    history of humanity, adapting to the typical ways of different civilizations and
+    to different religious settings. The need to foresee future events appears to
+    be justifiable not only for purely speculative and cognitive purposes, but also
+    for operational purposes. The aim is to choose the most appropriate behavior to
+    address the problems that will arise and try to take full advantage of the future
+    situation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Forecast **and **prediction** are often used as synonyms, but it''s always
+    a good idea to make a distinction between the meanings of these two terms. Forecasting
+    allows you to associate the probability of occurrence with future events, or to
+    specify confidence intervals to estimate the size that will be observable and
+    measurable in the future. Prediction, on the other hand, involves identifying
+    the specific value that a measurable quantity will assume in the future. It is,
+    therefore, easy to associate the corresponding forecasts with the predictions
+    thus formulated, using the classical instruments of inferential statistics to
+    derive the relative confidence intervals.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the following diagram, we can see two examples to understand the differences
+    between forecast and prediction:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/4fdf7f91-892a-46b6-a69e-5594729965dc.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The difficulties associated with forecasting derive from the uncertainty of
+    the future, which, at the moment in which it is to be expected, is not yet determined.
+    The strong relevance of the elements of uncertainty in the forecast means that
+    the probability calculation tools are essential in the development of a good forecast.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the elaboration of a forecast, some aspects must be observed, such as the
+    following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The nature of the forecasts can be qualitative or quantitative, but often, both
+    aspects appear for complex phenomena.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The object of the forecast can be the future value of a phenomenon that manifests
+    itself with continuity, or the time in which a phenomenon occurs, or the modalities
+    and characteristics of an event that will occur in the future.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The forecast horizon is usually classified in the short, medium and long term.
+    The distinction is not clear and precise. In general, we talk about short-term
+    forecasts when the structural conditions remain unchanged. This is because the
+    event to be foreseen will be largely determined by actions and behaviors that
+    have already been implemented at the time of forecasting. Instead, we talk about
+    long-term forecasts if the fundamental conditions that determine the event to
+    be forecast are still substantially uncertain.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Finally, with regard to the dimension, the forecast can only relate to one phenomenon
+    (univariate forecast), or, at the same time, more connected phenomena (multivariate
+    forecast), and, in this case, it can be based on causal links through which the
+    behavior of a phenomenon determines, possibly with a certain time lag, the trend
+    of others (causal forecast).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Risk and uncertainty are crucial in the elaboration of a forecast. In fact,
+    it is good practice to indicate the degree of uncertainty related to the forecasts.
+    In any case, the data must be updated so that the forecast is as accurate as possible.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Three terms are linked to the concept of statistical forecasting: object, purpose,
+    and method. Let''s try to understand what is meant by statistical forecasting.
+    Statistical forecasting applies to conceptually defined phenomena in order to
+    be objectively measured. The phenomenon and the measurement method must therefore
+    be specified and defined, and must remain unchanged for the entire duration of
+    the survey. The purpose of a forecast is to study the future manifestations of
+    a phenomenon, determined by the persistence of a stability in the general structural
+    properties that have occurred in the past. Finally, the forecasting method represents
+    the mathematical model that uses the developments of the calculation of the probabilities
+    related to stochastic processes on the one hand, and on the other, the paradigm
+    of statistical inference and the principles of decision theory in conditions of
+    uncertainty. Let''s now try to understand how to approach the different methods
+    available by analyzing real examples.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Forecasting methods
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Forecasting methodologies differ mainly on the basis of the characteristics
+    and objectives of the decisions for which they will be used. The length of the
+    time horizon, the availability and the homogeneity of a wide historical database,
+    and the characteristics of the product to which the forecasts refer, such as the
+    life cycle stage, are some of the factors that influence the choice of a method.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Essentially, the forecasting methods are divided into two categories—**qualitative**
+    and **quantitative**. In the following diagram, we can see examples of the two
+    categories:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/9586f16d-bc1e-4d58-b724-06a4cfa0f30c.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: In the following sections, we will deal with both types of methods. We will
+    analyze concrete cases to understand on what basis this classification is carried
+    out.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Qualitative methods
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Qualitative forecasting methods are used to predict future data on the basis
+    of past data. They are adopted when past numerical data is available, and when
+    it is reasonable to assume that some of the models in the data should continue.
+    These methods are generally applied to short- or medium-range decisions. So, qualitative
+    methods are based primarily on judgements, and therefore depend on the opinion
+    and judgement of consumers and experts. They are used when there is limited or
+    no quantitative information, but sufficient qualitative information exists.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following bullet points include some examples of the application of qualitative
+    methods:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Assessments of the sales department**: Each sales agent estimates the future
+    demand for its territory for the next period. The hypothesis underlying this method
+    is that the people closest to the client know their future needs better than anyone
+    else. This information is then aggregated to arrive at global forecasts for each
+    geographic area or product family.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Market surveys**: Companies often turn to firms who specialize in market
+    surveys to make this type of forecast. Information is obtained directly from customers
+    or, more often, from a representative sample of them. This type of investigation,
+    however, is mainly used to look for new ideas, to like or dislike existing products,
+    to find out which are the favorite brands of a given product, and so on.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Quantitative methods
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: We talk about quantitative methods when quantitative information is adequately
+    available. They are also used to predict future data based on past data. These
+    methods are usually applied to short- or medium-term decisions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Examples of quantitative prediction methods include the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Time series**: The phenomenon to be expected is treated like a black box,
+    because it does not try to identify the phenomena that can influence it. The goal
+    of this approach is to identify the past evolution of the phenomenon, and to extrapolate
+    the past to obtain a prediction. In other words, the phenomenon to be predicted
+    is modeled with respect to time, and not with respect to an explanatory variable
+    (consider sales trends, gross domestic product (GDP) trends, and so on).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Explanatory methods**: This assumes that the variable to be predicted can
+    be related to one or more independent or explanatory variables. For example, the
+    demand for consumer goods of a family depends on the income received, and the
+    age of the goods.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Such forecasting techniques employ regression methods and, therefore, the main
+    phase of the analysis entails specifying and estimating a model that relates the
+    variable to be predicted (response) and the explanatory variables (for example,
+    the effect on sales of advertising and/or a price promotion).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'These methods can be used in the following hypotheses:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Sufficient information is available regarding the past evolution of the phenomenon.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This information can be quantified.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: It can be assumed that the characteristics of the past evolution continue to
+    exist in the future in order to make the forecast.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Ultimately, quantitative methods are used when adequate quantitative information
+    is available.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the following section, we will introduce Monte Carlo methods. In particular,
+    we will focus on the use of these methods to solve reinforcement learning problems.
+    We will also see what it means to use these methods for prediction and control.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding Monte Carlo methods
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Monte Carlo methods for estimating the value function and discovering excellent
+    policies do not require the presence of a model of the environment. These methods
+    can learn using the agent's experience alone, or from samples of state sequences,
+    actions, and rewards obtained from interactions between the agent and the environment.
+    The experience can be acquired by the agent in line with the learning process,
+    or it can be emulated by a previously populated dataset. The possibility of gaining
+    experience during learning (online learning) is interesting, because it allows
+    the acquisition of excellent behavior even in the absence of a priori knowledge
+    of the dynamics of the environment. Even learning through an already-populated
+    experience dataset can be interesting because, if combined with online learning,
+    it makes automatic policy improvements induced by others' experiences possible.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To solve reinforcement learning problems, Monte Carlo methods estimate the value
+    function based on the total sum of rewards obtained, on average, in past episodes.
+    This assumes that the experience is divided into episodes, and that all episodes
+    are composed of a finite number of transitions. This is because, in Monte Carlo
+    methods, the policy update and value function estimate take place after an episode
+    is completed. Indeed, Monte Carlo methods iteratively estimate policy and value
+    functions. In this case, however, each iteration cycle is equivalent to completing
+    an episode. So, the policy update and value function estimate occur episode by
+    episode, as we just said.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Monte Carlo methods try to get the best policy by using example returns. An
+    environment model capable of generating these example transitions is therefore
+    sufficient. Unlike dynamic programming, it is not necessary to know the probability
+    of all possible transitions. In many cases, it is, in fact, easy to generate samples
+    that satisfy the desired probability distributions, while it is impractical to
+    express explicitly the totality of the probability distributions. These algorithms
+    simulate an example sequence called an episode, and are based on observed values,
+    ​​update values, and policy estimates. While iterating for a sufficient number
+    of episodes, the results obtained show a satisfactory accuracy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Compared to algorithms based on dynamic programming, Monte Carlo algorithms
+    do not require the complete system model. However, they offer the possibility
+    to update value and policy only at the end of each simulation, unlike dynamic
+    programming algorithms, which update the estimates at each step.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now it is time to understand what it means to use Monte Carlo methods for prediction
+    and control.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Monte Carlo methods for prediction
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Monte Carlo prediction is used to estimate a value function. In this case,
+    the expected total reward from any given state is predicted, given the policy.
+    The procedure follows this flow:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Gives the policy
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Calculates the value function
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: You will recall that the policy defines the agent's way of acting based on the
+    current state, thus representing the probability of action, in a specific way
+    when in a specific state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A prediction task requires that the policy is provided with the aim of measuring
+    its performance, that is, of forecasting the total reward provided by each given
+    state, assuming that the policy is set a priori.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Monte Carlo methods for control
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Monte Carlo control is used to optimize the value function to make the value
+    function more accurate than the estimation. In control, policy is not fixed, and
+    the goal is to find the optimal policy. In this case, our aim is to find that
+    policy that maximizes the total reward provided by each given state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A control algorithm also works for prediction, which predicts the values of
+    the action in different ways and adjusts the policy to choose the best actions
+    at each stage. Thus, the output of these algorithms provides an approximately
+    optimal policy and the expected future rewards for following that policy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next section, we will understand how to differentiate between a model-free
+    and a model-based algorithm.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Approaching model-free algorithms
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In the previous section, *Understanding Monte Carlo methods*, we said that
+    Monte Carlo methods do not require the presence of a model of the environment
+    to estimate the value function, or to discover excellent policies. This means
+    that Monte Carlo is model-free: no knowledge of **Markov decision process** (**MDP**)
+    transitions or rewards is required. So, we don''t need to have modeled the environment
+    previously, but the necessary information will be collected during an interaction
+    with the environment (online learning). Monte Carlo methods learn directly from
+    episodes of experience, where an episode of experience is a series of tuples (state,
+    action, reward, and next state).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the following screenshot, we can see a comparison between a model-based
+    and a model-free approach:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/fa0b4143-8c09-4725-8beb-3e383a63b79b.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Model-free methods can be applied to many reinforcement learning problems that
+    do not require any model of the environment. Many model-free approaches try to
+    learn the value function and infer from it the optimal policy, or by searching
+    for the optimal policy directly in the policy parameter space itself. These approaches
+    can also be classified as on-policy approaches or off-policy approaches. On-policy
+    methods use current policy to generate actions, and to update the policy itself,
+    while off-policy methods use a different exploration policy to generate actions
+    with respect to the policy that is updated. What are the differences between the
+    two approaches—model-free and model-based? In the following section, we will try
+    to highlight the differences in order to choose the right approach to solve a
+    problem.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Model-free versus model-based
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this section, we will try to clarify the difference between these two approaches
+    with a view to solving a problem with reinforcement learning. In such problems,
+    the agent does not know all the elements of the system, which prevents him from
+    planning a solution. In particular, the agent does not know how the environment
+    will change in response to his actions. This is because the transition function, *T*,
+    is not known. Furthermore, he does not even know what immediate reward he will
+    receive in response to his actions. This is because he has not yet noted the reward
+    function. The agent will have to explore the environment by trying to act, observing
+    the answers, and somehow finding a good policy in order to obtain the best possible
+    final reward.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following question arises: If the agent knows neither the transition function
+    nor the reward function, how can he derive good policy? To do so, two approaches
+    can be followed: model-based, and model-free.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the first approach (model-based), the agent learns a model from the observations
+    of the functioning of the environment from his observations, and then derives
+    a solution using that model. For example, if the agent is in the state s1, and
+    performs an action a1, he can observe the environmental transition that takes
+    him to the state s2, thereby obtaining a reward r2\. This information can be used
+    to update the evaluation of the transition matrix T (s2 | s1, a1) and R (s1, a1).
+    This update can be performed using the supervised learning paradigm. Once the
+    agent has adequately modeled the environment, he can use that model to find a
+    policy. The algorithms that adopt this approach are called model-based.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The second approach does not involve learning an environment model to find a
+    good policy. One of the most classic examples is Q-learning, which we will analyze
+    in detail in [Chapter 7](9a0709b1-fdad-4fba-8a06-30d68361b3b2.xhtml), *Temporal
+    Difference Learning*. This algorithm directly estimates the optimal values ​​of
+    the usefulness of each action in each state, from which a policy can be derived
+    by choosing the action with the highest value in the current state. Because these
+    approaches do not learn an environmental model, they are called **model-free**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Ultimately, if, after learning, the agent can make predictions about what will
+    be the next status, and reward, before taking any action, then our algorithm is
+    model-based. Otherwise, it is a model-free algorithm.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, let's see how the action values in the Monte Carlo methods are updated.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Estimation of action values
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In general, Monte Carlo methods depend on repeated random sampling to obtain
+    numerical results. To do this, they use randomness to solve deterministic problems.
+    In our case, we will use random sampling of states and action-state pairs, we
+    will look at the rewards, and then we will review the policy in an iterative way.
+    The iteration of the process will converge on optimal policy as we explore every
+    possible action-state pair.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For example, we could use the following procedure:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We assign a reward of +1 to a correct action, -1 to an incorrect action, and
+    0 to a draw.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We establish a table in which each key corresponds to a particular state-action
+    pair, and each value is the value of that pair. This represents the average reward
+    received for that action in that state.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'To solve the reinforcement learning problem, Monte Carlo methods estimate the
+    value function on the basis of the total sum of rewards, obtained on average in
+    past episodes. This assumes that the experience is divided into episodes, and
+    that all episodes are composed of a finite number of transitions. This is because,
+    in Monte Carlo methods, the estimate of the new values and the modification of
+    the policy takes place once an episode is completed. Monte Carlo methods iteratively
+    estimate policy and value function. In this case, however, each iteration cycle
+    is equivalent to completing an episode—the new estimates of policy and value function
+    occur episode by episode, as shown in the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/cb5a3260-5fb6-454b-a839-f0e620188085.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The workflow includes the sampling of experience episodes and the subsequent
+    updating of estimates at the end of each episode. Because of the many random decisions
+    within each episode, these methods have a high variance, although these are unbiased.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'You may recall two processes, called **policy evaluation** and **policy improvement**:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Policy evaluation algorithms consist of applying an iterative method to the
+    resolution of the Bellman equation. Since convergence is guaranteed to us only
+    for k → ∞, we must be content to have good approximations by imposing a stopping
+    condition.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Policy improvement algorithms improve policy based on current values.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: As we said, the new estimates of policy and value function occur episode by
+    episode; hence, the policy is updated only at the end of an episode.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following code block shows the pseudocode for Monte Carlo policy evaluation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: Usually, the term **Monte Carlo** is used for estimation methods, the operations
+    of which involve random components. In this case, the term **Monte Carlo** refers
+    to reinforcement learning methods based on total reward averages. Unlike dynamic
+    programming methods, which calculate the values for each state, Monte Carlo methods
+    calculate values for each state-action pair because, in the absence of a model,
+    only state values are not sufficient to decide which action is best performed
+    in a certain state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: After analyzing in detail how the Monte Carlo methods approach problems based
+    on reinforcement learning, the time has come to see a practical case. To do this,
+    we will use a very popular game—blackjack. We will see how to forecast the best
+    game strategy using the Monte Carlo methods.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Blackjack strategy prediction using the Monte Carlo approach
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Blackjack is a card game that takes place between the dealer and the players.
+    Players who achieve a higher score than the dealer and do not exceed 21 win, while
+    those players who exceed 21 **bust** and lose the game. Blackjack is usually played
+    with a sabot made up of 2 French card decks, for a total of 104 cards. In the
+    game, the ace can be worth 11, or 1, the pictures are worth 10, while the other
+    cards are worth their face value. Seeds have no influence or value. The sum of
+    the points, for the purpose of calculating the score, takes place by simple arithmetic
+    calculation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Once the players have made their bet, the dealer, proceeding from left to right,
+    assigns each of the players an uncovered card in each location played, assigning
+    the last one to himself. He then does a second round of uncovered cards, without
+    attributing one to himself. Once the distribution has taken place, the dealer
+    reads in order the score of each player inviting them to show their game: they
+    can ask for cards (hit) or stay (stick), at their discretion. If a player exceeds
+    21, he loses, and the dealer will take the bet. Once the players have defined
+    their scores, the dealer develops his game on the basis of a simple rule; that
+    is, he finds a card if he has a score lower than 17, and once he gets or passes
+    17, he must stop. If he passes 21, the dealer **busts** and must pay all the bets
+    left on the table. Once all the scores have been defined, the dealer compares
+    his own score with that of the other players, pays the combinations higher than
+    his, collects the lower ones, and leaves the ones in a draw. The payment of winning
+    bets is at par.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Blackjack game as an MDP
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Blackjack can be treated as an MDP because the status of the players can be
+    defined by the value of the cards in possession, regardless of the cards you have.
+    The status of the dealer is defined entirely by the value of the individual card
+    displayed, and therefore the finished state of the entire game is defined by the
+    status of the player, and the status of the dealer. Finally, the next state of
+    the game is stochastically defined in its entirety from the current state and
+    the player's action.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We recall that a problem can be defined as MDP if the next state is a stochastic
+    function of the current state only, and of the applied action. Furthermore, the
+    MDPs are applicable to situations in which the decision-making space is limited
+    and discreet, the results are uncertain, and the terminal status and the relative
+    prizes are well defined. The solution—an MDP provides us with the optimal action
+    to perform based on a process that aims to maximize the reward for each possible
+    state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the following sections, we will explain the code line by line:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will start defining the actions available:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s look at the meaning of *hit* and *stick*:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`HIT`: Take another card from the dealer.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`STICK`: Take no more cards.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Now, we have to simulate the drafting of the cards from the deck, this operation
+    being carried out by the dealer who, as anticipated, distributes two cards for
+    each player:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: The `sample()` function takes a sample of the specified size from the elements
+    passed using either with (`1`) or without (`0`) replacement.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let''s start generating an initial state randomly:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The initial state and, in general, every possible state, is therefore represented
+    by a vector with the three elements specified here:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Dealer card** (sample(10, 1)): A value between 1 and 10'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Player hand value **(sample(10, 1)): The sum of the player''s card values'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Terminal state** (0): A binary value (0-1) that tells us if the hand is over'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: State and reward update
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the following code block that we will analyze, we will update the state and
+    the reward returned from the environment.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, we will create the function that allows us to execute a single step of
+    the process (`StepFunc`), based on the state (s) and the action (a) passed that
+    returns a new state and reward obtained:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: The first check entered verifies whether we are in the terminal state (hand
+    over), in which case the cycle is exited and the current state is returned and
+    a reward equal to zero.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s check the action passed:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: If the action to be performed is `HIT`, then a new card is discovered and the
+    status and reward are updated.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s see what happens if the past action is `STICK`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: Then, the hand passes to the dealer who executes his game. You start by updating
+    the player's terminal status to 1\. Then, the dealer status (`DealerWork` <- `FALSE`)
+    and its current score are updated (`DealerSum <- s [1]`). From this point on,
+    using a `while` loop runs the dealer game. To start, a new card is discovered.
+    At this point, a first `IF` value is used to check whether the dealer has busted
+    (`DealerSum``> 21`). In this case, the game ends with the victory of the player.
+    The status of the dealer game is updated (`DealerWork <- TRUE`), as well as the
+    total `BJReward` reward <- 1\. Otherwise, if `DealerSum> = 17`, the dealer stops
+    his game and checks the status of the player. If the scores are equal (`DealerSum
+    == s [2]`), the game ends in a draw (`BJReward <- 0`), otherwise, if the dealer's
+    score is greater than that of the player, then `BJReward` of the player = -1 and
+    the player loses. If the dealer 's score is less than that of the player,then `BJReward` of
+    the player = 1 and the player wins. Finally, as already mentioned, the function
+    returns the updated status and the final reward of the step.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Strategy prediction
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Now is the time to predict the best strategy to be successful in the game:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'After defining the function that updates the status and the reward, it is time
+    to define the policy:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'To define the policy, an `ActionsEpsValGreedy()` function was created. This
+    function accepts the following inputs:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`s`: The state'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`QFunc`: The action-value function'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`EpsVAl`: The numeric value for epsilon'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This returns the action to be followed.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As we said in [Chapter 4](80162fc2-33f6-4f5a-9f70-6d063b32d9c9.xhtml), *Multi-Armed
+    Bandit Models*, in the ε-greedy approach, we assume that, with a probability ε,
+    a different action is chosen. This action is chosen with uniform probability between
+    the n possible actions available. In this way, we introduce an element of exploration
+    that improves performance. However, if two actions only exhibit a very small difference
+    between their Q values, this algorithm will also choose only that action that
+    has a higher probability than the others.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let''s load the `foreach` library:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: This package handles the `foreach` loop construct. The `foreach` command allows
+    you to scroll through items in a collection without using an explicit counter.
+    We recommend using the package for its return value, rather than for its side
+    effects. Used in this way, it is similar to the standard `lapply` function, but
+    does not require the evaluation of a function. Thus, the use of `foreach` facilitates
+    the execution of the cycle in parallel.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Finally, we can define the `MontecarloFunc` function that will guide us in
+    solving the problem. This function accepts the following variable as input:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '`NumEpisode`: Number of episodes to play'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The `MontecarloFunc()` function returns the following values:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`QFunc`: Updated action-value function'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`N`: Updated numbers of state-action visits'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Let''s analyze this in detail:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Once the inputs are passed, the following variables are initialized:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`QFunc`: Action-value function as an array containing the following variables:
+    all possible card values (dim=10), all possible sum values (dim=21), and all possible
+    actions (dim=2)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`N`: Number of state-action visits'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`N0`: Offset for N'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Then, we will pass to define a policy:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will now use a cycle to perform all the episodes necessary to calculate
+    the best strategy:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, let''s play a game for each episode:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Until such time as the game''s terminal status is 0 (game in progress), it
+    performs the following operations:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Chooses an action to perform based on the defined policy
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Increases the visits counter
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Performs a step by calling the `StepFunc()` function
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Updates your rewards
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'After doing this, we move on to update Q and N:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: The preceding code block includes the key element of the entire process—the
+    updating mode of the Q function. In this case, an incremental approach has been
+    adopted.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In fact, the function *q* is updated using the following function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/5cc73415-ea95-4a4c-b092-a4e1dd0bb02d.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Here:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*G*: This is a sum of the rewards.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Q: This is the action-value function.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*N*: This is the number of state-action visits.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Finally, the following results are returned:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'After defining all the necessary functions, it is time to run the simulation:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: We simply passed the number of episodes required to obtain a good forecast of
+    the best strategy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'At this point, to analyze the results, we can draw a graph. However, it is
+    necessary to adequately format the action-value function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: To do this, we used the `apply()` function, which returns a vector or array,
+    or a list of values obtained by applying a function to margins of an array or
+    matrix.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, we can draw a chart:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: The `persp()` function was used. This function draws perspective plots of a
+    surface over the x-y plane.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following chart is plotted:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/ea1fae42-e238-4354-bce7-d4b32b34f99e.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: In this way, we have a good estimate of the value function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, the basic concepts of the Monte Carlo method were explored.
+    The Monte Carlo method entails looking for the solution to a problem, representing
+    it as a parameter of a hypothetical population, and estimating this parameter
+    by examining a sample of the population obtained through sequences of random numbers.
+    Later, we highlighted the differences between the different methods that this
+    technology makes available to us. The Monte Carlo prediction is used to estimate
+    the value function, while Monte Carlo control is used to optimize the value function
+    to make the value function more accurate than the estimation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We then moved on to analyze the differences between algorithms based on a model-free
+    approach, and those based on a model-based approach. Furthermore, we analyzed
+    step by step the procedure that allows us to carry out the Monte Carlo policy
+    evaluation. Finally, as a practical case of the concepts learned, a Blackjack
+    strategy prediction involving the Monte Carlo method was performed.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will learn about the different types of **temporal difference**
+    (**TD**) learning algorithms. You will discover how to use TD algorithms to predict
+    the future behavior of a system, and learn the basic concepts of the Q-learning
+    algorithm. You will also learn to use the current best policy estimate to generate
+    system behavior through the Q-learning algorithm.
+  prefs: []
+  type: TYPE_NORMAL

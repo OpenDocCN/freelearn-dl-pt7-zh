@@ -1,0 +1,1097 @@
+- en: Understanding the Heuristic Search Algorithm
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Heuristic searching is an AI search technique that utilizes a heuristic for
+    its functionality. A **heuristic** is a general guideline that most likely prompts
+    an answer. Heuristics assume a noteworthy role in searching strategies, in view
+    of the exponential nature of most problems. Heuristics help to decrease a high
+    quantity of options from an exponential number to a polynomial number. In **artificial
+    intelligence** (**AI**), heuristic searching is of general significance, and also
+    has specific importance. In a general sense, the term heuristic is utilized for
+    any exercise that is regularly successful, but isn't certain to work in every
+    situation. In heuristic search design, the term heuristic often alludes to the
+    extraordinary instance of a heuristic evaluation function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, we will cover the following topics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Revisiting the navigation application
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The priority queue data structure
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Visualizing search trees
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Greedy **Best-First Search** (**BFS**)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The A* Search
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Features of a good heuristic
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Revisiting the navigation application
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In [Chapter 2](31a5d361-a5f4-45f2-b6f3-e28c01f85971.xhtml), *Understanding
+    the Breadth-First Search Algorithm*, we saw the university navigation application,
+    with which we wanted to find our way from the Bus Stop to the AI Lab. In the BFS
+    method, we assume that the distance between connected places is one (that is,
+    the same). However, in reality, that is not the case. Now, let''s assume that
+    the university is designed as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/a26e2598-6f09-4e7d-b7ab-ba4655e0fdac.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 1
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The values in green are the actual distances between the connected places.
+    Let''s go ahead and create a dictionary, storing the locations of these places:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the Python `NavigationData.py` module, we have created a dictionary called
+    `connections`; this dictionary stores the connections between places. They are
+    similar to the connections between people that we saw in the LinkedIn connection
+    feature application in [Chapter 2](31a5d361-a5f4-45f2-b6f3-e28c01f85971.xhtml),
+    *Understanding the Breadth-First Search Algorithm*:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: We also have the `location` dictionary for storing the locations of places.
+    The keys of the `location` dictionary are the places, and the values are the *x*
+    and *y* coordinates of those places.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In DFS, preference was given to the child nodes while exploring the search tree; in
+    BFS, preference was given to the sibling nodes. In heuristic searching, preference
+    is given to nodes with lower heuristic values.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let''s look at the term *heuristic*. A heuristic is a property of the
+    class node. It is a guess, or estimate, of which node will lead to the goal state
+    faster than others. This is a strategy used to reduce the nodes explored and reach
+    the goal state quicker:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/b339d2d2-5292-4573-ae7a-b29176fa319b.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 2
+  prefs: []
+  type: TYPE_NORMAL
+- en: For example, suppose that we're at the red node in the preceding diagram, and
+    it has two child nodes—the yellow node and the green node. The green node seems
+    to be much closer to the goal state, so we would select that node for further
+    exploration.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We''ll see the following two heuristic search algorithms as we proceed with
+    this chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The greedy BFS algorithm
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The A* Search algorithm
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The priority queue data structure
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: A **priority queue** is a queue in which each element has a priority. For example,
+    when passengers are waiting in a queue to board a flight, families with young
+    children and business class passengers usually take priority and board first;
+    then, the economy class passengers board. Let's look at another example. Suppose
+    that three people are waiting in a queue to be attended to at a service counter,
+    and an old man steps in at the end of the queue. Considering his age, the people
+    in the queue might give him a higher priority and allow him to go first. Through
+    these two examples, we can see that the elements in a priority queue have priorities,
+    and they are processed in order of those priorities.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Just like in queuing, we have operations to insert elements into a priority
+    queue. The **insert** operation inserts an element with a specific priority. Consider
+    the following diagram, illustrating the insert operation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/18952aac-49f7-4c9c-9436-4c913e245f46.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 3
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the preceding diagram, element **A** is inserted with priority **5**; since
+    the priority queue is empty, the element is kept at the front. In Python, elements
+    with low priorities are arranged toward the front of the queue, and elements with
+    high priority values are arranged toward the end of the priority queue. This means
+    that elements with low priority values are processed first, since they're at the
+    front of the priority queue. Now, suppose that element **B** needs to be inserted
+    with priority **10**. As **10** is greater than **5**, element **B** is kept after
+    element **A**. Now, suppose that element **C** is to be inserted with priority
+    **1**. Because **1** is less than **5, **it is arranged in front of element **A**.
+    Next, element **D** is to be inserted with priority **5**; here, both elements
+    **A** and **D** have priority **5**, but, since **A** was inserted first, it has
+    a higher priority. This means that **D** is placed after **A** and before **B**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In a queue, we have an operation called **dequeue**, which removes an element
+    from the front. Similarly, in a priority queue, we have an operation called **get
+    front element**, which removes an element from the front of the priority queue.
+    So, calling this operation four times should first remove **C**, then **A**, then
+    **D**, and finally **B**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In Python, we have the `Queue` class for the priority queue data structure.
+    It has the `PriorityQueue` method, which takes `maxsize` as an argument for creating
+    a priority queue. If `maxsize` is less than `0` or equal to `0`, the queue size
+    is infinite. In our case, we''ll call this method with no arguments, because the
+    default argument is `0`. In `PriorityQueue`, the elements of the tuple are `priority_number`
+    and `data`. The `Queue` class has the `empty()` method, which returns `True` if
+    it''s empty and `False` otherwise. It has the `put()` method, used for inserting
+    an item that is in the form of a tuple: `(priority_number, data)`. Finally, we
+    have the `get()` method, which returns the front element. Let''s go ahead and
+    try out these methods, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: We have created a Python module called `PriorityQueue.py`, and we are importing
+    the `Queue` class. We have also created a priority queue and, one by one, we are
+    inserting elements with specific priorities.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As can be seen in the preceding code, we are inserting a tuple where the priority
+    number is `5` and the data is `A`; then, we are inserting element `B` with priority
+    `10`, `C` with priority `1`, and `D` with priority `5`. We are also checking whether
+    the priority queue is empty and when it is not empty, we are printing all of the
+    elements one by one, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/e754937d-60ce-4cd6-a732-cbad40d452ed.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 4
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you can see, in the preceding output, the priority queue is initially empty.
+    After inserting the four elements, the length becomes `4`; when we get the front
+    elements, the first element is `C`, the next is `A`, the next is `D`, and the
+    last element is `B`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Visualizing a search tree
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the previous chapter, you learned that a **graph** is a structure in which
+    nodes are connected by edges. A **tree** is a special type of graph, in which
+    there are no cycles and two nodes are connected by one path. For visualizing trees,
+    we'll use the `pydot` Python library, which is a Python interface to Graphviz's
+    DOT language. In [Chapter 1](50419d40-ab0f-4d63-9447-295dc802574c.xhtml), *Understanding
+    the Depth-First Search Algorithm*, we learned that **Graphviz** is open source
+    graph visualization software, and it provides the DOT language for creating layered
+    drawings of directed graphs. In addition, we'll be using the `matplotlib` library
+    for displaying the final rendered image.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let''s use these libraries to visualize the following simple tree. It
+    has a root node, and three children under the root node:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/bf4c49d1-8891-41d5-80ec-cf3d0d38ebd5.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 5
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Consider the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: We have created a Python module called `TreePlotTest.py`, and have imported
+    the `pydot` library and the required classes from `matplotlib`. Using the `Dot()`
+    method of `pydot`, we can create a `graph` object that will hold the nodes and
+    edges of the graph. We have also specified the `dpi` for the image as `300` in
+    this case. We can use the `Node()` method of `pydot` to create a node. We are
+    creating the `rootNode` by passing the label as `0 Root`, and using the `style`
+    argument `filled` and the `fillcolor` argument `#00ee11`; the `xlabel` is `0`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The `fillcolor` argument is specified in hexadecimal format. Browse to [https://www.w3schools.com/colors/colors_picker.asp](https://www.w3schools.com/colors/colors_picker.asp) to
+    select a color and see its hexadecimal code; later, you''ll understand why the
+    `xlabel` is used:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'After we have created this `rootNode`, it will be added to the `graph` object,
+    and we will create the `childNode` three times with appropriate names. The `style`
+    argument will be `filled` with another color, and the `xlabel` will be `1`. We
+    will also add this node to the graph. Then, we will create an edge between the
+    `rootNode` and the newly created `childNode`, and add this edge to the `graph`
+    object. The snippet of code at the end of the following block is used to display
+    the graph in full screen:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s run the preceding code, and see what happens:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/1fab482f-6d53-4e51-a9a4-ff88ef87ac4f.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Upon successful execution of the code, we will see the four nodes: the root
+    node, and then the three child nodes beneath it. We can see the xlabel values
+    `0` and `1`, which are extra annotations for the node.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let''s try modifying the name of the `childNode`. We will remove the numerical
+    value from the child node''s name, so that all three of the nodes have the same
+    name:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Having made these changes to the names of the `childNode`, we will see the
+    following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/344f283c-e2c3-4067-a2cd-37fa12a2de95.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Since the three nodes have the same name, `pydot` treats them as the same node.
+    Hence, we should try to use unique names in the nodes for the search tree. The
+    following diagram shows an example of a search tree:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/ab3f5865-8444-4e9c-b5dd-dbfd88322ac8.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 8
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the preceding diagram, we want to visualize a heuristic search. Each node
+    has a heuristic value. In this example, **Bus Stop** appears twice, so we use
+    index values to differentiate multiple instances. Each node also has a color code.
+    Green nodes have already been explored; in this case, **Bus Stop** and **Library**
+    will be explored. The red node has been selected for exploration; in this case, **Car
+    Park** has been selected for exploration. The blue nodes are unexplored, forming
+    a fringe, and they are arranged in a priority queue in descending order of heuristic
+    values. A **fringe** is a priority queue of unexplored nodes, ordered by heuristic
+    value.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In our case, the **Maths Building** comes first, because it has the lowest heuristic
+    value (**2.2**), followed by **Store,** which has a heuristic value of **4**;
+    **Student Center,** with a value of **8**; **Library,** with a value of **8.2**;
+    and **Bus Stop,** with a value of **8.9**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In DFS, we use the stack data structure, giving preference to the child nodes.
+    In BFS, we use the queue data structure, giving preference to siblings. In a heuristic
+    search, we will use the priority queue; this will give preference to the unexplored
+    node that is closest to the goal, which is the first node in the priority queue:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/7c1c7267-fc3b-4a5f-a974-58d3cc9da800.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 9
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'A few changes need to be made to the `Node` class in order to accommodate the
+    heuristic search and visualization process. A new property called `fringe` is
+    introduced, to indicate whether the node is a part of the fringe. A new property
+    called `heuristic` is introduced, the constructor has changed, and an additional
+    argument, `parentNode`, is introduced. The `addChild` method is changed to the `setParent`
+    method, and we have a new method, called `computeHeuristic`. Now, let''s take
+    a look at the code for the `Node` class, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Here, we have commented out the code for setting the parent as `None`. Instead,
+    we have the `setParent` method, which takes the parent node as an argument and
+    sets the property. We have a property called `fringe`, which is set as `True`
+    by default, and there is a new property, `heuristic`, which is set by the `computeHeuristic`
+    function . As mentioned previously, `addChild` has been set to `setParent`, which
+    takes `parentNode` as an argument. We check whether the parent node is not `None`;
+    if it is not `None`, then the node is added to the `children` property of the
+    parent node, and the `parent` property of the current node is set as `parentNode`;
+    the current node depth is equal to `parentNode.depth + 1`. If `parentNode` is
+    `None`, then the `parent` property is set to `None`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'There is also a new method called `computeHeuristic`. This function sets the
+    `heuristic` property to a value. We will see how this function actually works,
+    and what it computes, in the *Greedy* *BFS* and *A* Search* sections:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the Python `TreePlot.py` module, we created a class called `TreePlot`, which
+    is used to create a tree visualization of the `Node` class. This class has two
+    properties: the first one is a `graph` object, and the other one is the `index`
+    of the node. It has a method called `createGraph`, which adds nodes and edges
+    to the `graph` object. The flow of this method is similar to `printTree`, as it
+    is recursively called on its child nodes. This method takes the current node being
+    processed and `currentNode` as an argument. `currentNode` is the node that is
+    shown in red in *Figure 8,* **Car Park**. The `createGraph` method checks whether
+    the node that we are processing has the same state as that of the `currentNode`,
+    and, if it does, it assigns color red to it. If it is a part of the fringe, the
+    color blue is assigned. If the node has been explored, the color green is assigned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'After assigning the hexadecimal color of the node, we will create the node
+    and call it `parentGraphNode`. The label of the node is a combination of the index
+    value and the state of the node, and the `xlabel` is the heuristic value of the
+    node. After we have created this node, the value of the index will be incremented,
+    and the node will be added to the graph:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'For each of the `childNode` objects, we call the `self.createGraph` method
+    and pass `childNode` and `currentNode`. So, when we call this on `childNode`,
+    it should return the corresponding `pydot` node. Then, we can create an edge between `parentGraphNode` and
+    `childGraphNode`. After creating this edge, we can add it to our `graph` object:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This class has another method, called `generateDiagram`, and it takes `rootNode`
+    and `currentNode` as arguments. First, it generates the `graph` object containing
+    all of the nodes and edges by calling the `createGraph` method, with `rootNode`
+    as the first argument and `currentNode` as the second argument. Then, we have
+    the same snippet that we earlier used to show the diagram. So, if you want to
+    visualize a search tree, you have to instantiate an object of `TreePlot` and call
+    the `generateDiagram` method:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the Python `TreePlotTest2.py` module, we imported the necessary classes—`Node`,
+    `State`, and `TreePlot`, and we are creating a sample tree with the root node
+    and child nodes of the first level. We also created a `TreePlot` object and called
+    the `generateDiagram` method, with the arguments `root` and `root`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/804707a2-219a-445c-acad-6d494516b024.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 10
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the preceding diagram, we can see the root node and the first-level child
+    node.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that you have learned how to visualize a tree, in the next section you will
+    learn about greedy best-first search.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Greedy BFS
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In the *Revisiting the navigation application* section, you learned that a
+    heuristic value is a property of the node, and it is a guess, or estimate, of
+    which node will lead to the goal state quicker than others. It is a strategy used
+    to reduce the nodes explored and reach the goal state quicker. In **greedy BFS**,
+    the heuristic function computes an estimated cost to reach the goal state. For
+    our application, the heuristic function can compute the straight-line distance
+    to the goal state, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/0585470f-f65a-413e-a10a-31d1e3744ee2.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As you can see, in the preceding diagram the initial state is the **Bus Stop**.
+    From the **Bus Stop** node, we have one channel, which is the **Library** node.
+    Let''s suppose that we''re at the **Library** now; from the **Library** node,
+    there are three child nodes: the **Car Park**, the **Bus Stop**, and the **Student
+    Center**. In real life, we''d prefer to go to the **Car Park**, because it seems
+    closer to the goal state, and the chances that we will reach the **AI Lab** faster
+    are much higher:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s use the location data of these four places (`Library`, `Car Park`, `Bus
+    Stop`, and `Student Center`) to compute the heuristic functions for the three
+    nodes. When you compute the heuristic functions for these three nodes, you will
+    find that the value for `Car Park` is `6.4`, `Bus Stop` is `8.9`, and `Student
+    Center` is `8.0`. According to these heuristic values, we will select the first
+    value in the fringe, which is the node with the lowest heuristic value (`Car Park`):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s take a look at the preceding `computeHeuristic` function. The `Node`
+    class has a method called `computeHeuristic`. This function computes the heuristic
+    value of the node by finding the distance from this state to the goal state. You
+    can find the goal location by using the `location` dictionary of the navigation
+    data and using the AI Lab as the key. You can find the current location by using
+    the `location` dictionary, with the current place as the key. We find the difference
+    in the `x` coordinates as follows: `dx = goalLocation[0] - currentLocation[0]`.
+    We find the difference in the `y` coordinates as follows: `dy = goalLocation[1]
+    - currentLocation[1]`. Finally, we compute the distance as the square root of
+    `dx` square plus `dy` square, and we assign this distance to the `heuristic` property
+    of the `Node` class:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/57a8639d-f5b3-4c6f-a5cb-88bf3335dcb6.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 12
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now that you understand this heuristic function, let''s look at the flow of
+    the greedy BFS algorithm. The flow of this algorithm is similar to BFS. Instead
+    of using a queue, we are going to use a priority queue, and we are going to compute
+    the heuristic of the node and add the node, along with the heuristic value, to
+    the priority queue:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We initially create the root node and add it to the tree, and then add this
+    node, along with its heuristic value, to the priority queue.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We get the front node from the priority queue, and we check if it has goal state.
+    If it does, we end our search here, and if it doesn't have the goal state, then
+    we find its child nodes, add them to the tree, and then add them to the priority
+    queue, along with a heuristic value.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We carry on with this process until we find the goal state or we've exhausted
+    all of the nodes in our search stream.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Let''s try to code the greedy BFS algorithm as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the Python `GreedySearch.py` module, we have created a `performGreedySearch()`
+    method, which will perform the greedy BFS. In this method, we have created an
+    empty priority queue for holding the nodes. With `initialState`, we are creating
+    a root node, and, as mentioned earlier, the constructive node has changed; there
+    is an additional argument in the parent node. For the root node, the parent node
+    is `None`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We are creating a `TreePlot` object and calling its `generateDiagram()` method
+    to visualize the current search tree. In this case, the search tree will only
+    contain the root node. We''re adding the root node, along with its heuristic value,
+    to the priority queue. We check whether the priority queue is not empty; if it
+    is not empty, we get the front element and call it `currentNode`. As mentioned
+    earlier, the format of the priority queue is a tuple containing the heuristic
+    value and the node. Since we only want the node, we''ll ignore the heuristic value.
+    We will set the `fringe` property of `currentNode` to `False`, because it''s currently
+    selected for exploration:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: We check whether the current node has the goal state; if it has the goal state,
+    we print the path from the initial state to the goal state. We show the current
+    search tree by calling the `treeplot.generateDiagram` method. If it doesn't have
+    the goal state, we find the child states of the current node, and for each `childState`,
+    we create the `childNode` by using the new constructor. In this new constructor,
+    we pass the parent node as the `currentNode`, and we add the child node, along
+    with its heuristic value, to the priority queue; we then display the current search
+    tree.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'So, we actually display the search tree at each step, whenever one level of
+    the search tree is added. In this case, the search tree contains the root node.
+    When one level of the search tree is added, we display the search tree; finally,
+    when we reach the goal state, we prepare and then display the search tree that
+    has been explored:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/c69db465-7111-4fed-b84a-0b7327faca8b.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 13
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As you can see in the preceding output, we have a root node with the heuristic
+    value `8.9` in our search tree. The `Bus Stop` node has been selected for exploration,
+    and its child node library has been added to the search tree. The heuristic value
+    of `Library` is `8.2`, which is lower than the heuristic value of `Bus Stop`,
+    which is `8.9`. Since this is the only node in the fringe, it will be selected
+    for exploration later:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/451b7fe9-89f5-47bd-898f-06ec082cd05f.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 14
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As shown in the preceding diagram, `Library` has been selected for exploration,
+    and the child nodes of the `Library` node are added. We can see that for the three
+    child nodes in the fringe, `Bus Stop` has a heuristic value of `8.9`, `Car Park`
+    has a heuristic value of `6.4`, and `Student Center` has a heuristic value of
+    `8.0`. Out of the three nodes, `Car Park` has the lowest heuristic value, so this
+    will be selected for exploration:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/c9ef7ed8-df5c-4c40-9bbc-34f81b4b6e17.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 15
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, `Car Park` has been selected for exploration, and its child nodes are
+    added to the priority queue. Here, we have five nodes in the fringe. `Bus Stop`
+    has a heuristic value of `8.9`, the `Maths Building` has a heuristic value of `2.2`,
+    `Library` has a value of `8.2`, `Store` has a value of `4`, and `Student Center`
+    has a value of `8.0`. Of these five nodes, `Maths Building` has the lowest heuristic
+    value (`2.2`), so it will be selected for exploration:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/ba05d135-960f-4cdd-b4fa-f500362731ea.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 16
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, `Maths Building` has been selected for exploration, and its child nodes
+    are added to the search tree. Of the nodes in the fringe, `Canteen` has the lowest
+    heuristic value (`1.0`), so it will be selected for exploration:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/7ac994e1-0402-4919-9414-06bb3adb5e5b.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 17
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, the `Canteen` node has been selected for exploration, and its child nodes
+    are added to the search tree and to the fringe. Out of all of the blue nodes,
+    `AI Lab` has the lowest heuristic value (`0.0`), so it will be selected for exploration:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/8665302a-ad86-43f4-8b96-9542f4543467.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 18
+  prefs: []
+  type: TYPE_NORMAL
+- en: Finally, the `AI Lab` is selected for processing, and we find that we've reached
+    the goal state, so we end our search here. The optimal path is shown by the green
+    nodes and by the red node. The optimal path is `Bus Stop`, `Library`, `Car Park`,
+    `Maths Building`, `Canteen`, and `AI Lab`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As we go from the initial state to the goal state, we can observe that the heuristic
+    values reduce. `Bus Stop` has the value `8.9`, `Library` has the value `8.2`,
+    `Car Park` has the value `6.4`, `Maths Building` has the value `2.2`, `Canteen`
+    has the value `1`, and `AI Lab` has the value `0`. This means that as we traverse
+    the search tree, we are getting closer to the goal state. In the greedy BFS algorithm,
+    the heuristic value reduces as we progress toward the goal state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that you have learned the heuristic function for the greedy BFS algorithm,
+    in the next section you will learn the problems with the greedy BFS algorithm,
+    and you will see how A* Search solves those problems.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A* Search
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In the preceding section, you learned that the path found by a greedy BFS is
+    as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/0c1ae32b-611b-4bae-bed8-6eb9c62ac70e.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 19
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The total distance covered is **14.24**. However, the actual optimal solution
+    is shown in the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/03899d33-7b12-4e27-88ea-9915b9ee0b9c.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 20
+  prefs: []
+  type: TYPE_NORMAL
+- en: The total distance covered is **12**. This means that the greedy BFS algorithm
+    is not optimal. The problem is that the heuristic function doesn't consider the
+    costs already incurred. A* Search proposes a new heuristic function, which computes
+    the sum of the cost incurred and the estimated cost to reach the goal state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For our application, the heuristic function can compute the sum of the distance
+    traveled from the root node to the current node, and the straight line distance
+    to the goal state. Let''s look at the example that we saw in the previous section
+    and compute this new heuristic function for the three nodes **Car Park**, **Bus
+    Stop**, and **Student Center**:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/64fceb91-d333-4164-81b4-fd4a5ed47f0e.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 21
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For the **Car Park**, the distance traveled is **2** + **5**, and the distance
+    to the goal state is **6**, so the value of the new heuristic is **13.4**. For
+    the **Bus Stop**, the distance traveled is **2** + **2**, which is **4**, and
+    the distance to the goal state is **8.9**, so the value of the new heuristic function
+    for the **Bus Stop** is **4** + **8.9**, which is **12.9**. For the **Student
+    Center**, the distance traveled is **2** + **2**, which is **4**, and the distance
+    to the goal state is **8**, so the value of the new heuristic function for the **Student
+    Center** is **4** + **8**,which is **12**. Based on these new heuristic values,
+    we will select **Student Center** for further exploration:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/de48865f-8fb7-4173-85e2-31db9084d0d9.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 22
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In addition to the changes to the `Node` class, which we saw in the *Visualizing
+    a search tree* section, we will introduce a property called `costFromRoot` and
+    a method called `computeCost`. The `costFromRoot` property is the distance incurred
+    while traveling from the root node to the current node, and this value will be
+    computed by the `computeCost` function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/678db639-178b-4aac-b2dd-c99a0ab34de3.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 23
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s look at how the `computeCost` method works. As indicated by the preceding
+    diagram, we have three nodes: **Bus Stop**, **Library**, and **Car Park**. The
+    distance between **Bus Stop** and **Library** is **2**, and the distance between
+    **Library** and **Car Park** is **5**. Since **Bus Stop** is the initial state,
+    the cost for that node is **0**. For **Library**, the cost from the root is **2**,
+    and for **Car Park**, the `costFromRoot` is **2** + **5**, which is **7**. This
+    is also the cost of its parent node plus the distance between the parent node
+    and the current node. So, we can write the formula as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*costFromRoot = parent''s costFromRoot + distance of parent node to current
+    node*'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s look at the code for this method. Before we look at the `computeCost`
+    method, let''s look at the `computeDistance` method:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This method computes the distance between two locations, and it takes `location1`
+    and `location2` as arguments. It finds the difference in the *x* coordinates as
+    `dx` is equal to `location1[0] - location2[0]`, and it finds the difference in
+    the *y* coordinates as `dy` is equal to `location1[1] - location2[1]`. It finds
+    the distance as the square root of `dx` square plus `dy` square, and it returns
+    this distance:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The `computeCost` method computes the distance of the current node from the
+    root node. So, we check whether the `parent` property is `None`. Then, we find
+    the distance from the current location to the parent location, and we compute
+    the `costFromRoot` as the parent''s `costFromRoot` plus the distance that we''ve
+    just computed; if the parent is `None`, then `costFromRoot` is `0`, because this
+    is the root node:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, let''s look at the `computerHeuristic` method. Just like in a greedy BFS,
+    we find the goal location as the location of the `AI Lab` and the current location,
+    and we find the distance from the goal as the distance between the goal location
+    and the current location. Then, we compute the heuristic as a sum of `costFromRoot`
+    and `distanceFromGoal`, and we assign the `heuristic` property as this heuristic
+    value:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/7d797ac3-2a07-42f5-bd98-43483d590660.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 24
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As shown in the preceding diagram, the flow of A* Search is actually the same
+    as that of greedy BFS. So, let''s look at the code for A* Search, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the Python `AStar.py` module, we have created a method called `performAStarSearch`,
+    which has the code for A* Search; this code is exactly the same as that of greedy
+    BFS:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/b1c984d4-a44e-4ef2-86ca-4477f12a5ab4.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 25
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Initially, we have our root node with a heuristic value of `8.9`, and the `Bus
+    Stop` node is selected for expansion; its `Library` child is added, and that has
+    a heuristic value of `10.2`. Since this is the only node in the fringe, it will
+    be selected for exploration:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/56bc4f05-5ff5-45ea-841e-c8d4e70be756.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 26
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now the `Library` node is selected for exploration, and its three child nodes
+    are added. `Bus Stop` has a heuristic value of `12.9`, `Car Park` has a heuristic
+    value of `13.4`, and `Student Center` has a heuristic value of `12`. Out of these
+    three, `Student Center` has the lowest heuristic value, so it will be selected
+    for exploration:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/0d541455-a2cc-416d-a857-310c55ef0260.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 27
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now `Student Center` is selected for exploration, and its three child nodes
+    are added to the fringe. Out of the five nodes in the fringe, `Store` has the
+    lowest heuristic value, so it will be selected for exploration:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/b6298ea6-736a-4242-82f4-4554dca2c633.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 28
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now `Store` is selected for exploration, and its four child nodes are added.
+    Out of the eight nodes in the fringe, `Canteen` has the lowest heuristic value,
+    so it will be selected for exploration:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/d4cdfedd-0900-409e-980b-4f4747cb0fee.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 29
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now `Canteen` has been selected for exploration, and its child nodes are added
+    to the search tree and to the fringe. Out of all of the nodes in the fringe, `AI
+    Lab` has the lowest heuristic value, so this node will be selected for exploration:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/e88755c5-2299-4da6-a0e3-24a115425706.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 30
+  prefs: []
+  type: TYPE_NORMAL
+- en: When `AI Lab` is select for exploration, we find that we've encountered the
+    goal state, and we stop our search.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The optimal path is indicated by the green nodes and the red node. The optimal
+    path is from `Bus Stop` to `Library` to `Student Center` to `Store` to `Canteen`,
+    and finally to `AI Lab`. As we traverse from the root node to the goal node, we
+    find that the heuristic function value either remains the same or increases. So, `Bus
+    Stop` has the value `9`, `Library` has the value `10.2`, `Student Center` has
+    the value `12.0`, `Store` has the value `12.0`, `Canteen` has the value `12.0`,
+    and finally `AI Lab` has the value `12.0`. So, in this example, we learned that
+    the heuristic function increases or remains the same as we progress from the initial
+    state to the goal state, and we also observed that A* Search is optimal. We saw
+    that greedy BFS is not optimal, and we can now understand why. We saw a new heuristic
+    function, which makes A* optimal. In the next section, we will look at what a
+    good heuristic function entails.
+  prefs: []
+  type: TYPE_NORMAL
+- en: What is a good heuristic function?
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: To answer the question, *why is a good heuristic function required?* We will
+    compare the DFS and BFS methods to the heuristic search approach. In DFS and BFS,
+    the costs of all of the edges are equal to **1**, and DFS explores all of the
+    child nodes, whereas BFS explores all of the sibling nodes. In a heuristic search,
+    the costs of the edges are different, and the heuristic search selects the nodes
+    to explore based on heuristic functions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: By using a heuristic function, we can reduce the memory that is used, and we
+    can reach the solution in less time. The next question to be answered is, *why
+    is a good heuristic function required?* The answer is in order to find the **optimal
+    solution**. In our A* Search example, we illustrated that by using a better heuristic
+    function, we can find the optimal solution; it is clear that A* explores the least
+    number of nodes. Now, let's look at the properties of a good heuristic function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Properties of a good heuristic function
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The properties of a good heuristic functions are detailed in the following sections.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Admissible
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'A good heuristic function should be admissible, which means that the heuristic
+    function should have a value that is less than (or equal to) the true cost to
+    reach the goal:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/3ab2b1e9-ea0b-4bc6-86e7-cae780e77d24.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 31
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s suppose that node **1** is the root node and node **5** has the goal
+    state, and we are currently computing the heuristic function for node **2**; the
+    following applies:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**d12** is the cost of the path from **1** to **2**'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**d24** is the cost of the path from node **2** to **4**'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**d45** is the cost from node **4** to **5**'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**d23** is the cost from node **2** to **3**'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**d35** is the cost from node **3** to **5**'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Then, in order for our function to be admissible, the following must be true:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The heuristic function for node **2** should have a value less than or equal
+    to **d24** + **d45**
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The heuristic function for node **2** should have a value less than or equal
+    to **d23** + **d35**
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![](img/84009382-23c5-4abe-a45f-e1918b1f2f83.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 32
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the preceding example, node **1** is the root node and node **5** has the
+    goal state. The red values are the estimated cost to the goal state, and the green
+    values are the true cost of the edge:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's suppose that we have explored node **1**, and have added nodes **2** and
+    **3** to the fringe. So, we will compute the heuristic values for nodes **2**
+    and **3**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The heuristic value for node **2** is **3** + **9***,* which is **12**, and
+    the heuristic value for node **3** is **10** + **1***,* which is **11**; based
+    on these values, we select node **3** for further exploration.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We add the child of node **3**, which is node **5**, to the fringe. The fringe
+    contains nodes **2** and **5**. We had previously computed the heuristic function
+    for node **2** as **12**, and the heuristic function for node **5** as **10**
+    + **10** + **0**, which is **20**. So, based on these values, we will select node
+    **2** for exploration.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We add the child of node **2**, which is node **4**, to the fringe. Now, the
+    fringe contains **4** and **5**. We had previously computed the heuristic function
+    for node **5** as **20**, and we will compute the heuristic function for node
+    **4** as **3** + **3** + **1**, which is **7**. Based on these values, we will
+    select node **4** for further exploration.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We add the child of node **4**, which is node **5**, to the fringe. The fringe
+    contains node **5** through path [1-3-5], and node **5** through path [1-2-4-5].
+    We had previously computed the heuristic function for node **5** through path
+    [1-3-5] as **20**. So, we compute the heuristic function of node **5** through
+    path [1-2-4-5] as **3** + **3** + **3** + **0**, which is **9**. Based on these
+    values, we select node **5** with path [1-2-4-5]; when we process this node, we
+    see that we've reached the goal state and end our search here.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In this example, you saw that during the search process, we side-tracked to
+    node **3**. Later, we found the optimal solution to be [1-2-4-5]. So, an admissible
+    heuristic guaranteed finding the optimal solution.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Consistent
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The second property a good heuristic function should have is that it should
+    be consistent, which means that it should be non-decreasing:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/463fdd3f-c3f9-4bd7-a2ac-f4024fcf46d2.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 33
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For example, the heuristic function for node **3** should be greater than (or
+    equal to) the heuristic function for node **2**, and the value of the heuristic
+    function for node **4 **should be greater than (or equal to) the value of the
+    heuristic function for node **2**. Let''s look at why this is so, through the
+    following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/dd95ca51-d5da-41a4-9596-f5ba4a05a8e5.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 34
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's suppose that nodes **1** and **2** are intermediate nodes, and node **5**
+    has the goal state. First, **x1** is the estimated cost of node **1** to node
+    **5**, and **x2** is the estimated cost of reaching the goal state from node **2**;
+    **d12** is the cost of going from node **1** to node **2**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s suppose that node **2** is closer to the goal state than node **1**;
+    this means that the following statement applies:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Suppose that the following statement is true:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs: []
+  type: TYPE_PRE
+- en: The preceding code means that `x1 <= d12 + x2`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Suppose that `TC1` is the true cost of reaching node **1** from the root node;
+    then, the heuristic function for node 1 will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The heuristic function for node **2** will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs: []
+  type: TYPE_PRE
+- en: This is because `d12 + x2 >= x1`; the heuristic value of **2** is greater than
+    or equal to the value of the heuristic function for node **1** (that is, `h(2)>=h(1)`).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: You should now understand what a heuristic function is, and also the priority
+    queue data structure. In this chapter, you learned how to visualize search trees.
+    You learned the heuristic function for a greedy best-first search and the steps
+    involved in this algorithm. We also covered problems related to the greedy best-first
+    algorithm, and how an A* Search solves them. Finally, you learned the properties
+    required for a good heuristic function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Please refer to the link [https://www.packtpub.com/sites/default/files/downloads/HandsOnArtificialIntelligenceforSearch_ColorImages.pdf](https://www.packtpub.com/sites/default/files/downloads/HandsOnArtificialIntelligenceforSearch_ColorImages.pdf) for
+    the colored images of this chapter.
+  prefs: []
+  type: TYPE_NORMAL

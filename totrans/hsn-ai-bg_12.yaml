@@ -1,0 +1,597 @@
+- en: Deep Learning for Robotics
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'So far, we''ve learned how to build an intelligent chatbot, which can play
+    board games just as a human does, and glean insights from stock market data. In
+    this chapter, we''re going to move on to what many people in the general public
+    imagine **Artificial Intelligence** (**AI**) to be: self-learning robots. In [Chapter
+    8](91114074-444f-4201-98ef-e510210380f2.xhtml), *Reinforcement Learning*, you
+    learned all about reinforcement learning and how to use those methods for basic
+    tasks. In this chapter, we''ll learn how to apply those methods to robotic motion.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we'll be using GPUs to help train these powerful algorithms.
+    If you don't have a GPU- enabled computer, it's recommended that you use either
+    AWS or Google Cloud to give you some more computing power.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following topics will be covered in this chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Setting up your environment
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Setting u a deep deterministic policy gradients model
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The actor-critic network
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: DDPG and its implementation
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In this chapter, we''ll be working with TensorFlow and the OpenAI gym environment,
+    so you''ll need the following programs installed on your computer:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: TensorFlow
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: OpenAI gym
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Introduction
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Traditional robotics, known as **Robotics Process Automation**, is the process
+    of automating physical tasks that would normally be done by a human. Much like
+    the term **machine learning** covers a variety of methods and approaches, including
+    deep learning approaches; robotics covers a wide variety of techniques and methods.
+    In general, we can break these approaches down into two categories: **traditional
+    approaches** and **AI approaches**.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Traditional robotic control programming takes a few steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Measurement**: The robot receives data from its sensors regarding actions
+    to take for a given task.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**Inference**: The orientation of the robot is relative to its environment
+    from the data received in the sensors.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**Modeling**: Models what the robot must do at each state of action to complete
+    an action.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**Control**: Codes the low-level controls, such as the steering mechanism,
+    that the model will use to control the robot''s movement.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**Deployment of the model**: Checks how the model works in the actual surroundings
+    for which it has been created.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In traditional robotic development, these methods are hardcoded. With deep learning,
+    however, we can create algorithms that learn actions from end to end, thereby
+    eliminating step *2* through *4* in this process, and significantly cutting down
+    on the time it takes to develop a successful robot. What's even more important
+    is the ability of deep learning techniques to generalize; instead of having to
+    program motions for variations of a given task, we can teach our algorithms to
+    learn a general response to that task. In recent years, this AI approach to robotics
+    has made breakthroughs in the field and allowed for significantly more advanced
+    robots.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Due to a lack of consistency of parts and control systems in the robotics market,
+    designing and creating a physical robot can be a difficult task. In February 2018,
+    OpenAI added virtual simulated robotic arms to its training environments, which
+    opened the door for a myriad of new applications and development. These virtual
+    environments use a physical environment simulator to allow us to immediately begin
+    testing our robot control algorithms without the need to procure expensive and
+    disparate parts.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Setting up your environment
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'We''ll be utilizing the gym environment from OpenAI that we learned about in
+    [Chapter 8](91114074-444f-4201-98ef-e510210380f2.xhtml), *Reinforcement Learning,*
+    to create an intelligent robotic arm. OpenAI created a virtual environment based
+    on Fetch Robotic Arms, which created the first fully virtualized test space for
+    robotics algorithms:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/fb3a5c98-5a77-4e1c-a6ae-9a115da7ecaa.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'You should have these environments already installed on your computer from
+    when we installed gym in[ Chapter 11](4fc1bf80-b3a2-4615-9057-bfff14c0508b.xhtml),
+    *Deep Learning for Finance*. We''ll just need to add two more packages to get
+    this robotics environment up and running:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: Both `cmake` and `openmpi` are designed to help with the computational efficiency
+    ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: MuJoCo physics engine
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'MuJoCo is a virtual environment that simulates real physical environments for
+    testing intelligent algorithms. It''s the environment that the leading AI researchers
+    at Google DeepMind, OpenAI, and others use to teach virtual robots tasks, virtual
+    humans, and spiders to run, among other tasks. Google in particular made quite
+    a splash in the news in 2017 when they published a video of a virtual human that
+    taught itself to run and jump based on reinforcement learning techniques:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/2b8cd775-1697-4521-85fc-92fa0e93c3bf.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'MuJoCo is a paid licensed program, but they allow for 30-day free trials which
+    we will use to complete our tasks. If you are a student, you can obtain a perpetual
+    license of MuJoCo for free for your own personal projects. There are a few steps
+    to go through to obtain MuJoCo and set up your environment for AI applications:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Download the MuJoCo binary files from their website
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Sign up for a free trial of MuJoCo
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Place your license key in the `~|.mujoco|mjkey.txt` folder
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Install the Python package for MuJoCo
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: This may seem a bit cumbersome, but it does give us access to the most cutting-edge
+    simulator that is used in the AI world. If you're having issues with any of these
+    steps, we'll be keeping an up-to-date help document on the GitHub repository for
+    this book. With that, let's walk through these steps.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Downloading the MuJoCo binary files
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'First things first, let''s download the MuJoCo program itself. Navigate to
+    [https://www.roboti.us/index.html](https://www.roboti.us/index.html) and download
+    the [`mjpro150`](https://www.roboti.us/index.htm) file that corresponds to your
+    operating system[.](https://www.roboti.us/index.htm) You can also do this through
+    the command line with the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: Signing up for a free trial of MuJoCo
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Go through the following steps to sign-up for a free trial of MuJoCo:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Once you''ve downloaded the binary files for MuJoCo, navigate to [https://www.roboti.us/license.html](https://www.roboti.us/license.html)
+    to sign up for a free trial. You should see the following prompt box for signing
+    up for MuJoCo:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/c26c32f7-64f1-4a17-8b30-bd3ae6565e27.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'See those blue links to the right of the computer ID box? You''ll need to download
+    the one that corresponds to your operating system. This will generate a key for
+    MuJoCo to keep track of your computer and its trial. If you are using macOS, you
+    can download and get the key with the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'If you are on a Linux machine, you can download your MuJoCo key with the following
+    code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: Once you have your key, place it in the prompt box. You should receive an email
+    with a license that will enable you to use MuJoCo.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Configuring your MuJoCo files
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Next, you''ll need to configure your access files. You should receive your
+    license key from MuJoCo in an email. Once you do, place it in the following folder
+    so the program can access it:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: Installing the MuJoCo Python package
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Lastly, we need to install the MuJoCo Python package that will allow Python
+    to speak to the program. We can do that easily with a `pip install`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: You should now have access to the most powerful virtualized environment for
+    robotics testing. If you've had issues with any part of this process, remember
+    that you can always access an up-to-date issues page from this book's GitHub repository.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Setting up a deep deterministic policy gradients model
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In [Chapter 8](91114074-444f-4201-98ef-e510210380f2.xhtml), *Reinforcement
+    Learning*, we learned about how to use policy optimization methods for continuous
+    action spaces. Policy optimization methods learn directly by optimizing a policy
+    from actions taken in their environment, as explained in the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/3d215981-be18-4299-b4d8-0431ce0fe32b.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Remember, policy gradient methods are **off**-**policy**, meaning that their
+    behavior in a certain moment is not necessarily reflective of the policy they
+    are abiding by. These policy gradient algorithms utilize **policy iteration**,
+    where they evaluate the given policy and follow the policy gradient in order to
+    learn an optimal policy. ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Experience replay buffer
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Next, let's create the experience replay buffer as we did in [Chapter 11](4fc1bf80-b3a2-4615-9057-bfff14c0508b.xhtml),
+    *Deep Learning for Finance,* when we looked at creating deep learning models for
+    game playing.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Hindsight experience replay
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'To improve on robotic movement, OpenAI researchers released a paper on a technique
+    known as **Hindsight experience replay** (**HER**) in 2018 to attempt to overcome
+    issues that arise when training reinforcement learning algorithms in **sparse
+    environments**. Recall [Chapter 8](91114074-444f-4201-98ef-e510210380f2.xhtml), *Reinforcement
+    Learning*, choosing an appropriate reward for an agent can make or break the performance
+    of that agent. Anecdotes such as the following often appear as the result of bad
+    reward functions:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: A friend is training a simulated robot arm to reach toward a point above a table.
+    It turns out the point was defined with respect to the table, and the table wasn’t
+    anchored to anything. The policy learned to slam the table really hard, making
+    the table ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: The actor–critic network
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: DDPG models rely on actor-critic frameworks, which are used to learn policies
+    without having to calculate the value function again and again.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Actor-critic models are essential frameworks in reinforcement learning. They
+    are the basis and inspiration for **Generative Adversarial Networks** (**GANs**),
+    which we learned about in [Chapter 7](719394b6-6058-4ac6-89f3-c2ec26563e7a.xhtml),
+    *Generative Models*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As you may have guessed,these actor-critic models consist of two parts:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**The actor**: Estimates the policy function'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**The critic**: Estimates the value function'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The process works exactly as it sounds; the actor model tries to emulate an
+    action, and the critic model criticizes the actor model to help it improve its
+    performance. Let''s take our robotics use case; the goal of robotic motion is
+    to create a robot that simulates human ability. In this case, the actor would
+    want to observe human actions to emulate this, and the critic would help guide
+    the robotic actor to be more human. With actor-critic models, we simply take this
+    paradigm and translate it into mathematical formulas. Altogether, the actor-critic
+    process looks as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/86427f1d-e4a3-4957-8519-fecbacd3f36d.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Each of these networks has its own loss function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The actor
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The actor network is also called the **target policy network**. The actor is
+    trained by utilizing gradient descent that has been mini-batched. Its loss is
+    defined with the following function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/9825ba57-196d-4759-be16-82828f514c27.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Here, *s* represents a state that has been sampled from the replay buffer.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The critic
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The output of the critic is the estimate of the action-value function Q (^(s,a)),
+    and as such you might see the critic network sometimes called the **action**-**value
+    function approximator**. Its job is to help the actor appropriately approximate
+    the action-value function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The critic model works very similarly to the Q-function approximator that we
+    saw in [Chapter 10](11b4608a-b8e2-4bea-bef1-8b2569c35a71.xhtml), *Deep Learning
+    for Game Playing*. The critic produces a **temporal**-**difference** (**TD**)
+    error, which it uses to update its gradients. The TD error helps the algorithm
+    reduce the variance that occurs from trying to make predictions off of highly
+    correlated data. DDPG utilizes a target network, just as the Deep Q-network did
+    in [Chapter 10](11b4608a-b8e2-4bea-bef1-8b2569c35a71.xhtml), *Deep Learning for
+    Game Playing,* only the targets are computed by utilizing the outputs of the actor:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/8d38eac6-84d6-4842-84bd-d38721b70e20.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'This target network generates targets for the TD error calculations, and acts
+    as a regularizer. Let''s break this down:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/bc93632b-c702-4cef-9135-b5f59d3ded32.png)represents our TD error.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: r^i represent the reward received from a certain action.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![](img/753c7672-5f60-43fe-99dd-e9aa4975f052.png) collectively represents the
+    target ![](img/40dd12d0-0706-4931-aece-ceefb112ba0d.png)for the actor and critic
+    models. Recall that![](img/f57fbccf-3122-44dc-ba49-4ad5bbb6f6cb.png) (gamma) represents
+    a **discount factor**. Recall that the discount factor can be any value between
+    0 and 1 that represents the relative importance between a current reward and a
+    future reward. So, our target then becomes the output of the actor/critic models
+    multiplied by the mixing parameter.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![](img/5cc11c26-1a2b-4cfb-995c-7c8024c86a8e.png) represents the target of
+    the actor network; it''s saying that the target ![](img/257aded6-196e-4062-b400-18fa67ad6c49.png)is
+    a function of state *s*, given a particular policy ![](img/5772391f-fe8a-4070-aee2-5386cbc0eb53.png).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Likewise, we then say that the output of the actor network is dependent on the
+    critic network by representing that critic network by its weights ![](img/44017cfb-fbe4-425e-9c48-31e532cf8bfc.png).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The critic tries to minimize its own loss function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/c5aca07d-2976-4120-8432-d0f760179f86.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Deep Deterministic Policy Gradients
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: There is a natural extension of **Deep Deterministic Policy Gradients** (**DDPG**)
+    by replacing the feedforward neural networks used for approximating the actor
+    and the critic with recurrent neural networks. This extension is called the **recurrent
+    deterministic policy gradient** algorithm (**RDPG**) and is discussed in the f
+    paper N. Heess, J. J. Hunt, T. P. Lillicrap and D. Silver. *Memory-based control
+    with recurrent neural networks*. 2015.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The recurrent critic and actor are trained using **backpropagation through time** (**BPTT**).
+    For readers who are interested in it, the paper can be downloaded from [https://arxiv.org/abs/1512.04455](https://arxiv.org/abs/1512.04455).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Implementation of DDPG
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: This section will show you how to implement the actor-critic architecture using
+    TensorFlow. The code structure is almost the same as the DQN implementation that
+    was shown in the previous chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The `ActorNetwork` is a simple MLP that takes the observation state as its
+    input:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: The constructor requires four arguments: `input_state`, `output_dim`, `hidden_layers`,
+    and `activation`. `input_state` is a tensor for the observation state. `output_dim` is
+    the dimension of the action space. `hidden_layers` specifies the number of the
+    hidden layers and the number of units for each layer. `activation` indicates the
+    activation function for the output layer.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The `CriticNetwork` is also a MLP, which is enough for the classic control
+    tasks:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: The network takes the state and the action as its inputs. It first maps the
+    state into a hidden feature representation and then concatenates this representation
+    with the action, followed by several hidden layers. The output layer generates
+    the Q-value that corresponds to the inputs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The actor-critic network combines the actor network and the critic network
+    together:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: The constructor requires six arguments, as follows: `input_dim` and `action_dim` are
+    the dimensions of the state space and the action space, respectively. `critic_layers` and `actor_layers` specify
+    the hidden layers of the critic network and the actor network.  `actor_activation` indicates
+    the activation function for the output layer of the actor network. `scope` is
+    the scope name used for the `scope` TensorFlow variable.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The constructor first creates an instance of the `self.actor_network` actor
+    network with an input of `self.x,` where `self.x` represents the current state.
+    It then creates an instance of the critic network using the following as the inputs: `self.actor_network.get_output_layer()` as
+    the output of the actor network and `self.x` as the current state. Given these
+    two networks, the constructor calls `self._build()` to build the loss functions
+    for the actor and critic that we discussed previously. The actor loss is `-tf.reduce_mean(value)`,
+    where `value` is the Q-value computed by the critic network. The critic loss is `0.5
+    * tf.reduce_mean(tf.square((value - self.y)))`, where `self.y` is a tensor for
+    the predicted target value computed by the target network.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The class `ActorCriticNet` provides the functions for calculating the action
+    and the Q-value given the current state, that is, `get_action` and `get_value`.
+    It also provides `get_action_value`, which computes the `state-action value` function
+    given the current state and the action taken by the agent:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Because DPG has almost the same architecture as DQN, the implementations of
+    the replay memory and the optimizer are not shown in this chapter. For more details,
+    you can refer to the previous chapter or visit our GitHub repository ([https://github.com/PacktPublishing/Python-Reinforcement-Learning-Projects](https://github.com/PacktPublishing/Python-Reinforcement-Learning-Projects)).
+    By combining these modules together, we can implement the `DPG` class for the
+    deterministic policy gradient algorithm:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Here, `config` includes all the parameters of DPG, for example, batch size
+    and learning rate for training. The `task` is an instance of a certain classic
+    control task. In the constructor, the replay memory, Q-network, target network,
+    and optimizer are initialized by calling the `_init_modules` function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: The `choose_action` function selects an action based on the current estimate
+    of the actor-critic network and the observed state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note that a Gaussian noise controlled by `epsilon` is added for exploration.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `play` function submits an action into the simulator and returns the feedback
+    from the simulator. The `update_target_network` function updates the target network
+    from the current actor-critic network.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To begin the training process, the following function can be called:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: In each episode, it calls `replay_memory.phi` to get the current state and calls
+    the `choose_action` function to select an action based on the current state. This
+    action is submitted into the simulator by calling the `play` function, which returns
+    the corresponding reward, next state, and termination signal. Then, the `(current
+    state, action, reward, termination)` transition is stored into the replay memory.
+    For every `update_interval` step (`update_interval = 1` ,by default), the actor-critic
+    network is trained with a batch of transitions that are randomly sampled from
+    the replay memory. For every `time_between_two_copies` step, the target network is
+    updated and the weights of the Q-network are saved to the hard disk.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'After the training step, the following function can be called for evaluating
+    the performance of our trained agent:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we expanded upon the knowledge that we obtained about in [Chapter
+    8](91114074-444f-4201-98ef-e510210380f2.xhtml), *Reinforcement Learning*, to learn
+    about DDPG, HER, and how to combine these methods to create a reinforcement learning
+    algorithm that independently controls a robotic arm.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Deep Q network that we used to solve game challenges worked in discrete
+    spaces; when building algorithms for more fluid motion tasks such as robots or
+    self-driving cards, we need a class of algorithms that can handle continuous action
+    spaces. For this, use policy gradient methods, which learn a policy from a set
+    of actions directly. We can improve this learning by using an experience replay
+    buffer, which stores positive past experiences so that they may be sampled during
+    training ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: References
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '*Python Reinforcement Learning Projects*, Sean Saito, Yang Wenzhuo, and Rajalingappaa
+    Shanmugamani, [https://www.packtpub.com/big-data-and-business-intelligence/python-reinforcement-learning-projects](https://www.packtpub.com/big-data-and-business-intelligence/python-reinforcement-learning-projects).'
+  prefs: []
+  type: TYPE_NORMAL

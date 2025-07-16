@@ -1,0 +1,1455 @@
+- en: Implementing a Facial Recognition System with Neural Networks
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we will implement a facial recognition system using a **Siamese
+    neural network**. Such facial recognition systems are prevalent in smartphones
+    and other smart security systems in modern buildings and facilities. We will go
+    through the theory behind Siamese neural networks, and why facial recognition
+    problems are a special class of problems in image recognition, making it difficult
+    for a conventional **convolutional neural networks** (**CNNs**) to solve them.
+    We will train and implement a robust model that can recognize faces, even when
+    the subject has different expressions and when the photo is taken from different
+    angles. Finally, we will write our own program that uses the pre-trained neural
+    network and a webcam, to authenticate the user sitting in front of the computer.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Specifically, these are the topics that we will cover in this chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The facial recognition problem
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Face detection and face recognition
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: One-shot learning
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Siamese neural networks
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Contrastive loss
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Faces dataset
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Training a Siamese neural network in Keras
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Creating your own facial recognition system
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The following Python libraries are required for this chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Numpy 1.15.2
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Keras 2.2.4
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: OpenCV 3.4.2
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: PIL 5.4.1
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The code for this chapter can be found in the GitHub repository for this book
+    at [https://github.com/PacktPublishing/Neural-Network-Projects-with-Python/tree/master/Chapter07](https://github.com/PacktPublishing/Neural-Network-Projects-with-Python/tree/master/chapter7).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To download the code onto your computer, you may run the following `git clone`
+    command:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'After the process is complete, there will be a folder entitled `Neural-Network-Projects-with-Python`.
+    Enter the folder by running the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'To install the required Python libraries in a virtual environment, run the
+    following command:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Note that you should have installed Anaconda on your computer first before
+    running this command. To enter the virtual environment, run the following command:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Navigate to the `Chapter07` folder by running the following command:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following files are located in the folder:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`face_detection.py` contains the Python code for face detection using OpenCV'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`siamese_nn.py` contains the Python code to create and train a Siamese neural
+    network'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`onboarding.py` contains the Python code for the onboarding process of the
+    face recognition system'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`face_recognition_system.py` contains the complete face recognition system
+    program'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Please run the Python files in this order:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`siamese_nn.py`: To train a Siamese neural network for face recognition'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '`onboarding.py`: To start the onboarding process for the face recognition system'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '`face_recognition_system.py`: The actual face recognition program that uses
+    your webcam'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'To run each Python file, simply execute the files as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: Facial recognition systems
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Facial recognition systems have become ubiquitous in our every lives. When the
+    iPhone X was first unveiled in 2017, Apple boasted that their new state-of-the-art
+    face ID system was able to instantaneously recognize and authenticate users with
+    just a single glance. Driving this was the Apple A11 Bionic chip, which includes
+    dedicated neural network hardware, allowing the iPhone to perform blazingly fast facial
+    recognition and machine learning operations. Today, almost all smartphones have
+    a facial recognition security system.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In 2016, Amazon started its first supermarket with advanced facial recognition
+    capabilities, known as **Amazon Go**. Unlike traditional supermarkets, Amazon
+    Go uses facial recognition to know when you first arrive at the supermarket and
+    when you removed an item from the shelf. When you've finished shopping, you can
+    simply walk out of the store, without waiting in line at the cashier, as all your
+    purchases are captured by Amazon's AI systems. This allows busy shoppers to do
+    their grocery shopping in person at the supermarket, without wasting time waiting
+    in line for the cashier. No longer belonging to a dystopian future, facial recognition
+    systems have already become an important part of our everyday lives.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Breaking down the face recognition problem
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Let''s break down the face recognition problem into smaller steps and subproblems.
+    That way, we can better understand what''s going on under the hood of a facial
+    recognition system. A face recognition problem can be broken down into the following
+    smaller subproblems:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Face** **detection**: Detect and isolate faces in the image. In an image
+    with multiple faces, we need to detect each of them separately. In this step,
+    we should also crop the detected faces from the original input image, to identify
+    them separately.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Face recognition**: For each detected face in the image, we run it through
+    a neural network to classify the subject. Note that we need to repeat this step
+    for each detected face.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Intuitively, this process makes a lot of sense. If we think of how humans recognize
+    faces, we see that it is very similar to the process that we described. Given
+    an image, our eyes immediately zoom into each face (face detection), and we recognize
+    the faces individually (face recognition).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following diagram illustrates the subprocesses in face recognition:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/3d23ef1b-ff8d-41bd-bae8-09ae292d5ab1.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Face detection
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: First of all, let's take a look at face detection. The face detection problem
+    is actually a rather interesting problem in computer vision that researchers have
+    worked on for many years. In 2001, Viola and Jones demonstrated how real-time,
+    large-scale face detection can be done with minimal computational resources. This
+    was a significant discovery at the time, as researchers seek to do real-time,
+    large-scale face detection (for example, to monitor a large crowd in real-time).
+    Today, face detection algorithms can be run on simple hardware such as our personal
+    computers with just a few lines of code. In fact, as we shall see shortly, we
+    will use OpenCV in Python to construct a face detector, using your own webcam.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'There are several approaches to face detection, including the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Haar Cascades
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Eigenfaces
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Histogram of Oriented Gradients** (**HOG**)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We'll explain how to do face detection using Haar Cascades (as presented by
+    Viola and Jones in 2001), and we'll see the beautiful simplicity in this algorithm.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The key idea behind the Viola-Jones algorithm is that all human faces share
+    certain properties, such as the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The area of the eye is darker than the forehead and the cheeks
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The area of the nose is brighter than the eyes
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'In a frontal, non-occluded image of a human face, we can see features such
+    as the eyes, the nose, and the lips. If we look closely at the area around the
+    eyes, we see that there is a repeating pattern of dark and light pixels, as shown
+    in the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/8a57d1f7-b0b9-472f-b431-4c0ef7dfa433.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Of course, the preceding example is just one possible feature. We can also
+    construct other features that capture other regions of the face, such as the nose,
+    lips, chin, and so on. Some examples of other features are shown in the following
+    diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/e1edeb53-95bc-4219-b485-cedd8bd3b55a.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: These features with alternating regions of dark and light pixels are known as
+    Haar features. Depending on your imagination, you can construct an almost infinite
+    number of features. In fact, in the final algorithm presented by Viola and Jones,
+    there were more than 6,000 Haar features used!
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Do you see the similarities between Haar features and convolutional filters?
+    They both detect identifying geometric representations in images! The difference
+    is that Haar features are handcrafted features that detect eyes, noses, lips,
+    and so on, in human faces, based on what we know. On the other hand, convolutional
+    filters are created during training, using a labeled dataset and are not handcrafted.
+    However, they perform the same function: identifying geometric representation
+    in images. The similarities between Haar features and convolutional filters show
+    that many ideas in machine learning and AI are shared and improved iteratively
+    over the years.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: To use the Haar features, we slide them over every region in the image and compute
+    the similarity of the pixels with the Haar features. However, since most areas
+    in an image do not contain a face (think about the photos we take—faces are usually
+    limited to a small area in the photo), it is computationally wasteful to test
+    all the features. To overcome this, Viola and Jones introduced a cascade classifier**.**
+    The idea is to start with the most simple Haar feature. If the candidate region
+    fails, this simple Haar feature (that is, the prediction from this feature is
+    that the region does not contain a face), we immediately move on to the next candidate
+    region. This way, we do not waste computational resources on regions that do not
+    contain a face. We progressively move on to more complex Haar features, and we
+    repeat the process. Eventually, the regions in the image with a face are the regions
+    that pass all the Haar features. This classifier is known as a **cascade classifier**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Viola-Jones algorithm using Haar features demonstrated remarkable accuracy
+    and false positive rates in face detection, while being computationally efficient.
+    In fact, when the algorithm was first presented in 2001, it was running on a 700
+    Mhz Pentium III processor!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Face detection in Python
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Face detection can be implemented by the OpenCV library in Python. OpenCV is
+    an open source computer vision library for computer vision tasks. Let's see how
+    we can use OpenCV for face detection.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, we import OpenCV:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, let''s load a pre-trained cascade classifier for face detection. This
+    cascade classifier can be found in the accompanying GitHub repository and should
+    have been downloaded to your computer (refer to the *Technical requirements *section):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we define a function that takes in an image, performs face detection
+    on the image, and draws a bounding box around the image:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s test our face detector on some sample images. The images can be found
+    in the `''sample_faces''` folder, and they look like this:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/6f9b5a39-b84c-4350-9e3a-4bfe7cee3bbc.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: As we can see, there is a fair amount of noise (that is, non-face structures)
+    in each image, which can potentially trip up our face detector. In the bottom-right
+    image, we can also see that there are multiple faces.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We apply the `detect_faces` function that we defined earlier on these images:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We see the following output images saved in the `''sample_faces/detected_faces''` folder:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/75737513-8a3e-4437-8c8a-d6441259c7d9.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Fantastic! Our face detector passed with flying colors. The speed of the detection
+    was really impressive as well. We can see that face detection using OpenCV in
+    Python is simple and takes no time at all.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Face recognition
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'With face detection complete, let''s turn our attention to the next step: face
+    recognition. You might have noticed that face detection had nothing to do with
+    neural networks! Face detection using Haar features is an old but reliable algorithm
+    that is still widely used today. However, face detection only extracts the region
+    that contains a face. Our next step would be to perform face recognition using
+    the extracted faces.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Face recognition using neural networks is the main topic in this chapter. For
+    the rest of the chapter, we'll focus on training a neural network for face recognition.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Requirements of face recognition systems
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: At this point, you should be fairly familiar with using neural networks for
+    image recognition tasks. In [Chapter 4](48f7db0c-7c74-42a2-82b7-a17c9f220423.xhtml),
+    *Cats Versus Dogs – Image Classification Using CNNs,* we built a CNN for classifying
+    images of cats versus dogs. Can the same techniques be used in facial recognition?
+    Sadly, CNNs fall short for this task. To understand why, we need to look at the
+    requirements of facial recognition systems.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Speed
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The first requirement of a facial recognition system is that they need to be
+    fast. If we look at the onboarding process of the facial recognition systems in
+    our smartphones, we usually need to use the front-facing camera in the phone to
+    scan our face at various angles for a few seconds. During this short process,
+    our phone captures images of our face, and uses an image to train a neural network
+    to recognize us. This process needs to be fast.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following picture shows the typical onboarding process for a facial recognition
+    system in smartphones:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/33ca966e-e49a-4837-9f0d-a833047c7a71.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Can a CNN satisfy this speed requirement? From the project that we built in
+    [Chapter 4](48f7db0c-7c74-42a2-82b7-a17c9f220423.xhtml), *Cats Versus Dogs – Image
+    Classification Using CNNs,* we saw how slow it is to train a CNN to identify images
+    of cats and dogs. Even with powerful GPUs, training a CNN can sometimes take hours
+    (or even days!). From a user experience point of view, it is not practical for
+    the onboarding process of facial recognition systems to take this long. Therefore,
+    CNNs do not satisfy the speed requirement of facial recognition systems.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Scalability
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The second requirement of facial recognition systems is that it needs to be
+    scalable. The model that we train must ultimately be able to scale to millions
+    of different users, each with a unique face. Again, this is where CNNs fall short.
+    Recall that in [Chapter 4](48f7db0c-7c74-42a2-82b7-a17c9f220423.xhtml), *Cats
+    Versus Dogs – Image Classification Using CNNs,* we trained a CNN to differentiate
+    cats from dogs. This neural network is only able to identify and classify images
+    of cats and dogs, and not of other animals, which it was not trained on. This
+    means that if we were to use CNNs for facial recognition, we would have to train
+    a separate neural network for each individual user. This would simply be unworkable
+    from a scalability point of view! This would mean that Amazon would need to train
+    an individual neural network for each of its millions of users, and to run through
+    millions of different neural networks whenever a user walks through the doors
+    of Amazon Go.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following diagram illustrates the constraints faced by CNNs on facial recognition:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/cf156d05-e93d-4747-9587-30b7f6e81ca4.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Given the constraints in memory, it is impractical to train a neural network
+    for every user. Such a system would get bogged down very quickly as the number
+    of users grew. Therefore, CNNs fail to provide a scalable solution for facial
+    recognition.
+  prefs: []
+  type: TYPE_NORMAL
+- en: High accuracy with small data
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The third requirement of a facial recognition system is that it needs to be
+    sufficiently accurate (hence secure) while working with a small amount of training
+    data. In [Chapter 4](48f7db0c-7c74-42a2-82b7-a17c9f220423.xhtml), *Cats Versus
+    Dogs – Image Classification Using CNNs,* we used a huge dataset containing thousands
+    of images of cats and dogs for training our CNN. By contrast, we almost never
+    get this luxury when it comes to the dataset size for facial recognition. Going
+    back to the example of the onboarding process for facial recognition in smartphones,
+    we can see that only a handful of photos are taken, and we need to be able to
+    train our model, using this limited dataset.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once again, CNNs do not satisfy this requirement, because we need lots of images
+    to train a CNN. While CNNs are fairly accurate at image classification tasks,
+    this comes at the expense of requiring a huge training set. Imagine having to
+    take thousands of selfies with our smartphones before we can start using the facial
+    recognition systems in our phones! This would simply not work for most facial
+    recognition systems.
+  prefs: []
+  type: TYPE_NORMAL
+- en: One-shot learning
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Given the unique requirements and constraints faced by facial recognition systems,
+    it is clear that the paradigm of training a CNN for classification using a huge
+    dataset (known as batch learning classification) is unsuitable for the facial
+    recognition problem. Instead, our objective is to create a neural network that
+    can learn to recognize any face using just a single training sample. This form
+    of neural network training is known as **one-shot learning**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: One-shot learning brings about a new and interesting paradigm in machine learning
+    problems. Thus far, we have thought of machine learning problems as mostly classification
+    problems. In [Chapter 2](81c9304f-2e96-4a6d-8ece-d972006f3180.xhtml), *Predicting
+    Diabetes, with Multilayer Perceptrons*, we used an MLP to classify patients at
+    risk of diabetes. In [Chapter 4](48f7db0c-7c74-42a2-82b7-a17c9f220423.xhtml),
+    *Cats Versus Dogs – Image Classification Using CNNs*,we used a CNN to classify
+    images of cats and dogs. In [Chapter 6](21ef7df7-5976-4e0d-bec5-d736ec571d94.xhtml), *Sentiment
+    Analysis of Movie Reviews Using LSTM*, we used an LSTM network to classify the
+    sentiment of movie reviews. In this chapter, we need to approach facial recognition
+    not simply as a classification problem, but also as an estimation of the similarity
+    between two input images.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As an example, a one-shot learning facial recognition model should perform
+    the following tasks when determining whether the presented face belongs to an
+    arbitrary person (say, person A):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Retrieve the stored image of person A (obtained during the onboarding process).
+    This is the *true* image of person A.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: At testing time (for example, when someone is is trying to unlock the phone
+    of person A), capture the image of the person. This is the *test* image.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Using the *true* photo and the *test* photo, the neural network should output
+    a similarity score of the faces in the two photos.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: If the similarity score output by the neural network is below a certain threshold
+    (that is, the people in the two photos look dissimilar), we deny access, and if
+    they are above the threshold, we grant access.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The following diagram illustrates this process:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/2dae64c6-aa7e-41f7-90dd-08d55ef122e8.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Naive one-shot prediction – Euclidean distance between two vectors
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Before we dive into how neural networks can be used for one-shot learning, let's
+    look at one naive approach.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Given the true image and a test image, one naive approach for a one-shot prediction
+    is to simply measure the difference between the two images. As we have already
+    seen, all images are simply three-dimensional vectors. We know that the Euclidean
+    distance provides a mathematical formulation of the difference between two vectors.
+    To refresh your memory, the Euclidean distance between two vectors is shown in
+    the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/0635d454-58c0-4267-b65c-2eca8083c55d.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Measuring the Euclidean distance between two images provides us with a naive
+    approach for a one-shot prediction. However, does it provide us with a satisfactory
+    similar score for facial recognition? The answer is no. Although the Euclidean
+    distance for facial recognition makes sense on paper, it has a poor practical
+    value. In reality, photos can be different due to variations in angles and lighting,
+    and also changes in the appearance of the subject, which can arise due to the
+    wearing of accessories such as glasses. As you can imagine, a facial recognition
+    system that uses the Euclidean distance alone would perform terribly in reality.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Siamese neural networks
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: So far, we have seen that a pure CNN and a pure Euclidean distance approach
+    would not work well for facial recognition. However, we don't have to discard
+    them entirely. Each of them provides something useful for us. Can we combine them
+    together to form something better?
+  prefs: []
+  type: TYPE_NORMAL
+- en: Intuitively, humans recognize faces by comparing their key features. For example,
+    humans use features such as the shape of the eyes, the thickness of the eyebrows,
+    the size of the nose, the overall shape of the face, and so on to recognize a
+    person. This ability comes naturally to us, and we are seldom affected by variations
+    in angles and lighting. Could we somehow teach a neural network to identify these
+    features from images of faces, before using the Euclidean distance to measure
+    the similarity between the identified features? This should sound familiar to
+    you! As we have seen in the previous chapters, convolutional layers excel in finding
+    such identifying features automatically. For facial recognition, researchers have
+    found that when convolutional layers are applied to human faces, they extract
+    spatial features, such as eyes and noses.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This insight forms the core of our algorithm for one-shot learning:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Use convolutional layers to extract identifying features from faces. The output
+    from the convolutional layers should be a mapping of the image to a lower-dimension
+    feature space (for example, a 128 x 1 vector). The convolutional layers should
+    map faces from the same subject close to one another in this lower-dimension feature space
+    and vice versa, faces from different subjects should be as far away as possible
+    in this lower-dimension feature space.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Using the Euclidean distance, measure the difference of the two lower-dimension
+    vectors output from the convolutional layers. Note that there are two vectors,
+    because we are comparing two images (the true image and the test image). The Euclidean
+    distance is inversely proportional to the similarity between the two images.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This works better than the naive Euclidean distance approach from the previous
+    section (applied to raw-image pixels), because the output from the convolutional
+    layers in the first step represents identifying features in faces (such as eyes
+    and noses), which are invariant to angles and lighting.
+  prefs: []
+  type: TYPE_NORMAL
+- en: One last thing to note is that, since we are feeding two images into our neural
+    network simultaneously, we need two separate sets of convolutional layers. However,
+    we require the two separate sets of convolutional layers to share the same weights,
+    because we want similar faces to be mapped to the same point in the lower-dimension
+    feature space. If the weights from the two sets of convolutional layers are different,
+    similar faces would be mapped to different points, and the Euclidean distance
+    would not be a useful metric at all!
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We can thus think of these two sets of convolutional layers as twins, as they
+    share the same weights. The following diagram provides an illustration of the
+    neural network that we have just described:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/9450953e-02e9-42d5-a113-5b48fc61ed6e.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: This neural network is known as a Siamese neural network, because just like
+    a Siamese twin, it has a conjoined component at the convolutional layers.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Contrastive loss
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: This new paradigm of training a neural network for distance-based predictions
+    instead of classification-based predictions requires a new loss function. Recall
+    that in previous chapters, we used simple loss functions such as categorical cross-entropy
+    to measure the accuracy of our predictions in classification problems.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In distance-based predictions, loss functions based on accuracy would not work.
+    Therefore, we require a new distance-based loss function to train our Siamese
+    neural network for facial recognition. The distance-based loss function that we
+    will be using is called the **contrastive loss function**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Take a look at the following variables:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Y[true]*: Let *Y[true]* be *1* if the two input images are from the same subject
+    (same face) and 0 if the two input images are from different subjects (different
+    faces)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*D*: The predicted distance output from the neural network'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'So, the *Contrastive Loss* is defined as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/6be69b84-79e2-48b6-85df-b47688f46533.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Here, the margin is simply a constant regularizing term. Don't worry if the
+    preceding equation looks scary! All it does is simply produce a high loss (that
+    is, a penalty) when the predicted distance is large when the faces are similar,
+    and a low loss when the predicted distance is small, and vice versa for the case
+    when the faces are different.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following graph shows the loss for the increasing predicted distance, when
+    the faces are similar (left) and when the faces are different (right):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/d12eef3c-5aa0-4c2b-abe1-b440e44c05f6.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Simply put, the contrastive loss function ensures that our Siamese neural network
+    learns to predict a small distance when the faces in the true and test images
+    are the same, and a large distance when the faces in the true and test images
+    are different.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The faces dataset
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Let's now look at the faces dataset that we will be using for this project.
+    There are numerous publicly available faces dataset for use, as consolidated at [http://www.face-rec.org/databases/](http://www.face-rec.org/databases/).
+  prefs: []
+  type: TYPE_NORMAL
+- en: While there are many face datasets that we can use, the most appropriate dataset
+    for training a facial recognition system should contain photos of different subjects,
+    with each subject having multiple photos taken from different angles. It should
+    also ideally contain photos of the subject wearing different expressions (eyes
+    closed and so on), as such photos are commonly encountered by facial recognition
+    systems.
+  prefs: []
+  type: TYPE_NORMAL
+- en: With these considerations in mind, the dataset that we have chosen is the Database
+    of Faces, created by AT&T Laboratories, Cambridge. The database contains photos
+    of 40 subjects, with 10 photos of each subject. The photos of each subject were
+    taken under different lighting and angles, and they have different facial expressions.
+    For certain subjects, multiple photos were taken of people with and without glasses.
+    You may visit the website at [https://www.cl.cam.ac.uk/research/dtg/attarchive/facedatabase.html](https://www.cl.cam.ac.uk/research/dtg/attarchive/facedatabase.html) to
+    learn more about the AT&T faces dataset.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The faces dataset is provided together with the code for this chapter. To download
+    the dataset and the code from the GitHub repository, please follow the instructions
+    in the *Technical requirements* section earlier in the chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'After downloading the GitHub repository, the dataset is located in the following
+    path:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The images are stored in subfolders, with one subfolder per subject. Let''s
+    import the raw-image files as NumPy arrays in Python. We start by declaring a
+    variable with the file path:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we want to iterate through each subfolder in the directory, and load
+    each image in the subfolder as a NumPy array. To do that, we can import and use
+    the `load_img` and `img_to_array` functions provided in `keras.preprocessing.image`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Since there are 40 subjects, let''s use images from the first 35 subjects as
+    training samples and the remaining five subjects as testing samples. The following
+    code iterates through each subfolder and loads the images into an `X_train` and
+    an `X_test` array accordingly:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: Note that the label in `Y_train` and `Y_test` is simply the index of the subfolders
+    as we iterate through each of them (that is, the subject in the first subfolder
+    is assigned label `1`, the subject in the second subfolder is assigned label `2`,
+    and so on).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Finally, we convert `X_train`, `Y_train`, `X_test`, and `X_test` into NumPy
+    arrays:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: Good! We now have our training-and-testing dataset. We'll train our Siamese
+    neural network using the training set and test it using the photos in the testing
+    dataset.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let''s plot out some images from a subject to better understand the kind
+    of data we are working with. The following code plots nine of the images from
+    a particular subject (as entered in the `subject_idx` variable):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We see the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/4d27829b-58e4-441a-81f1-c5f82e171b74.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: As we can see, each photo of the subject was taken at a different angle, and
+    the subject had different facial expressions. In some photos, we can also see
+    that the subject removed his glasses. There's certainly a lot of variation from
+    image to image.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We can also plot a single image from the first nine subjects, using the following
+    code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We''ll get the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/6b3d9602-0cab-459b-8cc0-ff40b29a1eee.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Cool! It looks as though we have a diverse bunch of subjects to work with.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating a Siamese neural network in Keras
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: We are finally ready to start creating a Siamese neural network in Keras. In
+    the previous sections, we looked at the theory and the high-level structure of
+    a Siamese neural network. Let's now look at the architecture of a Siamese neural
+    network in greater detail.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following diagram shows the detailed architecture of the Siamese neural
+    network we''ll build in this chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/891ea05d-fa4d-468d-b4ce-dd340ae12b13.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Let's start by creating the shared convolutional network (boxed in the preceding
+    diagram) in Keras. By now, you should be familiar with the **Conv** layer, **Pooling**
+    layer, and **Dense** layer. If you need a refresher, feel free to refer to [Chapter
+    4](48f7db0c-7c74-42a2-82b7-a17c9f220423.xhtml), *Cats Versus Dogs – Image Classification** Using
+    CNNs,* for their definitions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s define a function that builds this shared convolutional network using
+    the `Sequential` class in Keras:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: We can see that this function creates a convolutional network according to the
+    architecture in the preceding diagram. At this point, you might be wondering,
+    *how do we actually share weights across two twin networks in Keras?* Well, the
+    short answer is that we don't actually need to create two different networks.
+    We only need a single instance of the shared network to be declared in Keras.
+    We can create the top and bottom convolutional network using this single instance.
+    Because we are reusing this single instance, Keras will automatically understand
+    that the weights are to be shared.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This is how we can do it. First, let''s create a single instance of the shared
+    network, using the function that we defined previously:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We specify the input for the top and bottom layers using the `Input` class:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we stack the shared network to the right of the input layers, using the
+    `functional` method in Keras. The syntax to do this is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs: []
+  type: TYPE_PRE
+- en: Now, this syntax may not be familiar to you, because we have been using the
+    more user-friendly `Sequential` method for building models so far. Although it
+    is simpler, it tends to lose a bit of flexibility, and there are certain things
+    that we cannot do using the `Sequential` method alone, including building such
+    a network, as shown. Therefore, we use the `functional` method for building such
+    a model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'At this point, this is what our model looks like:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/bdf6cbf4-30c2-4627-b039-9c1d59da7fed.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Great! All that's left is to combine the output from the top and bottom, and
+    to measure the Euclidean distance between the two outputs. Remember, the outputs
+    from the top and bottom at this point are 128 x 1-dimensional vectors, representing
+    the lower-dimensional feature space.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Since there is no layer in Keras that can readily compute the Euclidean distance
+    between two arrays, we would have to define our own layer. The `Lambda` layer
+    in Keras allows us to do exactly that by wrapping an arbitrary function as a `Layer`
+    object.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s create a `euclidean_distance` function to compute the Euclidean distance
+    between two vectors:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We can then wrap this `euclidean_distance` function inside a `Lambda` layer:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Finally, we combine the `distance` layer defined in the previous line with
+    our inputs to complete our model:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We can verify the structure of our model by calling the `summary()` function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We''ll see the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/429b03fb-4924-4bdf-be2a-67bf9469cf3a.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: If we take a look at the summary in the previous screenshot, we can see that
+    there are two input layers in our model, each of 112 x 92 x 1 in shape (because
+    our images are 112 x 92 x 1). The two input layers are connected to a single shared
+    convolutional network. The two outputs (each a 128-dimensional array) from the
+    shared convolutional network are then combined into a `Lambda` layer, which calculates
+    the Euclidean distance of the two 128-dimensional arrays. Finally, this Euclidean
+    distance is output from our model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: That's it! We have successfully created our Siamese neural network. We can see
+    that most of the complexity in the network comes from the shared convolutional
+    network. With this basic framework in place, we can easily tune and increase the
+    complexity of the shared convolutional network as required.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Model training in Keras
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Now that we have created our Siamese neural network, we can start to train our
+    model. Training a Siamese neural network is slightly different than training a
+    regular CNN. Recall that when training a CNN, the training samples are arrays
+    of images, along with the corresponding class label for each image. In contrast,
+    to train a Siamese neural network we need to use pairs of arrays of images, along
+    with the corresponding class label for the pairs of images (that is, 1 if the
+    pairs of images are from the same subject, and 0 if the pairs of images are from
+    different subjects).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following diagram illustrates the differences between training a CNN and
+    a Siamese neural network:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/f9afedd7-4853-4767-8daa-4016628d46fd.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: So far, we have loaded the raw image into an `X_train` NumPy array, along with
+    an array with the `Y_train` class labels. We need to write a function that creates
+    these pairs of arrays of images from `X_train` and `Y_train`. An important point
+    we need to note is that in the pair of arrays of images, the number of classes
+    should be equal (that is, an equal number of positive and negative pairs, where
+    *positive* refers to images from the same subject and *negative* refers to images
+    from different subjects), and that we should alternate between positive and negative
+    pairs. This prevents our model from being biased, and ensures that it learns both
+    positive and negative pairs of images equally well.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following function creates pairs of arrays of images and their labels from
+    `X_train` and `Y_train`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs: []
+  type: TYPE_PRE
+- en: There is one more thing to do before we can start training our model. We need
+    to define a function for the contrastive loss, since contrastive loss is not a
+    default loss function in Keras.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To recap, this is the formula for *Contrastive Loss*:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/49ca5015-0d84-4574-8003-9bf048113545.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Where *Y[true]* is the true label of the training pairs and *D* is the predicted
+    distance output from the neural network.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We define the following function for calculating the contrastive loss:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs: []
+  type: TYPE_PRE
+- en: Notice that the function includes `K.mean`, `K.square`, and `K.maximum`. These
+    are simply Keras's backend functions to simplify array calculations such as the
+    mean, max, and square.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Alright, we have all the necessary functions to train our Siamese neural network.
+    As usual, we define the parameters of the training using the `compile` function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'And we train our model for `10` epochs by calling the `fit` function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Once the training is complete, we''ll see the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/99ea353c-a20b-4b61-b5d5-cbd018a506cd.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Analyzing the results
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Let's apply our model on the withheld testing set to see how well it does. Remember,
+    our model has never seen the images and subjects from the testing set, so this
+    is a good measurement of its real-world performance.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, we pick two images from the same subject, plot them out side by side,
+    and apply the model to this pair of images:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We''ll see the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/9aa4fab9-05c7-45de-8a3b-aa8d161f195a.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Note that the Dissimilarity Score is just the distance output by the model.
+    The greater the distance, the greater the dissimilarity between the two faces.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Our model works well! We can clearly see that the subjects in the photos are
+    the same. In the first image, the subject is wearing glasses, looking into the
+    camera, and smiling. In the second image, the same subject is not wearing glasses,
+    not looking into the camera, and not smiling. Our face recognition model is still
+    able to recognize that the two faces in this pair of photos belong to the same
+    person, as we can see from the low dissimilarity score.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Next, we pick a pair of faces from different subjects and see how well our
+    model performs:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE30]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We''ll see the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/48f696f6-7131-4918-be02-aada15c3b4c8.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Our model performs well for negative pairs (pairs of images where the subjects
+    are different) as well. In this case, the Dissimilarity Score is 1.28\. We know
+    that positive pairs have a low dissimilarity score and that negative pairs have
+    a high dissimilarity score. But what is the threshold score that separates them?
+    Let''s do more tests on positive and negative pairs to find out:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE31]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following screenshot shows the results for certain pairs of subjects. Note
+    that positive pairs are on the left, while negative pairs are on the right:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/d09ea078-ce2e-4a4c-b9fc-43762e329705.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Did you spot anything interesting?  Judging from the preceding results, the
+    threshold score seems to be around 0.5\. Anything below 0.5 should be classified
+    as a positive pair (that is, faces match), and anything above 0.5 should be classified
+    as a negative pair. Note that the negative pair on the second-row-to-the-right
+    column is really near the threshold, with a score of 0.501\. Interestingly, the
+    two subjects do look alike, with similar glasses and hairstyles!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Consolidating our code
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: At this point, it would be useful to consolidate our code. We have written a
+    lot of code so far, including helper functions. Let's consolidate the helper functions
+    into a `utils.py` file as follows.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, we import the necessary libraries:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE32]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We include the `euclidean_distance`, `contrastive_loss`, and `accuracy` functions
+    needed to train a Siamese neural network in the `utils.py` file:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE33]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We include the `create_pairs` function in the `utils.py` file. Recall that
+    this helper function is used to generate negative and positive pairs of images
+    for training a Siamese neural network:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE34]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We also include the `create_shared_network` helper function in our `utils.py`
+    file, which is used to create a Siamese neural network in Keras:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE35]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The last helper function in our `utils.py` file is the `get_data` function.
+    This function helps us to load the respective raw images into NumPy arrays:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE36]'
+  prefs: []
+  type: TYPE_PRE
+- en: You can see the `utils.py` file in the code we provided.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Similarly, we can create a `siamese_nn.py` file. This Python file will hold
+    the main code to create and train our Siamese neural network:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE37]'
+  prefs: []
+  type: TYPE_PRE
+- en: This Python file is saved as `'Chapter07/siamese_nn.py'` in the code we provided.
+    Notice how the code is a lot shorter than before, as we have refactored our code
+    to call the helper functions in the `utils.py`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note that the last line in the preceding code saves the trained model at the
+    `Chapter07/siamese_nn.h5` location. This allows us to easily import the trained
+    model for face recognition, without retraining a model from scratch.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating a real-time face recognition program
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: We have finally come to the most important part of the project. We are going
+    to put together the code that we have written so far to create a real-time face
+    recognition program. This program will use the webcam in our computer for facial
+    recognition, and to authenticate whether the person sitting in front of the webcam
+    is indeed you.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To do so, the program needs to do the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Train a Siamese neural network for facial recognition (this has already been
+    done in the previous section).
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Use the webcam to capture a true image of the authorized user. This is the onboarding
+    process of the facial recognition system.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Subsequently, when a user wants to unlock the program, use the pre-trained Siamese
+    neural network from *Step 1* and the true image from *Step 2* to authenticate
+    the user.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: This part of the project requires a webcam (either the one in your laptop or
+    an external webcam attached to your computer). If you do not have a webcam in
+    your computer, you may skip this part of the project.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The onboarding process
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Let''s write the code for the onboarding process. During the onboarding process,
+    we need to activate the webcam to capture a true image of the authorized user.
+    OpenCV has a function called `VideoCapture` that allows us to activate and capture
+    the image from the computer''s webcam:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE38]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s give the user five seconds to prepare before taking a photo using the
+    webcam. We start a `counter` variable with an initial value of `5` and snap a
+    photo using the webcam once the counter reaches `0`. Note that we use the code
+    in the `face_detection.py` file that we have written earlier in the chapter to
+    detect faces in front of the webcam. The photo will be saved as `''true_img.png''`
+    in the same folder as the code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE39]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The onboarding process looks like this:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/c10f4692-85c4-40b6-b97a-4f8b6aa1bfe5.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'This code is saved as `Chapter07/onboarding.py` in the files we provided. To
+    run the onboarding process for yourself, simply execute the Python file from a
+    command prompt (in Windows) or a Terminal (macOS/Linux) by calling the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE40]'
+  prefs: []
+  type: TYPE_PRE
+- en: Face recognition process
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'With the onboarding process complete, we can now move on to the actual face
+    recognition process. We start by asking the user for their name. The name will
+    be displayed above the detected face, as we shall see later. The `input` function
+    in Python allows the user to enter their name:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE41]'
+  prefs: []
+  type: TYPE_PRE
+- en: The user will then enter a name on the command line when prompted.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Next, let''s import our pre-trained Siamese neural network from earlier in
+    the chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE42]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we load the true image of the user captured during the onboarding process
+    and preprocess it by normalizing, resizing, and reshaping the image for our Siamese
+    neural network:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE43]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The rest of the code uses the `VideoCapture` function in OpenCV to capture
+    a video from the user''s webcam, and passes each frame from the video to our `face_detection`
+    instance. We use a fixed-length list (implemented by Python''s `collections.deque`
+    class) of 15 to collect the 15 most recent predictions (one prediction per frame).
+    We average the scores from the 15 most recent predictions, and we authenticate
+    the user if the average similarity scores is over a certain threshold. The rest
+    of the code is shown as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE44]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This code is saved as `''Chapter07/face_recognition_system.py''` in the files
+    we provided. To run the program for yourself, simply execute the Python file from
+    a command prompt (in Windows) or a Terminal (macOS/Linux) by calling the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE45]'
+  prefs: []
+  type: TYPE_PRE
+- en: Make sure that you run the onboarding program first (to capture a true image)
+    before running the face recognition program.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This is what it looks like when the program is trying to identify your face
+    initially:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/8b346220-2425-4bf5-8eff-8466625b0a7e.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'After a few seconds, the program should recognize you:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/1d60c868-b71e-417f-b3e0-cff18f1a667e.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Future work
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: As we saw, our face recognition system certainly works well under simple conditions.
+    However, it is definitely not fool-proof, and certainly not secure enough to be
+    implemented in important applications. For one, the face detection system can
+    be fooled by a static photo (try it yourself!). Theoretically, that means we can
+    bypass the authentication by placing a static photo of an authorized user in front
+    of the webcam.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Techniques to solve this problem are known as **anti-spoofing techniques**. Anti-spoofing
+    techniques are a keenly studied area in face recognition. In general, there are
+    two main anti-spoofing techniques used today:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Liveness detection**: Since a photo is a static two-dimensional image and
+    a real face is dynamic and three-dimensional, we can check for the *liveness* of
+    the detected face. Ways to perform liveness detection include checking the optic
+    flow of the detected face, and checking the lighting and texture of the detected
+    face in contrast to the surroundings.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Machine learning**: We can also differentiate a real face from an image by
+    using machine learning! We can train a CNN to classify whether the detected face
+    belongs to a real face or a static image. However, you would need plenty of labeled
+    data (face versus non-face) to accomplish this.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Here''s a video from Andrew Ng, showing how face recognition (with liveness
+    detection) is implemented in Baidu''s headquarters in China:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[https://www.youtube.com/watch?v=wr4rx0Spihs](https://www.youtube.com/watch?v=wr4rx0Spihs)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: If you would like to understand how Apple implements its face ID system in iPhones,
+    you can refer to the paper at [https://www.apple.com/business/site/docs/FaceID_Security_Guide.pdf](https://www.apple.com/business/site/docs/FaceID_Security_Guide.pdf) published
+    by Apple.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Apple's implementation of face ID is more secure than the system that we used
+    in this chapter. Apple uses a TrueDepth camera to project infrared dots on your
+    face, creating a depth map, which is then used for facial recognition.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we created a face recognition system based on a Siamese neural
+    network. The face recognition system uses a webcam to stream frames from a live
+    video to a pre-trained Siamese neural network, and using a true image of the user,
+    the system is able to authenticate the user in front of the webcam.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We first dissected the face recognition problem into smaller subproblems, and
+    we saw how a face recognition system first performs a face detection step to isolate
+    the face from the rest of the image, before the actual face recognition step.
+    We saw how face detection is commonly done by the Viola-Jones algorithm, which
+    uses Haar features to detect faces in real time. Face detection using Haar filters
+    is implemented in Python via the OpenCV library, which allows us to perform face
+    detection in just a few lines of code.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We then focused on face recognition, and we discussed how the requirements of
+    face recognition systems (speed, scalability, high accuracy with small data) makes
+    CNNs unsuitable for this problem. We introduced the architecture of Siamese neural
+    networks, and how distance-based predictions in Siamese neural networks can be
+    used for face recognition. We trained a Siamese neural network from scratch in
+    Keras, using the AT&T faces dataset.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Lastly, using the pre-trained Siamese neural network, we created our own face
+    recognition system in Python. The face recognition system consists of two steps.
+    In the first step (the onboarding process), we used OpenCV's face detection API
+    to capture an image of the user using a webcam, as the true image for the Siamese
+    neural network. In the second step, the system uses the true image to recognize
+    and authenticate users of the program.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next and final chapter, [Chapter 8](cf13b5e9-5a3d-4cd7-ba65-aeee25e0e6bb.xhtml),
+    *What's Next?*,we'll consolidate and recap the different projects that we've completed
+    so far in this book. We'll also peer into the future, and see what neural networks
+    and AI will look like in the next few years.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Questions
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: How is face detection different than face recognition?
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The objective of face detection is to locate human faces in an image. The output
+    from the face detection process is a bounding box around detected faces. On the
+    other hand, the objective of face recognition is to classify faces (that is, identify
+    subjects). Face detection and face recognition are the two key steps in every
+    facial recognition system, and the output from the face detection step is passed
+    as input to the face recognition step.
+  prefs: []
+  type: TYPE_NORMAL
+- en: What is the Viola-Jones algorithm for face detection?
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The Viola-Jones algorithm uses Haar features for face detection. Haar features
+    are filters with alternating dark and bright areas that represents the contrast
+    in pixel intensity in human faces. For example, the eye area in an image of a
+    human face has a darker pixel value than the forehead and the cheeks areas. These
+    Haar filters are used to localize areas in an image that may contain faces.
+  prefs: []
+  type: TYPE_NORMAL
+- en: What is one-shot learning, and how is it different than batch learning?
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In one-shot learning, the objective is to train a machine learning model with
+    very little data. In contrast, batch learning uses a big dataset to train a machine
+    learning model. One-shot learning is often used in image recognition tasks, as
+    the quantity of training samples can be very sparse.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Describe the architecture of a Siamese neural network.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Siamese neural networks consist of two conjoined convolutional layers with shared
+    weights, accepting a pair of input images. The conjoined convolutional layers
+    project the two input images to a lower-dimension feature space. Using a Euclidean
+    distance layer, we compute and output the distance of the two lower-dimension
+    vectors, which is inversely proportional to the similarity of the two images.
+  prefs: []
+  type: TYPE_NORMAL
+- en: When training a Siamese neural network for face recognition, what is the loss
+    function used?
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We use a contrastive loss function to train a Siamese neural network for face
+    recognition. The contrastive loss function encourages a neural network to output
+    a small distance when the pair of input images are similar, and vice versa, it
+    encourages a large output distance when the pair of input images are different.
+  prefs: []
+  type: TYPE_NORMAL

@@ -1,0 +1,1408 @@
+- en: '11'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The Ethics of Model Adaptability
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: This chapter gives a detailed overview of detecting different types of model
+    drift for model governance purposes in organizations. The primary objective of
+    this chapter is to demonstrate variations of ML models, with multiple examples
+    to give you an awareness of the importance of the different statistical measures
+    available for detecting data changes and model metric variations. This will help
+    data scientists and MLOps professionals to choose the right drift detection mechanisms
+    and stick to the correct model metric performance thresholds to control risks
+    arising due to incorrect predictions. You’ll learn how to quantify and explain
+    model drift and answer questions related to the need for model calibration. This
+    will also allow you to understand the scope of designing fairly calibrated models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, these topics will be covered in the following sections:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Adaptability framework for data and model drift
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: How we can explain ML models when subjected to drift or calibration
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Understanding the need for model calibration
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'This chapter requires you to have Python 3.8 and to run the following commands
+    before starting:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`pip` `install` `alibi-detect`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`pip` `install` `river`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`pip` `install` `detecta`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`pip install nannyml (``dependency numpy==1.21.0)`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`git` `clone` [https://github.com/zelros/cinnamon.git](https://github.com/zelros/cinnamon.git)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`python3` `setup.py install`'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`git` `clone` [https://github.com/Western-OC2-Lab/PWPAE-Concept-Drift-Detection-and-Adaptation.git](https://github.com/Western-OC2-Lab/PWPAE-Concept-Drift-Detection-and-Adaptation.git)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `alibi-detect` package mentioned in the installation step can be found on
+    GitHub. For reference, you can check out more details of the project at [https://github.com/SeldonIO/alibi-detect](https://github.com/SeldonIO/alibi-detect).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Adaptability framework for data and model drift
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Data processing depends on the way data is accessed based on its availability,
+    whether it’s sequential or continuous. Along with the data processing and modeling
+    techniques built on different modes of incoming data, various factors (internal
+    and external) cause the data distribution to change dynamically. This change is
+    called **concept drift**, and it creates several threats to ML models in production.
+    In concept drift terminology, and as far as the shift in data distributions is
+    concerned, the term **window** is used to refer to the most recently known concept
+    that was used to train the current or most recent predictor.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Examples of concept drift can be seen in e-commerce systems where ML algorithms
+    profile the shopping patterns of the user and provide personalized recommendations
+    of relevant products. Factors that result in concept drift include events such
+    as marriage and relocating to a different geographical region. The COVID-19 pandemic
+    caused a drastic change in consumers' buying behavior, because people were forced
+    to turn to e-commerce platforms for online shopping. This resulted in higher demand
+    for products than expected, causing a high rate of prediction errors in forecasting
+    demand in supply chain networks. The e-commerce, supply chain, and banking industries
+    have experienced changes in incoming data patterns, leading to model drift.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 11.1 – Four types of concept drift](img/Figure_11.01_B18681.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.1 – Four types of concept drift
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As illustrated in *Figure 11**.1*, there are four kinds of concept drift, caused
+    by various internal or external factors, or even adversarial activities:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Abrupt**: Caused by behavior shifts'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Incremental**: A sudden change with slower decay'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Reoccurring**: Similar to seasonal trends'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Gradual**: Slow, long-lasting changes'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Other indirect factors, such as the speed of learning, errors in reporting the
+    right features (or units of measurement), and large changes in the classification
+    or prediction accuracy, can also result in concept drift. This is illustrated
+    in *Figure 11**.2*. To address concept drift, we need to update the models causing
+    the drift. This could be a blind update or training with weighted data, model
+    ensembling, an incremental model update, or applying modes of online learning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: "![Figure 11.2 – Different types of drift-causing factors\uFEFF and remedial\
+    \ actions](img/Figure_11.02_B18681.jpg)"
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.2 – Different types of drift-causing factors and remedial actions
+  prefs: []
+  type: TYPE_NORMAL
+- en: We categorize concept drift detectors (illustrated in *Figure 11**.3*) primarily
+    based on the batch or online data arrival mode. Batch detection techniques can
+    further be classified into whole-batch and partial-batch detection techniques.
+    The size and sample of the batch are two of the factors used to classify them
+    as whole-batch or partial-batch detection. Online detectors are further classified
+    based on their ability to manipulate the reference window in order to detect drift.
+    The detection window is often a sliding window that moves with an incoming instance,
+    often referred to as the current concept. However, fixed reference windows are
+    also used to detect concept drift.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Online detectors function by evaluating the test statistics computed for the
+    first *W* data points and then updating the test statistics. The updates can be
+    done sequentially at a lower cost, thereby helping us to detect fluctuations in
+    the test statistics beyond a threshold value. A value exceeding the threshold
+    indicates that drift has taken place.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 11.3 – Commonly used drift detectors](img/Figure_11.03_B18681.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.3 – Commonly used drift detectors
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Figure 11**.3* illustrates the idea of unsupervised batch-based (with a fixed
+    window) and online-based (fixed and sliding windows) drift detection techniques
+    that, after necessary data distribution comparison and a significance test, detect
+    whether there has been drift or not. Batch-based methods may require instance
+    selection and statistical computations on a batch to confirm the testing of drift
+    conditions, enabling us to infer whether drift has occurred or not. The numbers
+    here signify the sequence of steps required to detect both online and offline
+    drift.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 11.4 – Online and batch drift detection methods](img/Figure_11.04_B18681.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.4 – Online and batch drift detection methods
+  prefs: []
+  type: TYPE_NORMAL
+- en: An example of an online drift adaptive framework is the **Performance Weighted
+    Probability Averaging Ensemble** (**PWPAE**) framework, which can be used effectively
+    in IoT anomaly detection use cases.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This framework can be deployed on IoT cloud servers to process big data streams
+    using a wireless medium from IoT devices. This kind of ensemble adaptive drift
+    detector is composed of four base learners that help with real-time drift detection:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: An **Adaptive Random Forest** (**ARF**) model with an **ADWIN drift detector**
+    (referred to as **ARF-ADWIN**)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: An ARF model with a **DDM drift detector** (referred to as **ARF-DDM**)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: A **Streaming Random Patches** (**SRP**) model with an **ADWIN drift detector**
+    (referred to as **SRP-ADWIN**)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: An SRP model with a **DDM drift detector** (referred to as **SRP-DDM**)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The four base online learners are combined by weighting them based on their
+    accuracy and classification probabilities. Let’s try the PWPAE framework on the
+    CICIDS2017 ([https://www.unb.ca/cic/datasets/ids-2017.html](https://www.unb.ca/cic/datasets/ids-2017.html))
+    simulated intrusion detection dataset, which contains benign and recent common
+    attacks, resembling true real-world examples:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To run PWPAE, let''s first make the necessary imports from the `river` package:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Then we set up the PWPAE model with `X_train` and `y_train` to train the model,
+    and we test it on `X_test` and `y_test`. The following code snippet uses the PWPAE
+    model:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The trained results and the comparative outputs are visualized in *Figure 11.5*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: "![Figure 11.5 – The performance results of PWPAE with \uFEFFthe \uFEFFHoeffding\
+    \ Tree (HT) and Leveraging Bagging (LB) models](img/Figure_11.05_B18681.jpg)"
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.5 – The performance results of PWPAE with the Hoeffding Tree (HT)
+    and Leveraging Bagging (LB) models
+  prefs: []
+  type: TYPE_NORMAL
+- en: The accuracy of PWPAE is 99.06% and it exceeds the accuracy of other models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let us investigate some supervised drift detection strategies where actual feedback
+    for prediction is available and is used with the predicted outcomes to yield error
+    metrics.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Statistical methods
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Statistical methods help us to compare and assess two different distributions.
+    A divergence factor or a distance metric can be used to measure the difference
+    between two distributions at different points in time to understand their behavior.
+    This helps with the timely detection of the model’s performance metrics and finding
+    the features that are causing the change.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Kullback–Leibler divergence
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: '**Kullback–Leibler** (**KL**) divergence, also popularly known as **relative
+    entropy**, quantifies how much one probability distribution differs from another.
+    Mathematically, it can be stated as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/Formula_11_001.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: '*Q* is the distribution of the old data and *P* is the distribution of the
+    new data for which we compute the divergence, and || represents the divergence.
+    When *P*(*x*) is high and *Q*(*x*) is low, the divergence will be high. On the
+    other hand, if *P*(*x*) is low and *Q*(*x*) is high, the divergence will be high
+    but not too high. When *P*(*x*) and *Q*(*x*) are similar, then the divergence
+    will be low. The following code creates a KL divergence plot for a (*P*, *Q*,
+    *M*) distribution with a mean of 5 and a standard deviation of 4:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The change in distribution patterns due to KL divergence is illustrated in
+    *Figure 11**.6*:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 11.6 – KL divergence](img/Figure_11.06_B18681.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.6 – KL divergence
+  prefs: []
+  type: TYPE_NORMAL
+- en: There are more forms of divergence, which we will look at next.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Jensen–Shannon divergence
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: '**Jensen–Shannon** (**JS**) divergence uses KL divergence and can be formulated
+    mathematically as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/Formula_11_002.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'One difference between KL and JS divergence is that JS divergence is symmetrical
+    with a mandatory finite value. The change in distribution patterns due to JS divergence
+    is illustrated in *Figure 11**.7*:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/Figure_11.07_B18681.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.7 – JS divergence
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To compute JS and KL divergence, we run the following code snippet:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, we create a normal distribution for distribution 1:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Next, we create another normal distribution, which is our second distribution:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'In the next step, we first evaluate the KL divergence between probability distribution
+    1 and the mean of the two `Y1` and `Y2` and the same for probability distribution
+    2:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The previous step yields the following output:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'In the next step, we first evaluate the JS divergence between the distributions
+    and also within each distribution individually:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We evaluate this against the SciPy calculation of JS divergence between the
+    distributions:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The preceding step yields the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: The first distance gives the symmetric JS divergence, while the second evaluated
+    metric gives the JS distance, which is the square root of the JS divergence. The
+    third and fourth distance metrics evaluated give us the JS distance between `X1`,
+    `X2` and `dx1`, `dx2`, respectively. `dx1` and `dx2` here signify the entropy
+    of distributions created from `Y1`, `X1` and `Y2`, `X2`, respectively.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Kolmogorov-Smirnov test
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'The two-sample **Kolmogorov-Smirnov** (**KS**) test is a general nonparametric
+    method used to differentiate two samples. The data change pattern, best identified
+    by the KS test, is illustrated in *Figure 11**.8*. The **Cumulative Distribution
+    Function** (**CDF**) of (*sample, x*) quantifies the percentage of observations
+    below *x* on the sample. This can be obtained by doing the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Sorting the sample
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Counting whether the number of observations within the sample is less than or
+    equal to *x*
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Dividing the numerator computed in step 2 by the total number of observations
+    on the sample
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The purpose of the drift detector is to detect drift patterns when two distribution
+    functions observe a change, causing a shape change in two samples:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 11.8 – KS test](img/Figure_11.08_B18681.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.8 – KS test
+  prefs: []
+  type: TYPE_NORMAL
+- en: Population stability index
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: '**Population stability index** (**PSI**) is a metric that monitors and measures
+    shifts in population behavior between two samples or over two periods of time.
+    It serves as a risk-scorecard metric to give a probable risk estimation between
+    an out-of-time validation sample and a modeling sample including both dependent
+    and independent variables. The application of PSI can also be extended to compare
+    the education, income, and health status of two or more populations in social-demographic
+    studies.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Model distillation** is a technique that allows the transfer of knowledge
+    from a large network to a small network, which trains a second model with a simplified
+    architecture on soft targets (the output distributions or the logits) retrieved
+    from the original model. It paves the way to detect adversarial and malicious
+    data and data drift by comparing the output distributions of both the original
+    model and the distilled model.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let us now see, with an example, how adversarial scores are detected by the
+    model distillation detector in the context of drift detection. The KS test has
+    been used as the scoring function to run a simple univariate test between the
+    adversarial scores of the reference batch and the test data. A high adversarial
+    score indicates a harmful drift, and a flag is raised for malicious data drift.
+    Here, we can fetch the pretrained model distillation detector from a Google Cloud
+    bucket or train one from scratch:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, we import the necessary packages from `alibi_detect`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Then, we define and train the distilled model:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Next, based on our configuration, we can either load a pretrained model or
+    train a new model:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We now plot the mean scores and standard deviations per severity level. We
+    define the model accuracy plot as the mean and standard deviation of the harmfulness
+    and no-harmfulness scores:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The plot (illustrated in *Figure 11**.9*) shows the mean harmfulness scores
+    (the line plot starting from the left-hand side) and ResNet-32 accuracies (the
+    bars displayed on the right-hand side) for increasing data corruption severity
+    levels. Level 0 corresponds to the original test set. We have demonstrated the
+    impact of varying levels of malicious (corrupted) data along with its severity
+    levels.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Harmful scores signify instances that gave an incorrect prediction because of
+    corrupted data. Even not-harmful predictions are known to exist, which remains
+    unchanged (as shown by the harmful index, marked in yellow along the *Y* axis)
+    after the data corruption due to the injection of malicious adversarial samples.
+    To summarize further, we see in *Figure 11**.9* that the corruption severity increases
+    as the harmfulness score increases (shown by the cyan bars) and the accuracy decreases
+    (shown by the blue line).
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 11.9 – Distilled drift detector detecting the corruption severity](img/Figure_11.09_B18681.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.9 – Distilled drift detector detecting the corruption severity
+  prefs: []
+  type: TYPE_NORMAL
+- en: There are some other methods that we can categorize as contextual methods.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Contextual methods
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: The purpose of these methods is to compare and assess the difference between
+    the train and test datasets and evaluate the drift when there’s a significant
+    difference in the predicted outcomes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Tree features
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+- en: This method enables you to train a simple tree based on data and prediction
+    timestamps that are fed as independent input features, along with other features.
+    Once the tree model is analyzed for feature importance, it is evident that the
+    effect on data at different points in time helps to substantiate the differences
+    arising due to concept drift. The tree splits, and the feature splits done on
+    the timestamp, help to explain the changes due to drift.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Shuffling and resampling (SR)
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+- en: The data is split into train and test sets at an assumed drift point, and then
+    the model is trained using the train dataset and evaluated against the test dataset
+    to compute the error rates. The same mechanism of training and testing is repeated
+    by shuffling the same dataset and recomputing the error metrics. Drift is said
+    to be detected when the difference between the ordered data error rate and the
+    average shuffled data error rate is above a specified threshold. This is also
+    a computationally intensive mechanism as it involves training multiple models
+    during occurrences of drift.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Statistical process control
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: This kind of drift detector control mechanism ensures that when the model in
+    production generates varying accuracy metrics over time, the errors in the model
+    can be managed. Though this method is effective in detecting sudden, gradual,
+    and incremental drift in a short span of time, the latency could be high when
+    extracting labels from the samples. The requirement of having labeled data makes
+    it more difficult to be applied widely.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Drift detection method (DDM)
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: This method of drift detection is one of the earliest devised. Incoming data
+    is assumed to be in a sequence following a binomial distribution and a Bernoulli
+    trial variable (or single data point) inferring the occurrence of drift based
+    on the prediction error rate.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The algorithm records the **minimum probability of error** (*p*) rate and the
+    **minimum standard deviation** (*s*) of the binomial distribution when *p + s*
+    reaches its own minimum. Drift is said to be present when the *p + s* value exceeds
+    the sum of the **minimum probability of error** (pmin) and a **multiple of the
+    minimum standard deviation** (smin). We can state that as (p + s) > (pmin + 3
+    ✶ *s*min).
+  prefs: []
+  type: TYPE_NORMAL
+- en: The recommended multiplying factor is 3\. This method has limitations when the
+    change occurs slowly, where the cache/memory may overflow.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Early Drift Detection Method (EDDM)
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: This method, although similar to DDM, focuses on gradual drift by computing
+    the **mean** (*m*) and **standard deviation** (*s*) of the distance between two
+    errors. It records (*m* + 2 ✶ *s*) and when it reaches its maximum value, it saves
+    both values as mmax and smax , respectively. When the ratio, (*m* + 2 ✶ *s*)/(*m*
+    + 2 ✶ *s*max), drops below a threshold (*β*; the recommended value is 0.9), drift
+    is detected, and an alarm should be raised.
+  prefs: []
+  type: TYPE_NORMAL
+- en: CUSUM and Page-Hinkley
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: '**Cumulative Sum** (**CUSUM**) and its variant, **Page-Hinkley** (**PH**),
+    both rely on a sequential analysis technique, typically from an average Gaussian
+    signal. These methods detect the change and raise an alarm when they observe that
+    the difference between the observed values and the mean is higher than a user-defined
+    threshold. As the changes are sensitive to the parameter values, one disadvantage
+    of this is the triggering of false alarms. These methods can be widely applied
+    to data streams.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: CUSUM
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+- en: This drift detection algorithm detects small changes in the mean using CUSUM.
+    When the probability distributions before and after the change are known, then
+    the CUSUM procedure optimizes an objective function by considering the delays
+    and frequency of false alarms. It has the additional advantage of being simple
+    and intuitive to interpret in terms of maximum likelihood. It is memoryless, one-sided,
+    and asymmetrical, with the ability to detect only an increase in the difference
+    between the observed value and the mean.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The CUSUM detector is a kernel-based technique that continuously compares samples
+    from the database. The metric for drift determination is called the **Maximum
+    Mean Discrepancy** (**MMD**). This procedure is well suited for large data volumes
+    because it does not need to compare pre- and post-distributions, instead concentrating
+    on the current data to identify drift. CUSUM has been enhanced to use a dual mean
+    value on nested sliding windows, which is called the **Double CUSUM Based on Data
+    Stream** (**DCUSUM-DS**). Another variant of CUSUM is DCUSUM-DS, which uses a
+    dual mean value CUSUM. The DCUSUM-DS algorithm works on nested sliding windows
+    and detects drift by calculating the average value of the data within the window
+    twice. After detecting the average, it extracts new features and then generates
+    accumulated and controlled graphs to avoid false inference. One major benefit
+    of this method is that it can detect new features and rerun its analysis to ensure
+    it detects the correct drift and does not rely only on the average values detected.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The kernel-based variant of CUSUM does not require the pre- and post-change
+    distributions and instead depends on a database of samples from the pre-change
+    distribution, with which it can continuously compare incoming observations with
+    samples from the database. The kernel function chosen by the user and the statistical
+    metric for comparison is MMD. The **Kernel Cumulative Sum** (**KCUSUM**) algorithm
+    works well in settings where there is a huge amount of background data available,
+    and when it is necessary to detect deviations from the background data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The algorithm can be configured with a threshold that sets the limit beyond
+    which an alarm is triggered. The magnitude of the drift threshold (say, 80%, 50%,
+    or 30%) helps us to obtain the right metric for identifying a drift. Accordingly,
+    an alarm needs to be raised when any deviations in the data or model pattern are
+    observed. For example, an algorithm can be set to a very large amplitude with
+    an 80% threshold boundary, which will enable it to detect drift more frequently
+    than when it is set to 30%. The detector returns the following values:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`ta`: Change detection index – a return value that represents the alarm time
+    (the index when the change was detected)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`tai`: Starting index of change – shows the index when the change started'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`taf`: Ending index of change – denotes the index when the change ended (if
+    `ending` is `True`)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`amp`: Denotes the amplitude of the changes (if `ending` is `True`)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: One way to configure the parameters is to start with a very large `threshold`
+    value and set `drift` to half of the expected change. We can also adjust `drift`
+    so that `g` is `0` more than 50% of the time. We can then fine-tune `threshold`
+    so the required number of false alarms or delays in detecting drift is obtained.
+    For faster drift detection, we need to decrease `drift`, whereas to reduce false
+    alarms and minimize the effect of small changes, we need to increase `drift`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following code snippet demonstrates how to use the CUSUM drift detector:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: The preceding code is able to detect drift between a range of data, illustrated
+    in the following figure, by drift percentage, threshold, and the number of instances
+    of change.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 11.10 – CUSUM drift detector change detections](img/Figure_11.10_B18681.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.10 – CUSUM drift detector change detections
+  prefs: []
+  type: TYPE_NORMAL
+- en: The threshold-based drift detection technique used here demonstrates (*Figure
+    11**.10*) the role of the CUSUM of positive and negative changes in detecting
+    drift.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Covariate and prior probability data drift
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+- en: Covariate drift occurs due to changes in the distributions of one or more of
+    the independent features due to internal or external factors, but the relationship
+    between the input *X* and target *Y* remains the same. While the distribution
+    of input feature *X* changes with covariate data drift, with prior probability
+    shift, the distribution of the input variables remains the same but the distribution
+    of the target variable changes. Changes in the target distribution result in prior
+    probability data drift. To implement covariate drift, we apply a shift to the
+    mean of one of the normal distributions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The model is now being tested on a new region of the feature space, causing
+    the model to misclassify new test observations. In the absence of true test labels,
+    it is impossible to measure the model’s accuracy. Here, the drift detector helps
+    by detecting whether covariate or prior probability drift is occurring. If it’s
+    the latter, a proxy for prior drift can be monitored by initializing the detector
+    on labels from the reference set, which is then fed into a model’s predicted labels
+    to identify drift.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following steps illustrate how to detect data drift by comparing it with
+    the original model trained on the initial dataset:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, we take a multivariate normal distribution and then specify the reference
+    data to initialize the detectors:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We stack the reference distributions and try to estimate the drift by comparing
+    it with `true_slope`, which has been set to `-1`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The code snippet generates the following plots to demonstrate a use case of
+    no drift versus covariate drift, exhibiting lower mean accuracy where there is
+    drift (right side) than where there is none (left side).
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 11.11 – Covariate data drift](img/Figure_11.11_B18681.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.11 – Covariate data drift
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'While *Figure 11**.11* shows covariate data drift, the following code demonstrates
+    the use of the MMD method, in which an estimate of the expected squared difference
+    between the kernel **conditional** mean embeddings of *X*ref | *C* and *X*test
+    | *C* are computed to evaluate the test statistic:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We get the following output:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The MMD detector detects drift with a distance of `0.1076`, and the threshold
+    of drift detection is `0.013342`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Least-squared density difference
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+- en: The `[0,1]` and predicts the same binary outcomes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The LSDD online drift detector from `alibi_detect` necessitates an **Expected
+    Runtime** (**ERT**) (an inverted **False Positive Rate** (**FPR**)), allowing
+    the detector to run an average number of steps in the absence of drift before
+    making a false detection. With a high ERT, detectors lose their sensitivity and
+    become slow to respond, so the configuration adjusts the trade-off between the
+    ERT and the expected detection delay to target desirable ERTs. The best way to
+    simulate the desired configuration is to select training data that is an order
+    of magnitude larger than the desired ERT:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the following code snippet, the model is trained on white wine samples,
+    which form the reference distribution, and red wine samples are drawn from a drifted
+    distribution. The steps following the upcoming code block illustrate how to run
+    LSDD drift detection, and how it helps to compare no drift versus drift:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'In the first run, without the detector set, we do not detect any drift:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The preceding code yields the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following code snippet imports `LSDDDriftOnline` from `alibi_detect` and
+    sets it up with reference data, `ert`, `window_size`, the number of runs, and
+    a TensorFlow backend both for the original and current distributions to detect
+    drift. Then, the online drift detector is run with an `ert` value of `50` and
+    `window_size` of `10`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This produces the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 11.12 – LSDD drift detector](img/Figure_11.12_B18681.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.12 – LSDD drift detector
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Figure 11.12* demonstrates online drift detection with LSDD. Here, we let
+    the detector run a configurable number of times (50) or iterations and configure
+    5,500 bootstraps to detect the drift. The bootstraps are used to run the simulations
+    and configure the thresholds. A greater magnitude helps to achieve better accuracy
+    in terms of obtaining the ERT, and it is typically configured to be an order of
+    magnitude larger than the ERT.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We get the following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs: []
+  type: TYPE_PRE
+- en: Furthermore, we observe that the detector on the held-out reference data in
+    the first run follows a geometric distribution with mean ERT, without having any
+    drift. However, as soon as drift is detected, the detector is very fast to respond,
+    as shown in *Figure 11**.12*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Page-Hinkley
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+- en: 'This method of drift detection functions by detecting changes by computing
+    the observed values and their mean up to the current moment. Without issuing any
+    warning signals, it runs the PH test to detect concept drift if the observed mean
+    is found to exceed a threshold lambda value. Mathematically, it can be formulated
+    as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/Formula_11_003.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: When gt– Gt > h, an alarm is raised.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let us walk through the step-by-step process of detecting drift using
+    the PH method:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following code sample demonstrates how we simulate two distributions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now, we compose and plot a data stream composed of three data distributions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now, we update the drift detector and see whether a change has been detected:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: We get the following output. We see that drift is detected for three different
+    distributions of the graph at different points in time. The change detection points
+    are printed on two sides of the plot.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 11.13 – Drift detected at three ranges of a distribution with a PH
+    detector](img/Figure_11.13_B18681.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.13 – Drift detected at three ranges of a distribution with a PH detector
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Fast Hoeffding Drift Detection Method
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: The **Fast Hoeffding Drift Detection Method** (**FHDDM**) allows the constant
+    tracking of a sliding window of values of the probability of correct predictions
+    along with the maximum observed probability values. A drift is said to have occurred
+    when the correct prediction probability drops below the maximum configured value,
+    along with the difference in probabilities exceeding a threshold.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Paired learner
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: The **paired learner** (**PL**) mechanism includes two learners, one of which
+    is a stable learner that gets trained on all data, and the other learner is trained
+    on recent data. A counter is incremented each time the stable learner makes an
+    error in prediction but the recent learner does not. To account for mistakes,
+    a counter is decremented each time the recent learner makes an error in prediction.
+    Once the increment counter exceeds a specified threshold, drift is considered
+    to have occurred. This mechanism involves heavy computation to train new models
+    and to have two learners in place.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Exponentially Weighted Moving Average Concept Drift Detection
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: In the **Exponentially Weighted Moving Average Concept Drift Detection** (**ECDD**)
+    method, the **exponentially weighted moving average** (**EWMA**) forecast is used
+    by calculating the forecast’s mean and standard deviation continuously. It is
+    often used to monitor and detect the misclassification rate of a streaming classifier.
+    Drift is detected when the forecast exceeds the sum of the mean plus a multiple
+    factor/coefficient of the standard deviation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Feature distribution
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: This drift detection technique functions without response feedback by identifying
+    a change in *p(y|x)* due to a corresponding change in *p(x)*. This change can
+    be detected using any multivariate unsupervised drift detection technique.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Drift in a regression model
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: To detect drift in a regression model, you take the regression error (a real
+    number) and apply any unsupervised drift detection technique to the error data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Ensemble and hierarchy drift detectors
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Ensemble detectors work primarily on an agreed consensus level, where consensus
+    can be derived from only a few, all, or a majority of learners. Hierarchical detectors
+    come into play only after drift is detected by a detector at the first level using
+    any of the drift detection techniques discussed previously. Then, the consensus
+    approach can be used to validate the result at other levels, starting from the
+    next level. Some ensemble and hierarchy drift detector algorithms include **Linear
+    Fore Rates** (**LFR**), **Selective Detector Ensemble** (**eDetector**), **Drift
+    Detection Ensemble** (**DDE**), and **Hierarchical Hypothesis** **Testing** (**HLFR**).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we have looked at different types of concept drift detection techniques,
+    let us discuss model explainability whenever there is drift/calibration.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Multivariate drift detection with PCA
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: To detect drift from multivariate data distributions, we use **Principal Component
+    Analysis** (**PCA**) by compressing the data to a lower-dimensional space and
+    then decompressing the data to retrieve the original feature representation. As
+    we preserve only the relevant information in the transformation process, the reconstruction
+    errors (evaluated using the Euclidean distance between the original and transformed
+    data) help us to identify a change in data relationships among one or multiple
+    features. In the first step, we compute the PCA on the original reference dataset
+    and store the reconstruction errors with allowable limits of upper and lower thresholds.
+    The process is repeated with the new data, where we compress and decompress the
+    data using PCA. When the reconstruction errors exceed the upper or lower threshold,
+    it signifies a change in data distribution.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following code demonstrates how we can detect multivariate feature drift:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the first step, we have the necessary imports:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Next, we have a random data setup based on its three features:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Next, we can do a further interpretation of the independent feature, but the
+    goal is to set up the drift detector as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: This yields what is shown in *Figure 11**.14*, where we see that the data has
+    drifted from 0.84 to 0.80.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 11.14 – Multivariate drift detector using PCA](img/Figure_11.14_B18681.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.14 – Multivariate drift detector using PCA
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding model explainability during concept drift/calibration
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In the preceding section, we learned about different types of concept drift.
+    Now, let us study how we can explain them with interpretable ML:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, we import the necessary packages for creating a regression model and
+    the drift explainer library. The California Housing dataset has been used to explain
+    concept drift:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE30]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Then, we train the XGBoost regressor model:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE31]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'In the next step, we fit our trained model using `ModelDriftExplainer`, plot
+    the prediction, and retrieve any drift, if it is observed by the explainer:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE32]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The following figure illustrates differences in drift detection in two different
+    datasets.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 11.15 – Drift from the input features or data distributions of two
+    datasets](img/Figure_11.15_B18681.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.15 – Drift from the input features or data distributions of two datasets
+  prefs: []
+  type: TYPE_NORMAL
+- en: In *Figure 11.15*, it is evident that there isn’t any apparent drift in the
+    distributions of the predictions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Then, we plot the target labels to evaluate any drift in the predicted outcomes:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE33]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'However, as shown in *Figure 11.16*, we do not observe any apparent drift in
+    the target labels:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 11.16 – Drift from the target data distributions of the California
+    Housing dataset](img/Figure_11.16_B18681.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.16 – Drift from the target data distributions of the California Housing
+    dataset
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the next step, when we evaluate the performance metrics of the California
+    Housing train and test datasets, we can see a data drift from the mean and the
+    explained variance of the performance metrics:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE34]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'On running the drift explainer on the California Housing dataset, we get the
+    following output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE35]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Our next task is to plot drift values computed with the tree-based approach,
+    obtain the feature importances of the California Housing dataset, and use `AdversarialDriftExplainer`
+    on the datasets. This is illustrated in *Figure 11**.17*, which clearly shows
+    that the `Neighborhood_OldTown` and `BsmtQual_Gd` features are the features most
+    impacted by the drift:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 11.17 – Feature importance in the resultant drift](img/Figure_11.17_B18681.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.17 – Feature importance in the resultant drift
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the end, we can plot each feature and evaluate the drift for each of them,
+    as shown in *Figure 11**.18*. Here, `Neighborhood_OldTown`, the first feature,
+    does not show any noticeable drift between the train and test datasets:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE36]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The preceding code snippet yields the following output, showing the difference
+    between the two datasets is not significant, as `p_value` is 0.996 > 0.05:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE37]'
+  prefs: []
+  type: TYPE_PRE
+- en: '![Figure 11.18 – Distribution differences/drift due to the Neighborhood_Old_Town
+    feature](img/Figure_11.18_B18681.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.18 – Distribution differences/drift due to the Neighborhood_Old_Town
+    feature
+  prefs: []
+  type: TYPE_NORMAL
+- en: After gaining an understanding of drift, as data scientists, we also need to
+    understand when we need to calibrate our models in the event of any change.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding the need for model calibration
+  prefs: []
+  type: TYPE_NORMAL
+- en: Recommendation systems (content-based filtering or hybrid systems) are used
+    in almost all industry sectors, including retail, telecoms, and energy and utilities.
+    Deep learning recommendation models using user-to-user or item-to-item embeddings
+    with explainability features have been able to build trust and confidence and
+    improve the user experience. Deep learning recommendation systems have often used
+    attention distributions to explain the neural network’s performance, but such
+    explanations in the case of **natural language processing** (**NLP**) are limited
+    by poor calibrations of deep neural networks.
+  prefs: []
+  type: TYPE_NORMAL
+- en: It has been observed that models become less reliable due to over-confidence
+    or under-confidence impacting models designed for healthcare (disease detection)
+    and autonomous driving, among others. In such a scenario where model reliability
+    comes into question, it is important to have a metric such as model calibration
+    in place so that the degree of a model’s predicted probability is correlated with
+    its true correctness likelihood, which determines the model's performance.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In other words, a calibrated model can be called authentic when it has a high
+    confidence level (more than 80%, say) where more than 80% of the predictions are
+    classified accurately. We can also use model calibration to plot reliability plots.
+    This serves as the accuracy of the model by interpreting reliability as a function
+    of its confidence in the predictions. An over-confident model’s reliability plot
+    falls below the identity function, while an under-confident plot’s reliability
+    goes above the identity function. We also see that an authentic calibrated model
+    provides the perfect classification boundary where the reliability plot can be
+    benchmarked as the identity function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Figure 11**.19* contains a reliability plot for the **Deep Item-Based Collaborative
+    Filtering** (**DeepICF**) model. DeepICF examines nonlinear and higher-order relationships
+    among all interacting item pairs by training them using nonlinear neural networks.
+    It can help us to understand how we model the predictions in different groups
+    and study the trade-off between accuracy and confidence through a reliability
+    plot.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![ Figure 11.19 – A reliability plot for the DeepICF model](img/Figure_11.19_B18681.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.19 – A reliability plot for the DeepICF model
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We segmented the model predictions into different buckets based on their confidence
+    and calculated the accuracy for each of them. *Figure 11**.19* demonstrates the
+    DeepICF model (with attention networks: [https://www.researchgate.net/publication/333866071_Model_Explanations_under_Calibration](https://www.researchgate.net/publication/333866071_Model_Explanations_under_Calibration))
+    becoming over-confident as the confidence increases for both positive and negative
+    classes. The DeepICF model is a deep neural network that is produced after learning
+    latent low-dimensional embeddings of users and items. The pair-wise user and item
+    interactions are captured with a neural network layer by means of an element-wise
+    dot product. Further, the model also uses attention based pooling to yield an
+    output vector of fixed size. This leads to a drop in accuracy for imbalanced and
+    negatively skewed datasets, demonstrating that model explanations generated from
+    the attention distribution become less reliable with over-confident predictions.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, let us discuss how explainability and model calibration can be brought
+    together when we see drifts in a model’s predicted outcomes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Explainability and calibration
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Model explainability and proper model calibration can be achieved by addressing
+    imbalance in the dataset and by adding stability to attention distributions. However,
+    one more problem that needs to be addressed is the calibration drift resulting
+    from the same factors as concept drift. One example evident in the healthcare
+    industry is poorly calibrated risk predictions with changing patient characteristics
+    and disease incidence or prevalence rates in different health centers, regions,
+    and countries. When an algorithm is trained in a setting with a high disease incidence,
+    it is dominated by the model inputs and yields overestimated risk estimates. When
+    such calibration drift occurs due to the deployment of models in nonstationary
+    environments, these models require retraining and recalibration. Recalibration
+    helps to fix the model’s accuracy and confidence levels and, consequently, the
+    reliability plot.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let us see, with an example, why it is necessary to calibrate a recommendation
+    model, which is most useful in the following situations:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: When a change in user preferences is observed due to the addition of new customer
+    segments in the population
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: When a change in user preferences is observed among existing customers
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: When there are promotions/campaigns or new products are released
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'In the following example, let us study how post-preprocessing logic can be
+    embedded in an underlying recommendation algorithm to ensure the recommendation
+    becomes more calibrated. To explain this problem, we will use `movielens-20m-dataset`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To compute the utility metrics of recommender systems, we must compute the
+    KL divergence between the user-item interaction distribution and the recommendation
+    distribution. Here, we have chosen an associated lambda term that controls the
+    score and calibration trade-off. The higher the lambda, the higher the probability
+    that the resulting recommendation will be calibrated:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE38]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The utility function defined here is invoked at each iteration to update the
+    list with the item that maximizes the utility function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE39]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The lambda term allows us to tweak the controller (lambda) to extremely elevated
+    levels to generate the modified calibrated recommendation list. Now, let us differentiate
+    and evaluate the computed recommendation generated after calibrating it (to optimize
+    the score, 𝑠), the original recommendation, and the user’s past relationship with
+    the items. Here, 𝑠(𝑖) represents the score of the items, 𝑖∈𝐼, predicted by the
+    recommender system, and s(I) = ∑i ∈ Is(i) denotes the sum of all the items’ scores
+    in the newly generated list:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE40]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Here, we observe that the calibrated recommendation has larger coverage of the
+    genre, and its distribution looks like that of the distribution of the user’s
+    past interactions and the calibration metric. KL divergence also ensures that
+    the value generated from the calibrated recommendations is lower than the original
+    recommendation’s score. Even though the precision of calibrated recommendation
+    distribution (0.125) is lower than the original distribution’s precision (0.1875),
+    we can further control the lambda to achieve an acceptable trade-off between precision
+    and calibration.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 11.20 – Comparing a user’s historical distribution and calibrated
+    recommendation distribution](img/Figure_11.20_B18681.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 11.20 – Comparing a user’s historical distribution and calibrated recommendation
+    distribution
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the preceding discussion, we saw the importance of developing a calibrated
+    model due to changes in the input data and the model. Now, let us discuss, from
+    the standpoint of ethical AI, how to incorporate fairness into models and build
+    calibrated models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Challenges with calibration and fairness
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: So far, we have learned what it means to have a fair ML model across different
+    population subgroups so that the prediction results are unbiased across all races,
+    ethnicities, genders, and other population categories. From the standpoint of
+    AI ethics, we should also try to design fair and calibrated models, and in the
+    process, try to understand the risks associated with them. To design a fair and
+    calibrated model, it is essential that a group of people assigned a predicted
+    probability of *p* of generic ML models sees a fair representation. To achieve
+    this, we should have a *p* fraction of members of this set belonging to positive
+    instances of the classification problem.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Thus, to justify fairness between two groups, G1 and G2 (such as African-American
+    and white defendants), the best way to satisfy both groups is for the calibration
+    condition to hold simultaneously for each individual within each of these groups
+    as well.
+  prefs: []
+  type: TYPE_NORMAL
+- en: However, calibration and error-rate constraints have mutually conflicting goals.
+    Research studies demonstrate that calibration is tolerant only with a single error
+    constraint (which is equal false negative rates across groups). It also becomes
+    increasingly hard to minimize error disparity across different population groups
+    with calibrated probability estimates. Even when the objective is satisfied, the
+    resulting solution resembles a generic classifier, which only optimizes for a
+    percentage of predictions. Thus, to summarize, a perfectly fair and calibrated
+    model cannot be designed.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we have learned about different ideas related to concept drift.
+    These can be applied to both streaming (batch streams) and live data as well as
+    trained ML models. We also learned how both statistical and contextual methods
+    play an important role in estimating model metrics by determining model drift.
+    The chapter also answered some important questions related to model drift and
+    explainability and helped you to understand model calibration. In the context
+    of calibration, we also learned about fairness and calibration and the limitations
+    of achieving both at the same time.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will learn more about model evaluation techniques and
+    handling uncertainties in model-building pipelines.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Further reading
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '*8 Concept Drift Detection* *Methods*: [https://www.aporia.com/blog/concept-drift-detection-methods/](https://www.aporia.com/blog/concept-drift-detection-methods/)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*On Fairness and* *Calibration*: [https://proceedings.neurips.cc/paper/2017/file/b8b9c74ac526fffbeb2d39ab038d1cd7-Paper.pdf](https://proceedings.neurips.cc/paper/2017/file/b8b9c74ac526fffbeb2d39ab038d1cd7-Paper.pdf)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Calibrated* *Recommendations*: [http://ethen8181.github.io/machine-learning/recsys/calibration/calibrated_reco.html](http://ethen8181.github.io/machine-learning/recsys/calibration/calibrated_reco.html)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL

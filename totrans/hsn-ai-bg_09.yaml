@@ -1,0 +1,389 @@
+- en: Deep Learning for Intelligent Agents
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Intelligent Assistants are one of the most visible forms of **Artificial Intelligence** (**AI**)
+    that we see in our daily lives. Siri, Alexa, and other systems have come to be
+    commonplace in day-to-day life in the 21st century. This chapter will commence
+    our section of chapters that dive deeply into the application of **Artificial
+    Neural Networks** (**ANNs**)for creating AI systems. In this chapter, we will
+    cover one new topic, word embeddings, and then proceed to focus on the application
+    of **Recurrent Neural Networks **(**RNNs**) and generative networks to natural
+    language processing tasks. While an entire book could have been written about
+    deep learning for natural language processing, as is already the case, we'll touch
+    ...
+  prefs: []
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In this chapter, we will be using Python 3 with a few standard python packages
+    that you''ve seen before:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Numpy
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: TensorFlow
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: A GPU-enabled computer, or an AWS account for cloud computing, as described
+    in [Chapter 3](69346214-320e-487f-b4cf-bd5c469dc75e.xhtml), *Platforms and Other
+    Essentials*
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Word embeddings
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: So far, in our discussion of AI and deep learning, we've focused a lot on how
+    rooted this field is in fundamental mathematical principles; so what do we do
+    when we are faced with an unstructured source data such as text? In the previous
+    chapters, we've talked about how we can convert images to numbers via convolutions,
+    so how do we do the same thing with text? In modern AI systems, we use a technique
+    called **word embedding**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Word embedding is not a class of predictive models itself, but a means of pre-processing
+    text so that it can be an input to a predictive model, or as an exploratory technique
+    for data mining. It's a means by which we convert words and sentences into vectors
+    of numbers, themselves called **word embeddings**
+  prefs: []
+  type: TYPE_NORMAL
+- en: Word2vec
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The Word2vec algorithm, invented by Tomas Mikolav while he was at Google in
+    2013, was one of the first modern embedding methods. It is a shallow, two-layer
+    neural network that follows a similar intuition to the autoencoder in that network
+    and is trained to perform a certain task without being actually used to perform
+    that task. In the case of the Word2vec algorithm, that task is learning the representations
+    of natural language. You can think of this algorithm as a context algorithm –
+    everything that it knows is from learning the contexts of words within sentences.
+    It works off something called the **distributional hypothesis**, which tells us
+    that the context for each word is found from its neighboring words. For instance,
+    think about a corpus vector with 500 dimensions. Each word in the corpus is represented
+    by a distribution of weights across every single one of those elements. It's not
+    a one-to-one mapping; the embedding of each word is dependent upon every other
+    word in the corpus.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In its basic form, Word2vec has a structure similar to many of the feedforward
+    neural networks that we've already seen – it has an **input layer**, a **hidden
+    layer**, and an **output layer**, all parameterized by a matrix **W**. It iterates
+    through an input corpus word by word and develops vectors for that word. The algorithm
+    actually contains two distinct variations, the **CBOW** (**continuous bag of words**) model
+    and the **skip-gram model****, **which handle the creation of word vectors differently. Architecturally,
+    the skip-gram model and the CBOW model are essentially reversed versions of one
+    another.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The skip-gram model is shown in the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/e2b4386b-f828-4423-8204-767d1ccc04f2.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The mirror image of the skip-gram model is the CBOW model:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/f3678806-81d0-4a61-8ced-3871d1de361d.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: In the skip-gram model, the network looks at sequences of words and tries to
+    predict the likelihood of a certain combination of words occurring. The skip-gram
+    method predicts the context given a particular word. The model inputs a singular
+    letter, *w,* and outputs a vector of words, *w[1], w[2]... w[n]*. Breaking down
+    this process, the preceding model takes in a one-hot encoded representation of
+    an input word during training. The matrix between the input layer and the hidden
+    layer of the network represents the vocabulary that the network is building, the
+    rows of which will become our vectors. Each row in the matrix corresponds to one
+    word in the vocabulary. The matrix gets updated row by row with new embeddings
+    as new data flows through the network. Again, recall how we are not actually interested
+    in what comes out of the network; we are interested in the embeddings that are
+    created in the matrix *W*. This method works well with small amounts of training
+    data and is good at embedding rare words. In the CBOW method, the input to the
+    model is *w[1], w[2]* ... *w[n]*, the words surrounding the current word that
+    the model is embedding. CBOW predicts the word given the context. TheCBOW method
+    is faster than the skip-gram method and is better at embedding frequent words,
+    but it requires a great deal of data given that it relies on context as input.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To illustrate this further, take this simple sentence:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*The dog jumped over the fence*'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The skip-gram model parses the sentence by focusing on a subject, breaking
+    the subject into chunks called **grams**, each time skipping as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '{*The dog jumped*, *The dog over*, *dog jumped over*, *dog jumped the* ....
+    and so on}'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'On the other hand, under the CBOW method, the grams would iteratively move
+    through the context of the sentence as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '{*The dog jumped*, *dog jumped over*, *jumped over the*, *over the fence*}'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Training Word2vec models
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: As Word2vec models are neural networks themselves, we train them just like a
+    standard feedforward network with a loss function and stochastic gradient descent.
+    During the training process, the algorithm scans over the input corpus and takes
+    batches of it as input. After each batch, a loss is calculated. When optimizing,
+    we want to minimize our loss as we would with a standard feedforward neural network.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s walk through how we would create and train a Word2vec model in TensorFlow:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, let's start with our imports. We'll use our standard `tensorflow` and
+    `numpy` imports and the Python library itertools, as well as two utility functions
+    from the machine learning package `scikit-learn`. The following code block shows
+    ...
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: GloVe
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '** Globalized Vectors** (**GloVe**)was developed by the Stanford NLP group
+    in 2014 as a probabilistic follow-up to Word2Vec. GloVe was designed to preserve
+    the analogies framework used by Word2vec, but instead uses dimensionality reduction
+    techniques that would preserve key statistical information about the words themselves.
+    Unlike Word2vec, which learns by streaming sentences, GloVe learns embeddings
+    by constructing a rich co-occurrence matrix. The co-occurrence matrix is a global
+    store of semantic information, and is key to the GloVe algorithm. The creators
+    of GloVe developed it on the principle that co-occurrence ratios between two words
+    in a contextare closely related to meaning.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'So how does it work, and how is it different from Word2vec? GloVe creates a
+    word embedding by means of the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Iterating over a sentence, word by word
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: For each word, the algorithm looks at its context
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Given the word and its context, GloVe creates a new entry in the co-occurrence
+    matrix
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: GloVe then reduces the dimensions of the co-occurrence matrix to create embeddings
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: After creating the embedding, GloVe calculates its new loss function based on
+    the accuracy of that embedding
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Let''s walk through the GloVe algorithm alongside a Python implementation to
+    see how it all pans out. We''re going to be using the Cornell movie lines dataset,
+    which contains over 200,000 fictional movie script lines. Later on, we''ll use
+    the embeddings we generated from this dataset in our intelligent agent. First,
+    let''s write a function to import the data:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We can then use this function to actually load the movie lines:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, let''s get back to GloVe. Unlike Word2vec, GloVe parses over a sentence
+    word by word, focusing on local context by using a fixed contextwindow size. In
+    word embedding, the window size represents the extent to which and what an algorithm
+    will focus on in order to provide context to a word''s meaning. There are two
+    forms of context window sizes in GloVe – symmetric and asymmetric. For example,
+    take a look at the following sentence:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*The horse ran fast across the finish line in the race. *'
+  prefs: []
+  type: TYPE_NORMAL
+- en: With a symmetric window size, the algorithm would look at words on either side
+    of the subject. If GloVe was looking at the word *finish* with a window size of
+    2 in the preceding example, the context would be *across the* and *line in*. Asymmetric
+    windows look only at the preceding words, so the same window size of 2 would capture
+    *across* *the*, but not *line in*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s go ahead and initialize our GloVe class and variables:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We end up with a co-occurrence matrix that can tell us how often certain words
+    occur together given a certain window size:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/b7e013cd-ab7d-48e2-8408-4036ffde9dc0.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'While this table looks simple, it contains global statistical properties about
+    the co-occurrence of the words within. From it, we can calculate the probabilities
+    of certain words occurring together:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/96b6ca1b-db98-48c2-8f14-3fab4807e402.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: As the co-occurrence matrix is combinatorial in size (it can become large very
+    quickly), it leads to extremely large matrices of co-occurrence information. How
+    do we remedy this? We can factorize the matrix to create a lower-dimensional matrix
+    where each row contains a vector representation of a given word. This performs
+    a form of dimensionality reduction on the co-occurrence matrix. We then pre-process
+    the matrix by normalizing and log—smoothing the occurrence information. GloVe
+    will learn vectors so that their differences predict occurrence ratios. All of
+    this will maintain rich global statistical properties while still preserving the
+    analogies that make Word2vec so desirable.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'GloVe is trained by minimizing a reconstruction loss that helps the model find
+    the lower-dimensional representations that can explain the highest amount of variance
+    in the original data. It utilizes a least squares loss function that seeks to
+    minimize the difference between the dot product of two embeddings of a word and
+    the log of their co-occurrence count:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/423d6543-fc84-4df4-9bb2-da38dea74340.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: Let's break this down; *w*[i] is a word vector and b[i] is a bias factor for
+    a specific word *i*, while w[*j*] and b[*j*] are the word vector and bias factor
+    for the context vector. *X[ij ]*is the count from the co-occurrence matrix of
+    how many times *i* and *j* occur together. *f* is a weighting function for both
+    rare and frequent co-occurrences so that they do not skew the results. In all,
+    this loss function looks at the weight co-occurrences of a word and its neighboring
+    context words, and multiplies that by the right term, which computes a combination
+    of the word, its contexts, biases, and co-occurrences.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s go ahead and initialize GloVe''s graph in TensorFlow to proceed with
+    the training process:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we''ll write two functions to prepare the batches of data for the GloVe
+    model, just as we did with Word2vec. Remember that all of this is still contained
+    within our GloVe class:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, we''re going to understand different properties. For those of you that
+    have used Java before, you are familiar with the concept of getters and setters.
+    These methods enable the changes that can happen to a variable to be controlled.
+    The `@property` decorator is Python''s response to these, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Here, the `foo` function is replaced by a new function, `property(foo)`, which
+    is an object with special properties called **descriptors**. Now, let''s return
+    to Word2vec:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We''ll also create a function for the `ContextWindow` that tells GloVe which
+    words to focus on:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Lastly, we''ll write our function for training purposes:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Finally, we can run our GloVe model with the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: GloVe's idea for dense matrices of co-occurrence information isn't new; it comes
+    from a more traditional technique called **latent semantic analysis** (**LDA**)
+    that learns embedding by decomposing bag-of-words term document matrices using
+    a mathematical technique called **singular value decomposition** (**SVD**).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Constructing a basic agent
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The simplest way to construct an artificial assistant with TensorFlow is to
+    use a **sequence-to-sequence** (**Seq2Seq**) model, which we learned in the chapter
+    on RNNs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/75eb64b2-8221-4770-be93-dc9377127796.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'While originally developed for neural machine translation, we can adjust this
+    model to act as an intelligent chatbot for our own purposes. We''ll create the
+    *brain* behind our assistant as a Python class called `IntelligentAssistant`.
+    Then, we''ll create the training and chatting functions for our assistant:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, let's start with our standard imports and initialize our variables. Take
+    special note of the `mask` variable here; `masks` are placeholders that allow
+    ...
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this section, we learned how to create novel, state-of-the-art intelligent
+    assistants by using word embeddings and ANNs. Word embedding techniques are the
+    cornerstone of AI applications for natural language. They allow us to encode natural
+    language as mathematics that we can feed into downstream models and tasks.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Intelligent agents take these word embeddings and reason over them. They utilize
+    two RNNs, an encoder and a decoder, in what is called a Seq2Seq model. If you
+    cast your mind back to the chapter on recurrent neural networks, the first RNN
+    in the Seq2Seq model encodes the input into a compressed representation, while
+    the second network draws from that compressed representation to deliver sentences.
+    In this way, an intelligent agent learns to respond to a user based on a representation
+    of what it learned during the training process.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we'll look into how we can create intelligent agents that
+    can play board games.
+  prefs: []
+  type: TYPE_NORMAL

@@ -1,0 +1,810 @@
+- en: '5'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Distribution Fundamentals
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, you’ll learn conceptual fundamentals for the distribution techniques
+    you need to employ for large-scale pretraining and fine-tuning. First, you’ll
+    master top distribution concepts for **machine learning** (**ML**), notably model
+    and data parallel. Then, you’ll learn how Amazon SageMaker integrates with distribution
+    software to run your job on as many GPUs as you need. You’ll learn how to optimize
+    model and data parallel for large-scale training, especially with techniques such
+    as sharded data parallelism. Then, you’ll learn how to reduce your memory consumption
+    with advanced techniques such as optimizer state sharding, activation checkpointing,
+    compilation, and more. Lastly, we’ll look at a few examples across language, vision,
+    and more to bring all of these concepts together.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, we’re going to cover the following main topics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding key concepts—data and model parallelism
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Combining model and data parallel
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Distributed training on Amazon SageMaker
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Advanced techniques to reduce GPU memory
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Bringing it all home with examples from models today
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Understanding key concepts – data and model parallelism
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Some of my most extreme memories of working with ML infrastructure came from
+    graduate school. I’ll always remember the stress of a new homework assignment,
+    usually some large dataset I needed to analyze. However, more often than not,
+    the dataset wouldn’t fit on my laptop! I’d have to clear out all of my previous
+    assignments just to start the download. Then, the download would take a long time,
+    and it was often interrupted by my spotty café network. Once I managed to download,
+    I realized to my dismay that it was too large to fit into memory! On a good day,
+    the Python library *pandas*, which you were introduced to in [*Chapter 2*](B18942_02.xhtml#_idTextAnchor034),
+    had a function built to read that file type, which could limit the read to just
+    a few objects. On a bad day, I needed to build a streaming reader myself. After
+    I managed to run some analysis, I would pick a handful of models I thought would
+    be relevant and well suited. However, they seemed to take forever to train! I
+    would sit in front of my laptop for hours, making sure the connection didn’t fail
+    and that my Jupyter kernel stayed alive, reading my debug statements, and hoping
+    the loop would finish in time for my report due the following morning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Fortunately for ML developers today, many of these issues have excellent solutions
+    now—as we covered in the last chapter, Amazon SageMaker and the AWS cloud generally
+    being one of them. Now, let’s unpack one aspect of these in great detail: the
+    *training runtime*. As it turns out, distribution is a concept you can master
+    to train extremely large models and datasets. In this chapter, we’ll explore two
+    key concepts that, when used properly, will help you scale your training up to
+    as large as your dreams. The two concepts are set out here:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Data parallelism**'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Model parallelism**'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Data parallelism *makes copies of your model per GPUs*, breaking up your dataset
+    to help you train faster, and model parallelism *splits your model across GPUs*,
+    helping you train even larger models. Put another way, data parallelism splits
+    the data across accelerators in both single and multi-node settings. It applies
+    different splits of the data to exactly the same model, copied *N* times. Model
+    parallelism, on the other hand, splits this same model across multiple accelerators
+    and nodes, using the same data for every model split.
+  prefs: []
+  type: TYPE_NORMAL
+- en: What data parallel is all about
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Data parallel is useful when you are working with extremely large datasets.
+    In the simplest case, you might have an instance with two GPUs. Assuming you’re
+    working with a model that is small enough to fit only a single GPU—say, something
+    south of 1 billion parameters—your data parallel software framework might make
+    two copies of your model, one per GPU. This same framework will also need a **distributed
+    data loader**. This data loader will need to point to a single source—for example,
+    your train and test files—but *split each batch by the number of model copies*.
+    For example, if your global batch size were 32, your batch size per GPU would
+    then become 16\. Your data loader manages this for you, ensuring that each global
+    batch is split and allocated correctly across your entire *world size*, or the
+    total number of GPUs you are using to train across all machines.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'How do you get one model—you ask—instead of two? By a simple average! The forward
+    pass is simple to understand: each copy of the model executes a single forward
+    pass through the network using the per-GPU batch. However, for the backward pass,
+    the gradients *are averaged across all model copies*. After the forward pass,
+    each model copy sends its output to the centralized control plane. This control
+    plane computes a weighted average of the outputs of all the copies, compares this
+    to the ground truth, and runs the gradient descent algorithm via the optimizer.
+    The optimizer then sends new model weights out to each of the model copies. Each
+    batch completion is called a **step**, and a full pass through your dataset is
+    called an **epoch**.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: This basic concept will scale as long as you keep adding GPUs. This means that
+    good data parallel software, such as **SageMaker Distributed Data Parallel** (**SM
+    DDP**), will help you run on multiple GPUs in both single- and multi-instance
+    cases. We’ll learn more about SageMaker-managed libraries for distributed training
+    later in this chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'But first, now that you have a working understanding of data parallelism, let’s
+    unpack the second dimension of distribution: model parallel.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: What model parallel is all about
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: As we’ve come to find out, many of the state-of-the-art models in today’s world
+    are extremely large. Commonly, these range from anything as small as a few billion
+    parameters to hundreds of billions of parameters, and occasionally trillions.
+    Remember—**parameters** are the weights in your neural network. They are what
+    is inside all of your layers. As data passes through your network, each step is
+    a mathematical function that transforms the input data itself, using some formula
+    defined by the type of layer, frequently applying some activation function, and
+    sending the results into the next layer. Computationally, the layer is fundamentally
+    a list. The list is composed of parameters! When set to **trainable**, these parameters
+    will change during the stochastic gradient descent of the backward pass. When
+    set to **not trainable**, these parameters will not change, allowing you to either
+    deploy your model or fine-tune it with downstream layers.
+  prefs: []
+  type: TYPE_NORMAL
+- en: But how do we deal with large models? Model parallelism is the answer!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Model parallelism encompasses a variety of methods that help you split your
+    model across multiple GPUs. The simplest of these is called **pipeline parallel**.
+    In pipeline parallel, your software framework will simply take layers of your
+    neural network and place them on different GPUs. If your neural network had two
+    extremely large layers, and you wanted to train this on an instance with two GPUs,
+    you might place one layer on each GPU.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Similarly, with the preceding data parallel example, you’ll still need a distributed
+    data loader. This distributed data loader will still break up each global batch
+    size into per-GPU **microbatches**. Each part of the model—in this case, each
+    layer of the model—can then receive one microbatch at a time for the forward pass.
+    The centralized control plane will then *execute each layer asynchronously*, passing
+    the microbatches to relevant layers at the right points in time. Every layer will
+    still see every item from the dataset, so mathematically it’s the same as if all
+    layers were packed into some massive single GPU. Thank you, commutative property!
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'You can see an illustration of the process in the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.1 – Model parallelism](img/B18942_Figure_5.1.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 5.1 – Model parallelism
+  prefs: []
+  type: TYPE_NORMAL
+- en: Another key aspect of model parallel is working with layers that are *too large
+    to fit on a single GPU*. This is especially common in large language models, where
+    the transformer attention head we learned about in the first chapter can easily
+    surpass the memory limitations of modern GPUs. How do we do this? **Tensor parallelism**,
+    which is the third dimension of distributed training. In a tensor parallel framework,
+    you might have part of one tensor on one GPU, while the other part of that same
+    tensor is placed onto a different GPU. The centralized distributed software still
+    passes microbatches to them so that logically there is no difference in the operations.
+    Tensor parallelism is strictly necessary for training the GPT-3-sized models of
+    the world today, with 175 billion parameters and more.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To learn more about model parallelism, and especially the distributed library
+    available through SageMaker model parallelism, take a look at our paper on the
+    topic here (*4*). Now that you’ve learned about two foundational topics in distributed
+    training, notably data and model parallelism, let’s learn how to combine them!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Combining model and data parallel
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: As you may have suspected previously, and as is empirically evidenced by scaling
+    laws, large models *are only effective when combined with large datasets*. That
+    is to say, if you use an extremely large model with a small or moderately sized
+    dataset, you are extremely likely to overfit your model. This means it may eventually
+    learn how to replicate the core examples you’ve provided, but it is very unlikely
+    to handle new challenges well.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Surprisingly, the reverse is not necessarily true. As a general rule of thumb,
+    it is helpful to increase the model size with the dataset size. However, in most
+    computer vision cases, model sizes rarely surpass the memory sizes of single GPUs.
+    I can say the majority of vision customers I work with, from autonomous vehicles
+    to manufacturing, financial services to health care, tend to work with models
+    that can fit quite nicely onto single GPUs. In these cases, data parallel alone
+    is a strong candidate to improve the throughput of the training loop, because
+    with every copy of the model on additional GPUs, your ability to train faster
+    increases.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'However, this is usually not the case in **natural language processing** (**NLP**),
+    where the most performant models regularly require at least a few GPUs, and sometimes
+    hundreds or even thousands. In these cases, *you can expect to use a combination
+    of model and data parallelism*, as demonstrated by an early example from Alpa
+    (*5*). Model parallel enables you to simply hold the model in active memory on
+    GPUs, and data parallel improves your overall speed by copying your model and
+    increasing the overall amount of data your model can process per step. When holding
+    even one copy of the model requires multiple GPUs, it just means that each additional
+    copy will require the same amount. So, if your model needs 4 GPUs, and based on
+    your data size you used scaling laws to determine that your total compute budget
+    includes 64 GPUs (8 instances with 8 GPUs each), then you’d have 16 copies of
+    the model! This is because each 8-GPU instance could hold 2 copies of the model
+    each. Let’s break it down with a visual:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.2 – Model and data parallelism](img/B18942_Figure_5.2.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 5.2 – Model and data parallelism
+  prefs: []
+  type: TYPE_NORMAL
+- en: Remember—each copy of the model is handled through model parallelism. Then,
+    merging all copies of the model is handled through data parallelism. Seems complex,
+    right? But hopefully, these concepts are starting to sink in—once they do, suddenly
+    all these terms and ideas will start making sense. Remember—you aren’t alone in
+    this journey. We have a fully managed service to help you train models at incredible
+    scales! In the next section, I’d like to share with you some of what Amazon SageMaker
+    automates, manages, and brings to the table to help you get to your science, faster.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Distributed training on Amazon SageMaker
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In the last chapter, we learned about SageMaker generally. Now, I’d like to
+    dive into distributed training capabilities. We can break these up into four different
+    categories: containers, orchestration, usability, and performance at scale.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: As we learned in an earlier chapter, AWS offers **deep learning** (**DL**) containers
+    that you can easily point to for your own scripts and code. These are strongly
+    recommended as the first starting point for your project because all of the frameworks,
+    versions, and libraries have been tested and integrated for you. This means that
+    you can simply pick a container based on whichever DL framework you are using—for
+    example, PyTorch or TensorFlow—*and this container has already been tested on
+    AWS and SageMaker*. You can also select the GPU version of this container, and
+    it will already have all of the NVIDIA libraries compiled and installed to run
+    nicely on your GPUs. If you have your own container, however, you can simply push
+    that to Amazon’s **Elastic Container Registry** (**ECR**) and use it for training.
+    You’ll want to add the training toolkit to enable all of the training features
+    for custom containers, such as the entrypoint script, log emissions, warm pools,
+    and so on.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once you have your image selected, you’re ready to format your script! On SageMaker
+    we use the `CreateTrainingJob`, and it’s a concept you’ll want to get very familiar
+    with. The core idea is that you use your estimator to point to basic objects,
+    such as your DL container, your scripts, and all of your job parameters. Then,
+    you simply call `estimator.fit()`. This submits your call to the `CreateTrainingJob`
+    API, which then executes the command to create the job!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Remember that SageMaker training *initializes remote instances for you during
+    training*. This means that once you’ve executed `estimator.fit()`, then in the
+    console under **Training Jobs**, you’ll see new instances initialized. These are
+    managed by the service. Once the instances are initialized, they’ll copy your
+    data onto them, download your image, and run your training script on your data.
+    All the logs are sent to CloudWatch, and all the metadata for your job is maintained.
+    This means your experiments are reproducible by default! Once your job is finished,
+    the trained model artifact is sent to Amazon **Simple Storage Service** (**S3**)
+    on your behalf.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, you must be thinking: This seems doable for a script that uses just one
+    GPU. But how do I use multiple GPUs? The answer is easy: software!'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Distributed training software
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: The critical step in scaling your code from one to multiple GPUs is using the
+    right software for this. And fortunately for you, there are many options available
+    today. On SageMaker, you can use any open source software you want; it’s easy
+    to bring extra packages, scripts, and frameworks onto the `training` API. This
+    means you can certainly implement any one of the top distributed training frameworks
+    in our Training API. Some of these include DeepSpeed ZeRO-3D, Megatron-LM, PyTorch
+    **DistributedDataParallel** (**DDP**), Horovod, and more. If you have code running
+    in one of these frameworks already, your first step in scaling will likely be
+    to just move this onto AWS and SageMaker especially. However, if you only use
+    open source distributed frameworks, *you are leaving efficiency gains on* *the
+    table*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The reason for these efficiency gains comes fundamentally from a concept we
+    use a lot at Amazon: *there’s no compression algorithm for experience*. What this
+    literally means is that Amazon constantly makes a lot of improvements in optimizing
+    DL on the cloud, especially DL at scale. In particular, we have a software solution,
+    SageMaker distributed training libraries, that helps you achieve state-of-the-art
+    performance on AWS.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We’ll dive more into the nuances of this different distributed training software,
+    including key design decisions such as the difference between parameter servers
+    and ring-based approaches, in [*Chapter 8*](B18942_08.xhtml#_idTextAnchor127).
+    For now, let’s explore the libraries available at a high level.
+  prefs: []
+  type: TYPE_NORMAL
+- en: SM DDP
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Remember in [*Chapter 4*](B18942_04.xhtml#_idTextAnchor066), we learned about
+    a concept called **communication collectives**. These are core algorithms designed
+    to facilitate distributed gradient descent on multiple GPUs. However, the **NVIDIA
+    Collective Communication Library** (**NCCL**) is actually designed with a target
+    infrastructure in mind: InfiniBand. This is an extremely generous networking solution
+    that enables more than 1 TB of communication transfer. Operationalizing this is
+    quite expensive and requires a large upfront investment to acquire and utilize
+    this on-premises.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: At AWS, we design our own custom communication collectives that are purpose-built
+    for the **Elastic Compute Cloud** (**EC2**) network topology. These enable the
+    best performance on AWS, scaling to thousands of GPUs and beyond without the overhead
+    requirement of massive networking. The primary way you can interact with these
+    custom collectives is through SM DDP (*3*). SM DDP is a fully managed data parallel
+    software that integrates with your training script via the backend. This means
+    that you can bring your own data parallel neural network software—notably, PyTorch
+    DDP, Hugging Face’s Accelerate, or TensorFlow’s Horovod—and simply set SM DDP
+    as your backend.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The primary reason for setting SM DDP as your backend is to **increase scaling
+    efficiency**. Without SM DDP, you are likely to use communication collective algorithms
+    that aren’t designed explicitly for the AWS EC2 instance topology. As a result,
+    when you add more instances to your overall cluster size, you will experience
+    *decreasing returns*. From a theoretical perspective, in a perfect world, you
+    should be able to exactly halve your training time by moving from one to two nodes.
+    Moving from one to three should cut down your train time by 3 times. Moving from
+    one to four should cut down your train time by 4 times. This theoretical frontier
+    is called **linear** **scaling efficiency**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: However, we don’t live in a perfect world. Computationally, this linear scaling
+    efficiency is effectively impossible to reach. What you will see are attempts
+    at approaching better and better scaling efficiency, such as with better communication
+    collective algorithms as provided by SM DDP. The gains from SM DDP are especially
+    notable at larger scales. For example, if you compare an 8-node cluster using
+    PyTorch DDP with the same one using SM DDP, the SM DDP job can be as much as 40%
+    better. Those gains are on a massive scale. It means not only do your experiments
+    come back faster, giving you more time to try new ideas and get your solution
+    to market faster, but the actual compute cost of training is that much lower!
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now that we’ve learned about the SM DDP library, let’s explore another option
+    for clocking efficiency gains at scale on AWS: the **SageMaker Model Parallel**
+    (**SMP**) library.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: SMP library
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Remember that earlier in this chapter we introduced large-scale training on
+    Amazon SageMaker. We also clarified that this enables you to run any open source
+    library on as many GPUs as you like, without limitations around distribution software.
+    In terms of model parallelism, this includes DeepSpeed, Megatron-LM, and others.
+    However, to truly take advantage of all the performance enhancements SageMaker
+    offers, I’d strongly recommend that you evaluate the SMP library. This is what
+    we will use in detail throughout the book.
+  prefs: []
+  type: TYPE_NORMAL
+- en: SMP is a Python SDK built and managed by AWS that helps you easily scale your
+    neural network models across multiple GPUs. SMP integrates nicely with PyTorch
+    and offers advanced features to help you scale models to anywhere from only a
+    few to a few hundred or even thousands of GPUs. These include pipeline parallelism,
+    tensor parallelism, optimizer state sharding, activation offloading and checkpointing,
+    sharded data parallelism, and more. Later in this chapter, we’ll explore the advanced
+    features, but first, let’s understand simply how to configure and use the library
+    for basic model distribution.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Generally speaking, once you have a working PyTorch model that can train on
+    a single GPU, it’s time to evaluate scaling that up. First, ensure that the base
+    container you are working with is compatible with SMP. If you are using an AWS-managed
+    DL container with support for GPUs, SageMaker, and training, then you are ready
+    to move to the next step. If not, follow the documented steps (*1*) to extend
+    a prebuilt Docker container from any arbitrary base image.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Once you’ve ensured your container supports SMP, it’s time to integrate the
+    library into your training script. This centers on three key aspects, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Import the library into your script. As of November 2022, this is as simple
+    as executing the following command: `import smdistributed.modelparallel.torch`
+    `as smp`.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Wrap your model and optimizer with the relevant `smp` objects. This is actually
+    pretty straightforward. After you’ve finished using PyTorch to define your neural
+    network, or simply after you’ve loaded a PyTorch model from Hugging Face, simply
+    pass it as an argument to the `smp.DistributedModel()` object. Then, continue
+    passing your model throughout the rest of your script as you normally would. The
+    optimizer follows a similar syntactic structure.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Refactor your training loop to include two distinct functions, a **training
+    step** and a **test step**. Both of these should take your model, optimizer, and
+    other relevant parameters. The train step should pass your data forward through
+    the network, compute the loss, propagate it backward through the network via the
+    optimizer, and return the loss. The test step should simply compute the loss,
+    also returning it.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: For both the train and test step functions, you’ll need to *add a Python decorator*
+    declaring them as `@smp.step`. This decorator is critical because *everything
+    included in this function will be sharded onto multiple GPUs*. The SMP library
+    will explicitly evaluate the activity in these functions, notably your model and
+    how data passes through it, to optimally place your model across multiple GPUs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once your script has these and a few other relevant changes, you’ll need to
+    make one last configuration. In your SageMaker training job estimator, add another
+    parameter called `distribution`. As we’ll see throughout the book, this parameter
+    will allow us to configure many aspects of SageMaker training's backend, including
+    both SMP and SM DDP. Pass a flag to enable SMP, along with any other relevant
+    parameters. You’ll also need to enable **Message Passing Interface** (**MPI**),
+    which we learned about earlier in the book. MPI is an open source framework that
+    enables your nodes to communicate with each other while training. SMP uses MPI
+    to communicate across nodes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Finally, test out your script! An easy way to test model parallelism within
+    SageMaker Training is called **local mode**. Local mode is an extremely useful
+    technique that lets you develop the SageMaker Training API, including containers,
+    data pointers, scripts, and job parameters, without waiting for the overhead of
+    your cluster to spin up. You can use SageMaker local mode from anywhere that runs
+    Docker, such as a SageMaker notebook instance or even your local laptop. As of
+    this writing, Studio does not support local mode. Local mode helps you take steps
+    quickly and easily as you write your code, ensuring that everything is designed
+    and working nicely.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once you have increased the size of your model, either through importing a larger
+    version from Hugging Face or through increasing the number of parameters manually
+    in your PyTorch definition, and you have proof that this works nicely on at least
+    two GPUs, it’s time to explore advanced techniques in the SMP library to reduce
+    your overall GPU memory footprint.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Advanced techniques to reduce GPU memory
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Now, let’s imagine that you are pretty far into your project. You’ve already
+    identified your dataset, your use case, and your base model. You’ve tested this
+    at a small scale on SageMaker, such as by using 1% of your data on the smallest
+    version of your model, and this seems to be working well. You’ve used scaling
+    laws, or have simply seen through another example that a large model would help
+    you increase your accuracy, and you’re confident that you have enough data to
+    justify that larger model. You’ve increased your model enough to run on at least
+    two GPUs and have successfully tested this on AWS.
+  prefs: []
+  type: TYPE_NORMAL
+- en: If you haven’t hit all of those stages, then frankly I’d recommend you simply
+    skip to the next section. Here, we’re about to seriously dive into very complex,
+    detailed, and niche topics in the cutting-edge space of model parallelism. If
+    you aren’t ready for them, such as through having hit all of the preceding stages
+    in your project I just listed previously, then you’d be better off skipping this
+    topic altogether for now. You can always come back and reference this material
+    later on. Particularly if you are truly a beginner in this space, the topics we’re
+    about to discuss may overwhelm you, making it harder for you to continue in distributed
+    training. You can still train state-of-the-art models, such as Stable Diffusion,
+    without using extreme-scale model parallelism. However, for those of you who truly
+    are ready to dive completely into the world of model parallelism, let’s get started!
+  prefs: []
+  type: TYPE_NORMAL
+- en: You may have noticed that splitting a model across multiple accelerators has
+    the natural effect of *reducing the model’s GPU memory footprint*. Put another
+    way, when a model is too big to fit on a single GPU, it is bottlenecked by the
+    available memory of that GPU, so we need a way to reduce its memory footprint.
+    Splitting the model across GPUs is one way of doing this, but it isn’t the only
+    way. Let’s introduce a few more.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once you’ve integrated your training script with the SMP library, using the
+    rest of the features is as simple as adding and removing hyperparameters. While
+    coding for them is quite simple, understanding them and designing for them successfully
+    is quite challenging. First off, let’s recap the basics. The `pipeline_parallel_degree`
+    parameter indicates how you’ll be splitting your model across multiple GPUs. For
+    example, if you have 8 GPUs on your box, and you set a `pipeline_parallel_degree`
+    value of `2`, then depending on how you allocate parameters in your model you
+    will possibly have split your model in half. If each half of the model were using
+    4 GPUs, then the entire model could consume 8 GPUs, with each half consuming 4
+    GPUs. If you wanted to add a data parallel degree to this, you’d need another
+    instance.
+  prefs: []
+  type: TYPE_NORMAL
+- en: You’ll also need to consider how large your batch size is per GPU. In the SMP
+    library, we call this `microbatches`. All of [*Chapter 7*](B18942_07.xhtml#_idTextAnchor116)
+    is about finding the right hyperparameters, but here you need to understand that
+    *increasing the batch size directly increases your GPU utilization*. The central
+    goal in model parallelism is finding efficient ways to decrease the GPU memory
+    footprint of your model, allowing you to increase batch size—and hence GPU utilization—which
+    reduces the overall runtime of your job, and hence its price tag. However, as
+    you’ll learn in [*Chapter 7*](B18942_07.xhtml#_idTextAnchor116), accurate models
+    generally need lower batch sizes. Yann LeCunn is famous for stating on Twitter
+    that “*friends don’t let friends use batch sizes* *over 32*”.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Apart from pipeline parallelism and microbatches, a few other key terms to understand
+    in model parallelism include tensor parallelism, optimizer state sharding, activation
+    checkpointing, and sharded data parallelism.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Tensor parallelism
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: While pipeline parallelism allowed us to place different layers in our neural
+    network on different devices, in tensor parallelism we take this another step
+    further to *break up the layers themselves*. Typically, this is common in cases
+    of extreme model parallelism, such as with GPT-3-type models with more than 100
+    billion parameters. In SMP, you can enable this simply with `tensor_parallel_degree`.
+    Try to make sure that you’re keeping all aspects of a single layer within a single
+    node, as this is critical in maximizing the bandwidth in your training cluster.
+  prefs: []
+  type: TYPE_NORMAL
+- en: If you’re especially curious, for scaling up to 1 trillion parameters another
+    useful technique is a spare network. This was originally proposed in 2017 (*6*)
+    as a **mixture-of-experts** (**MoE**) technique to activate only part of a neural
+    network during training, enabling more efficient scaling to massive parameter
+    sizes. A distributed training team out of Huawei proposed an update to this focused
+    on transformers, implementing what they call **random routed experts**. Impressively,
+    they claim this was trained on only 512 accelerators in over 100 days, improving
+    the state of the art for Chinese NLP tasks (*7*). For the rest of this book, however,
+    we will mostly focus on dense networks that are applicable for models up to a
+    few hundred billion parameters.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Optimizer state sharding
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'When the number of trainable weights, or parameters, in your neural network
+    is large, you can expect the optimizer to be equally large. If you have multiple
+    copies of your model in your training cluster, such as by using data parallelism
+    in concert with model parallelism, then consider splitting the optimizer by setting
+    `shard_optimizer_state : True`. Interestingly, this scopes the `DistributedOptimizer`
+    object to only the parameters held in that data parallel rank. These are then
+    called **virtual parameters**, and they share the underlying storage with the
+    original parameters.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Activation checkpointing
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Activation checkpointing is actually a technique that *trades extra computation
+    time for reduced memory overhead*. Put another way, when you have activation checkpointing
+    enabled, you’ll be able to load more objects into your cleared GPU memory, but
+    at the price of each step taking a bit longer. This works through clearing activations
+    of some layers and recomputing these while backpropagating the network.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Sharded data parallelism
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'One of our teams at Amazon in 2022 developed a novel strategy to optimize for
+    large-scale distributed training on AWS. In particular, they realized that *not
+    all GPUs should be treated equally*. This is relevant when you are trying to optimize
+    communication collectives *assuming some combination of model and data parallel*.
+    They designed a hierarchical approach to **certificates of completion** (**CCLs**)
+    for distributed training, one that looks first *within* a data parallel group
+    (or shard, as it’s called in the documentation), and then *across* data parallel
+    groups. This minimizes the amount of overall communication required to synchronize
+    the gradients during backpropagation and increases the overall speed of this job.
+    Hence their name: **minimize communication scale**, or **MiCS** (*8*). This MiCS
+    technique is available on SageMaker within the SMP library; it’s known as **sharded**
+    **data parallelism**.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that you’ve learned about some advanced ways to reduce your overall GPU
+    consumption and speed up your job, let’s explore examples from interesting models
+    that will help you bring all of these concepts together.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Bringing it all home with examples from models today
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Remember we learned earlier in the book that *truly every state-of-the-art
+    model requires some amount of distribution*. This is because good models come
+    from good datasets, and good datasets are large. These take time to process, so
+    you need to distribute your processes in order to complete them in a timely manner.
+    Some of them have models that are too big to fit on a single GPU, so they’ll require
+    some amount of model parallelism. But others have models that are quite small,
+    meaning they will only require data parallelism. Let’s step through two examples
+    from top models today: Stable Diffusion and GPT-2.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Stable Diffusion – data parallelism at scale
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Stable Diffusion is a fascinating model that enables you to *create images from
+    text*. Once trained, you can simply provide textual input to Stable Diffusion,
+    and it will generate a new picture for you! While researchers have been attempting
+    this since at least 2017, Stable Diffusion achieves performance that begins to
+    approach human-level creativity. Models with similar performance, but not shared
+    publicly, include Imagen (*9*) and DALL-E (*10*). The quality of the images it
+    generates is almost immediately usable. There are still certainly issues around
+    bias, control of the images, resolution, and common-sense reasoning, but the jump
+    up since the state-of-the-art performance in 2017 is truly exciting.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Fortunately for the average Python developer, Stable Diffusion is a small model!
+    It can fit on a single GPU, by design, which means with just a tiny bit of scripting
+    and a moderate GPU, you can easily stand up your own demo. The drivers behind
+    Stable Diffusion’s success are fewfold and are set out as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'They use four models during training: a CLIP tokenizer, a CLIP text encoder,
+    a **variational autoencoder** (**VAE**), and a 2D convolutional U-Net. The tokenizer
+    and encoder use intelligent language models to process the textual data, while
+    the VAE encodes the images and converts them to a smaller latent space.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: They add noise to those same latent images during the “diffusion”, or learning
+    process. Using the text encoded by a language model, they try to predict the noise
+    residuals, computing the loss and propagating this back through the UNet.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: They use multiple billions of images! Their training data and code are both
+    available publicly. Personally, I’ve written scripts to download 50 million images
+    onto an optimized distributed filesystem on AWS, FSx for Lustre, and used almost
+    200 GPUs on Amazon SageMaker to take a few steps through this massive dataset.
+    Their original dataset is **LAION-5B**, with the “**5B**” standing for 5 billion.
+    These billions of images come straight from the internet, and the dataset includes
+    textual captions for each image. Then, their model combines the images with the
+    captions during training.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'What this means is that having read this chapter, if you now have a solid understanding
+    of data parallelism, you have everything you need to embark on training your own
+    Stable Diffusion model! This will be the case both for pretraining and fine-tuning.
+    In the next chapter, we’ll dive into the data loader, and you’ll learn how to
+    prepare a new dataset for pretraining or fine-tuning at scale. But first, let’s
+    walk through a complex model parallel case study: GPT-3.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: GPT-3 – model and data parallelism at scale
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: As we learned in [*Chapter 1*](B18942_01.xhtml#_idTextAnchor016), GPT-3 is a
+    really important model. When the team at OpenAI 10xed their model size and tripled
+    their accuracy, moving from GPT-2 to GPT-3, they unleashed a worldwide movement
+    that is now practically synonymous with **artificial intelligence** (**AI**).
+    Core to this step in scaling, as we’ve learned throughout this chapter, is model
+    parallelism. Let’s unpack how this works for models with more than 100 billion
+    parameters!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let’s start by estimating the memory size of the model itself. First, let’s
+    count this in parameters—say, 100 billion parameters. Then, for a job that uses
+    `FP16` data types and Adam optimizers, you can assume a single FP16 parameter
+    takes about 2 bytes, and an FP16 gradient takes about the same. So, for a model
+    with 10 billion parameters, you’ll need at least 200 GB of GPU memory. A model
+    with 100 billion would then need about 2 TB of GPU memory!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Assuming you have 40 GB of GPU memory available per device, as is the case for
+    the `p4d.24xlarge` instances, that’s 50 GPUs just to hold one full copy of the
+    model in memory. Each `p4d.24xlarge` instance has 8 GPUs, so you’re looking at
+    just over 6 `p4d` instances per model copy. Assuming you both want an accurate
+    model and not have to wait years for the job to finish training, you’ll want many,
+    many copies of this model. I’ve helped customers train on 128 p4d instances on
+    SageMaker for large language models of this size, which in this calculation would
+    give them about 20 copies of the model across all of those 1,024 GPUs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For scripting examples to wrap your head around what this would look like in
+    action, consider our notebooks at the *SageMaker Examples* repository on GitHub.
+    You should find it if you search for `GPT-2`, or even `model parallel` in the
+    repository. Currently, the link is here: (*2*).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'If you inspect the notebook, you’ll notice a few things:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: It offers different sizes for training the model, starting from the very smallest
+    and going up to a few tens of billions of parameters
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Each of these different settings requires slightly different hyperparameters
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: All of [*Chapter 7*](B18942_07.xhtml#_idTextAnchor116) is about selecting these.
+    And now, you’ve just learned why this is so challenging and important! When you
+    configure the job, you need to determine your distribution strategy, integrating
+    the model and data parallel, your overall world size, any extra GPU memory reduction
+    techniques, the model size and relevant parameters, and so much more.
+  prefs: []
+  type: TYPE_NORMAL
+- en: But don’t lose heart—we still have a lot to learn. For now, let’s close out
+    the chapter with a quick summary.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, you learned about the basics of distributed training. You learned
+    about data parallelism and model parallelism as key concepts that will enable
+    you to scale your training up to sizes that approach state of the art. You learned
+    how to combine them, and especially how managed orchestration platforms such as
+    Amazon SageMaker help you seamlessly work with hundreds to thousands of GPUs with
+    optimized distributed training libraries. You then learned about advanced GPU
+    memory reduction techniques and brought this to life with real-world examples
+    such as Stable Diffusion and GPT-3.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we’ll dive into the engineering fundamentals and concepts
+    you need to build your own data loader!
+  prefs: []
+  type: TYPE_NORMAL
+- en: References
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Please go through the following content for more information on a few topics
+    covered in the chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*SMP* *library*: [https://docs.aws.amazon.com/sagemaker/latest/dg/model-parallel-sm-sdk.html#model-parallel-customize-container](https://docs.aws.amazon.com/sagemaker/latest/dg/model-parallel-sm-sdk.html#model-parallel-customize-container)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Amazon SageMaker* *example*: [https://github.com/aws/amazon-sagemaker-examples/blob/main/training/distributed_training/pytorch/model_parallel/gpt2/smp-train-gpt-simple.ipynb](https://github.com/aws/amazon-sagemaker-examples/blob/main/training/distributed_training/pytorch/model_parallel/gpt2/smp-train-gpt-simple.ipynb)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*SM DDP* *library*: [https://docs.aws.amazon.com/sagemaker/latest/dg/data-parallel.html](https://docs.aws.amazon.com/sagemaker/latest/dg/data-parallel.htmll)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Amazon SageMaker Model Parallism: A General and Flexible Framework for Large
+    Model* *Training* [https://arxiv.org/pdf/2111.05972.pdf](https://arxiv.org/pdf/2111.05972.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Alpa: Automating Inter- and Intra-Operator Parallelism for Distributed Deep*
+    *Learning*: https://www.usenix.org/conference/osdi22/presentation/zheng-lianmin'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts*
+    *Layer*: [https://arxiv.org/pdf/1701.06538.pdf](https://arxiv.org/pdf/1701.06538.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Pangu-Σ: Towards Trillion Parameter Language Model With Sparse Heterogenous*
+    *Computing*: https://arxiv.org/pdf/2303.10845.pdf'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*MiCS: Near-linear Scaling for Training Gigantic Model on Public* *Cloud*:https://arxiv.org/pdf/2205.00119.pdf'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Photorealistic Text-to-Image Diffusion Models with Deep Language* *Understanding*:
+    [https://arxiv.org/pdf/2205.11487.pdf](https://arxiv.org/pdf/2205.11487.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '*Zero-Shot Text-to-Image* *Generation*: [https://arxiv.org/pdf/2102.12092.pdf](https://arxiv.org/pdf/2102.12092.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL

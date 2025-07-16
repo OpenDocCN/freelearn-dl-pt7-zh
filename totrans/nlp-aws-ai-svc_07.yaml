@@ -1,0 +1,1178 @@
+- en: '*Chapter 5*: Creating NLP Search'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the previous chapters, you were introduced to Amazon Textract for extracting
+    text from documents, and Amazon Comprehend to extract insights with no prior **Machine
+    Learning** (**ML**) experience as a prerequisite. In the last chapter, we showed
+    you how you can combine these features together to solve a real-world use case
+    for document automation by giving an example of loan processing.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we will use the Amazon Textract and Amazon Comprehend services
+    to show you how you can quickly set up an intelligent search solution with the
+    integration of powerful elements, such as **Amazon Elasticsearch**, which is a
+    managed service to set up search and log analytics, and **Amazon Kendra**, which
+    is an intelligent managed search solution powered by ML for natural language search.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will cover the following topics in this chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Going over search use cases and choices for search solutions
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Building a search solution for scanned images using Amazon Elasticsearch
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Setting up an enterprise search solution using Amazon Kendra
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'For this chapter, you will need access to an AWS account. Before getting started
+    we recommend that you create an AWS account by going through these steps here:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Open [https://portal.aws.amazon.com/billing/signup](https://portal.aws.amazon.com/billing/signup).
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Please go through and execute the steps provided on the web page to sign up.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Log in to your AWS account when prompted in the sections.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The Python code and sample datasets for the Amazon Textract examples are provided
+    on the book's GitHub repo at [https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/tree/main/Chapter%2005](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/tree/main/Chapter%2005).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Check out the following video to see the Code in Action at [https://bit.ly/3nygP5S](https://bit.ly/3nygP5S).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating NLP-powered smart search indexes
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Every organization has lots of documents in the form of paper and in their archives
+    too. The challenge is that these documents lie mostly in separate silos and not
+    all in one place. So, for these organizations to make a business decision based
+    on the hidden information in their siloed documents is extremely challenging.
+    Some approaches these organizations take to make their documents searchable is
+    putting the documents in a data lake. However, extracting meaningful information
+    from these documents is another challenge as it would require a lot of NLP expertise,
+    ML skills, and infrastructure to set that up. Even if you were able to extract
+    insights from these documents, another challenge will then be setting up a scalable
+    search solution.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this section, we will address these challenges by using the AWS AI services
+    we introduced in previous chapters and then talk about how they can be used to
+    set up a centralized document store.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once all the documents are in a centralized storage service such as Amazon S3,
+    which is a scalable and durable object store similar to Dropbox, we can use *Amazon
+    Textract* as covered in [*Chapter 2*](B17528_02_Final_SB_ePub.xhtml#_idTextAnchor027)*,*
+    *Introducing Amazon Textract,* to extract text from these documents, and use *Amazon
+    Comprehend* as covered in [*Chapter 3*](B17528_03_Final_SB_ePub.xhtml#_idTextAnchor049)*,*
+    *Introducing Amazon Comprehend,* to extract NLP-based insights such as entities,
+    keywords, sentiments, and more. Moreover, we can then quickly index the insights
+    and the text and send it to Amazon Elasticsearch or Amazon Kendra to set up a
+    smart search solution.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following diagram shows the architecture we will cover in this section:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.1 – Creating an NLP-powered search index'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_01.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 5.1 – Creating an NLP-powered search index
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In *Figure 5.1*, you can see the two options we have to build a search index.
+    The options are as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Using Amazon Elasticsearch to build a search on top of your document processing
+    pipeline with Amazon Textract and Amazon Comprehend
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Using Amazon Kendra to build a serverless intelligent search on top of your
+    existing document processing pipeline with Amazon Textract and Amazon Comprehend
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: If you are looking for a natural language-based search solution powered by ML
+    where you can ask human-like questions rather than searching for keywords, you
+    can choose Amazon Kendra for the search, as Amazon Kendra is an AWS AI service
+    powered by ML. Amazon Kendra offers natural language search functionality and
+    will provide you with NLP-based answers, meaning human-like contextual answers.
+    For example, imagine you are setting up the search function on your IT support
+    documents in Salesforce. Using Amazon Kendra you can ask direct questions such
+    as *"where is the IT desk located?"* and Amazon Kendra will give you an exact
+    response, such as "*the sixth floor*," whereas in Amazon Elasticsearch you can
+    only perform keyword-based search.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Moreover, you can also integrate Amazon Kendra into Amazon Lex, which is a service
+    to create chatbots. You can deploy a smart search chatbot on your website powered
+    by Amazon Lex and Amazon Kendra. Also, Amazon Kendra comes with a lot of connectors
+    to discover and index your data for search, including Amazon S3, OneDrive, Google
+    Drive, Salesforce, relational databases such as RDS, and many more supported by
+    third-party vendors.
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can set up a search on many different interesting use cases, for example,
+    for financial analysts searching for financial events, as they have to scroll
+    through tons of SEC filing reports and look for meaningful financial entities
+    such as mergers and acquisitions. Using the proposed pipeline along with Amazon
+    Comprehend Events can easily reduce the time and noise while scrolling through
+    these documents and update their financial models in case of any financial events
+    such as mergers or acquisitions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For healthcare companies, they can use the set of services and options offered
+    by Amazon Comprehend Medical to create a smart search for healthcare data, where
+    a doctor can log in and search for relevant keywords or information from the centralized
+    patient data in Amazon HealthLake. We will cover more on this use case in this
+    chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We all know finding jobs is extremely difficult. It's harder even for talent
+    acquisition companies hunting for good candidates to search for relevant skills
+    across thousands of resumes. You can use the proposed solution to set up a resume
+    processing pipeline where you can upload the resumes of various candidates in
+    Amazon S3 and search for relevant skills based on the jobs you are looking for.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this section, we covered two options with which to set up smart search indexes.
+    In the next section, we will show you how you can set up this architecture to
+    create an NLP-powered search application where **Human Resources** (**HR**) admin
+    users can quickly upload candidates' scanned resumes and other folks can log in
+    and search for relevant skill sets based on open job positions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Building a search solution for scanned images using Amazon Elasticsearch
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the previous chapters, we spoke about how you can use Amazon Lambda functions
+    to create a serverless application. In this section, we will walk you through
+    the following architecture to set up a scanned image-based search solution by
+    calling the Amazon Textract and Amazon Comprehend APIs using an Amazon Lambda
+    function. We are going to use Amazon Elasticsearch for this use case. However,
+    you can also replace Amazon Elasticsearch with Amazon Kendra to create an ML-based
+    search solution where you can use natural language to ask questions while searching.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.2 – Building NLP search using Amazon Elasticsearch'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_02.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 5.2 – Building NLP search using Amazon Elasticsearch
+  prefs: []
+  type: TYPE_NORMAL
+- en: The AWS service used in the previous architecture is **Amazon Cognito** to set
+    up the login for your backend users.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Amazon S3 is used for centralized storage. Amazon Lambda functions are used
+    as serverless event triggers when the scanned resumes are uploaded to Amazon S3,
+    and then we use both Amazon Textract and Amazon Comprehend to extract text and
+    insights such as key phrases and entities. Then we index everything into Amazon
+    Elasticsearch. Your end users can log in through Cognito, and will access Amazon
+    Elasticsearch through a Kibana dashboard that comes integrated with Amazon Elasticsearch
+    for visualization.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Prerequisites
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'We will use an AWS CloudFormation template to spin up the resources needed
+    for this chapter. CloudFormation templates are scripts written in YAML or JSON
+    format to spin up resources or **Infrastructure as Code** (**IaC**). AWS CloudFormation
+    templates write IaC and set all the necessary permissions for you:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Click [https://forindexing.s3.eu-west-1.amazonaws.com/template-export-textract.yml](https://forindexing.s3.eu-west-1.amazonaws.com/template-export-textract.yml)
+    to download and deploy an AWS CloudFormation template.![Figure 5.3 – CloudFormation
+    template stack
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_03.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 5.3 – CloudFormation template stack
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Scroll down to `documentsearchapp` for **DOMAINNAME** as shown in the following
+    screenshot:![Figure 5.4 – Enter parameters
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_04.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 5.4 – Enter parameters
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Scroll down and check all three acknowledgments under **Capabilities and transforms**,
+    then click **Create stack**.![Figure 5.5 – The Capabilities and transforms section
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_05.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 5.5 – The Capabilities and transforms section
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: You will see your stack creation in progress. Wait till it's completed as shown
+    in the following screenshot – you can refresh to see the changing status. It might
+    take 20 minutes to deploy this stack so go grab a quick coffee:![Figure 5.6 –
+    CloudFormation resources creation complete](img/B17528_05_06.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 5.6 – CloudFormation resources creation complete
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Note:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: You will get an email with the login details to Cognito while your stack is
+    being created. Make sure you check the same email you provided while creating
+    this stack. An admin can add multiple users' email addresses through the Amazon
+    Cognito console once it's deployed. Those emails can be sent to end users for
+    logging in to the system once the resumes' data has been uploaded to Amazon S3.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Go to the **Outputs** tab, and scroll down to the **Outputs** section.![Figure
+    5.7 – CloudFormation outputs
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_07.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 5.7 – CloudFormation outputs
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Copy the values for **S3KeyPhraseBucket** and **KibanaLoginURL** from the **Value**
+    section. We are going to use these links for this section while walking through
+    this app.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Now you have set up up the infrastructure, including an Amazon S3 bucket, Lambda
+    functions, the Cognito login, Kibana, and the Amazon Elasticsearch cluster using
+    CloudFormation. You have the output from CloudFormation for your S3 bucket and
+    Kibana dashboard login URLs. In the next section, we will walk you through how
+    you can upload scanned images to interact with this application as an admin user.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Uploading documents to Amazon S3
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'We''ll start with the following steps for uploading documents to Amazon S3:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Click on the S3 link copied from the CloudFormation template output in the previous
+    section. Then download the sample resume at [https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2005/resume_sample.PNG](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2005/resume_sample.PNG),
+    and upload it in S3 by clicking on the **Upload** button followed by **Add files**.![Figure
+    5.8 – Scanned image in Amazon S3
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_08.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 5.8 – Scanned image in Amazon S3
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: This upload triggers an Amazon S3 event notification to the AWS Lambda function.
+    To check that, go to the **Properties** tab and then scroll down to **Event notifications**
+    as shown in the following screenshot:![Figure 5.9 – S3 event notifications to
+    notify the AWS Lambda function
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_09.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 5.9 – S3 event notifications to notify the AWS Lambda function
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Click on the Lambda function link shown under **Destination**. We will inspect
+    this Lambda function in the next section.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We have uploaded the sample scanned resume to Amazon S3, and also showed you
+    where you can find the S3 event notifications that trigger a Lambda function.
+    In the next section, let's explore what is happening in the Lambda function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Inspecting the AWS Lambda function
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In this section, we will inspect the code blocks of AWS Lambda and the API calls
+    made to Amazon Textract and Amazon Comprehend along with Amazon Elasticsearch.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.10 – AWS Lambda function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_10.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 5.10 – AWS Lambda function
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The deployment code is too large for this function to show up in this AWS Lambda
+    console. You can access the code through through the following GitHub repo instead,
+    at [https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2005/lambda/index.py](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2005/lambda/index.py):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'First, we are getting the files through Amazon S3 events as shown in the following
+    code block from the main Lambda handler. In Lambda, all code blocks are executed
+    from this main handler. The `handler` method is invoked by Lambda for each function
+    invocation and acts as an entry point. The code outside the handler contains functions
+    that can be called from the main handler and some global variables:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The following code downloads the file from Amazon S3 to process it with Textract
+    and Comprehend:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'After getting the objects or scanned resumes from S3 events and reading through
+    a Lambda function, we will call the Amazon Textract AnalyzeDocument API, a real-time
+    API to extract the text, using the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We will parse the response to extract the lines of text to be sent to Amazon
+    Comprehend:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Once we have extracted text, we will call the Comprehend Keyphrase API by putting
+    it in a list variable to be indexed later:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now we will extract entities using the Comprehend DetectEntities API and save
+    it in a map data structure variable to be indexed later:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now we will create an Amazon S3 URL to be indexed:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We have the text, keyphrases, and entities, as well as the S3 link of the uploaded
+    document. Now we will index it all and upload it in Elasticsearch:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Note:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: In case the resumes have tables or forms, we have prepared to index them as
+    well. Moreover, this solution can also be used for **invoice search.**
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: In this section, we walked you through how you can extract text and insights
+    from the documents uploaded to Amazon S3\. We also indexed the data into Amazon
+    Elasticsearch. In the next section, we will walk you through how you can log in
+    to Kibana using your admin login email setup while creating CloudFormation templates
+    and visualize the data in the Kibana dashboard.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Searching for and discovering data in the Kibana console
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In this section, we will cover how you can sign up to Kibana through Amazon
+    Cognito by using the email you entered as the admin while deploying the resources
+    through AWS CloudFormation. Then we will walk you through how you can set up your
+    index in Kibana. We will cover how you can discover and search the data in the
+    Kibana dashboard based on entity, keyword, and table filters from Amazon Comprehend.
+    Lastly, you can download the searched resume link from Amazon S3.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We will cover walkthroughs including signing up to the Kibana console, making
+    the index discoverable for the search functionality, and searching for insights
+    in Kibana.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Signing up to the Kibana console
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'In these steps, we will walk you through how you can log in to Kibana using
+    the CloudFormation-generated output link:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Click on the Kibana login link you got from the CloudFormation output as shown
+    in the following screenshot:![Figure 5.11 – CloudFormation output – Kibana URL
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_11.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 5.11 – CloudFormation output – Kibana URL
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: This link will redirect you to this console:![Figure 5.12 – Kibana sign-in dialog
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_12.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 5.12 – Kibana sign-in dialog
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Note:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: You can sign up additional end users using the **Sign up** button shown in the
+    previous screenshot.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: You should have got an email with a username and temporary password – enter
+    those details in the preceding dialog, and click on **Sign in**.![Figure 5.13
+    – Verification and password login email
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_13.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 5.13 – Verification and password login email
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: It will ask you to change your password the first time you sign in. After changing
+    your password, you will be redirected to the Kibana console.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We have covered how to sign up for Kibana. In the next section, we will walk
+    you through setting up the index in Kibana.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Making the index discoverable for the search functionality
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'In this section, we will walk you through setting up an index in Kibana for
+    searching:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Click on **Discover** when you reach the Kibana console and we will walk you
+    through setting up your index in Kibana.![Figure 5.14 – Kibana Create index pattern
+    page](img/B17528_05_14.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 5.14 – Kibana Create index pattern page
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Enter `document` in the **Index pattern** field, as shown in the following screenshot,
+    then click **Next step**:![Figure 5.15 – Define index pattern
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_15.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 5.15 – Define index pattern
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Click on **Create index pattern**. This will make your Elasticsearch index discoverable.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 5.16 – Create index pattern'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_16.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 5.16 – Create index pattern
+  prefs: []
+  type: TYPE_NORMAL
+- en: We have created an index. Now we will start searching for insights.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Searching for insights in Kibana
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'In this section, we will walk you through searching for insights in Kibana:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Click on **Discover** and on the left-hand side you will find entities and key
+    phrases that can be added to your search filters under **Available Fields**.![Figure
+    5.17 – Kibana's Discover dashboard (a)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_17.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 5.17 – Kibana's Discover dashboard (a)
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Let''s look at another output shown in the following screenshot:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 5.18 – Kibana''s Discover dashboard (b)](img/B17528_05_18.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_IMG
+- en: Figure 5.18 – Kibana's Discover dashboard (b)
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '**Entity search**: Let''s search for a candidate by date and title by adding
+    the available fields of **Entity.TITLE** and **Entity.dATE** for a quick search.
+    You can click on **Add a filter** and these filters will get added as seen in
+    the following screenshot. You can see that it found someone with the big data
+    analytics title in July 2017:![Figure 5.19 – Adding an entity filter to selected
+    fields'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_19.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 5.19 – Adding an entity filter to selected fields
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '**Keyword search using the keyphrases and table**: Add the **KeyPhrases** and
+    **table filters** from **available fields** and you will get a table summary of
+    all the skills you are looking for, along with keyphrases about the candidate.![Figure
+    5.20 – Keyword and table fields search](img/B17528_05_20.jpg)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 5.20 – Keyword and table fields search
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '`Amazon Sagemaker and MySQL` in the search field and see whether we have a
+    candidate resume matching our needs. We are able to find a candidate resume with
+    both these skills as highlighted in the following screenshot:![Figure 5.21 – Keyword
+    search with AND condition'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_21.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 5.21 – Keyword search with AND condition
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '**Downloading the resume of the candidate matched**: We can download the resume
+    of the matched candidate by adding an S3 link on **selected fields** as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 5.22 – S3 link to download the resume'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_22.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 5.22 – S3 link to download the resume
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this section, we gave you an architecture overview of the search solution
+    for scanned images where an admin user uploads the scanned documents in Amazon
+    S3, and then showed how to sign up for the Kibana dashboard and search for keywords
+    to gain meaningful insights from the scanned documents.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We walked you through the steps to set up the architecture using AWS CloudFormation
+    template one-click deploy, and you can check the *Further reading* section to
+    learn more about how to create these templates. We also showed how you can interact
+    with this application by uploading some sample documents. We guided you on how
+    to set up the Kibana dashboard and provide some sample queries to gain insights
+    from the keywords and entities as filters.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next section, we will explore a Kendra-powered search solution. Let's
+    get started exploring Amazon Kendra and what you can uncover by using it to power
+    Textract and Comprehend in your document processing workflows.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Setting up an enterprise search solution using Amazon Kendra
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this section, we will cover how you can quickly create an end-to-end serverless
+    document search application using Amazon Kendra.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this section, we will cover the steps to get started.
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Git cloning the notebook
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: We will walk through the steps to git clone the notebook and show code samples
+    to set up the kendra based search architecture using simple boto3 APIs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the SageMaker Jupyter notebook you set up in the previous chapters, Git clone
+    [https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/).
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Go to `Chapter 05/Ch05-Kendra Search.ipynb` and start running the notebook.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Note:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Please add Kendra IAM access to the SageMaker notebook IAM role so that you
+    can call Kendra APIs through this notebook. In previous chapters, you already
+    added IAM access to Amazon Comprehend and Textract APIs from the SageMaker notebook.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Creating an Amazon S3 bucket
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: We will show you how you can create a Amazon S3 bucket. We will use this bucket
+    as a Kendra datasource and also to store extracted data from Amazon Textract.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Create an Amazon S3 bucket by going to the Amazon S3 console at [https://s3.console.aws.amazon.com/s3/home?region=us-east-1](https://s3.console.aws.amazon.com/s3/home?region=us-east-1).
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click on the **Create bucket** button and enter any bucket name as shown in
+    the following screenshot:![Figure 5.23 – Create an Amazon S3 bucket
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_23.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 5.23 – Create an Amazon S3 bucket
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Scroll down and click on **Create bucket**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Copy the created bucket name, open `Chapter 05/Ch05-Kendra Search.ipynb,` and
+    paste it in the following cell in place of `''<your s3 bucket name>''` to get
+    started:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: We have the notebook ready and the Amazon S3 bucket created for this section's
+    solution. Let's see a quick architecture walkthrough in the next section to understand
+    the key components and then we will walk you through the code in the notebook
+    you have set up.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Walking through the solution
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Setting up an enterprise-level search can be hard. That's why we have Amazon
+    Kendra, which can crawl data from various data connectors to create a quick and
+    easy search solution. In the following architecture, we will walk you through
+    how you can set up a document search when you have your PDF documents in Amazon
+    S3\. We will extract the data using Amazon Textract from these PDF documents and
+    send it to Amazon Comprehend to extract some key entities such as **ORGANIZATION**,
+    **TITLE**, **DATE**, and so on. These entities will be used as filters while we
+    sync the documents directly into Amazon Kendra for search.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.24 – Architecture for the Amazon Kendra-powered search with Textract
+    and Comprehend](img/B17528_05_24.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 5.24 – Architecture for the Amazon Kendra-powered search with Textract
+    and Comprehend
+  prefs: []
+  type: TYPE_NORMAL
+- en: So, we gave you a high-level implementation architecture in the previous diagram.
+    In the next section, we will walk you through how you can build this out with
+    few lines of code and using the Python Boto3 APIs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Code walkthrough
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'In this section, we will walk you through how you can quickly set up the proposed
+    architecture:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will refer to this notebook: [https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2005/Ch05-Kendra%20Search.ipynb](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2005/Ch05-Kendra%20Search.ipynb).
+    The following code presents the Boto3 client setup for Comprehend, Kendra, and
+    Textract APIs'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Now we will upload the PDF document at [https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2005/resume_Sample.pdf](https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2005/resume_Sample.pdf)
+    from this repo to Amazon S3.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Note:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: You can upload as many documents for search as you wish. For this demonstration,
+    we are providing just one sample. Please feel free to play around by uploading
+    your documents to Amazon S3 and generating metadata files before you start syncing
+    your documents to Amazon Kendra.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: For extracting text from the PDF uploaded to Amazon S3, we will use the same
+    code as we used for the asynchronous processing covered in [*Chapter 2*](B17528_02_Final_SB_ePub.xhtml#_idTextAnchor027)*,
+    Introducing Amazon Textract*.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'The following code shows text extraction from Amazon Textract:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The sample results shown in the following screenshot contain the text from
+    the PDF:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 5.25 – Extracted text response from Amazon Textract for the resume
+    data'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_25.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Figure 5.25 – Extracted text response from Amazon Textract for the resume data
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Now we will send this text to Amazon Comprehend for entity extraction by running
+    the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Now we will create an Amazon Kendra index. Go to the Kendra console at https://console.aws.amazon.com/kendra/home?region=us-east-1#indexes
+    and click the `Search` for **Index name**, then scroll down and click on **Create
+    a new role (Recommended)**, shown highlighted in the following screenshot:![Figure
+    5.26 – Create a new role for the Kendra index](img/B17528_05_26.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 5.26 – Create a new role for the Kendra index
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Enter `AmazonKendra-us-east-1-kendra` as the role name and click on `AmazonKendra-us-east-1-`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: For **Configure user access control**, Use **tokens for access control**? select
+    **No** and click **Next**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'For **Specify provisioning**, choose **Developer Edition** and click on **Create**.
+    Alternatively, you can run the following notebook cell after creating an IAM role
+    to create the index programmatically:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Note:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Index creation can take up to 30 minutes.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: After creating the index, we need to get the index ID to run through this notebook.Once
+    the index is created, click on **Index** and go to **Index Settings** to copy
+    the index ID.![Figure 5.27 – Copying the Kendra index ID from the Kendra console](img/B17528_05_27.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 5.27 – Copying the Kendra index ID from the Kendra console
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Alternatively, if you created the index programmatically using the *CreateIndex
+    API*, its response will contain an index ID of 36 digits that you need to copy
+    and paste to run the next piece of code to update the search filters based on
+    the Comprehend entities.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Copy and paste the Kendra index ID over the placeholder in the following cell,
+    then run the cell to update the index we created with filters for search. Refer
+    to the notebook for the complete code to add all the filters:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now we will define the list of categories recognized by Comprehend:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now we will iterate over the entities and generate a metadata file to populate
+    the filters based on the entities from Amazon Comprehend:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: You will get a response back detailing the Comprehend entity types and values
+    detected in the text from the PDF document.![Figure 5.28 – Comprehend's extracted
+    entities](img/B17528_05_28.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 5.28 – Comprehend's extracted entities
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Populate the Kendra metadata list from the previous entities for Amazon Kendra
+    attributes filter:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Take the `elimit` number of recognized text strings that have the highest frequency
+    of occurrence:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The last step is to save this file with the `metadata.json`. Make sure the
+    filename is the original PDF document filename followed by `metadata.json` in
+    the Amazon S3 bucket where your PDF document is uploaded:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: We gave you a code walkthrough on how to upload a PDF document and extract data
+    from it using Amazon Textract and then use Amazon Comprehend to extract entities.
+    We then created a metadata file using the filters or entities extracted by Comprehend
+    and uploaded it into Amazon S3\. In the next section, we will walk you through
+    how you can set up Amazon Kendra sync with the S3 document you uploaded, and how
+    you can create a `meta` folder and place your metadata files there so that Amazon
+    Kendra picks them up as metadata filters during the Kendra sync.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Searching in Amazon Kendra with enriched filters from Comprehend
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'In this section, we will walk you through how you can sync the documents to
+    the index you have created, along with the filters in the metadata file:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Set the Kendra data source as the Amazon S3 bucket to which you uploaded your
+    documents. Navigate to **Amazon Kendra** | **Indexes** | **<Name of the Index>**|
+    **Data sources |** **Add data source |** **Amazon S3**, as shown in the following
+    screenshot:![Figure 5.29 – Configuring Amazon Kendra sync](img/B17528_05_29.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 5.29 – Configuring Amazon Kendra sync
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Enter `s3://<your bucket name>` in the `meta/` as shown in the previous screenshot.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In the `AmazonKendra-s3` in the **Role name** field.![Figure 5.30 – The run-on-demand
+    schedule for Kendra](img/B17528_05_30.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 5.30 – The run-on-demand schedule for Kendra
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Then set the frequency for the sync run schedule to be **Run on demand** and
+    click **Next**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click on **Review** + Cr**eate**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: After your data source has been created, click on **Sync now**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Once the sync is successful, all your documents in Amazon S3 will be synced
+    and the Kendra filters will be populated with the metadata attributes extracted
+    by Amazon Comprehend.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next section, we will walk you through how you can navigate to the Amazon
+    Kendra console to search.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Searching in Amazon Kendra
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Amazon Kendra comes with a built-in search UI that can be used for testing the
+    search functionality.
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also deploy this UI in a React app after testing. The page at [https://docs.aws.amazon.com/kendra/latest/dg/deploying.html](https://docs.aws.amazon.com/kendra/latest/dg/deploying.html)
+    has the deployment UI code available, which can be integrated with any serverless
+    application using API Gateway and Lambda.
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also use the `Kendra.query()` API to retrieve results from the index
+    you created in Kendra.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this section, we will walk you through using the built-in Kendra search
+    console:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Navigate to `person with cloud skills` in the search field:![Figure 5.31 – Kendra
+    query results](img/B17528_05_31.jpg)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Figure 5.31 – Kendra query results
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Amazon Kendra is able to give you a contextual answer containing Jane Doe, whose
+    resume we indexed.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: It also provides you with filters based on Comprehend entities on the left-hand
+    side to quickly sort individuals based on entities such as **ORGANIZATION**, **TITLE**,
+    **DATE**, and their word count frequencies.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: You can also create *Comprehend custom entities*, as we covered in [*Chapter
+    4*](B17528_04_Final_SB_ePub.xhtml#_idTextAnchor063)*, Automated Document Processing
+    Workflows*, to enrich your metadata filters based on your business needs.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Next, type the `person with 10 years of experience` query into the Kendra Search
+    console.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 5.32 – Kendra query results with filters on the left from Comprehend''s
+    metadata enrichment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B17528_05_32.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 5.32 – Kendra query results with filters on the left from Comprehend's
+    metadata enrichment
+  prefs: []
+  type: TYPE_NORMAL
+- en: Amazon Kendra is able to provide you with the exact contextual answer. You can
+    also boost the response in Kendra based on relevance and provide feedback using
+    the thumbs-up and thumbs-down buttons to improve your Kendra model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Note:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Amazon Kendra supports the use of PDF, Word, JSON, TXT, PPT, and HTML documents
+    for the search functionality. Feel free to add more documents through this pipeline
+    for better search results and accuracy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we covered two options to set up an intelligent search solution
+    for your document-processing workflow. The first option involved setting up an
+    NLP-based search quickly using Amazon Textract, Amazon Comprehend, and Amazon
+    Elasticsearch using a Lambda function in a CloudFormation template for your scanned
+    resume analysis, and can be used with anything scanned, such as images, invoices,
+    or receipts. For the second option, we covered how you can set up an enterprise-level
+    serverless scalable search solution with Amazon Kendra for your PDF documents.
+    We also walked you through how you can enrich the Amazon Kendra search with additional
+    attributes or metadata generated from Amazon Comprehend named entities.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will talk about how you can use AI to improve customer
+    service in your contact center.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Further reading
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '*Building an NLP-powered search index with Amazon Textract and Amazon Comprehend*
+    by Mona Mona and Saurabh Shrivastava ([https://aws.amazon.com/blogs/machine-learning/building-an-nlp-powered-search-index-with-amazon-textract-and-amazon-comprehend/](https://aws.amazon.com/blogs/machine-learning/building-an-nlp-powered-search-index-with-amazon-textract-and-amazon-comprehend/))'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Build an intelligent search solution with automated content enrichment* by Abhinav
+    Jawadekar and Udi Hershkovich ([https://aws.amazon.com/blogs/machine-learning/build-an-intelligent-search-solution-with-automated-content-enrichment/](https://aws.amazon.com/blogs/machine-learning/build-an-intelligent-search-solution-with-automated-content-enrichment/))'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL

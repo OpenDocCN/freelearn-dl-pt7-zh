@@ -1,0 +1,1202 @@
+- en: Dynamic Programming for Optimal Policies
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '**Dynamic programming** (**DP**) represents a set of algorithms that can be
+    used to calculate an optimal policy given a perfect model of the environment in
+    the form of a **Markov decision process** (**MDP**). DP methods update the estimates
+    of the state values on the basis of the estimates made in the previous steps. In
+    DP, an optimization problem is decomposed into simpler subproblems and the solution
+    for each subproblem is stored so that each subproblem is solved only once. In
+    this chapter, we will learn how to select the optimal portfolio using DP through
+    an R code implementation.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following topics are covered in the chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding DP
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Learning the top-down DP approach
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Analyzing the difference between recursion and memoization
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Learning the optimization techniques
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Implementing DP in reinforcement learning applications
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Solving the knapsack problem
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Optimization of a robot navigation system
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Check out the following video to see the Code in Action:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[http://bit.ly/2RPIFfB](http://bit.ly/2RPIFfB)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Understanding DP
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: DP is a mathematical methodology developed by Richard Bellman in the 1950s.
+    It is used to solve problems in which a series of interdependent decisions must
+    be addressed in sequence. The underlying principle behind this methodology is
+    that of Bellman's optimality—whatever the initial status and the initial decision,
+    subsequent decisions must provide an optimal policy with respect to the status
+    resulting from the previous decision. This is the essential feature of an optimal
+    policy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Consider an example of finding the best path that joins two positions. The optimality
+    principle states that every sub-path included in it, between any intermediate
+    and final position, must in turn be optimal. Based on this principle, DP solves
+    a problem by making one decision at a time. At each step, the best policy for
+    the future is determined, regardless of past choices (it is a Markov process),
+    if these are also optimal.
+  prefs: []
+  type: TYPE_NORMAL
+- en: DP is therefore effectively applicable whenever the original problem can be
+    broken down into a series of minor subproblems, or when the cost paid or the profit
+    obtained are expressed as the sum of the elementary costs associated with each
+    individual decision. More generally, the cost must be expressed through some operators
+    as a composition of elementary costs that are individually dependent on a single
+    decision.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following diagram shows the best route between two nodes of a network (the
+    red path) among all those available (and by "best" I mean "shortest"):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/70f9d33c-5edf-4d4c-8b2b-4ca7c71f4682.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'There are many paths available to reach the same destination: only one is the
+    shortest.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's now examine the concepts underlying this technology. We will begin by
+    comparing two very popular techniques.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Learning the top-down DP approach
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'To understand the mechanism behind DP, we can compare it with another very
+    common problem-solving mechanism—**divide and conquer**. With this mechanism,
+    a problem is divided into two or more subproblems, and the solution of the original
+    problem is constructed starting from the subproblem solutions. This approach is
+    called a top-down technique and works according to the following procedure:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Divide the problem instance into two or more sub-instances.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Recursively solve the problem for each sub-instance.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Recombine the subproblem solution in order to obtain the global solution.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: This mechanism is widely applied to the resolution of multiple problems. The
+    most popular applications are two of the most commonly used sorting algorithms—quick
+    sort and merge sort.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For example, in the **quick sort** algorithm, the elements of the list to be
+    sorted are divided into two blocks, the smaller ones and the larger ones of a
+    pivot, and the algorithm is called recursively on the two blocks. In merge sort,
+    the algorithm finds the index of the central position and divides the list into
+    two blocks each with n/2 elements. Then the algorithm is called recursively on
+    the two blocks.
+  prefs: []
+  type: TYPE_NORMAL
+- en: There are cases in which divide and conquer is not applicable because we do
+    not know how to get subproblems—the problem does not contain enough information
+    to allow us to decide how to break it into several parts.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this case, DP comes into play: we proceed to calculate the solutions of
+    all possible subproblems, and starting from sub-solutions we obtain new sub-solutions
+    until the original problem is solved. Unlike the divide and conquer mechanism,
+    the subproblems to be solved are not necessarily disjoint, which means one subproblem
+    can be common to several other subproblems. In order to avoid recalculation of
+    a subproblem more than once, the subproblems are resolved with a bottom-up strategy—from
+    the smallest subproblem to the largest subproblem, and the solutions to these
+    subproblems are stored in appropriate tables so that they are available (if necessary)
+    for the solution of other subproblems.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Often in recursive algorithms we find ourselves dealing with procedures that
+    are unnecessarily burdensome from a computational point of view. Let's see how
+    we can tackle this problem.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Analyzing the difference between recursion and memoization
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: On the basis of what has been said here, we can deduce that DP is used in cases
+    where there is a recursive definition of the problem, but the direct transformation
+    of this definition into an algorithm generates a program of exponential complexity
+    due to the repeated calculation on the same subsets of data from the different
+    recursive calls. An example is the calculation of the Fibonacci numbers, which
+    we will analyze in detail later.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We have seen that DP is a technique for solving recursive problems more efficiently.
+    Why does this happen? Many times in the recursive procedures we solve the subproblems
+    repeatedly. In DP this does not happen—we memorize the solution of these subproblems
+    so that we do not have to solve them again. This is called **memoization**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: If the value of a variable at a given step depends on the results of previous
+    calculations, and if the same calculations are repeated over and over, then it
+    is convenient to store intermediate results so as to avoid repeating computationally
+    expensive calculations.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To better understand the difference between recursion and memoization, let''s
+    analyze a simple example: the calculation of the factorial of a number. It is
+    called factorial of a natural number n, indicated with *n!*, the product of positive
+    integers less than or equal to that number. The calculation of the factorial of
+    n is given by the following formula:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/6c2795e7-8eef-4276-8325-fccbaf3ad1aa.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'The calculation of the factorial of a number can also be defined recursively:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/68a097b4-8e80-4694-9e01-3ec25e5e14b2.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'A function is called **recursive** if it calls itself. The recursive function
+    can directly solve only particular cases of a problem called base cases (such
+    as those present in the previous formula): if it is invoked, passing some data
+    that constitute one of the base cases, then it returns a result. At each call,
+    the data is reduced, so at a certain point we arrive at one of the base cases.
+    When the function calls itself, it suspends its execution to make the new call.
+    The execution resumes when the internal call to itself ends. The sequence of recursive
+    calls ends when the innermost one (nested) encounters one of the base cases. Now
+    let''s see how to optimize this technique.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Learning the optimization techniques
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: An optimization problem is a problem whose solution can be measured in terms
+    of a cost function, also called an objective. The value to look for is normally
+    the minimum value or the maximum value of this function. Optimization problems
+    can be reduced to a sequence of decision problems.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To solve an optimization problem it is necessary to use an iterative algorithm.
+    That is a calculation program that, given a current approximation of the solution,
+    determines a new approximation with an appropriate sequence of operations. Starting
+    from an initial approximation, a succession of possible solutions to the problem
+    is thus determined.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The search algorithms of the optimal solution can be classified into the following
+    three classes:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Enumerative techniques**: Enumerative techniques look for the optimal solution
+    in all the points of the domain of the function. Simplifications can come from
+    reducing the problem to simpler subproblems. DP is one of these techniques.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Numerical techniques**: These techniques optimize the problem by exploiting
+    a set of necessary and sufficient conditions. These can be classified as direct
+    and indirect. Indirect methods look for the least function by solving a set of
+    non-linear functions and searching the solution iteratively until the gradient
+    of the cost function is null. Direct methods make the gradient guide the search
+    for the solution.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Probabilistic techniques**: Probabilistic techniques are based on enumerative
+    techniques, but they use additional information to carry out the research and
+    can be seen as evolutionary processes. This category includes the simulated annealing
+    algorithm, which uses a thermodynamic evolutionary process, and the class of genetic
+    algorithms, which exploit biological evolutionary techniques.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In the next section, we will discuss these optimization techniques based on
+    DP.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Calculating the Fibonacci sequence
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Leonardo Pisano, also called Fibonacci, was a famous Italian mathematician
+    (Pisa 1175 - 1240). His name is linked to the Fibonacci succession, which arose
+    from a problem proposed by the Emperor Frederick II of Swabia. In Pisa in 1223
+    in a tournament of mathematicians, he proposed the following problem: *How many
+    pairs of rabbits are obtained in a year, excluding cases of death, supposing that
+    each couple gives birth to another couple every month and that the youngest couples
+    are able to reproduce already at the second month of life?*'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Fibonacci gave such a quick answer to the test that someone thought the tournament
+    was rigged:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/c66e948b-867c-4e25-b839-a0f4eacfa772.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Look at the series given here:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The first 2 elements are 1, 1.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Every other element is given by the sum of the two preceding it.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Indicating with *F(n)*, the number of pairs present in month n, the Fibonacci
+    sequence becomes the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*F(1) = 1*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*F(2) = 1*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*F(n) = F (n-1) + F (n-2)* in the *n*^(th) month, where *n*> 2'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: On the basis of this definition we conventionally assume *F(0) = 0*, so that
+    the recursive relation *F(n) = F(n-1) + F(n-2)* is valid also for *n = 2*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Fibonacci succession has led us to study many areas of mathematics and natural
+    sciences. However, despite having discovered this important succession, Fibonacci
+    did not grasp many aspects of it. Four centuries later, Kepler observed that the
+    relationship between two successive terms tended to the Golden Ratio.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'So let''s see a simple function in R that calculates the Fibonacci number through
+    a recursive procedure:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Within the function, there is an `if` structure with two options: if `n> 2`
+    the function calls itself when `n<=2` returns `1`. The call to `FibRec(n-1)` asks
+    the function to solve a problem simpler than the initial one (the value is lower),
+    but it is always the same problem. The function continues to call itself until
+    it reaches the basic case that it can solve immediately. To compare two solution
+    techniques, the `Sys.time()` function is used to calculate the computational cost.
+    The results are shown as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: This program, given the nature of the recursive algorithm used, requires n +
+    1 invocations of the factorial function to arrive at a result, and each of these
+    invocations, in turn, has a cost associated with the time taken by the function
+    to return the calculated value.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This program can be improved through memoization as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Create a variable to store temporary results (`RecTable`).
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Before performing a calculation, find out if the calculation has already been
+    done. If so, use the stored result.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: If we are calculating this for the first time, store the results for future
+    use.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'A memoized version of the program is shown in the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In this case, we store the Fibonacci numbers in a table that can then be retrieved
+    for the next calculation. In this way, the entire calculation is avoided at each
+    occurrence. Memoization increases the efficiency of a function in terms of time.
+    The improvement is highlighted as often as this function is called, thus determining
+    an acceleration of the algorithm. Here are the results:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: From the comparison between the two computational costs, it is possible to notice
+    that the version with memoization is faster. Now let's see how to use the potential
+    offered by DP in the context of reinforcement learning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Implementing DP in reinforcement learning applications
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: DP represents a set of algorithms that can be used to calculate an optimal policy
+    given a perfect model of the environment in the form of an MDP. The fundamental
+    idea of DP, as well as reinforcement learning in general, is using state values
+    and actions to look for good policies.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The DP methods approach the resolution of Markov decision-making processes
+    through the iteration of two processes called **policy evaluation** and **policy
+    improvement**:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Policy evaluation algorithm consists of applying an iterative method to the
+    resolution of the Bellman equation. Since convergence is guaranteed to us only
+    for k → ∞, we must be content to have good approximations by imposing a stopping
+    condition.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Policy improvement algorithm improves the policy based on current values.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: A disadvantage of the policy iteration algorithm is that in every step we have
+    to evaluate a policy. This involves an iterative process that we do not know the
+    time of convergence of a priori, which will depend on how the starting policy
+    was chosen.
+  prefs: []
+  type: TYPE_NORMAL
+- en: One way to overcome this drawback is to cut off the evaluation of the policy
+    at a specific step. This operation does not change the guarantee of convergence
+    to the optimal value. A special case in which the assessment of the policy is
+    blocked step by step (also called sweep) defines the value iteration algorithm.
+    In the value iteration algorithm, a single iteration of calculation of the values
+    is performed between each step of the policy improvement.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The DP algorithms are therefore essentially based on policy evaluation and policy
+    improvement that take place in parallel. The repeated execution of these two processes
+    makes the general process converge towards the optimal solution. In the policy
+    iteration algorithm, the two phases alternate and each ends before the other begins.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The DP methods operate through the entire set of states that can be assumed
+    by the environment, performing a complete backup for each state at each iteration.
+    Each update operation performed by the backup updates the value of a status based
+    on the values ​​of all possible successor states. These states are weighed for
+    their probability of occurrence, induced by the policy of choice and by the dynamics
+    of the environment. Full backups are closely related to the Bellman equation,
+    they are nothing more than the transformation of the equation into assignment
+    instructions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: When a complete backup iteration does not bring any change to the state values,
+    convergence is obtained and therefore the final state values ​​fully satisfy the
+    Bellman equation. The DP methods are applicable only if there is a perfect model
+    of the alternator, which must be equivalent to an MDP.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Precisely for this reason, the DP algorithms are of little use in reinforcement
+    learning, both for their assumption of a perfect model of the environment and
+    for the high and expensive computation. But it is still opportune to mention them
+    because they represent the theoretical basis of reinforcement learning. In fact,
+    all the methods of reinforcement learning try to achieve the same goal of the
+    DP methods, only with lower computational cost and without the assumption of a
+    perfect model of the environment.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The DP methods converge to the optimal solution with a number of polynomial
+    operations with respect to the number of states 𝑛 and actions 𝑚 against the number
+    of exponential operations 𝑚*𝑛 required by methods based on direct search.
+  prefs: []
+  type: TYPE_NORMAL
+- en: DP methods update the estimates of the state values on the basis of the estimates
+    made in the previous steps. This represents a special property, which is called
+    bootstrapping. Several methods of RL perform bootstrapping, even methods that
+    do not require a perfect model of the environment, as required by the DP methods.
+    Let's see a practical case of using DP.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Solving the knapsack problem
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this section, we will analyze a classic problem that's been studied for more
+    than a century, since 1897—the knapsack problem. The first to deal with the knapsack
+    problem was the mathematician Tobias Dantzig who gave it the name deriving it
+    from the common problem of packing the most useful items without overloading the
+    knapsack.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'A problem of this type can be associated with different situations arising
+    from real life. To better characterize the problem, we will propose a rather unique
+    one: a thief goes into a house and wants to steal valuables. He puts them in his
+    knapsack, but is bound by weight. Each object has its own value and weight, so
+    he must choose the objects that are of high value but not high weight. It must
+    not exceed the weight limit in the knapsack, but at the same time optimize the
+    value.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, we will address the problem from a mathematical point of view. Suppose
+    we have a set X composed of n objects labeled with integers from 1 to *n*: {1,
+    2, ..., *n*}. These objects meet the following conditions:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The *i*^(th) object has a weight *p[i]* and value *v[i]*.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: There is only one instance of each object.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'We have a container able to carry at most a weight equal to P. We want to determine
+    a subset Y ⊆ X of objects:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The total weight of the objects in Y is ≤ P.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The total value of the objects in Y is the maximum possible.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'These two conditions in mathematical formalism take the following form:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We want to determine a subset Y ⊆ X of objects so that:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![](img/bd3ae9bc-72ff-4ab3-a500-4520fd52432d.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'To maximize the following overall value:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![](img/c4604c6c-d216-4a30-93ad-9152c363f5ef.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'As it has been placed, this is an optimization problem. In general, an optimization
+    problem has two parts:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: A set of constraints (possibly empty) that must be respected.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: An objective function that must be maximized or minimized.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The mathematical formalism that we have adopted to define the problem unequivocally
+    clarifies the two parts we've just mentioned. Many real problems can be formulated
+    relatively simply as optimization problems that can then be solved with a calculator.
+    Reducing a new problem to a known problem allows the use of existing solutions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As with most of the problems, even for optimization problems, there are different
+    approaches to the problem that allow us to reach the solution. Naturally, they
+    differ in the complexity of each algorithm in terms of time and memory requirements
+    and in terms of programming efforts required.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'There are two versions of the problem:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**0-1 knapsack problem**: Each item must be entirely accepted or rejected.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Fractional knapsack problem**: We can take fractions of items.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The substantial difference between the two problems lies in the possibility
+    of splitting the items. In the 0-1 knapsack problem, we cannot divide the articles.
+    On the contrary, in the fractional knapsack, we can divide the objects to maximize
+    the total value of the backpack.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The problem of the knapsack that we have introduced can be easily applied to
+    a problem of optimization of a financial portfolio. In fact, it is sufficient
+    to associate the weight of the objects with the weight of the risk of the financial
+    product we are considering and the value of the objects with the expected value
+    of the financial product. Based on these assumptions, it is possible to select
+    financial products that maximize the expected value, keeping the risk below a
+    specific value.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the following sections, we will address the knapsack problem through three
+    different approaches:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Brute force
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Greedy algorithms
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: DP
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: We will try to go into each solution in depth, highlighting their strengths
+    and weaknesses.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Brute force
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Brute force lists all the possible values that could represent a solution and
+    checks whether each value satisfies the conditions imposed by the problem. This
+    algorithm is easily implemented and always returns a solution if it exists, but
+    its cost is proportional to the number of possible solutions. Therefore, brute
+    force research is typically used when the size of the problem is limited or when
+    hypotheses are available that allow us to reduce the set of possible solutions.
+    The method is also used when the simplicity of implementation is more important
+    than speed.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To solve the knapsack problem, brute force is the most immediate solution:
+    examine all the possible ways to fill the knapsack, which are *2n*, and print
+    an optimal solution (there could be more than one). This approach, for *n* > 15,
+    becomes very slow. This algorithm is usually based directly on the definition
+    of the problem and on the understanding of the concepts involved.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here are the essentials of this straightforward algorithm:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Enumerates every possible combination.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Choose the best solution (all the combinations are examined, and the one with
+    the maximum value and with a total weight less than or equal to P is returned).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Optimality is ensured.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Extremely costly in time for large *n*. Running time will be *O(2n)*.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'In the following code block is an example code for solving a 0-1 knapsack problem:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will analyze this code line by line. The first lines set the data:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s look at each element:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`W` is the maximum weight capacity.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`WeightArray` is the weights array.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`ValueArray` is the values array.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`DataKnap` is a dataframe containing weights and values.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Now we will initialize the variables used in the algorithm:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'As we said, the brute force algorithm systematically lists all the possible
+    values that could represent a solution and check whether each value satisfies
+    the conditions imposed by the problem. Since four objects were passed to the system,
+    a loop with four steps will be set as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'For each step of the `for` loop, we will calculate all the combinations of
+    the objects taken, `i`, at a time without repetition. To do this, the `combn()`
+    function was used:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This function generates all combinations of the elements of the `DataKnap`
+    columns taken `i` at a time. Now we will sum the returned array:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now it is necessary to select only the combinations that return a sum of weights `<=W`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'If this operation returns at least one combination, we will calculate the best
+    solution:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Finally, the list of the best combinations will be printed:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Here are the results returned by the 0-1 knapsack problem solution:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: The results mean that the best solution return values equal to 37 and the objects
+    selected are in 3rd and 4th position. As anticipated, the optimal solution to
+    the problem we have just dealt with is the most immediate but also the most expensive
+    from the computational point of view. In the following sections, we will seek
+    to obtain other solutions, trying save in calculation terms.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Greedy algorithms
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Before introducing a greedy algorithm to find an optimal solution to the problem
+    of the knapsack, it is appropriate to recall the main characteristics of any greedy
+    technique. Any greedy technique proceeds iteratively. Starting from an empty solution,
+    element A is added to the partial solution under construction at each iteration.
+    Of all the possible candidates to be added, element A is the most promising one,
+    that is, if chosen, it leads to the greatest improvement of the objective function.
+    It is clear that not all problems can be solved with this strategy; but, only
+    those for which it is possible to show that making the best choice at the moment
+    leads to an optimal solution globally.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Let''s look at an algorithm first that simply performs the following operations:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Discards all objects weighing more than the maximum capacity (preprocessing).
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Sorts the objects for a given criterion.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Selects the objects one at a time until the weight constraint is respected.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Returns the value of the solution and the set of selected objects.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'In the following code block, we can see the code for executing the algorithm:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will analyze this code line by line. The initial lines set the initial data:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'To find the best solution, we first perform a descending pre-order of the objects
+    based on the density of value, calculated as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/72ec34ce-d3bb-4c0e-ad08-d93ac0b700fd.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'This technique is implemented in the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following lines are used to initialize the variables:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, a `while` loop will be used to iterate the procedure:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs: []
+  type: TYPE_PRE
+- en: The loop will be repeated until both codes are true. As soon as one of the two
+    is false, the loop will be stopped. The first check is performed on the number
+    of rows of the data matrix, at most there will be as many iterations as there
+    are rows. The second check is carried out on the maximum capacity set. As soon
+    as this is exceeded, the loop will be stopped.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Finally, the results are printed:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The results are shown in the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs: []
+  type: TYPE_PRE
+- en: From the analysis of the previous data, we can note that we have not obtained
+    the optimal solution as in the case of the brute force algorithm, but the procedure
+    is very fast.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Implementing a solution with DP
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the previous sections, we have seen how the knapsack problem can be solved
+    through different approaches. In particular, we have learned to treat this problem
+    with an algorithm called brute force. In this case, we obtained the optimal solution
+    with an extremely heavy computational cost. On the contrary, the greedy solution,
+    seen later, gave us a lighter algorithm from a computational point of view but
+    did not allow us to obtain the optimal solution. A solution that combines both
+    these needs – optimal solution and fast algorithm – can be provided by DP.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In DP, we subdivide an optimization problem into simpler subproblems and store
+    the solution for each subproblem so that each subproblem is solved only once.
+    The idea behind the method is to calculate solutions to subproblems once and store
+    the solutions in a table so that they can be reused (repeatedly) later.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the following code block, a knapsack problem solution is implemented using
+    DP:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will analyze this code line by line. This algorithm starts with the definition
+    of the data that will be used in the procedure:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'And then define the other variables:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s look at the elements of this code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`Tabweights` is a vector containing the weights and 0 as the first element.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`TabValues` is a vector containing the values and 0 as the first element.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`n` is the number of objects.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`TabMatrix` is a tabular matrix.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'We first define and initialize the table that will contain the values. The
+    table is built column by column from the top to the bottom, as shown in the following
+    diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/ff9520f5-86ed-4b1c-b46e-36f64f08a3cd.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Then we set an iterative loop on all objects and on all weight values:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs: []
+  type: TYPE_PRE
+- en: First, we fill the first line `i=1` with 0\. This means that when no object
+    is considered the weight is 0, so we fill the first column w = 1 with 0\. This
+    means that when the weight is 0, the objects considered are 0\. Practically, we
+    initialize the first line to 0, which corresponds to the case in which, for different
+    transportable weights, we have no object (T[1, w] = 0). Initialize the first column
+    to 0, which corresponds to the case in which, for several possible objects, I
+    have a backpack of zero capacity (T [i, 1] = 0).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The rule to fill the table is provided by the following algorithm:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'If the weight of the *i^(th)* element is greater than that of the column then
+    the *i^(th)* element will be equal to the previous one, altitudes will be calculated
+    with the following formula:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/e0cc1149-7f7d-46fc-a9b1-9202e45e46b4.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Once the last cell of the last row of the table has been reached, we can memorize
+    the result obtained, which represents the maximum value of the objects that can
+    be carried in the knapsack:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following result is returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The procedure followed so far does not indicate which subset provides the optimal
+    solution. We must extract this information by analyzing the last column of the
+    table (w = P); we will run through it from the last value to the top one:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'If the current element is the same as the previous one, let''s move on to the
+    next one; otherwise, the current object is included in the knapsack:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'If an element is inserted in the backpack, the column is obtained by subtracting
+    the current value of `w` from the weight relative to the selected object:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE30]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Finally, the items selected will be printed:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE31]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The results are shown in the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE32]'
+  prefs: []
+  type: TYPE_PRE
+- en: The DP algorithm allowed us to obtain the optimal solution, saving on computational
+    costs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next section, we will analyze a practical case; we will optimize the
+    navigation system of a robot.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Optimization of a robot navigation system
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: A robot is a machine that performs particular actions based on the commands
+    that are provided, either based on direct human supervision, or independently
+    based on general guidelines using the artificial intelligence processes. Robots
+    should be able to replace or assist humans with activities such as, manufacturing,
+    construction, handling heavy and dangerous materials in conditions not suitable
+    for humans, or simply to free a person from commitments.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A robot should be equipped with guided connections by feedback between perception
+    and action, and not by direct human control. The action can take the form of electromagnetic
+    motors, or actuators, that move a limb, open and close a gripper, or move the
+    robot. Step-by-step control and feedback are provided by a program that runs from
+    an external or internal robot computer, or from a microcontroller. Based on this
+    definition, the robot concept can include almost all automated devices.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Training an agent to move in an environment
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: To understand how the problems connected with the autonomous navigation of a
+    robot are tackled, we will begin with a broadly-based problem—the `gridworld`
+    problem. In these problems, the environment is defined as a simple 2D rectangular
+    grid of dimensions (N, M) with an agent starting from a grid square and trying
+    to move to another grid square located elsewhere. This environment is perfect
+    for the application of reinforcement learning algorithms to discover optimal routes
+    and policies for the agents on the grid to reach the desired target grid squares
+    in the fewest number of moves.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following diagram shows a 5 x 5 grid:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/725e3703-65b4-4651-91c5-45826b1d2643.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: The agent evolves while exploring the states. There were no terminals. The agent
+    can move {right, left, up, and down}. If the action takes the agent off the grid,
+    he remains in the same state, but a negative reward is applied. For all other
+    states (and actions) it is R = -2, except for the actions that move the agent
+    to the finish line. In this case, all four actions get R = +20 and bring the agent
+    to the final state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To better understand the context, we will only deal with the problem of a 2
+    x 2 grid with a wall that prohibits the passage from the 1st grid to the 4th,
+    as indicated in the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/53d3833c-7bc8-453c-bd47-49b2a51a1c49.png)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Our goal is to develop the best policy to reach cell C4 (end) starting from
+    cell C1 (start). The following code is an example of solving a gridworld problem:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE33]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We will analyze this code line by line. First, we loaded the library:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE34]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we set all possible actions:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE35]'
+  prefs: []
+  type: TYPE_PRE
+- en: Each action matrix is of the 4 x 4 type. In fact, it contains all the probabilities
+    from each state (represented by the lines) when it is possible to transit to another
+    state (represented by the columns). For example, the first row of the MoveUp matrix
+    contains all the probabilities that start from the state C1 it is possible to
+    pass in the other states with the action up. It is clear that in this state, with
+    this action, I can transit in the state C2\. In fact, the relative probability
+    is 0.7\. The second row of the same matrix contains the probabilities from the
+    state C2 passes to the other states with the action up, in which case the highest
+    probability is that it remains in this state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the next step, we will combine all actions defined in a list:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE36]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let''s define the rewards and penalties allowed for the problem according to
+    the hypothesis:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE37]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Before we move on, we have to check the format of the problem as we have defined.
+    We will use the `mdp_check()` function:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE38]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This function checks whether the MDP defined by the transition probability
+    array (`AllActions`) and the reward matrix (`AllRewards`) is valid. If `AllActions`
+    and `AllRewards` are correct, the function returns an empty error message. In
+    the opposite case, the function returns an error message describing the problem.
+    Let''s search the optimal policy for the navigation from C1 to C4:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE39]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The `mdp_policy_iteration()` function was used. This function applies the policy
+    iteration algorithm to solve discounted MDP. The algorithm consists in improving
+    the policy iteratively, using the evaluation of the current policy. Iterating
+    is stopped when two successive policies are identical or when a specified number
+    of iterations have been performed. Three arguments were passed:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`AllActions`: Transition probability array. This array can be a three-dimensional
+    array, or a list, each element containing a sparse matrix.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`AllRewards`: Reward array. This array can be a three-dimensional array or
+    a list, each element containing a sparse matrix or a two-dimensional matrix possibly
+    sparse.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`discount`: Discount factor. Discount is a real number between [0; 1].'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'At this point, we can recover the policy:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE40]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following results are returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE41]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'To better understand the policy, we can extract the names of the actions defined
+    with the policy:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE42]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following results are returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE43]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now we can extract the optimal values at each step. These values can be different
+    in each run:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE44]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following results are returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE45]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We talked about iterations. In fact, we can see in how many iterations the
+    algorithm has taken to reach convergence:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE46]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following results are returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE47]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Finally, we print the time of execution:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE48]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following result is returned:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE49]'
+  prefs: []
+  type: TYPE_PRE
+- en: The problem faced is trivial but allows us to understand how it must be addressed.
+    A larger grid must be treated in the same way unless it defines the matrices of
+    the actions and rewards that will be the greatest.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In this chapter, we have addressed the basics concepts of the optimization
+    techniques. To begin with, we learned the essential elements underlying DP. In
+    DP, we subdivide an optimization problem into simpler subproblems: we proceed
+    to calculate the solutions of all possible subproblems, and from these sub-solutions
+    we obtain new sub-solutions, and then solve the original problem.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Then we learned the difference between recursion and memoization. Subsequently,
+    we learned the basis of the knapsack problem. This problem was addressed through
+    three different approaches: brute force, greedy algorithms, and DP. For each approach,
+    a solution algorithm was provided and the results were compared.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Finally, the optimization of a navigation route was discussed. To handle autonomous
+    navigation of a robot, we learned to tackle the problem of searching for a path
+    in a gridworld. In this way, we have seen how to solve the problem of finding
+    the optimal policy to find the route.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will learn the basic concepts of forecasting techniques.
+  prefs: []
+  type: TYPE_NORMAL

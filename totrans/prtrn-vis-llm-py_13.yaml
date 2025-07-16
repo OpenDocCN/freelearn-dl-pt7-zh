@@ -1,0 +1,743 @@
+- en: '13'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Prompt Engineering
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In this chapter, we’ll dive into a special set of techniques called prompt
+    engineering. You’ll learn about this technique at a high level, including how
+    it is similar to and different from other learning-based topics covered throughout
+    this book. We’ll explore examples across vision and language and dive into key
+    terms and success metrics. In particular, this chapter covers all of the tips
+    and tricks for improving performance *without updating the model weights*. This
+    means we’ll be mimicking the learning process, without necessarily changing any
+    of the model parameters. This includes some advanced techniques such as prompt
+    and prefix tuning. We will cover the following topics in this chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Prompt engineering – the art of getting more with less
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: From few- to zero-shot learning
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Tips and tricks for text-to-image prompting
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Best practices for image-to-image prompting
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Prompting large language models
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Advanced techniques – prompt and prefix tuning
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Prompt engineering – the art of getting more with less
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: At this point in the book, and in your project, you should have a lot invested
+    in your new foundation model. From compute costs to datasets, custom code, and
+    research papers you’ve read, you might have spent a solid 50-100 hours or more
+    of your own time eking out performance gains. Kudos to you! It’s a great life
+    to live.
+  prefs: []
+  type: TYPE_NORMAL
+- en: After you’ve done this, however, and especially after you’ve learned how to
+    build a complete application around your model, it’s time to maximize your model’s
+    performance on inference. In the last chapter, we learned about multiple ways
+    to optimize your model’s runtime, from compilation to quantization and distillation
+    to distribution, and each of these is helpful in speeding up your inference results.
+    This entire chapter, however, is dedicated to getting the most accurate response
+    you can. Here, I use the word “accurate” heuristically to indicate any type of
+    model *quality* or *evaluation* metric. As you learned in the previous chapter
+    on evaluation, accuracy itself is a misleading term and frequently not your best
+    pick for an evaluation metric. Please see [*Chapter 10*](B18942_10.xhtml#_idTextAnchor152)
+    for more details
+  prefs: []
+  type: TYPE_NORMAL
+- en: Prompt engineering includes a set of techniques related to picking the best
+    input to the model for inference. Inference refers to getting a result out of
+    your model without updating the weights; think of it like just the forward pass
+    without any backpropagation. This is interesting because it’s how you can get
+    *predictions* out of your model. When you deploy your model, you’re deploying
+    it for inference.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Prompt engineering includes a huge swath of techniques. It includes things such
+    as *zero- and few-shot learning*, where we send multiple examples to the model
+    and ask it to complete the logical sequence. It includes picking the right hyperparameters.
+    It includes a lot of guessing and checking, testing your model results and figuring
+    out the best techniques for it.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For those of you who are hosting a generative AI model for end consumers outside
+    of your direct team, you might even consider standing up a client to handle prompt
+    engineering for you. This seems to be somewhat common in model playgrounds, where
+    not all the parameters and model invocation are directly exposed. As an app developer,
+    you can and should modify the prompts your customer is sending to your models
+    to ensure they get the best performance they can. This might include adding extra
+    terms to the invocation, updating the hyperparameters, and rephrasing the request.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let’s explore prompt engineering in more detail and its related skill, few-shot
+    learning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: From few- to zero-shot learning
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: As you’ll remember, a key model we’ve been referring back to is **GPT-3**, **Generative
+    Pretrained Transformers**. The paper that gave us the third version of this is
+    called *Language models are few shot learners*. *(1)* Why? Because the primary
+    goal of the paper was to develop a model capable of performing well without extensive
+    fine-tuning. This is an advantage because it means you can use one model to cover
+    a much broader array of use cases without needing to develop custom code or curate
+    custom datasets. Said another way, the unit economics are much stronger for zero-shot
+    learning than they are for fine-tuning. In a fine-tuning world, you need to work
+    harder for your base model to solve a use case. This is in contrast to a few-shot
+    world, where it’s easier to solve additional use cases from your base model. This
+    makes the few-shot model more valuable because the fine-tuning model becomes too
+    expensive at scale. While in practice fine-tuning solves problems more robustly
+    than few-shot learning, it makes the entire practice of prompt engineering very
+    attractive. Let’s look at a few examples in the following screenshot.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 13.1 – Few-shot learning examples from the GPT-3 paper](img/B18942_Figure_13_01.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 13.1 – Few-shot learning examples from the GPT-3 paper
+  prefs: []
+  type: TYPE_NORMAL
+- en: On the left-hand side, we see different options for inputs to the model on inference.
+    In the paper, they use the phrase “in-context learning,” referring to the fact
+    that in the dataset, there can be samples of a task definition and examples. These
+    repeated samples help the model learn both the name and the example of the learning.
+    Here, the name of the task, or the task description, is **Translate English to
+    French**. Then, we see examples of this, such as **sea otter -> loutre de mer**.
+    When you provide the name of the task to GPT-3, along with a few samples, it is
+    then able to respond quite well.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We call this **few-shot learning**. This is because we’re providing a few examples
+    to the model, notably more than one and less than a full dataset. I struggle with
+    using the word “learn” here, because technically, the model’s weights and parameters
+    aren’t being updated. The model isn’t changing at all, so arguably we shouldn’t
+    even use the word “learn.” On the other hand, providing these examples as input
+    ahead of time clearly improves the performance of the model, so from an output-alone
+    perspective perhaps we could use the word “learn.” In any case, this is the standard
+    terminology.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A similar example would then be **zero-shot learning**, where we provide no
+    examples to the model of how we expect it to complete its task, and hope it performs
+    well. This is ideal for open-domain question-answering, such as ChatGPT. However,
+    as many people have discovered, a model that performs well in a zero-shot learning
+    scenario can also be shown to perform well in a few-shot or even single-shot example.
+    All of these are useful techniques to understand large models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As we saw in *Figure 13**.1*, a natural comparison with this type of learning
+    is fine-tuning. In a fine-tuning approach, as we learned in [*Chapter 10*](B18942_10.xhtml#_idTextAnchor152),
+    we use the pretrained model as a base and train it again using a larger dataset
+    sample. Usually, this dataset sample will be supervised, but it is possible to
+    use unsupervised fine-tuning when necessary. In a language scenario, this supervision
+    might be classification, question answering, or summarization. In vision, you
+    might see new image and text pairs across any number of use cases: fashion, e-commerce,
+    image design, marketing, media and entertainment, manufacturing, product design,
+    and so on.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The most common progression would entail the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, try zero-shot learning with your model. Does it work perfectly out of
+    the box on every use case and edge scenario? Likely, it does in a few very narrow
+    cases but can use some help elsewhere.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Next, try single- and few-shot learning.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: If you give it a few examples of what you are looking for, does it figure it
+    out? Can it follow the prompts you provide and get a good response? If all else
+    fails, move on to fine-tuning. Go collect a dataset more specific to the use case
+    you want to enhance your model in and train it there. Interestingly, fine-tuning
+    seems to be much more successful in language-only scenarios. In vision, fine-tuning
+    very easily overfits or falls into *catastrophic forgetting*, where the model
+    loses its ability to hold onto the images and objects provided in the base dataset.
+    You may be better off exploring an image-to-image approach, which follows later.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, let’s learn a few best practices for prompt engineering across vision and
+    language.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Text-to-image prompt engineering tips
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'As we mentioned earlier in the book, Stable Diffusion is a great model you
+    can use to interact with via natural language and produce new images. The beauty,
+    fun, and simplicity of Stable Diffusion-based models are that you can be endlessly
+    creative in designing your prompt. In this example, I made up a provocative title
+    for a work of art. I asked the model to imagine what an image would look like
+    if it were created by Ansel Adams, a famous American photographer from the mid-twentieth
+    century known for his black-and-white photographs of the natural world. Here was
+    the full prompt: “*Closed is open” by Ansel Adams, high resolution, black and
+    white, award winning. Guidance (20)*. Let’s take a closer look.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 13.2 – An image generated by Stable Diffusion](img/B18942_Figure_13_02.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 13.2 – An image generated by Stable Diffusion
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the following list, you’ll find a few helpful tips to improve your Stable
+    Diffusion results:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Add any of the following words to your prompt**: *Award-winning, high resolution,
+    trending on <your favorite site here>, in the style of <your favorite artist here>,
+    400 high dpi*, and so on. There are thousands of examples of great photos and
+    their corresponding prompts online; a great site is lexica.art. Starting from
+    what works is always a great path. If you’re passionate about vision, you can
+    easily spend hours of time just pouring through these and finding good examples.
+    For a faster route, that same site lets you search for words as a prompt and renders
+    the images. It’s a quick way to get started with prompting your model.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Add negative prompts**: Stable Diffusion offers a negative prompt option,
+    which lets you provide words to the model that it will explicitly not use. Common
+    examples of this are hands, human, oversaturated, poorly drawn, and disfigured.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Upscaling**: While most prompting with Stable Diffusion results in smaller
+    images, such as size 512x512, you can use another technique, called upscaling,
+    to render that same image into a much larger, higher quality image, of size 1,024x1,024
+    or even more. Upscaling is a great step you can use to get the best quality Stable
+    Diffusion models today, both on SageMaker *(2)* and through Hugging Face directly.
+    *(3)* We’ll dive into this in a bit more detail in the upcoming section on image-to-image.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Precision and detail**: When you provide longer prompts to Stable Diffusion,
+    such as including more terms in your prompt and being extremely descriptive about
+    the types and styles of objects you’d like it to generate, you actually increase
+    your odds of the response being good. Be careful about the words you use in the
+    prompt. As we learned earlier in [*Chapter 11*](B18942_11.xhtml#_idTextAnchor167)
+    on bias, most large models are trained on the backbone of the internet. With Stable
+    Diffusion, for better or for worse, this means you want to use language that is
+    common online. This means that punctuation and casing actually aren’t as important,
+    and you can be really creative and spontaneous with how you’re describing what
+    you want to see.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Order**: Interestingly, the order of your words matters in prompting Stable
+    Diffusion. If you want to make some part of your prompt more impactful, such as
+    *dark* or *beautiful*, move that to the front of your prompt. If it’s too strong,
+    move it to the back.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Hyperparameters**: These are also relevant in language-only models, but let’s
+    call out a few that are especially relevant to Stable Diffusion.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Key hyperparameters for Stable Diffusion prompt engineering
+  prefs: []
+  type: TYPE_NORMAL
+- en: 1\. `guidance=20` on the second image, the model captures the stark contrast
+    and shadow fades that characterized Adams’ work. In addition, we get a new style,
+    almost like M. C. Escher, where the tree seems to turn into the floor.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '2\. **Seed**: This refers to an integer you can set to baseline your diffusion
+    process. Setting the seed can have a big impact on your model response. Especially
+    if my prompt isn’t very good, I like to start with the seed hyperparameter and
+    try a few random starts. Seed impacts high-level image attributes such as style,
+    size of objects, and coloration. If your prompt is strong, you may not need to
+    experiment heavily here, but it’s a good starting point.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '3\. **Width and height**: These are straightforward; they’re just the pixel
+    dimensions of your output image! You can use them to change the scope of your
+    result, and hence the type of picture the model generates. If you want a perfectly
+    square image, use 512x512\. If you want a portrait orientation, use 512x768\.
+    For a landscape orientation, use 768x512\. Remember you can use the upscaling
+    process we’ll learn about shortly to increase the resolution on the image, so
+    start with smaller dimensions first.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 4\. `steps` set to `50`. Increasing this number will also increase the processing
+    time. To get great results, personally, I like to scale this against guidance.
+    If you plan on using a very high guidance term (~16), such as with a killer prompt,
+    then I wouldn’t set inference steps to anything over 50\. This looks like it overfits,
+    and the results are just plain bad. However, if your guidance scale is lower,
+    closer to 8, then increasing the number of steps can get you a better result.
+  prefs: []
+  type: TYPE_NORMAL
+- en: There are many more hyperparameters to explore for Stable Diffusion and other
+    text-to-image diffusion models. For now, let’s explore techniques around image-to-image!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Image-to-image prompt engineering tips
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: A fascinating trend in generative AI, especially when prompting the model, is
+    *image-to-image*. This covers a broad array of techniques that let you bring an
+    image when you invoke the model. The response will then incorporate your source
+    image into the response, letting you more concretely determine what response the
+    model will provide. This is incredibly helpful for increasing the resolution of
+    the images, adding a mask, or even introducing objects to then seamlessly format
+    into the output image in any context.
+  prefs: []
+  type: TYPE_NORMAL
+- en: These core capabilities are possible through a technique introduced in early
+    2022 *(4)*, called **Stochastic Differential Equations Edit** (**SDEdit**), which
+    uses stochastic differential equations to make image synthesis and editing a lot
+    easier. While it sounds a bit intimidating, it’s actually very intuitive. It lets
+    you add a source image to your pretrained diffusion model and use that base image
+    as inspiration. How? Through iteratively adding and removing noise in a variety
+    of ways until the final result meets your preferred criteria. SDEdit improved
+    on its predecessor, GAN-based methods, by up to 98% on realism and 91% on human
+    satisfaction scores.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let’s explore the ways we can use this enhanced image-to-image technique while
+    prompting with your diffusion models!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Upscaling
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: As mentioned earlier, this is a simple and fast way to increase the resolution
+    of your images. When prompting the model, you can enhance a low-resolution image
+    along with other parameters to increase quality. You have a built-in option for
+    this with SageMaker JumpStart *(5)*, and you also have a full upscaling pipeline
+    available through Hugging Face directly.*(6)* This can take another textual prompt
+    in addition to the source image.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Masking
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Another interesting technique when prompting diffusion models is **masking**.
+    A mask is simply a set of pixels that covers a given area in a photo: mountains,
+    cars, humans, dogs, and any other type of object present in the images. How do
+    you find a pixel map? These days, honestly, an easy way might be to start with
+    Meta’s new **Segment Anything Model** *(***SAM***)*. *(7)* You can upload an image
+    and ask the model to generate a pixel map for anything in that image.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once you have a mask, you can send it to a Stable Diffusion image to generate
+    a new image inside of the mask. Classic examples of this are changing the styles
+    of clothing that people seem to be wearing. You can extract the area of a photo
+    with clothing using either SAM or open source CV tools, render the mask, and then
+    send the mask to Stable Diffusion. It will generate a new image, combining the
+    original with a newly generated twist to fill in the area of the mask.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For a nice and simple end-to-end example of this, check out one I just found
+    on GitHub! *(8)*
+  prefs: []
+  type: TYPE_NORMAL
+- en: Prompting for object-to-image with DreamBooth
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Unlike the previous methods we looked at in the previous sections, DreamBooth
+    *(9)* does not use the underlying SDEdit method. Instead, it uses a handful of
+    input images and runs a type of fine-tuning process, combined with textual guidance,
+    to place the source object from all of the input images into the target scene
+    generated by the model. The technique uses two loss functions, one to preserve
+    the previous class learned by the pretrained model and another to reconstruct
+    the new object into the final image.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This means arguably, it’s not a prompting technique; it’s closer to a fine-tuning
+    technique. However, I’m including it here because I find the intention more similar
+    to masking than to creating a net-new model, but that is actually the outcome.
+    Let’s take a closer look at the DreamBooth loss function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![](img/B18942_Figure_13_03.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 13.3 – The DreamBooth loss function
+  prefs: []
+  type: TYPE_NORMAL
+- en: Figure 13.3 - Dreambooth prior-preserving loss function
+  prefs: []
+  type: TYPE_NORMAL
+- en: DreamBooth is a great open source solution you can use to take any object you
+    like and place it onto any background of your choice! Next, let’s learn about
+    some techniques you can use to improve your prompts for language models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Prompting large language models
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'I’ve said this before: I am a huge fan and big advocate of Hugging Face. I’ve
+    learned a lot about **natural language processing** (**NLP**) from and with them,
+    so I’d be remiss if I didn’t call out their book as a great source for prompt
+    engineering tips and techniques. *(10)* Most of those practices center around
+    picking the right hyperparameters for your model, with each type of model offering
+    slightly different results.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: However, I would argue that the rise of ChatGPT has now almost completely thrown
+    that out of consideration. In today’s world, the extremely accurate performance
+    of OpenAI’s model raises the bar for all NLP developers, pushing us to deliver
+    comparable results. For better or worse, there is no going back. Let’s try to
+    understand how to prompt our **large language models** (**LLMs**)! We’ll start
+    with instruction fine-tuning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Instruction fine-tuning
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: First, it’s helpful to really understand the difference between a model that
+    has been *instruction fine-tuned* and one that has not. As we learned in [*Chapter
+    10*](B18942_10.xhtml#_idTextAnchor152) on fine-tuning, instruction fine-tuning
+    refers to a supervised fine-tuning step that uses instructions provided to the
+    model, such as “Tell me the difference between a mimosa and a samosa,” and pairs
+    these with an answer, something such as “While a mimosa is an alcoholic drink
+    combining champagne with orange juice, a samosa is an Indian pastry filled with
+    either vegetables or meat, and commonly with a potato filling.” The model then
+    explicitly learns what it means to follow instructions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This matters for prompting LLMs because it will completely change your prompting
+    style. If you’re working with an LLM that has already been instruction fine-tuned,
+    you can jump right into zero-shot performance and immediately have it execute
+    tasks for you seamlessly. If not, you will probably need to add some examples
+    to your prompt, that is, few-shot learning, to encourage it to respond in the
+    way you want it to.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once you’ve sorted out this key difference, it’s helpful to also spend some
+    time trying out the model of your choice. They have nuances; some of them look
+    for different tokens and separators, while others respond well to keywords and
+    phrases. You want to get to know and test your LLM, and prompt engineering is
+    a great way to do that. Another style to learn is *chain-of-thought prompting*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Chain-of-thought prompting
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Even if you are working with a model that performs well in zero-shot cases,
+    such as one that has received instruction fine-tuning, as we discussed previously,
+    you may still come across use cases where you need to add some examples in the
+    prompt to get the desired output. A great example of this is chain-of-thought
+    prompting. Chain-of-thought prompting refers to prompting the model *to demonstrate
+    how it* *arrives at an answer*. This is extremely valuable in scenarios where
+    explainability is critical, such as explaining why an LLM makes stylistic updates
+    or classification decisions. Imagine you are using LLMs in legal scenarios, for
+    example, and you’d like the LLM to update the language in a legal document. When
+    you prompt it as follows, instead of simply providing the answer, the model can
+    explain step by step how it came to a given conclusion. This logical clarity helps
+    most users have more trust in the system, helping them understand and trust that
+    the suggestions made by the model are valid.
+  prefs: []
+  type: TYPE_NORMAL
+- en: It also in many cases helps with accuracy! This is because most LLMs are inherently
+    auto-regressive; they’re very good at predicting which word is most likely to
+    come next in a given string. When you prompt them into a chain of thought, you’re
+    pushing them to generate thought by thought, keeping them closer to the truth.
+    Let’s take a closer look at this visually, using the following graphic from the
+    original paper. *(11)*
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 13.4 – Chain-of-thought prompting](img/B18942_Figure_13_04.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 13.4 – Chain-of-thought prompting
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you can see, on the left-hand side, we’re still doing some few-shot learning,
+    but the answer provided in the prompt is simple. It only answers the question,
+    full-stop. On the right-hand side, however, we prompt the model by providing an
+    answer that *rephrases the question*. Now, the answer starts with re-generating
+    a quick summary of the information provided in the question, then taking exactly
+    one logical leap to output the correct answer. You can see that the model on the
+    left-hand side fails to answer correctly, while the one on the right is correct.
+    Actually, the model itself is the same, but the only difference here is the prompt.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For a model that has been instruction fine-tuned, you can also trigger a chain-of-thought
+    performance with a statement such as “walk me through step by step how to...”.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summarization
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'This is possibly the most common LLM scenario I see today: summarizing call
+    transcripts, documents, and more. Summarization is now very easy with top LLMs.
+    Simply paste as much of your document into the LLM as you can, based on the model’s
+    context length, and add *Summarize*: at the bottom of the prompt. Some models
+    will vary; you can also add *TL;DR*, *in summary*:, or any similar variant. Will
+    they all work perfectly? No way. Will they catch absolutely everything? Absolutely
+    not. Will they occasionally hallucinate? Without a doubt. How do we mitigate that?
+    Fine-tuning, extensive validation, entity recognition, and auditing.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Defending against prompt injections and jailbreaking
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: One technique to consider in prompting your model is *how sensitive it is to
+    jailbreaking*. As we learned in [*Chapter 11*](B18942_11.xhtml#_idTextAnchor167)
+    on detecting and mitigating bias, jailbreaking refers to malicious users prompting
+    your model to engage in harmful behavior. This might be like asking your model
+    to tell a rude joke about certain groups of people, asking it for instructions
+    about theft, or asking its opinion about certain politicians or social groups.
+    Please anticipate that in every LLM application, at least some of your users will
+    try to jailbreak your model to see whether they can trick it into behaving poorly.
+    A parallel method is **prompt injection**, where users can maliciously trick your
+    model into responding with IP from your dataset, from your prompt set, or anything
+    else from your instruction list.
+  prefs: []
+  type: TYPE_NORMAL
+- en: How can you defend against this? One way is with supervised fine-tuning. Anthropic
+    maintains a large dataset of red-teamed data, available on Hugging Face here.
+    *(12)* Please proceed with caution; the words used in this dataset are extremely
+    graphic and may be triggering to some readers. Personally, I find it hard to study
+    even a few lines of this dataset. As a supervised fine-tuning technique, or even,
+    as suggested by Anthropic, as a reinforcement learning with human feedback technique,
+    you can fine-tune your model to reject anything that looks malicious or harmful.
+  prefs: []
+  type: TYPE_NORMAL
+- en: On top of this, you can *add classifiers to your application ingest*. This means
+    as your app is taking in new questions from your users, you can easily add extra
+    machine learning models to detect any malicious or odd behavior in these questions
+    and circumvent the answer. This gives you a lot of control over how your app responds.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we’ve learned about some basic techniques for prompting LLMs, let’s
+    look at a few advanced techniques!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Advanced techniques – prefix and prompt tuning
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: You might be wondering; isn’t there some sophisticated way to use optimization
+    techniques and find the right prompt, without even updating the model parameters?
+    The answer is yes, there are many ways of doing this. First, let’s try to understand
+    **prefix tuning**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Prefix tuning
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: This technique was proposed *(13)* by a pair of Stanford researchers in 2021
+    specifically for text generation. The core idea, as you can see in the following
+    diagram from their paper, is that instead of producing a net-new model for each
+    downstream task, a less resource-intensive option is to create a simple vector
+    for each task itself, called the prefix.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 13.5 – Prefix tuning](img/B18942_Figure_13_05.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 13.5 – Prefix tuning
+  prefs: []
+  type: TYPE_NORMAL
+- en: The core idea here is that instead of fine-tuning the entire pretrained transformer
+    for each downstream task, let’s try to update just a single vector for that task.
+    Then, we don’t need to store all of the model weights; we can just store that
+    vector!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Arguably, this technique is similar to one we briefly touched on in [*Chapter
+    10*](B18942_10.xhtml#_idTextAnchor152)*, Fine-Tuning and Evaluating.* This technique
+    injects trainable weights into an LLM, letting us learn just the new parameters
+    rather than updating the entire model itself. I find prefix tuning interesting
+    because we’re not really touching the model architecture at all; we’re just learning
+    this basic object right at the start.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Why should you learn about this? Because, as the Stanford team shows, this method
+    uses only 0.1% of the parameters of the full model yet gives performance comparable
+    to fine-tuning the entire model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'How can you get started with prefix tuning? Using the new library from our
+    friends at Hugging Face! They’re building an open source library to make all kinds
+    of parameter-efficient fine-tuning available here: [https://github.com/huggingface/peft](https://github.com/huggingface/peft).
+    Prefix tuning is certainly available.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fortunately, the example for general PEFT, coming from the inimitable Phill
+    Schmid, seems quite accessible here. *(14)* With some specialized data preprocessing
+    and custom model configs, you too can add this to your scripts.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, let’s look at prompt tuning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Prompt tuning
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: As we’ve seen, finding the right prompt is quite challenging. Usually, they
+    are built on discrete words in human natural language and can require a fair amount
+    of manual iteration to trick the model into providing the expected answer. In
+    Google’s 2021 ACL paper *(15)* introducing this concept, they proposed ”soft prompts”
+    that are learnable through backpropagation. Thankfully, this incorporates the
+    signal from any number of labeled examples, simplifying the prefix-tuning approach
+    proposed previously.
+  prefs: []
+  type: TYPE_NORMAL
+- en: With prompt tuning, we freeze the entire pretrained model but allow an extra
+    *k* tunable tokens per each downstream task to be added to the input text. These
+    are then considered soft tokens, or signals learned by the model to recognize
+    each downstream task. You can see this in the diagram from their paper shown here.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 13.6 – Prompt tuning](img/B18942_Figure_13_06.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 13.6 – Prompt tuning
+  prefs: []
+  type: TYPE_NORMAL
+- en: Similar to prefix tuning, using prompt tuning, we still freeze the foundation
+    model weights. We are also still adding some new, learnable items to the input
+    dataset mixed with a variety of downstream task data samples. The key difference
+    is that instead of learning full blocks for the model, we learn new, machine-readable
+    tokens. That means the tokens themselves should change after the gradient updating,
+    signaling something the model recognizes as basically a trigger for that type
+    of downstream task. If you are working on scenarios where parameter-efficient
+    fine-tuning isn’t an option, such as where the model is completely obscured to
+    you, then prefix or prompt tuning maybe be a good option to explore. Both techniques
+    are available in the relevant Hugging Face library, `peft`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, let’s close out the chapter with a quick summary.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we introduced the concept of prompt engineering. I’d define
+    that as everything that ekes out accuracy gains from your model without updating
+    the weights of the model itself. Said another way, this is the art of getting
+    more with less. We walked through few-shot learning, where you send a few examples
+    of your desired inference results to the model, to zero-shot learning, where you
+    hope to get a response from the model without any prior information. Needless
+    to say, consumers tend to strongly prefer zero-shot learning. We covered a few
+    tips and tricks for prompting text-to-image models, especially how to get good
+    performance out of the open source Stable Diffusion. We learned about image-to-image
+    prompting, where you can pass images to your diffusion-based models to produce
+    a new image using an intersection. We also learned about prompting LLMs, including
+    the implications of instruction fine-tuning, chain-of-thought prompting, summarization,
+    and defending against prompt injections and jailbreaking. Finally, we introduced
+    a few advanced techniques, including prompt and prefix tuning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, let’s get started on [*Chapter 14*](B18942_14.xhtml#_idTextAnchor217),
+    which is on MLOps for vision and LLMs!
+  prefs: []
+  type: TYPE_NORMAL
+- en: References
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Please go through the following content for more information on some topics
+    covered in the chapter:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Language Models are Few-Shot Learners: [https://arxiv.org/pdf/2005.14165.pdf](https://arxiv.org/pdf/2005.14165.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Upscale images with Stable Diffusion in Amazon SageMaker JumpStart: [https://aws.amazon.com/blogs/machine-learning/upscale-images-with-stable-diffusion-in-amazon-sagemaker-jumpstart/](https://aws.amazon.com/blogs/machine-learning/upscale-images-with-stable-diffusion-in-amazon-sagemaker-jumpstart/)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'stabilityai/stable-diffusion-x4-upscaler Copied: [https://huggingface.co/stabilityai/stable-diffusion-x4-upscaler](https://huggingface.co/stabilityai/stable-diffusion-x4-upscaler)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'SDEDIT: GUIDED IMAGE SYNTHESIS AND EDITING WITH STOCHASTIC DIFFERENTIAL EQUATIONS:
+    [https://arxiv.org/pdf/2108.01073.pdf](https://arxiv.org/pdf/2108.01073.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Upscale images with Stable Diffusion in Amazon SageMaker JumpStart: [https://aws.amazon.com/blogs/machine-learning/upscale-images-with-stable-diffusion-in-amazon-sagemaker-jumpstart/](https://aws.amazon.com/blogs/machine-learning/upscale-images-with-stable-diffusion-in-amazon-sagemaker-jumpstart/)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Hugging Face: [https://huggingface.co/stabilityai/stable-diffusion-x4-upscaler](https://huggingface.co/stabilityai/stable-diffusion-x4-upscaler
+    )'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Segment Anything: [https://arxiv.org/pdf/2304.02643.pdf](https://arxiv.org/pdf/2304.02643.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'amrrs/stable-diffusion-prompt-inpainting: [https://github.com/amrrs/stable-diffusion-prompt-inpainting/blob/main/Prompt_based_Image_In_Painting_powered_by_ClipSeg.ipynb](https://github.com/amrrs/stable-diffusion-prompt-inpainting/blob/main/Prompt_based_Image_In_Painting_powered_by_ClipSeg.ipynb)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'DreamBooth: Fine Tuning Text-to-Image Diffusion Models for Subject-Driven Generation:
+    [https://arxiv.org/pdf/2208.12242.pdf](https://arxiv.org/pdf/2208.12242.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'nlp-with-transformers/website: [https://github.com/nlp-with-transformers/website](https://github.com/nlp-with-transformers/website)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Chain-of-Thought Prompting Elicits Reasoning in Large Language Models: [https://arxiv.org/pdf/2201.11903.pdf](https://arxiv.org/pdf/2201.11903.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Hugging Face: [https://huggingface.co/datasets/Anthropic/hh-rlhf](https://huggingface.co/datasets/Anthropic/hh-rlhf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Prefix-Tuning: Optimizing Continuous Prompts for Generation: [https://arxiv.org/pdf/2101.00190.pdf](https://arxiv.org/pdf/2101.00190.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'huggingface/notebooks: [https://github.com/huggingface/notebooks/blob/main/sagemaker/24_train_bloom_peft_lora/scripts/run_clm.py](https://github.com/huggingface/notebooks/blob/main/sagemaker/24_train_bloom_peft_lora/scripts/run_clm.py)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The Power of Scale for Parameter-Efficient Prompt Tuning: [https://aclanthology.org/2021.emnlp-main.243.pdf](https://aclanthology.org/2021.emnlp-main.243.pdf)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[https://arxiv.org/pdf/1902.00751.pdhttps://arxiv.org/pdf/1902.00751.pd](https://arxiv.org/pdf/1902.00751.pdhttps://arxiv.org/pdf/1902.00751.pd)'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL

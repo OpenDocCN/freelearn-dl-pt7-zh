@@ -1,0 +1,3208 @@
+- en: 7\. Temporal Difference Learning
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Overview
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we will be introduced to **Temporal Difference** (**TD**) learning
+    and focus on how it develops the ideas of the Monte Carlo methods and dynamic
+    programming. TD learning is one of the key topics in the field and studying it
+    allows us to have a deep understanding of reinforcement learning and how it works
+    at the most fundamental level. A new perspective will allow us to see MC methods
+    as a particular case of TD ones, unifying the approach and extending their applicability
+    to non-episodic problems. By the end of this chapter, you will be able to implement
+    the **TD(0)**, **SARSA**, **Q-learning**, and **TD(λ)** algorithms and use them
+    to solve environments with both stochastic and deterministic transition dynamics.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Introduction to TD Learning
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: After having studied dynamic programming and Monte Carlo methods in the previous
+    chapters, in this chapter, we will focus on temporal difference learning, one
+    of the main stepping stones of reinforcement learning. We will start with their
+    simplest formulation, that is, the one-step methods, and we will build on them
+    to create their most advanced formulation, which is based on the eligibility traces
+    concept. We will see how this new approach allows us to frame TD and MC methods
+    under the same derivation idea, giving us the ability to compare the two. Throughout
+    this chapter, we will implement many different flavors of TD methods and apply
+    them to the FrozenLake-v0 environment under both the deterministic and the stochastic
+    environment dynamics. Finally, we will solve the stochastic version of FrozenLake-v0
+    with an off-policy TD method known as Q-learning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Temporal difference learning, whose name derives from the fact that it uses
+    differences in state (or state-actions pairs) values between subsequent timesteps
+    to learn, can be considered a central idea in the field of reinforcement learning
+    algorithms. It shares some important aspects with the methods we studied in previous
+    chapters – in fact, just like those methods, it learns through experience, with
+    no need to have a model (like Monte Carlo methods do), and it "bootstraps," meaning
+    it learns how to use information it's acquired before reaching the end of the
+    episode (like dynamic programming methods do).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'These differences are strictly related to the advantages that TD methods offer
+    with respect to MC and DP ones: it doesn''t need a model of the environment and
+    it can be applied with a greater generality with respect to DP methods. Its ability
+    to bootstrap, on the other hand, makes TD more suited for tasks with very long
+    episodes and the only solution for non-episodic ones – to which Monte Carlo methods
+    cannot be applied. As an example of a long-term or non-episodic task, think of
+    an algorithm that is used to grant user access to a server that''s rewarded every
+    time the first user in the queue is assigned to a resource and receiving zero
+    reward if user access is not granted. The queue typically never ends, so this
+    is a continuing task that has no episodes.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As seen in previous chapters, the exploration versus exploitation trade-off
+    is a very important subject, and again also in the case of temporal difference
+    algorithms. They fall into two main classes: on-policy and off-policy methods.
+    As we saw in the previous chapters, in on-policy methods, the same policy that
+    is learned is used to explore the environment, while in off-policy ones, the two
+    can be different: one if used for exploration, while the other one is the target
+    to be learned. In the following sections, we will address the general problem
+    of estimating the state value function for a given policy. Then, we will see how,
+    by building upon it, we can obtain a complete RL algorithm to train both on-policy
+    and off-policy methods to find the optimal policy for a given problem.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's start with our first steps in the temporal difference methods world.
+  prefs: []
+  type: TYPE_NORMAL
+- en: TD(0) – SARSA and Q-Learning
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'TD methods are model-free, meaning they do not need a model of the environment
+    to learn a state value representation. For a given policy, ![1](img/B16182_07_00a.png),
+    they accumulate experience associated with it and update their estimate of the
+    value function for every state encountered during the corresponding experience.
+    In doing so, TD methods update a given state value, visited at time `t`, using
+    the value of state (or states) encountered at the next few time steps, so for
+    time `t+1`, `t+2`, ..., `t+n`. An abstract example is as follows: an agent is
+    initialized in the environment and starts interacting with it by following a given
+    policy, without any knowledge of what results are generated by which action. Following
+    a certain number of steps, the agent will eventually reach a state associated
+    with a reward. This reward signal is used to increment the values of previously
+    visited states (or action-state pairs) with the TD learning rule. In fact, those
+    states have allowed the agent to reach the goal, so they are to be associated
+    with a high value. Repeating this process over and over will allow the agent to
+    build a complete and meaningful value map of all states (or state-action pairs)
+    so that it will exploit this acquired knowledge to select the best actions, thereby
+    leading to states associated with a reward.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: This means that TD methods do not have to wait until the end of the episode
+    to improve their policy; instead, they can build upon values of states they encounter,
+    and the learning process can start right after initialization.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this section, we will focus on the so-called one-step method, also named
+    TD(0). In this method, the only value considered to build the update for a given
+    state value function is the one found at the next time step, nothing else. So,
+    for example, the value function update for a state at time `t` looks as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.1: Value function update for a state at time ''t'''
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_01.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.1: Value function update for a state at time ''t'''
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here, ![2](img/B16182_07_01a.png) is the next state where the environment transitioned,
+    ![b](img/B16182_07_01b.png) is the reward obtained in the transition, ![c](img/B16182_07_01c.png)
+    is the learning rate, and ![d](img/B16182_07_01d.png) is the discount factor.
+    It is clear how TD methods "bootstrap": in order to update the value function
+    for a state `(t)`, they use the current value function for the next state `(t+1)`
+    without waiting until the end of the episode. It is worth noting that the quantity
+    between square brackets in the previous equation can be interpreted as an error
+    term. This error term measures the difference between the estimated value of state
+    St and the new, better estimate, ![e](img/B16182_07_01e.png) . This quantity is
+    called the TD error, and we will encounter it many times in RL theory:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.2: TD error at time ''t'''
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_02.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.2: TD error at time ''t'''
+  prefs: []
+  type: TYPE_NORMAL
+- en: This error is specific for the given time it has been calculated at, and it
+    depends on the values at the next time step (that is, the error at time t depends
+    on the values at time `t+1`).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'One important theory result for TD methods is their proof of convergence: in
+    fact, it has been demonstrated that, for any fixed policy, ![f](img/B16182_07_02a.png),
+    the algorithm TD(0) described in the preceding equation converges to the state
+    (or action-state pair) value function, ![i](img/B16182_07_02b.png). Convergence
+    is reached for a constant step size parameter, provided it is sufficiently small,
+    and with probability `1` if the step size parameter decreases according to some
+    specific (but easy to comply with) stochastic approximation conditions. These
+    proofs mainly apply to the tabular version of the algorithm, which are the versions
+    used for RL theory introduction and understanding. These deal with problems in
+    which states and actions spaces are of limited dimensions so that they can be
+    exhaustively represented by a finite combination of variables.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: However, the majority of these proofs can be easily extended to algorithm versions
+    that rely on approximations when they are composed by general linear functions.
+    These approximated versions are used when states and actions spaces are so large
+    that they cannot be represented by a finite combination of variables (for example,
+    when the state space is the space of RGB images).
+  prefs: []
+  type: TYPE_NORMAL
+- en: So far, we have been dealing with state value functions. In order to approach
+    the problem of temporal difference control, we need to learn a state-action value
+    function rather than a state-value function. In fact, in this way, we will be
+    able to associate a value with state-action pairs, thereby building a value map
+    that can then be used to define our policy. How we implement this specifically
+    depends on the method class. First, let's take a look at the on-policy approach,
+    which is implemented by the so-called SARSA algorithm, and then the off-policy
+    one, which is implemented by the so-called Q-learning algorithm.
+  prefs: []
+  type: TYPE_NORMAL
+- en: SARSA – On-Policy Control
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'For an on-policy method, the goal is to estimate ![j](img/B16182_07_02c.png),
+    that is, the state-action value function for the current behavior policy, ![k](img/B16182_07_02d.png),
+    for all states and all actions. To do so, we simply need to apply the equation
+    we saw for the state-value function to the state-action function. Since the two
+    cases are identical (both being Markov chains with a reward process), the theorems
+    stating the convergence of the state-value function to the one corresponding to
+    the optimal policy (and so, solving the problem of finding the optimal policy)
+    are valid in this new setting, where the value function regards state-action pairs.
+    The update equation takes the following form:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.3: State-action value function at time ''t'''
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_03.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.3: State-action value function at time ''t'''
+  prefs: []
+  type: TYPE_NORMAL
+- en: This update is supposedly performed after every transition from a non-terminal
+    state, ![a](img/B16182_07_03a.png). If ![b](img/B16182_07_03b.png) is a terminal
+    state, then the ![c](img/B16182_07_03c.png) value is set equal to `0`. As we can
+    see, the update rule uses every element of the quintuple ![d](img/B16182_07_03d.png),
+    which explains the transition from one state-action pair to the next, with the
+    reward associated with the transition. This quintuple, written in this form, is
+    the reason why the name **SARSA** was given to this algorithm.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Using these elements, it is straightforward to design an on-policy control
+    algorithm based on them. As we mentioned previously, all on-policy methods estimate
+    ![g](img/B16182_07_03e.png) for the behavior policy, ![h](img/B16182_07_03f.png),
+    and at the same time, update ![formula](img/B16182_07_03g.png) based on ![formula](img/B16182_07_03h.png).
+    A scheme for the SARSA control algorithm can be depicted as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Choose the algorithm parameters; that is, the step size, ![formula](img/B16182_07_03i.png),
+    which has to be contained in the interval `(0, 1]`, and the `ε` parameter of the
+    ε-greedy policy, which has to be small and greater than 0, since it represents
+    the probability of choosing the non-optimal action to favor exploration. This
+    can be done with the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Initialize ![formula](img/B16182_07_03j.png), for all values of ![formula](img/B16182_07_03k.png),
+    ![formula](img/B16182_07_03l.png), arbitrarily, except that Q(terminal, ·) = 0,
+    as shown by the following code snippet, in the case of an environment with `16`
+    states and `4` actions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a loop for each episode. Initialize ![formula](img/B16182_07_03m.png)
+    and choose ![formula](img/B16182_07_03n.png) from ![formula](img/B16182_07_03o.png)
+    using the policy derived from Q (for example, ε-greedy). This can be done using
+    the following snippet, where the initial state is provided by the environment
+    `reset` function and the action is selected using a dedicated ε-greedy function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a loop for each step of the episode. Take action ![formula](img/B16182_07_03p.png)
+    and observe ![formula](img/B16182_07_03q.png). Choose ![formula](img/B16182_07_03r.png)
+    from ![formula](img/B16182_07_03s.png) using the policy derived from Q (for example,
+    ε-greedy). Update the state-action value function for the selected state-action
+    pair using the SARSA rule, which defines the new value as the sum of the current
+    one, plus the TD error multiplied by the step size, ![formula](img/B16182_07_03t.png),
+    as depicted in the following expression:![Figure 7.4: Updating the state-action
+    value function using the SARSA rule'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_04.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 7.4: Updating the state-action value function using the SARSA rule'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Then, update the state-action pair with the new one using ![formula](img/B16182_07_04a.png)
+    until ![formula](img/B16182_07_04b.png) is a terminal state. All of this is done
+    using the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The steps and code for this algorithm were originally developed and outlined
+    by *Sutton, Richard S. Introduction to Reinforcement Learning. Cambridge, Mass:
+    MIT Press, 2015*.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The SARSA algorithm can converge to an optimal policy and an optimal action-value
+    function with probability equal to `1` under the following conditions:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: All the state-action pairs need to be visited an infinite number of times.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The policy converges in the limit to the greedy policy, which can be achieved
+    with ε-greedy policies where `ε` vanishes in time (this can be done by setting
+    `ε = 1/t`).
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'This algorithm makes use of the ε-greedy algorithm. We will explain this in
+    more detail in the next chapter, so we will only briefly recall what it is here.
+    When learning policies by means of state-action value functions, the value associated
+    with the state-action pairs is used to decide which is the best action to take.
+    At convergence, the best action is chosen among the available ones for a given
+    state, and we opt for the one that has the highest value: this is the greedy approach.
+    This means that for every given state, the same action will always be chosen (if
+    no actions have the same value). This is not a good choice for exploration, especially
+    at the beginning of training. For this reason, the ε-greedy approach is preferred
+    in this phase: the best action is chosen with a probability equal to `1-ε`, while
+    in the other cases, a random action is selected. By making `ε` diminishing, the
+    ε-greedy approach becomes the greedy one in the limit as the number of steps approaches
+    infinity.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In order to consolidate these concepts, let's apply the SARSA control algorithm
+    right away. The following exercise will show you how to implement TD(0) SARSA
+    to solve the FrozenLake-v0 environment, using its deterministic version first.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The goal here is to see how the SARSA algorithm is able to recover the optimal
+    policy, which we humans can estimate in advance, for a given configuration of
+    the problem. Before jumping into it, let's quickly recap what the frozen lake
+    problem is and the optimal policy we aim to make the agent find. The agent sees
+    a grid world whose dimension is 4 x 4\.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The grid has a starting position, `S` (upper left-hand side), frozen tiles,
+    `F`, holes, `H`, and a goal, `G` (lower right). The agent is rewarded with +1
+    when it reaches the terminal goal state, while the episode ends without a reward
+    if it reaches the terminal states constituted by the holes. The following table
+    represents the environment:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.5: The FrozenLake-v0 environment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_05.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.5: The FrozenLake-v0 environment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As you can see in the preceding diagram, `S` is the starting position, `F`
+    indicates frozen tiles, `H` means holes, and `G` is the goal. For the deterministic
+    environment, the optimal policy is the one that allows the agent to reach the
+    goal in the shortest possible time. To be 100% precise, in this case, since, in
+    this specific environment, no penalty for intermediate steps is applied, there
+    is no need for the optimal path to be the shortest one. Every path that eventually
+    leads to the goal is equally optimal in terms of cumulative expected reward. However,
+    we will see that by appropriately using the discount factor, we will be able to
+    recover the optimal policy, which also accounts for the shortest path. Under this
+    condition, the optimal policy is represented in the following diagram, where each
+    of the four moves (Down, Right, Left, and Up) are represented by their initial
+    letter. There are two tiles for which two actions would result in the same optimal
+    path:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.6: Optimal policy'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_06.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.6: Optimal policy'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the preceding diagram, `D` denotes Down, `R` denotes Right, `U` denotes Up,
+    and `L` denotes Left.`!` stands for the goal, and `–` refers to the holes in the
+    environment.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We will use a decreasing `ε` value in order to anneal the exploration from large
+    to small, thereby making it become, in the limit, greedy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This type of exercise is very useful when learning about classic reinforcement
+    learning algorithms. Being tabular (this is a grid world example, meaning it can
+    be represented by a 4x4 grid) allows us to keep track of everything that's happening
+    in the domain, easily follow state-actions pairs values being updated during algorithm
+    iterations, look at action choices according to the selected policy, and converge
+    to the optimal policy. In this chapter, you will learn how to code a reference
+    algorithm in the RL landscape and get deep hands-on experience with all these
+    fundamental aspects.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let's now move on to the implementation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Exercise 7.01: Using TD(0) SARSA to Solve FrozenLake-v0 Deterministic Transitions'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In this exercise, we will implement the SARSA algorithm and use it to solve
+    the FrozenLake-v0 environment, where only deterministic transitions are allowed.
+    This means we will look for (and actually find) the optimal policy to retrieve
+    the frisbee in this environment.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following steps will help you to complete this exercise:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Import the required modules:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Instantiate the `gym` environment called `FrozenLake-v0`. Set the `is_slippery`
+    flag to `False` to disable its stochasticity:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Take a look at the action and the observation spaces:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This will print out the following:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create two dictionaries to easily translate action numbers into moves:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Reset the environment and render it to be able to take a look at the grid problem:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 7.7: Environment''s initial state'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_07.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 7.7: Environment''s initial state'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Visualize the optimal policy for this environment:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This represents the optimal policy for this environment, showing, for each
+    of the environment states represented in the 4x4 grid, the optimal action among
+    the four available: *move Up*, *move Down*, *move Right*, and *move Left*. Except
+    for two states, all the others have a single optimal action associated with them.
+    In fact, as described previously, optimal actions here are those that bring the
+    agent to the goal using the shortest possible path. Two different possibilities
+    result in the same path length for two states, so they are both equally optimal.'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Define functions to take ε-greedy actions. The first function implements the
+    ε-greedy policy with a probability of `1 - ε`. The chosen action is the one with
+    the highest value associated with the state-action pair; otherwise, a random action
+    is returned. The second function simply makes the first callable when it''s passed
+    as an argument by using a `lambda` function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define a function to take greedy actions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Now, define a function that will calculate the mean of the agent''s performances.
+    First, we''ll define the number of episodes used to calculate the average performance
+    (in this case, `500`), and then execute all these episodes in a loop. We''ll reset
+    the environment and start the in-episode loop to do so. We then select an action
+    according to the policy that we want to measure the performance of, step through
+    the environment with the chosen action, and finally add the reward to the accumulated
+    returns. We repeat these environment steps until the episode is complete:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Set the number of total episodes and number of steps specifying how often the
+    agent''s average performance is estimated, as well as the `ε` parameters, which
+    determine its decrease. Use the starting value, minimum value, and range (in terms
+    of the number of episodes) over which the decrease is spread:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define the SARSA training algorithm as a function. In this step, the Q-table
+    is initialized. All the values are equal to `1`, but the values at terminal states
+    are set equal to `0`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Start a `for` loop among all the episodes:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Inside the loop, first, the epsilon value is defined, depending on the current
+    episode number:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Next, the environment is reset, and the first action is chosen with an ε-greedy
+    policy:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Then, we start an in-episode loop:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Inside the loop, the environment is stepped throughout using the selected action
+    and the new state and the reward, and the done conditions are retrieved:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Select a new action with the ε-greedy policy, update the Q-table with the SARSA
+    TD(0) rule, and update the state and action with their new values:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Finally, the agent''s average performance is estimated:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'It may be useful to provide a brief description of the `ε` parameter''s decrease.
+    This is determined by three parameters: the starting value, minimum value, and
+    decrease range (called `epsilon_annealing_stop`). They are used in the following
+    way: `ε` starts at the starting value, and then it is decreased linearly across
+    the number of episodes defined by the parameter''s "range" until it reaches the
+    minimum value, which is then kept constant.'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Define an array that will collect all agent performance evaluations during
+    training and the execution of SARSA TD(0) training:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Plot the SARSA agent''s average reward history during training:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This generates the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The plot for this can be visualized as follows. This shows the learning progress
+    of the SARSA algorithm:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 7.8: Average reward of an epoch trend over training epochs'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_08.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 7.8: Average reward of an epoch trend over training epochs'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: As we can see, SARSA's performance grows over time as the `ε` parameter is annealed,
+    thus reaching the value of `0` in the limit, thereby obtaining the greedy policy.
+    This also demonstrates that the algorithm is capable of reaching 100% success
+    after learning.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Evaluate the greedy policy''s performance of the trained agent (Q-table):'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Display the Q-table values:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE30]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: This output shows the values of the complete state-action value function for
+    our problem. These values are then used to generate the optimal policy by means
+    of the greedy selection rule.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Print out the greedy policy that was found and compare it with the optimal
+    policy. Having calculated the state-action value function, we are able to retrieve
+    the greedy policy from it. In fact, as explained previously, the greedy policy
+    chooses the action that, for a given state, is associated with the maximum value
+    of the Q-table. For this purpose, we are using the `argmax` function. When applied
+    to each of the 16 states (from 0 to 15), it returns the index of the four actions
+    (from 0 to 3) with the highest associated value for that state. Here, we also
+    directly output the label associated with the action index using the pre-built
+    dictionary:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE31]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output is as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE32]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: As the preceding output shows, the TD(0) SARSA algorithm we implemented has
+    been able to successfully learn the optimal policy for this task just by interacting
+    with the environment and collecting experience of it through episodes and then
+    adopting the SARSA state-action pair value function update rule that was defined
+    in the *SARSA – On-Policy Control* section. In fact, as we can see, for every
+    state of the environment, the greedy policy that was obtained with the Q-table
+    calculated by our algorithm prescribes an action that is in accordance with the
+    optimal policy that was defined for analyzing the environment problem. As we already
+    saw, there are two states in which there are two equally optimal actions and the
+    agent correctly implements one of them.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: To access the source code for this specific section, please refer to [https://packt.live/3fJBLBh](https://packt.live/3fJBLBh).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also run this example online at [https://packt.live/30XeOXj](https://packt.live/30XeOXj).
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Stochasticity Test
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Now, let''s take a look at what happens if the stochasticity is enabled in
+    the FrozenLake-v0 environment. Enabling the stochasticity for this task means
+    that every transition for a selected action is no longer deterministic. In particular,
+    for a given action, there is a one in three chances that the action is executed
+    as intended and 2 out of 3 equally distributed chances (1/3 and 1/3 each) for
+    the two neighboring actions. Zero probability is assigned to the action in the
+    opposite direction. So, for example, if the Down action is set, the agent will
+    move down 1/3 of the time, move right 1/3 of the time, and move left the remaining
+    1/3 of the time, never going up, as shown in the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.9: Percentages for the resulting states if the Down action'
+  prefs: []
+  type: TYPE_NORMAL
+- en: is taken from the central tile
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_09.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.9: Percentages for the resulting states if the Down action is taken
+    from the central tile'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The environment setting is the very same as it was for the FrozenLake-v0 deterministic
+    case we saw previously. Again, we want the SARSA algorithm to recover the optimal
+    policy. This can be estimated in advance in this case as well. Just to make the
+    reasoning for this easier, here''s the table representing this environment:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.10: Problem setting'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_10.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.10: Problem setting'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the preceding diagram, `S` is the starting position, `F` indicates frozen
+    tiles, `H` indicate the holes, and `G` is the goal. For the stochastic environment,
+    the optimal policy is very different with respect to the one that corresponds
+    to the deterministic case, and it may even appear counter-intuitive. The key point
+    is that in order to keep the possibility of obtaining a reward alive, our only
+    chance is to avoid falling into the holes. Since there is no penalty for intermediate
+    steps, we can keep going around for as long as we need to. And the only certain
+    way to do so is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Move in the opposite direction of the hole we find next to us, even if this
+    means moving away from the goal.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Avoid, in every possible way, falling into those tiles where there is a chance
+    greater than 0 of falling into a hole:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 7.11: Environment setup (A), action executed by the agent (B), and
+    chances of ending near the starting state in each position (C)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_11.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.11: Environment setup (A), action executed by the agent (B), and chances
+    of ending near the starting state in each position (C)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: For example, let's consider the first tile on the left, in the second row from
+    the top, in our problem setting, as shown in table `B` in the preceding diagram.
+    In the deterministic case, the optimal action was to go down because it would
+    bring us closer to the goal. In this case, instead, the best action to choose
+    is to move left, even if moving left means bouncing into the wall. This is because
+    moving left is the only action that won't make us fall into the hole. In addition,
+    there is a 33% probability that we will end up in the tile on the third row from
+    above, thereby getting closer to the goal.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: The preceding behavior follows a standard boundary implementation. In that tile,
+    you execute the action "Move Left" (which is a completely legal action) and the
+    environment will understand that this results in "bouncing." The algorithm simply
+    sends a "move left" action to the environment, which, in turn, will take the prescribed
+    action into account.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Similar reasoning can be applied to all the other tiles while keeping the key
+    point mentioned previously in mind. However, it is worth discussing a very peculiar
+    case – one that''s the only reason why we cannot achieve 100% success, even with
+    the optimal policy:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.12: Environment setup (A), "Move to the Left" action executed by
+    the agent (B), and chances of ending near the starting state in each position
+    (C)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_12.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.12: Environment setup (A), "Move to the Left" action executed by the
+    agent (B), and chances of ending near the starting state in each position (C)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, let's take a look at the third tile from the left in the second row from
+    the top in our problem setting, as shown in table B in the preceding diagram.
+    This tile is between two holes, so there is no way to take an action that is 100%
+    safe. Here, the best action is actually to move toward either the left or the
+    right hole! This is because by moving left or right, we have a 66% chance of moving
+    up or down, and only a 33% chance of falling into the hole. Moving up or down
+    means we would have a 66% chance of moving right or left, falling into the hole,
+    and only a 33% chance of actually moving up or down. And since this tile is the
+    reason why we cannot achieve maximum performance 100% of the time, the best thing
+    is to avoid reaching that tile. In order to do so, optimal actions of the very
+    first row, apart from the starting tile, are all pointing up so that it is not
+    possible to land on the problematic tile.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'All other values are constrained by the hole''s proximity, except for the tile
+    on the left of the goal: the optimal action choice for this tile is to move down
+    since it maintains the chance of landing in the goal, while at the same time avoiding
+    landing in the tile above it, where, in turn, the agent would be forced to move
+    left to avoid the hole, thus risking landing on the tile between the two holes.
+    The optimal policy is summarized in the following diagram:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.13: Optimal policy'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_13.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.13: Optimal policy'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The preceding diagram displays the optimal policy of the environment explained
+    previously, where `D` denotes a Down move, `R` denotes a Right move, `U` denotes
+    an Up move, and `L` denotes a Left move.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the following example, we will use the SARSA algorithm to solve this new
+    flavor of the FrozenLake-v0 environment. In order to obtain the optimal policy
+    we just described, we need to adjust our hyperparameters – in particular, the
+    discount factor, ![a](img/B16182_07_13a.png). In fact, we want to give the agent
+    the freedom to make however many steps they need to. In order to do so, we have
+    to propagate the value of the goal backward so that all the trajectories in the
+    goal will benefit from it, even if those trajectories are not the shortest ones.
+    For this reason, we will use a discount factor equal (or very close) to `1`. In
+    code, this means that instead of using `gamma = 0.9,` we will use `gamma = 1`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, let's see our SARSA algorithm working in this stochastic environment.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Exercise 7.02: Using TD(0) SARSA to Solve FrozenLake-v0 Stochastic Transitions'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In this exercise, we'll use the TD(0) SARSA algorithm to solve the FrozenLake-v0
+    environment, with stochastic transitions enabled. As we just saw, the optimal
+    policy looks completely different with respect to the previous exercise since
+    it needs to take care of the stochasticity factor. This imposes a new challenge
+    for the SARSA algorithm, and we will see how it will still be able to solve this
+    task. This exercise will show us how these sound TD methods are able to deal with
+    different challenges, demonstrating a notable robustness.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Follow these steps to complete this exercise:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Import the required modules:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE33]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Instantiate the `gym` environment called `FrozenLake-v0` using the `is_slippery`
+    flag set to `True` in order to enable stochasticity:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE34]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Take a look at the action and the observation spaces:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE35]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE36]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create two dictionaries to easily map the `actions` indices (from `0` to `3`)
+    to the labels (Left, Down, Right, and Up):'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE37]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Reset the environment and render it to take a look at the grid problem:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE38]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 7.14: Environment''s initial state'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_14.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 7.14: Environment''s initial state'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Visualize the optimal policy for this environment:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE39]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE40]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: This represents the optimal policy for this environment. Except from two states,
+    all the other ones have a single optimal action associated with them. In fact,
+    as described previously, optimal actions here are those that bring the agent away
+    from the holes or from tiles that have a chance greater than zero of leading the
+    agent to tiles placed near holes. Two states have multiple optimal actions associated
+    with them that are all equally optimal, as intended for this task.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Define functions that will take ε-greedy actions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE41]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The first function implements the ε-greedy policy: with a probability of `1
+    – ε`, the chosen action is the one with the highest value associated with the
+    state-action pair; otherwise, a random action is returned. The second function
+    simply makes the first callable when passed as an argument using a `lambda` function.'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Define a function that will take greedy actions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE42]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define a function that will calculate average agent performance:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE43]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Set the number of total episodes, the number of steps representing the interval
+    by which the agent''s average performance is evaluated and the `ε` parameters,
+    ruling its decrease, that is, the starting value, minimum value, and range (in
+    terms of the number of episodes) over which the decrease is spread:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE44]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define the SARSA training algorithm as a function. Initialize the Q-table with
+    all the values equal to `1`, but with the values at terminal states set equal
+    to `0`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE45]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Start a loop among all episodes:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE46]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Inside the loop, first, define the epsilon value, depending on the current
+    episode number. Reset the environment and make sure that the first action is chosen
+    with an ε-greedy policy:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE47]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Then, start an in-episode loop:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE48]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Inside the loop, step throughout the environment using the selected action
+    and ensure that the new state, the reward, and the done conditions are retrieved:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE49]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Select a new action with the ε-greedy policy, update the Q-table with the SARSA
+    TD(0) rule, and ensure that the state and action are updated with their new values:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE50]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Finally, estimate the agent''s average performance:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE51]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'It may be useful to provide a brief description of the `ε` parameter''s decrease.
+    It is ruled by three parameters: starting value, minimum value, and decrease range.
+    They are used in the following way: `ε` starts at the starting value, and then
+    it is decreased linearly across the number of episodes defined by the parameter''s
+    "range" until it reaches the minimum value, which is then kept constant.'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Define an array that will collect all agent performance evaluations during
+    training and the execution of SARSA TD(0) training:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE52]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Plot the SARSA agent''s mean reward history during training:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE53]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This generates the following output, showing the learning progress for the
+    SARSA algorithm:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE54]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The plot will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 7.15: Average reward of an epoch trend over training epochs'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_15.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 7.15: Average reward of an epoch trend over training epochs'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: This plot clearly shows us how the performance of the SARSA algorithm improves
+    over epochs, even when stochastic dynamics are considered. The sudden performance
+    drop around 60k epochs is completely normal when dealing with methods in which
+    random exploration plays a major role, and especially when random transition dynamics
+    are part of the environment, as in this case.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Evaluate the greedy policy''s performance regarding the trained agent (Q-table):'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE55]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE56]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Display the Q-table values:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE57]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The following output will be generated:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE58]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: This output shows the values of the complete state-action value function for
+    our problem. These values are then used to generate the optimal policy by means
+    of the greedy selection rule.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Print out the greedy policy that was found and compare it with the optimal
+    policy. Having calculated the state-action value function, we are able to retrieve
+    the greedy policy from it. In fact, as explained previously, the greedy policy
+    chooses the action that, for a given state, is associated with the maximum value
+    of the Q-table. For this purpose, we are using the `argmax` function. When applied
+    to each of the 16 states (from 0 to 15), it returns the index of the action that,
+    among the four available (from 0 to 3), has the highest associated value for that
+    state. Here, we also directly output the label associated with the action index
+    using the pre-built dictionary:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE59]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE60]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: As you can see, as in the previous exercise, our algorithm has been able to
+    find the optimal policy by simply exploring the environment, and even in the context
+    of stochastic environment transitions. As anticipated, for this setting, it is
+    not possible to achieve the maximum reward 100% of the time. In fact, as we can
+    see, for every state of the environment the greedy policy obtained with the Q-table
+    that is calculated by our algorithm, it prescribes an action that is in accordance
+    with the optimal policy that was defined by analyzing the environment problem.
+    As we already saw, there are two states in which there are many different actions
+    that are equally optimal, and the agent correctly implements one of them.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: To access the source code for this specific section, please refer to [https://packt.live/3eicsGr](https://packt.live/3eicsGr).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also run this example online at [https://packt.live/2Z4L1JV](https://packt.live/2Z4L1JV).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we've become familiar with on-policy control, it is time for us to
+    change track and look at off-policy control, an early breakthrough in reinforcement
+    learning dating back to 1989 known as Q-learning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Q-learning algorithm was first formulated by *Watkins in Mach Learn 8, 279–292
+    (1992)*. Here, we are presenting only an intuitive understanding, along with a
+    brief mathematical description of it. For a much more detailed mathematical discussion,
+    please refer to the original paper at [https://link.springer.com/article/10.1007/BF00992698](https://link.springer.com/article/10.1007/BF00992698).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Q-Learning – Off-Policy Control
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Q-learning is a name that identifies the family of off-policy control temporal
+    difference algorithms. From a mathematical/implementation point of view, the only
+    difference compared with on-policy algorithms is in the rule used to update the
+    Q-table (or function for approximated methods), which is defined as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.16: Function for approximated methods'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_16.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.16: Function for approximated methods'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The key point regards how the action for the next state, ![a](img/B16182_07_16a.png),
+    is chosen. In fact, choosing the action with the maximum state-action value directly
+    approximates what happens when the optimal Q value is found and the optimal policy
+    is followed. Moreover, it is independent of the policy used to collect experience
+    while interacting with the environment. The exploration policy can be entirely
+    different to the optimal one; for example, it can be an ε-greedy policy to encourage
+    exploration, and, under some easy-to-satisfy assumptions, it has been proven that
+    Q converges to the optimal values.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In *Chapter 9, What Is Deep Q-Learning?*, you will look at the extension of
+    this approach to non-tabular methods where we use deep neural networks as function
+    approximators. This method is called deep Q-learning. A scheme for the Q-learning
+    control algorithm can be depicted as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Choose the algorithm parameters: the step size, ![d](img/B16182_07_16b.png),
+    which has to be contained in the interval (0, 1], and the `ε` parameter of the
+    ε-greedy policy, which has to be small and greater than `0` since it represents
+    the probability of choosing the non-optimal action in order to favor exploration:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE61]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Initialize ![b](img/B16182_07_16c.png), for all ![c](img/B16182_07_16d.png),
+    ![e](img/B16182_07_16e.png), arbitrarily, except that Q(terminal, *) = 0:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE62]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a loop among all episodes. In the loop, initialize `s`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE63]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a loop for each step of the episode. Within that loop, choose ![g](img/B16182_07_16f.png)
+    from ![f](img/B16182_07_16g.png) using the policy derived from Q (for example,
+    ε-greedy):'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE64]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Taking action, ![h](img/B16182_07_16h.png), observe ![i](img/B16182_07_16i.png).
+    Update the state-action value function for the selected state-action pair using
+    the Q-learning rule, which defines the new value as the sum of the current one,
+    plus the off-policy-specific TD error multiplied by the step size, ![j](img/B16182_07_16j.png).
+    This can be expressed as follows:![Figure 7.17: Expression for the updated state-action
+    value function'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_17.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 7.17: Expression for the updated state-action value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The preceding explanation translates into code as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE65]'
+  prefs: []
+  type: TYPE_PRE
+- en: As we can see, we just substituted the random choice of the action to be taken
+    on the new state with the action associated with the maximum q-value. This (apparently)
+    minor change, which can be easily implemented by adapting the SARSA algorithm,
+    has a relevant impact on the nature of the method. We'll see it at work in the
+    following exercise.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Exercise 7.03: Using TD(0) Q-Learning to Solve FrozenLake-v0 Deterministic
+    Transitions'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In this exercise, we'll implement the TD(0) Q-learning algorithm to solve the
+    FrozenLake-v0 environment, where only deterministic transitions are allowed. In
+    this exercise, we will consider the same task of retrieving the frisbee with the
+    optimal policy we addressed in *Exercise 7.01, Using TD(0) SARSA to Solve FrozenLake-v0
+    Deterministic Transitions*, but this time, instead of using the SARSA algorithm
+    (on-policy), we will implement Q-learning (off-policy). We will see how this algorithm
+    behaves and train ourselves in implementing a new approach to estimate a q-value
+    table by means of recovering an optimal policy for our agent.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Follow these steps to complete this exercise:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Import the required modules, as follows:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE66]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Instantiate the `gym` environment called `FrozenLake-v0` using the `is_slippery`
+    flag set to `False` in order to disable stochasticity:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE67]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Take a look at the action and the observation spaces:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE68]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE69]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create two dictionaries to easily translate the `actions` numbers into moves:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE70]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Reset the environment and render it to take a look at the grid problem:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE71]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 7.18: Environment''s initial state'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_18.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 7.18: Environment''s initial state'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Visualize the optimal policy for this environment:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE72]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE73]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This represents the optimal policy for this environment and shows, for each
+    of the environment states represented in the 4x4 grid, the optimal action among
+    the four available: move Up, move Down, move Right, and move Left. Except for
+    two states, all the others have a single optimal action associated with them.
+    In fact, as described previously, optimal actions here are those that bring the
+    agent to the goal in the shortest possible path. Two different possibilities result
+    in the same path length for two states, so they are both equally optimal.'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Next, define functions that will take ε-greedy actions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE74]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define a function that will take greedy actions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE75]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define a function that will calculate the mean of the agent''s performance:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE76]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Initialize the Q-table so that all the values equal `1`, except for the values
+    at terminal states:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE77]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Set the number of total episodes, the number of steps representing the interval
+    by which we evaluate the agent''s average performance, the learning rate, the
+    discounting factor, and the `ε` value for the exploration policy and define an
+    array to collect all agent performance evaluations during training:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE78]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Train the agent using the Q-learning algorithm: the external loop takes care
+    of generating the desired number of episodes. Then, the in-episode loop completes
+    the following steps: first, it selects an exploration action with an ε-greedy
+    policy, then the environment is stepped with the selected exploration action,
+    and the `new_s`, `reward`, and `done` condition are retrieved. The new action
+    for the new state is selected with the greedy policy, the Q-table is updated with
+    the Q-learning TD(0) rule, and the state is updated with the new value. Every
+    predefined number of steps, the agent''s average performance is estimated:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE79]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Plot the Q-learning agent''s mean reward history during training:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE80]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This generates the following output, showing the learning progress of the Q-learning
+    algorithm:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE81]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The plot will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 7.19: Average reward of an epoch trend over training epochs'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_19.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 7.19: Average reward of an epoch trend over training epochs'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: As we can see, the plot shows how quickly Q-learning performance grows over
+    epochs as the agent collects more and more experience. It also demonstrates that
+    the algorithm is capable of reaching 100% success after learning. It's also evident
+    how, in this case, compared to the SARSA method, the measured algorithm performance
+    increases steadily and much faster.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Evaluate the greedy policy''s performance of the trained agent (Q-table):'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE82]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE83]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Display the Q-table values:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE84]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The following output will be generated:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE85]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: This output shows the values of the complete state-action value function for
+    our problem. These values are then used to generate the optimal policy by means
+    of the greedy selection rule.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Print out the greedy policy that was found and compare it with the optimal
+    policy:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE86]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE87]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: As these outputs demonstrate, the Q-learning algorithm has been able to retrieve
+    the optimal policy too, just like SARSA did in *Exercise 07.01, Using TD(0) SARSA
+    to solve FrozenLake-v0 Deterministic Transitions*, only by means of experience
+    and interaction with the environment.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As we can see, for every state of the grid world the greedy policy obtained
+    with the Q-table calculated by our algorithm, this prescribes an action that is
+    in accordance with the optimal policy that was defined by analyzing the environment
+    problem. As we already saw, there are two states in which there are many different
+    actions that are equally optimal, and the agent correctly implements one of them.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: To access the source code for this specific section, please refer to [https://packt.live/2AUlzym](https://packt.live/2AUlzym).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also run this example online at [https://packt.live/3fJCnH5](https://packt.live/3fJCnH5).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As for SARSA, it would be interesting to see how Q-learning behaves if we turn
+    on stochastic transitions. This will be the goal of the activity at the end of
+    this chapter. The procedure that the two algorithms follow is the very same one
+    we adopted with SARSA: the same Q-learning algorithm used for the deterministic
+    transition case is applied, and you are expected to adapt hyperparameters (especially
+    the discount factor and the number of episodes) until you obtain convergence to
+    the optimal policy under the stochastic transition dynamics.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To complete the landscape of TD(0) algorithms, we will introduce another specific
+    approach that''s obtained by applying very simple modifications of the previous
+    ones: Expected SARSA.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Expected SARSA
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Now, let''s consider a learning algorithm that is quite similar to Q-learning,
+    with the only difference being the substitution of the maximum over next state-action
+    pairs with the expected value. This is computed by taking into account the probability
+    of each action under the current policy. This modified algorithm can be represented
+    by the following update rule:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.20: State-action value function update rule'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_20.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.20: State-action value function update rule'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The additional computational complexity with respect to SARSA provides the
+    advantage of eliminating variance due to the random selection of `A`t+1, which
+    is a very powerful trick for improving learning and robustness considerably. It
+    can be used both in an on-policy and off-policy fashion, thus becoming an abstraction
+    of both SARSA and Q-learning with, in general, a performance that dominates both
+    of them. An example of the update rule''s implementation is provided in the following
+    snippet:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE88]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the preceding code, the `pi` variable contains all the probabilities for
+    each action in each state. The dot product involving `pi` and `q` is the operation
+    needed to compute the expected value for the new state, taking into account all
+    the actions for that state with their respective probabilities.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we've studied the TD(0) methods, let's start learning about the N-step
+    TD and TD(λ) algorithms.
+  prefs: []
+  type: TYPE_NORMAL
+- en: N-Step TD and TD(λ) Algorithms
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In the previous chapter, we looked at Monte Carlo methods, while in the previous
+    sections of this chapter, we learned about TD(0) ones, which, as we will discover
+    soon, are also known as one-step temporal difference methods. In this section,
+    we''ll unify them: in fact, they are at the extreme of a spectrum of algorithms
+    (TD(0) on one side, with MC methods at the other end), and often, the best performing
+    methods are somewhere in the middle of this spectrum.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: N-step temporal difference algorithms extend one-step TD methods. More specifically,
+    they generalize Monte Carlo and TD approaches, making it possible to smoothly
+    transition between the two. As we already saw, MC methods must wait until the
+    episode finishes to back the reward up into the previous states. One-step TD methods,
+    on the other hand, make direct use of the first available future step to bootstrap
+    and start updating the value function of states or state-action pairs. These extremes
+    are rarely the optimal choices. The optimal choices generally fall in the middle
+    of this broad range. Using N-step methods allows us to adjust the number of steps
+    to consider when updating the value function, thereby distributing the bootstrapping
+    approach to multiple steps.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A similar notion can be recalled in the context of eligibility traces, but they
+    are more general, allowing us to distribute and spread bootstrapping over multiple
+    time intervals at the same time. These two topics will be treated separately for
+    clarity and, so as to enable you to build your knowledge incrementally, we will
+    start with N-step methods first, before moving on to eligibility traces.
+  prefs: []
+  type: TYPE_NORMAL
+- en: N-Step TD
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'As we have already seen for one-step TD methods, the first step to approaching
+    the N-step method is to focus on the estimation of the state-value function for
+    sample episodes generated using the policy, ![a](img/B16182_07_20a.png). We already
+    recalled that the Monte Carlo algorithm must wait until the end of an episode
+    before performing an update by using the entire sequence of rewards from a given
+    state. On the other hand, one-step methods just need the next reward. N-step methods
+    use an intermediate rule: instead of relying on just the next reward, or on all
+    future rewards until the episode ends, they use a value in between these two.
+    For example, a three-steps update would use the first three rewards and the estimated
+    state value reached three steps ahead. This can be formalized for a generic number
+    of steps.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: This approach gives birth to a family of methods that are still temporal difference
+    ones since they use the N-steps that were encountered after the target state to
+    update its value. It is clear that the methods that we encountered at the beginning
+    of this chapter are a special case of N-step methods. For this reason, they are
+    called "one-step TD methods."
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In order to define them more formally, we can consider the estimated value
+    of the state, ![a](img/B16182_07_20b.png) as a result of the state-reward sequence,
+    ![b](img/B16182_07_20c.png), ![c](img/B16182_07_20d.png), ![d](img/B16182_07_20e.png),
+    ![e](img/B16182_07_20f.png), ..., ![f](img/B16182_07_20g.png), ![g](img/B16182_07_20h.png)
+    (except the actions). In MC methods, this estimate is updated only once the episode
+    is complete, and in one-step methods, right after the next step. In N-step methods,
+    on the other hand, the state-value estimate is updated after N-steps using a quantity
+    that discounts `n` future rewards and the value of the state encountered after
+    N-steps in the future. This quantity, called N-step return, can be defined in
+    an expression, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.21: N-step return equation (with the state-value function)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_21.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.21: N-step return equation (with the state-value function)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'A key point to note here is that in order to calculate this N-step return,
+    we have to wait to reach the time `t+1` so that all the terms in the equation
+    are available. By using the N-step return, it is straightforward to formalize
+    the state-value function update rule, as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.22: Expression for the natural state-value learning algorithm'
+  prefs: []
+  type: TYPE_NORMAL
+- en: for using N-step returns
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_22.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.22: Expression for the natural state-value learning algorithm for
+    using N-step returns'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Note that the values of all the other states remain unchanged, as shown in
+    the following expression:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.23: Expression specifying that all the other values are kept constant'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_23.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.23: Expression specifying that all the other values are kept constant'
+  prefs: []
+  type: TYPE_NORMAL
+- en: This is the equation that formalizes the N-step TD algorithm. It is worth noting
+    again that no changes are made during the first `n-1` steps before we can estimate
+    the N-step return. This needs to be compensated for at the end of the episode,
+    when the remaining `n-1` updates are performed all at once after reaching the
+    terminal state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Similar to what we already saw for TD(0) methods, and without talking about
+    this in too much data, the state-value function estimation of the N-step TD methods
+    converges to the optimal value under appropriate technical conditions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: N-step SARSA
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'It is quite straightforward to extend the SARSA algorithm, which we looked
+    at when we introduced one-step methods, to its N-step version. As we did previously,
+    the only thing we need to do is substitute the state-action pairs for states in
+    the value function''s N-step return and in the update formulations just seen,
+    coupling them with an ε-greedy policy. The definition of the N-step return (update
+    targets) can be described by the following equation:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.24: N-step return equation (with the state-action value function)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_24.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.24: N-step return equation (with the state-action value function)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here, ![a](img/B16182_07_24a.png) if ![b](img/B16182_07_24b.png). The update
+    rule for the state-action value function is expressed as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.25: Update rule for the state-action value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_25.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.25: Update rule for the state-action value function'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Note that the values of all the other state-action pairs remain unchanged:
+    ![c](img/B16182_07_25a.png), for all values of `s`, so that ![d](img/B16182_07_25b.png)
+    or ![e](img/B16182_07_25c.png). A scheme for the N-step SARSA control algorithm
+    can be depicted as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Choose the algorithm''s parameters: the step size, ![f](img/B16182_07_25d.png),
+    which has to be contained in the interval (0, 1], and the `ε` parameter of the
+    ε-greedy policy, which has to be small and greater than `0` since it represents
+    the probability of choosing the non-optimal action to favor exploration. A value
+    for the number of steps, `n`, has to be chosen. This can be done, for example,
+    with the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE89]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Initialize ![g](img/B16182_07_25e.png), for all ![h](img/B16182_07_25f.png),
+    ![i](img/B16182_07_25g.png), arbitrarily, except that Q(terminal, ·) = 0:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE90]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a loop for each episode. Initialize and store the S0 ≠ terminal. Select
+    and store an action using the ε-greedy policy and initialize time, `T`, as a very
+    high value:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE91]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a loop for t = 0, 1, 2, .... If t < T, then perform action ![j](img/B16182_07_25h.png).
+    Observe and store the next reward as ![k](img/B16182_07_25i.png) and the next
+    state as ![l](img/B16182_07_25j.png) If ![m](img/B16182_07_25k.png) is terminal,
+    then set `T` equal to `t+1`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE92]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'If ![n](img/B16182_07_25l.png) is not terminal, select and store a new action
+    for the new state:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE93]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define the time for which the estimate is being updated, `tau`, equal to `t-n+1`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE94]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'If `tau` is greater than 0, calculate the N-step return by summing the discounted
+    returns of the previous n steps and adding the discounted value of the next step-next
+    action pair and update the state-action value function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE95]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: With a few minor changes, this can easily be extended to accommodate Expected
+    SARSA as well. As seen previously in this chapter, it only requires us to substitute
+    the expected approximate value of the state using the estimated action values
+    at time, t, under the target policy at the last step of the N-steps. When the
+    state in question is terminal, its expected approximate value is defined as 0.
+  prefs: []
+  type: TYPE_NORMAL
+- en: N-Step Off-Policy Learning
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: To define off-policy learning for N-step methods, we will be taking very similar
+    steps as the ones we did for one-step methods. The key point is that, as in all
+    off-policy methods, we are learning the value function for a policy, ![a](img/B16182_07_25m.png),
+    while following a different exploration policy; say, `b`. Typically, ![b](img/B16182_07_25n.png)
+    is the greedy policy for the current state-action value function estimate, and
+    b has more randomness so that it effectively explores the environment; for example,
+    ε-greedy. The main difference with respect to what we already saw for one-step
+    off-policy methods is that now, we need to take into account the fact that we
+    are selecting actions using a different policy than the one we want to learn,
+    and we are doing it for more than one step. So, we need to properly weigh the
+    selected actions measuring the relative probability under the two policies of
+    taking those actions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'By means of this correction, it is possible to define the rule for a simple
+    off-policy version of N-step TD: the update for time `t` (actually made at time
+    `t + n`) can simply be weighted by ![c](img/B16182_07_25o.png):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.26: N-step TD off-policy update rule at time ''t'''
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_26.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.26: N-step TD off-policy update rule at time ''t'''
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here, `V` is the value function, ![e](img/B16182_07_26a.png) is the step size,
+    `G` is the N-step return, and ![d](img/B16182_07_26b.png) is called the importance
+    sampling ratio. The importance sampling ratio is the relative probability under
+    the two policies of taking `n` actions from ![f](img/B16182_07_26c.png) to ![f](img/B16182_07_26d.png),
+    which can be expressed as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.27: Sampling ratio equation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_27.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.27: Sampling ratio equation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Here, ![i](img/B16182_07_27a.png) is the agent policy, ![g](img/B16182_07_27b.png)
+    is the exploration policy, ![h](img/B16182_07_27c.png) is the action, and ![h](img/B16182_07_27d.png)
+    is the state.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'By this definition, it is evident that actions that would never be selected
+    under the policy we want to learn (that is, their probability is `0`) would be
+    ignored (weight equal to 0). If, on the other hand, an action under the policy
+    we are learning has more probability with respect to the exploratory policy, the
+    weight assigned to it should be higher than `1` since it will be encountered more
+    often. It is also evident that for the on-policy case, the sampling ratio is always
+    equal to `1`, given the fact that ![b](img/B16182_07_27e.png) and ![b](img/B16182_07_27f.png)
+    are the same policy. For this reason, the N-step SARSA on-policy update can be
+    seen as a special case of the off-policy update. The general form of the update,
+    from which it is possible to derive both on-policy and off-policy methods, is
+    as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.28: State-action value function for the off-policy N-step TD algorithm'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_28.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.28: State-action value function for the off-policy N-step TD algorithm'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As you can see, ![a](img/B16182_07_28a.png) is the state-action value function,
+    ![b](img/B16182_07_28b.png) is the step size, ![c](img/B16182_07_28c.png) is the
+    N-step return, and ![d](img/B16182_07_28d.png) is the importance sampling ratio.
+    The scheme for the full algorithm is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Select an arbitrary behavior policy, ![e](img/B16182_07_28e.png), so that the
+    probability for each action of each state is greater than 0 for all states and
+    actions. Choose the algorithm parameters: the step size, ![f](img/B16182_07_28f.png),
+    which has to be contained in the interval (0, 1], and a value for the number of
+    steps, `n`. This can be done, for example, with the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE96]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Initialize ![h](img/B16182_07_28g.png), for all ![g](img/B16182_07_28h.png),
+    ![h](img/B16182_07_28i.png), arbitrarily, except that Q(terminal, ·) = 0:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE97]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Initialize the policy, ![i](img/B16182_07_28j.png), to be greedy with respect
+    to Q, or to a fixed given policy. Create a loop for each episode. Initialize and
+    store the S0 ≠ terminal. Select and store an action using the b policy and initialize
+    time, `T`, as a very high value:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE98]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a loop for t = 0, 1, 2, .... If t < T, then perform action ![k](img/B16182_07_28k.png).
+    Observe and store the next reward as ![j](img/B16182_07_28l.png) and the next
+    state as ![l](img/B16182_07_28m.png) . If ![m](img/B16182_07_28n.png) is terminal,
+    then set `T` equal to `t+1`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE99]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'If ![m](img/B16182_07_28o.png) is not terminal, select and store a new action
+    for the new state:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE100]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define the time for which the estimate is being updated, `tau`, equal to `t-n+1`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE101]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'If `tau` is greater than or equal to `0`, calculate the sampling ratio. Calculate
+    the N-step return by summing the discounted returns of the previous n steps and
+    adding the discounted value of the next step-next action pair and update the state-action
+    value function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE102]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Now that we've studied the N-step methods, it is time to proceed to the most
+    general and most performant declination of temporal difference methods, TD(λ).
+  prefs: []
+  type: TYPE_NORMAL
+- en: TD(λ)
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: The popular TD(λ) algorithm is a temporal difference algorithm that makes use
+    of the eligibility trace concept, which, as we will soon see, is a procedure that
+    allows us to appropriately weight contributions to the state's (or state-action
+    pair's) value function using any possible number of steps. The `lambda` term introduced
+    in the name is a parameter that defines and parameterizes this family of algorithms.
+    As we will see shortly, it is a weighting factor that will allow us to appropriately
+    weight different contributing terms involved in the estimation of the algorithm's
+    return.
+  prefs: []
+  type: TYPE_NORMAL
+- en: It is possible to combine any temporal difference method, such as those we already
+    saw (Q-learning and SARSA), with the eligibility traces concept, which we will
+    implement shortly. This allows us to obtain a more general method, which is also
+    more efficient. This approach, as we already anticipated previously, realizes
+    the final unification and generalization of the TD and Monte Carlo methods. Similarly,
+    regarding what we observed for N-step TD methods, in this case also, we have one-step
+    TD methods on one extreme (`λ = 0`) and Monte Carlo methods on the other (`λ =
+    1`). The space between these two boundaries contains intermediate methods (as
+    is the case for N-step methods with finite `n > 1`). In addition to that, eligibility
+    traces allow us to use extended Monte Carlo methods for the so-called online implementation,
+    meaning they become applicable to non-episodic problems.
+  prefs: []
+  type: TYPE_NORMAL
+- en: With respect to what we already saw for N-step TD methods, eligibility traces
+    have an additional advantage, allowing us to generalize these families with significant
+    computational improvement. As we mentioned earlier, choosing the correct value
+    of n for N-step methods can be anything but a straightforward task. Eligibility
+    traces, on the other hand, allow us to "fuse" together the updates corresponding
+    to different timesteps.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To achieve this goal, we need to define a method to weigh the N-step return,
+    ![c](img/B16182_07_28p.png), using a weight that decays exponentially with time.
+    This is done by introducing a factor, ![d](img/B16182_07_28q.png), and weighting
+    the nth return with ![b](img/B16182_07_28r.png).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The goal is to define a weighted average so that all these weights must total
+    to `1`. The normalization constant is the limit value of the convergent geometric
+    series: ![a](img/B16182_07_28s.png). With this, we can define the so-called ![a](img/B16182_07_28t.png)-return
+    as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.29: Expression for the lambda return'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_29.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.29: Expression for the lambda return'
+  prefs: []
+  type: TYPE_NORMAL
+- en: This equation defines how our choice of ![a](img/B16182_07_29a.png) influences
+    the speed at which a given return drops exponentially as a function of the number
+    of steps.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We can now use this new return as a target for the state (or state-action pair)
+    value function, thus creating a new value function update rule. It may seem that,
+    at this point, in order to consider all contributes, we should wait until the
+    end of the episode, thus collecting all future returns. This problem is solved
+    by means of the second fundamental novelty introduced by eligibility traces: instead
+    of looking forward in time, the point of view is reversed, and the agent updates
+    all states (state-action pairs) visited in the past according to the eligibility
+    traces rule and using current return and values information.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The eligibility trace is initialized equal to 0 for every state (or state-action
+    pair), is incremented on each time step with a value equal to 1 for the state
+    (or state-action pair), visited so that it gives it the highest weight in contributing
+    to the value function update, and fades away by the ![b](img/B16182_07_29b.png)
+    factor. This factor is the combination of decay in time that''s typical of eligibility
+    traces, as explained previously (![b](img/B16182_07_29c.png)), and the familiar
+    reward discount ![c](img/B16182_07_29d.png) we''ve encountered many times in this
+    chapter. With this new concept, we can now build the new value function update.
+    First, we have the equation that regulates the eligibility trace evolution:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.30: Eligibility traces initialization and update rule at time ''t''
+    (for states)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_30.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.30: Eligibility traces initialization and update rule at time ''t''
+    (for states)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Then, we have the new definition of the TD error (or δ). The state-value function
+    update will be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.31: State-value function update rule using eligibility traces'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_31.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.31: State-value function update rule using eligibility traces'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, let's see how this idea is implemented in the SARSA algorithm to obtain
+    an on-policy TD control algorithm with eligibility traces.
+  prefs: []
+  type: TYPE_NORMAL
+- en: SARSA(λ)
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'Directly translating a state-value update into a state-action-value update
+    allows us to add the eligibility traces feature to our previously seen SARSA algorithm.
+    The eligibility trace equation can be modified as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.32: Eligibility trace initialization and update rule at time ''t''
+    (for state-actions pairs)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_32.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.32: Eligibility trace initialization and update rule at time ''t''
+    (for state-actions pairs)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The TD error and the state-action value function updates are written as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.33: State-action pair''s value function update rule using eligibility
+    traces'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_33.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.33: State-action pair''s value function update rule using eligibility
+    traces'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'A schema that perfectly summarizes all these steps and presents the complete
+    algorithm is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Choose the algorithm''s parameters: the step size ![a](img/B16182_07_33a.png),
+    which has to be contained in the interval (0, 1], and the `ε` parameter of the
+    ε-greedy policy, which has to be small and greater than 0, since it represents
+    the probability of choosing the non-optimal action, to favor exploration. A value
+    for the `lambda` parameter has to be chosen. This can be done, for example, with
+    the following code:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE103]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Initialize ![a](img/B16182_07_33b.png), for all ![b](img/B16182_07_33c.png),
+    ![c](img/B16182_07_33d.png), arbitrarily, except that Q(terminal, ·) = 0:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE104]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a loop for each episode. Initialize the eligibility traces table to
+    `0`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE105]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Initialize the state as it is not terminal and select an action using the ε-greedy
+    policy. Then, initiate the in-episode loop:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE106]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create a loop for each step of the episode, update the eligibility traces,
+    and assign a value equal to `1` to the last visited state:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE107]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Step through the environment and choose the next action using the ε-greedy
+    policy:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE108]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Calculate the ![b](img/B16182_07_33e.png) update and update the Q-table using
+    the SARSA TD(![a](img/B16182_07_33f.png)) rule:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE109]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Update the state and action with new state and action values:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE110]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: We are now ready to test this new algorithm on the environment we already solved
+    with one-step SARSA and Q-learning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Exercise 7.04: Using TD(λ) SARSA to Solve FrozenLake-v0 Deterministic Transitions'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In this exercise, we will implement our SARSA(λ) algorithm to solve the FrozenLake-v0
+    environment under the deterministic environment dynamics. In this exercise, we
+    will consider the same task we addressed in *Exercise 7.01, Using TD(0) SARSA
+    to Solve FrozenLake-v0 Deterministic Transitions*, and *Exercise 7.03, Using TD(0)
+    Q-Learning to Solve FrozenLake-v0 Deterministic Transitions*, but this time, instead
+    of using one-step TD methods such as SARSA (on-policy) and Q-learning (off-policy),
+    we will implement TD(λ), a temporal difference method coupled with the power of
+    eligibility traces. We will see how this algorithm behaves and train ourselves
+    in implementing a new approach to estimate a Q-value table by means of which we'll
+    recover an optimal policy for our agent.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Follow these steps to complete this exercise:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Import the required modules:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE111]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Instantiate the `gym` environment called `FrozenLake-v0` using the `is_slippery`
+    flag set to `False` in order to disable stochasticity:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE112]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Take a look at the action and the observation spaces:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE113]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE114]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create two dictionaries to easily translate the `actions` numbers into moves:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE115]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Reset the environment and render it to take a look at the grid:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE116]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 7.34: Environment''s initial state'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_34.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 7.34: Environment''s initial state'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Visualize the optimal policy for this environment:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE117]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be printed as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE118]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: This is the optimal policy for the deterministic case we already encountered
+    when dealing with one-step TD methods. It shows the optimal actions we hope our
+    agent will learn within this environment.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Define the functions that will take ε-greedy actions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE119]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define a function that will take greedy actions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE120]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define a function that will calculate the agent''s average performance:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE121]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Set the number of total episodes, the number of steps representing the interval
+    by which we evaluate the agent''s average performance, the discount factor, the
+    learning rate, and the `ε` parameters ruling its decrease – the starting value,
+    minimum value, and range (in terms of the number of episodes) – over which the
+    decrease is spread, as well as the eligibility trace''s decay parameter:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE122]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Initialize the Q-table, set all values equal to `1` except for terminal states,
+    and set an array that will collect all the agent''s performance evaluations during
+    training:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE123]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Start the SARSA training loop by looping among all episodes:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE124]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define an epsilon value based on the current episode''s run:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE125]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Initialize the eligibility traces table to `0`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE126]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Reset the environment, choose the first action with an ε-greedy policy, and
+    start the in-episode loop:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE127]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Update the eligibility traces and assign a weight of `1` to the last visited
+    state:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE128]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Step through the environment with the selected action and retrieve the new
+    state, reward, and done conditions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE129]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Select the new action with the ε-greedy policy:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE130]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Calculate the ![b](img/B16182_07_33e.png) update and update the Q-table using
+    the SARSA TD(![a](img/B16182_07_33h.png)) rule:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE131]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Update the state and action with new state and action values:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE132]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Evaluate the agent''s average performance:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE133]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Plot the SARSA agent''s mean reward history during training:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE134]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This generates the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE135]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The plot for this can be visualized as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 7.35: Average reward of an epoch trend over training epochs'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_35.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 7.35: Average reward of an epoch trend over training epochs'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: As we can see, SARSA's TD(![a](img/B16182_07_35a.png)) performance grows over
+    time as the `ε` parameter is annealed, thus reaching the value of 0 in the limit,
+    and thereby obtaining the greedy policy. It also demonstrates that the algorithm
+    is capable of reaching 100% success after learning. With respect to the one-step
+    SARSA model, as seen in *Figure 7.8*, here, we can see that it reaches maximum
+    performance faster, showing a notable improvement.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Evaluate the greedy policy''s performance for the trained agent (Q-table):'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE136]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE137]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Display the Q-table values:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE138]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This generates the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE139]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: This output shows the values of the complete state-action value function for
+    our problem. These values are then used to generate the optimal policy by means
+    of the greedy selection rule.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Print out the greedy policy that was found and compare it with the optimal
+    policy:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE140]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This produces the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE141]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: As you can see, our SARSA algorithm has been able to correctly solve the FrozenLake-v0
+    environment by being able to learn the optimal policy under the deterministic
+    transition dynamics. In fact, as we can see, for every state of the grid world,
+    the greedy policy that was obtained with the Q-table that was calculated by our
+    algorithm prescribes an action that is in accordance with the optimal policy that
+    was defined by analyzing the environment problem. As we already saw, there are
+    two states in which there are two equally optimal actions, and the agent correctly
+    implements one of them.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: To access the source code for this specific section, please refer to [https://packt.live/2YdePoa](https://packt.live/2YdePoa).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also run this example online at [https://packt.live/3ek4ZXa](https://packt.live/3ek4ZXa).
+  prefs: []
+  type: TYPE_NORMAL
+- en: We can now proceed and test how it behaves when exposed to stochastic dynamics.
+    We'll do this in the next exercise. Just like when using one-step SARSA, in this
+    case, we want to give the agent the freedom to take advantage of the 0 penalty
+    for intermediate steps to minimize risk of falling into the holes, so in this
+    case, we have to set the discount factor's gamma equal to 1\. This means that
+    instead of using `gamma = 0.9`, we will use `gamma = 1.0`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Exercise 7.05: Using TD(λ) SARSA to Solve FrozenLake-v0 Stochastic Transitions'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In this exercise, we will implement our SARSA(λ) algorithm to solve the FrozenLake-v0
+    environment under the deterministic environment dynamics. As we saw earlier in
+    this chapter, when talking about one-step TD methods, the optimal policy looks
+    completely different with respect to the previous exercise since it needs to take
+    care of the stochasticity factor. This imposes a new challenge for the SARSA(λ)
+    algorithm. We will see how it will still be able to solve this task in this exercise.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Follow these steps to complete this exercise:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Import the required modules:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE142]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Instantiate the `gym` environment called `FrozenLake-v0` using the `is_slippery`
+    flag set to `True` in order to enable stochasticity:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE143]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Take a look at the action and observation spaces:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE144]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This will print out the following:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE145]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Create two dictionaries to easily translate the `actions` numbers into moves:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE146]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Reset the environment and render it to take a look at the grid problem:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE147]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The output will be as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 7.36: Environment''s initial state'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_36.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 7.36: Environment''s initial state'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Visualize the optimal policy for this environment:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE148]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This prints out the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE149]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: This represents the optimal policy for this environment. Except for two states,
+    all the others have a single optimal action associated with them. In fact, as
+    described earlier in this chapter, optimal actions here are those that bring the
+    agent away from the holes, or from tiles that have a chance greater than zero
+    to lead the agent into tiles placed near holes. Two states have multiple optimal
+    actions associated with them that are all equally optimal, as intended for this
+    task.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Define the functions that will take ε-greedy actions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE150]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define a function that will take greedy actions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE151]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define a function that will calculate the agent''s average performance:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE152]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Set the number of total episodes, the number of steps representing the interval
+    by which we will evaluate the agent''s average performance, the discount factor,
+    the learning rate, and the `ε` parameters ruling its decrease – the starting value,
+    minimum value, and range (in terms of the number of episodes) – over which the
+    decrease is spread, as well as the eligibility trace''s decay parameter:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE153]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Initialize the Q-table, set all the values equal to one except for terminal
+    states, and set an array so that it collects all agent performance evaluations
+    during training:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE154]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Start the SARSA training loop by looping among all episodes:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE155]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define the epsilon value based on the current episode run:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE156]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Initialize the eligibility traces table to 0:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE157]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Reset the environment and state your choice for the first action with an ε-greedy
+    policy. Then, start the in-episode loop:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE158]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Update the eligibility traces by applying decay and making the last state-action
+    pair the most important one:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE159]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Define the environment step with the selected action and retrieval of the new
+    state, reward, and done conditions:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE160]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Select a new action with the ε-greedy policy:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE161]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Calculate the ![b](img/B16182_07_36a.png) update and update the Q-table with
+    the SARSA TD(![a](img/B16182_07_36b.png)) rule:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE162]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Update the state and action with new values:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE163]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Evaluate the average agent performance:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE164]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Plot the SARSA agent''s mean reward history during training:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE165]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This generates the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE166]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'The plot for this can be visualized as follows:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 7.37: Average reward of an epoch trend over training epochs'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_37.jpg)'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Figure 7.37: Average reward of an epoch trend over training epochs'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Again, in comparison to the previous TD(0) SARSA case seen in *Figure 7.15*,
+    this plot clearly shows us how the algorithm's performance improves over epochs,
+    even when stochastic dynamics are considered. The behavior is very similar, and
+    it also shows that, in the case of stochastic dynamics, it is not possible to
+    obtain a perfect performance, in other words, reaching the goal 100% of the time.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Evaluate the greedy policy''s performance of the trained agent (Q-table):'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE167]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This prints out the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE168]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Display the Q-table values:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE169]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This generates the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE170]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: This output shows the values of the complete state-action value function for
+    our problem. These values are then used to generate the optimal policy by means
+    of the greedy selection rule.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Print out the greedy policy that was found and compare it with the optimal
+    policy:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE171]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This produces the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE172]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Also, as in the case of stochastic environment dynamics, the SARSA algorithm
+    with eligibility traces has been able to correctly learn the optimal policy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: To access the source code for this specific section, please refer to [https://packt.live/2CiyZVf](https://packt.live/2CiyZVf).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also run this example online at [https://packt.live/2Np7zQ9](https://packt.live/2Np7zQ9).
+  prefs: []
+  type: TYPE_NORMAL
+- en: With this exercise, we've completed our study of temporal difference methods
+    and covered many of the aspects, from their most simple one-step formulation to
+    the most advanced ones. We are now able to combine multi-step methods without
+    the restriction of having to wait until the end of the episode to update the state-value
+    (or state-action pair) function. To complete our journey, we'll conclude with
+    a quick comparison of the methods we explained in this chapter with those explained
+    in *Chapter 5, Dynamic Programming*, and *Chapter 6, Monte Carlo Methods*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Relationship between DP, Monte-Carlo, and TD Learning
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: From what we've learned in this chapter, and as we've stated multiple times,
+    it is clear how temporal difference learning has characteristics in common with
+    both Monte Carlo methods and dynamic programming ones. Like the former, it learns
+    directly from experience, without leveraging a model of the environment representing
+    transition dynamics or knowledge of the reward function involved in the task.
+    Like the latter, it bootstraps, meaning that it updates the value function estimate
+    partially based on other estimates, thereby circumventing the need to wait until
+    the end of the episode. This point is particularly important since, in practice,
+    very long episodes (or even infinite ones) can be encountered, making MC methods
+    impractical and too slow. This strict relation plays a central role in reinforcement
+    learning theory.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We have also learned about N-step methods and eligibility traces, two different
+    but related topics that allow us to frame TD method's theory as a general picture
+    capable of fusing together MC and TD methods. In particular, the eligibility traces
+    concept allowed us to formally represent both of them, with the additional advantage
+    of implementing a perspective change from a forward view to a more efficient incremental
+    backward view, which allows us to extend MC methods even to non-episodic problems.
+  prefs: []
+  type: TYPE_NORMAL
+- en: When bringing TD and MC methods under the same theory umbrella, eligibility
+    traces demonstrate their value in making TD methods more robust to non-Markovian
+    tasks, a typical problem in which MC algorithms behave better than TD ones. Thus,
+    eligibility traces, even if typically coupled with an increased computational
+    overhead, offer a better learning capability in general since they are both faster
+    and more robust.
+  prefs: []
+  type: TYPE_NORMAL
+- en: It is now time for us to tackle the final activity of this chapter, where we
+    will apply what we have learned from the theory and exercises we've covered on
+    TD methods.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Activity 7.01: Using TD(0) Q-Learning to Solve FrozenLake-v0 Stochastic Transitions'
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'The goal of this activity is for you to adapt the TD(0) Q-learning algorithm
+    to solve the FrozenLake-v0 environment under the stochastic transition dynamics.
+    We have already seen that the optimal policy appears as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.38: Optimal policy –  D = Down move, R = Right move, U = Up move,'
+  prefs: []
+  type: TYPE_NORMAL
+- en: and L = Left move
+  prefs: []
+  type: TYPE_NORMAL
+- en: '](img/B16182_07_38.jpg)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Figure 7.38: Optimal policy – D = Down move, R = Right move, U = Up move, and
+    L = Left move'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Making Q-learning converge on this environment is not a simple task, but it
+    is possible. In order to make this a little bit easier, we can use a value for
+    the discount factor gamma that''s equal to `0.99`. The following steps will help
+    you to complete this exercise:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Import all the required modules.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Instantiate the gym environment and print out the observation and action spaces.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Reset the environment and render the starting state.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Define and print out the optimal policy for reference.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Define the functions for implementing the greedy and ε-greedy policies.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Define a function that will evaluate the agent's average performance and initialize
+    the Q-table.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Define the learning method hyperparameters (ε, discount factor, total number
+    of episodes, and so on).
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Implement the Q-learning algorithm.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Train the agent and plot the average performance as a function of training epochs.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Display the Q-values found and print out the greedy policy while comparing it
+    with the optimal one.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The final output of this activity is very similar to the ones you've encountered
+    for all of the exercises in this chapter. We want to compare the policy found
+    by our agent that was trained using the prescribed method with the optimal one
+    to make sure we succeeded in making it learn the optimal policy correctly.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The optimal policy should be as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE173]'
+  prefs: []
+  type: TYPE_PRE
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: The solution to this activity can be found on page 726.
+  prefs: []
+  type: TYPE_NORMAL
+- en: By completing this activity, we've learned how to correctly implement and set
+    up a one-step Q-learning algorithm by appropriately tuning its hyperparameters
+    to solve an environment with stochastic transition dynamics. We monitored the
+    agent's performance during training, and we confronted ourselves with the role
+    of the reward discount factor. We selected a value for it, allowing us to make
+    our agent learn the optimal policy for this specific task, even if the maximum
+    reward for this environment is bound and there is no possibility of completing
+    the episode 100% of the time.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: This chapter dealt with temporal difference learning. We started by studying
+    one-step methods in both their on-policy and off-policy implementations, leading
+    to us learning about the SARSA and Q-learning algorithms, respectively. We tested
+    these algorithms on the FrozenLake-v0 problem and covered both deterministic and
+    stochastic transition dynamics. Then, we moved on to the N-step temporal difference
+    methods, the first step toward the unification of TD and MC methods. We saw how
+    on-policy and off-policy methods are extended to this case. Finally, we studied
+    TD methods with eligibility traces, which constitute the most relevant step toward
+    the formalization of a unique theory describing both TD and MC algorithms. We
+    extended SARSA to eligibility tracing, too, and learned about this through implementing
+    two exercises where it has been implemented and applied to the FrozenLake-v0 environment
+    under both deterministic and stochastic transition dynamics. With this, we have
+    been able to successfully learn about the optimal policy in all cases, thereby
+    demonstrating how these methods are sound and robust.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, it is time to move on to the next chapter, in which we will address the
+    multi-armed bandit problem, a classic setting that's often encountered when studying
+    reinforcement learning theory and the application of RL algorithms.
+  prefs: []
+  type: TYPE_NORMAL
