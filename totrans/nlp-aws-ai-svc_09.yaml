@@ -211,6 +211,8 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 现在我们可以在 AWS Glue 数据目录中再次抓取并编目这些数据。编目操作会为 Amazon Athena 添加表格和元数据，以便进行临时的 SQL
+    分析。
 - en: Lastly, you can quickly create visualizations on this transformed Parquet data
     crawled in Amazon Athena using Amazon QuickSight. Amazon QuickSight integrates
     directly with Amazon Athena as well as Amazon S3 as a data source for visualization.
@@ -218,6 +220,8 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 最后，您可以使用 Amazon QuickSight 快速创建在 Amazon Athena 中抓取的转换后的 Parquet 数据的可视化。Amazon
+    QuickSight 可以直接与 Amazon Athena 和 Amazon S3 集成，作为可视化的数据源。
 - en: You can also convert this solution into a real-time streaming solution by using
     Amazon Kinesis Data Firehose, which will call these Yelp reviews and Twitter APIs,
     and directly store near real-time streaming data in Amazon S3, and from there
@@ -228,6 +232,10 @@
   id: totrans-29
   prefs: []
   type: TYPE_NORMAL
+  zh: 您还可以通过使用 Amazon Kinesis Data Firehose 将此解决方案转换为实时流式解决方案，调用这些 Yelp 评论和 Twitter
+    API，并将近实时流数据直接存储在 Amazon S3 中，然后您可以使用 AWS Glue ETL 和编目功能与 Amazon Comprehend 结合进行转换和
+    NLP 丰富处理。之后，这些转换后的数据可以直接在 QuickSight 和 Athena 中进行可视化。此外，您还可以使用 AWS Lambda 函数和
+    Step Functions 来设置完全无服务器架构并自动化这些步骤。
 - en: In this section, we covered the challenges of setting up a text analytics workflow
     with unstructured data and proposed architecture. In the next section, we will
     walk you through how you can build this out for a Yelp reviews dataset or any
@@ -235,44 +243,54 @@
   id: totrans-30
   prefs: []
   type: TYPE_NORMAL
+  zh: 在本节中，我们介绍了使用非结构化数据设置文本分析工作流的挑战，并提出了架构方案。在下一节中，我们将带您一步步构建 Yelp 评论数据集或任何社交媒体分析数据集的解决方案，只需通过
+    Jupyter 笔记本编写几行代码即可完成。
 - en: Setting up a Yelp review text analytics workflow
   id: totrans-31
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 设置 Yelp 评论文本分析工作流
 - en: 'In this section, we will walk you through how you can build this out for a
     Yelp reviews dataset or any social media analytics dataset by following the steps
     using a Jupyter notebook and Python APIs:'
   id: totrans-32
   prefs: []
   type: TYPE_NORMAL
+  zh: 在本节中，我们将向您展示如何通过遵循使用 Jupyter 笔记本和 Python API 的步骤，为 Yelp 评论数据集或任何社交媒体分析数据集构建解决方案：
 - en: Setting up to solve the use case
   id: totrans-33
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 设置以解决用例
 - en: Walking through the solution using a Jupyter notebook
   id: totrans-34
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 使用 Jupyter 笔记本走查解决方案
 - en: The setup steps will involve the steps to configure **Identity and Access Management
     (IAM)** roles and the walkthrough notebook will walk you through the architecture.
     So, let's get started.
   id: totrans-35
   prefs: []
   type: TYPE_NORMAL
+  zh: 设置步骤将包括配置 **身份与访问管理（IAM）** 角色，且演示笔记本会引导您完成架构设置。那么，我们开始吧。
 - en: Setting up to solve the use case
   id: totrans-36
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
+  zh: 设置以解决用例
 - en: 'If you have not done so in the previous chapters, you will first have to create
     an Amazon SageMaker Jupyter notebook and set up `Chapter 07` folder, and open
     the `chapter07 social media text analytics.ipynb` notebook:'
   id: totrans-37
   prefs: []
   type: TYPE_NORMAL
+  zh: 如果您在前面的章节中没有这样做，您将需要先创建一个 Amazon SageMaker Jupyter 笔记本并设置 `Chapter 07` 文件夹，然后打开
+    `chapter07 social media text analytics.ipynb` 笔记本：
 - en: 'You can refer to the Amazon SageMaker documentation to create a notebook instance:
     [https://docs.aws.amazon.com/sagemaker/latest/dg/gs-setup-working-env.html](https://docs.aws.amazon.com/sagemaker/latest/dg/gs-setup-working-env.html).
     To follow these steps, please sign in to the `Amazon SageMaker` in the search
@@ -281,61 +299,73 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 您可以参考 Amazon SageMaker 文档来创建笔记本实例：[https://docs.aws.amazon.com/sagemaker/latest/dg/gs-setup-working-env.html](https://docs.aws.amazon.com/sagemaker/latest/dg/gs-setup-working-env.html)。为了按照这些步骤进行，请在搜索窗口中登录
+    `Amazon SageMaker`，选择它，然后导航到 **Amazon SageMaker** 控制台。
 - en: Select **Notebook instances** and create a notebook instance by specifying an
     instance type, storage, and an IAM role.
   id: totrans-39
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 选择 **Notebook 实例** 并通过指定实例类型、存储和 IAM 角色创建笔记本实例。
 - en: 'When creating a SageMaker notebook for this setup, you will need IAM access
     to the services that follow:'
   id: totrans-40
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 在为此设置创建 SageMaker 笔记本时，您需要对以下服务具有 IAM 访问权限：
 - en: AWS Glue to run ETL jobs and crawl the data
   id: totrans-41
   prefs:
   - PREF_IND
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 使用 AWS Glue 运行 ETL 任务并抓取数据
 - en: AWS Athena to call Athena APIs through the notebook
   id: totrans-42
   prefs:
   - PREF_IND
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 使用 AWS Athena 通过笔记本调用 Athena API
 - en: AWS Comprehend to perform sentiment analysis
   id: totrans-43
   prefs:
   - PREF_IND
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 使用 AWS Comprehend 执行情感分析
 - en: AWS QuickSight for visualization
   id: totrans-44
   prefs:
   - PREF_IND
   - PREF_OL
   type: TYPE_NORMAL
+  zh: AWS QuickSight 用于可视化
 - en: AWS S3 access
   id: totrans-45
   prefs:
   - PREF_IND
   - PREF_OL
   type: TYPE_NORMAL
+  zh: AWS S3 访问
 - en: 'Make sure your IAM for the notebook has the following roles:'
   id: totrans-46
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: 确保您的笔记本 IAM 具有以下角色：
 - en: '![Figure 7.2 – Important IAM roles to run the notebook'
   id: totrans-47
   prefs: []
   type: TYPE_NORMAL
+  zh: '![图 7.2 – 运行笔记本所需的重要 IAM 角色'
 - en: '](img/B17528_07_02.jpg)'
   id: totrans-48
   prefs: []
   type: TYPE_NORMAL
+  zh: '](img/B17528_07_02.jpg)'
 - en: Figure 7.2 – Important IAM roles to run the notebook
   id: totrans-49
   prefs: []
@@ -1150,26 +1180,31 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 以下是通过 Amazon Athena 查询 Glue 数据目录，以获取 Yelp 评论表中的评分、评论和情感的输出：
 - en: '![Figure 7.7 – Athena query to select rating and sentiment from the Yelp transformed
     table in the Glue Data Catalog'
   id: totrans-163
   prefs: []
   type: TYPE_NORMAL
+  zh: '![图 7.7 – 从 Glue 数据目录中的 Yelp 转换表中选择评分和情感的 Athena 查询'
 - en: '](img/B17528_07_07.jpg)'
   id: totrans-164
   prefs: []
   type: TYPE_NORMAL
+  zh: '](img/B17528_07_07.jpg)'
 - en: Figure 7.7 – Athena query to select rating and sentiment from the Yelp transformed
     table in the Glue Data Catalog
   id: totrans-165
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 7.7 – 从 Glue 数据目录中的 Yelp 转换表中选择评分和情感的 Athena 查询
 - en: '`groupby` locally. Alternatively, we could have used the built-in SQL and aggregate
     functions in Athena to achieve the same result:'
   id: totrans-166
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '`groupby` 本地使用。或者，我们也可以使用 Athena 中的内置 SQL 和聚合函数来实现相同的结果：'
 - en: '[PRE27]'
   id: totrans-167
   prefs:
@@ -1181,29 +1216,35 @@
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: 接下来，你将看到按情感分组的 `groupby` 查询输出：
 - en: '![Figure 7.8 – Output of the groupby sentiment query'
   id: totrans-169
   prefs: []
   type: TYPE_NORMAL
+  zh: '![图 7.8 – 按情感分组查询的输出'
 - en: '](img/B17528_07_08.jpg)'
   id: totrans-170
   prefs: []
   type: TYPE_NORMAL
+  zh: '](img/B17528_07_08.jpg)'
 - en: Figure 7.8 – Output of the groupby sentiment query
   id: totrans-171
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 7.8 – 按情感分组查询的输出
 - en: We can see from the preceding output that we have more positive reviews than
     negative ones for the Yelp reviews dataset.
   id: totrans-172
   prefs: []
   type: TYPE_NORMAL
+  zh: 从前面的输出中我们可以看到，Yelp 评论数据集中正面评论的数量多于负面评论。
 - en: The Bokeh framework has a number of built-in visualizations. We will use Bokeh
     to visualize reviews by sentiment and rating in subsequent code.
   id: totrans-173
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: Bokeh 框架有许多内置的可视化工具。我们将在随后的代码中使用 Bokeh 来可视化按情感和评分分组的评论。
 - en: '*Visualize by rating*: We will now compare what the Comprehend API came up
     with compared to the user rating in the dataset. We are changing `groupby` in
     the DataFrame to change the dataset:'
@@ -1211,6 +1252,8 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*按评分可视化*：我们现在将比较 Comprehend API 与数据集中的用户评分之间的差异。我们正在更改 DataFrame 中的 `groupby`
+    来更改数据集：'
 - en: '[PRE28]'
   id: totrans-175
   prefs:
@@ -1223,19 +1266,23 @@
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: 你将在下一个屏幕截图中看到按评分分组的查询结果输出：
 - en: '![Figure 7.9 – Output of the query result grouped by rating](img/B17528_07_09.jpg)'
   id: totrans-177
   prefs: []
   type: TYPE_IMG
+  zh: '![图 7.9 – 按评分分组的查询结果输出](img/B17528_07_09.jpg)'
 - en: Figure 7.9 – Output of the query result grouped by rating
   id: totrans-178
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 7.9 – 按评分分组的查询结果输出
 - en: 'Now, we will show you how you can plot this in Bokeh:'
   id: totrans-179
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 现在，我们将向你展示如何在 Bokeh 中绘制这些数据：
 - en: '[PRE29]'
   id: totrans-180
   prefs:
@@ -1247,18 +1294,22 @@
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: 你将看到显示用户评分计数的条形图。
 - en: '![Figure 7.10 – User rating by count'
   id: totrans-182
   prefs: []
   type: TYPE_NORMAL
+  zh: '![图 7.10 – 按用户评分的计数'
 - en: '](img/B17528_07_10.jpg)'
   id: totrans-183
   prefs: []
   type: TYPE_NORMAL
+  zh: '](img/B17528_07_10.jpg)'
 - en: Figure 7.10 – User rating by count
   id: totrans-184
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 7.10 – 按用户评分的计数
 - en: We can see that the most popular rating given is 1 and the least popular is
     2\. We covered in this section how you can use simple queries in Amazon Athena
     and visualization tools such as Bokeh to perform quick visualization and SQL analytics
@@ -1272,17 +1323,24 @@
   id: totrans-185
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们可以看到，给出的最常见评分是 1，最不常见的是 2。本节中我们介绍了如何使用 Amazon Athena 中的简单查询和像 Bokeh 这样的可视化工具，对增强了
+    Amazon Comprehend 情感分析的 Yelp 评论数据集进行快速可视化和 SQL 分析。我们得到了很酷的洞察，例如大多数评论都是正面的，用户给出的最常见评分是
+    1。你可以通过使用简单的 SQL 进一步深入分析，获得特定评论的具体见解。这有助于迅速推动业务成果。在下一节中，我们将向你展示如何轻松创建一个 QuickSight
+    仪表板，为你的业务用户提供一些酷的见解。
 - en: Amazon QuickSight visualization
   id: totrans-186
   prefs:
   - PREF_H3
   type: TYPE_NORMAL
+  zh: Amazon QuickSight 可视化
 - en: 'In this section, we will walk you through how you can set up or get started
     with Amazon QuickSight and visualize the tables in Athena, which was transformed
     with sentiments using AWS Glue and Comprehend:'
   id: totrans-187
   prefs: []
   type: TYPE_NORMAL
+  zh: 在本节中，我们将向你展示如何设置或开始使用 Amazon QuickSight，并可视化 Athena 中的表格，这些表格通过 AWS Glue 和 Comprehend
+    进行了情感分析转换：
 - en: 'You can follow along with the `Getting Started` guide for QuickSight at [https://docs.aws.amazon.com/quicksight/latest/user/getting-started.html](https://docs.aws.amazon.com/quicksight/latest/user/getting-started.html)
     to set up your account and then follow the code block to navigate to the QuickSight
     console:'
@@ -1290,6 +1348,8 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 你可以按照 [https://docs.aws.amazon.com/quicksight/latest/user/getting-started.html](https://docs.aws.amazon.com/quicksight/latest/user/getting-started.html)
+    上的 `入门指南` 设置你的账户，然后按照代码块导航到 QuickSight 控制台：
 - en: '[PRE30]'
   id: totrans-189
   prefs:
@@ -1303,6 +1363,7 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: '**管理QuickSight中的S3访问**：我们需要完成这个必需的步骤，以确保在使用Amazon QuickSight访问Amazon Athena时不会遇到访问拒绝的异常。'
 - en: Go to **Manage QuickSight | Security and permission | Add or remove | In S3\.
     C**lick on **details** | select the bucket you want to query | **update**.![Figure
     7.11 – Manage QuickSight access for the S3 data lake
@@ -1310,32 +1371,39 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 进入**管理QuickSight | 安全和权限 | 添加或移除 | 在S3中**。点击**详细信息** | 选择您要查询的存储桶 | **更新**。![图
+    7.11 – 管理QuickSight对S3数据湖的访问
 - en: '](img/B17528_07_11.jpg)'
   id: totrans-192
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: '](img/B17528_07_11.jpg)'
 - en: Figure 7.11 – Manage QuickSight access for the S3 data lake
   id: totrans-193
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: 图 7.11 – 管理QuickSight对S3数据湖的访问
 - en: Click on the **Create Dataset** option and you will see the following options:![Figure
     7.12 – Amazon QuickSight setup with the Create a Dataset option
   id: totrans-194
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 点击**创建数据集**选项，您将看到以下选项：![图 7.12 – Amazon QuickSight设置及创建数据集选项
 - en: '](img/B17528_07_12.jpg)'
   id: totrans-195
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: '](img/B17528_07_12.jpg)'
 - en: Figure 7.12 – Amazon QuickSight setup with the Create a Dataset option
   id: totrans-196
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: 图 7.12 – Amazon QuickSight设置及创建数据集选项
 - en: Choose **Athena** from the preceding options. Click the **New data set** button
     and select **Athena data source**. Name the data source and choose the Yelp **Glue
     database** and **reviews_parquet** table. Finish the creation by clicking the
@@ -1344,22 +1412,26 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 选择前面选项中的**Athena**。点击**新建数据集**按钮，并选择**Athena数据源**。命名数据源并选择Yelp的**Glue数据库**和**reviews_parquet**表。点击**创建数据源**按钮完成创建。QuickSight支持多种数据连接器。
 - en: In the `yelp_reviews` and click **Create data source**. Also, click on **validated**.![Figure
     7.13 – Creating an Athena data source in QuickSight
   id: totrans-198
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 在`yelp_reviews`中点击**创建数据源**。同时，点击**已验证**。![图 7.13 – 在QuickSight中创建Athena数据源
 - en: '](img/B17528_07_13.jpg)'
   id: totrans-199
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: '](img/B17528_07_13.jpg)'
 - en: Figure 7.13 – Creating an Athena data source in QuickSight
   id: totrans-200
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: 图 7.13 – 在QuickSight中创建Athena数据源
 - en: Next, you will be selecting the **Yelp** database we created in the Glue Data
     Catalog and the **reviews_parquet** table.![Figure 7.14 – Select the table to
     visualize in QuickSight
@@ -1367,43 +1439,51 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 接下来，您将选择我们在Glue数据目录中创建的**Yelp**数据库和**reviews_parquet**表。![图 7.14 – 在QuickSight中选择要可视化的表
 - en: '](img/B17528_07_14.jpg)'
   id: totrans-202
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: '](img/B17528_07_14.jpg)'
 - en: Figure 7.14 – Select the table to visualize in QuickSight
   id: totrans-203
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: 图 7.14 – 在QuickSight中选择要可视化的表
 - en: Click on **Save and Visualize**.
   id: totrans-204
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 点击**保存并可视化**。
 - en: In this section, we covered how you can create a QuickSight dashboard to analyze
     Yelp reviews. In the next section, we will talk about deleting the resources you
     created during this exercise to avoid incurring charges.
   id: totrans-205
   prefs: []
   type: TYPE_NORMAL
+  zh: 在本节中，我们介绍了如何创建QuickSight仪表板以分析Yelp评论。在下一节中，我们将讨论如何删除您在此过程中创建的资源，以避免产生费用。
 - en: Cleaning up
   id: totrans-206
   prefs:
   - PREF_H3
   type: TYPE_NORMAL
+  zh: 清理工作
 - en: In this section, we will walk you through code samples in the notebook to clean
     up AWS resources created while going through the Yelp sentiment analysis solution
     to avoid incurring a cost.
   id: totrans-207
   prefs: []
   type: TYPE_NORMAL
+  zh: 在本节中，我们将带您逐步了解如何在笔记本中通过代码示例清理AWS资源，避免在进行Yelp情感分析解决方案时产生费用。
 - en: 'Run the cleanup steps to delete the resources you have created for this notebook
     by running the following code:'
   id: totrans-208
   prefs: []
   type: TYPE_NORMAL
+  zh: 运行清理步骤，通过执行以下代码删除您为本笔记本创建的资源：
 - en: '[PRE31]'
   id: totrans-209
   prefs: []
@@ -1414,11 +1494,13 @@
   id: totrans-210
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们删除了Glue爬虫、Glue ETL作业以及使用笔记本创建的数据库。让我们继续下一部分，做个总结。
 - en: Summary
   id: totrans-211
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 总结
 - en: In this chapter, we covered how you can set up a text analytics solution with
     your existing social media analytics workflow. We gave a specific example of using
     the Yelp reviews dataset and using serverless ETL with NLP using Amazon Comprehend
@@ -1430,6 +1512,8 @@
   id: totrans-212
   prefs: []
   type: TYPE_NORMAL
+  zh: 在本章中，我们介绍了如何将文本分析解决方案与现有的社交媒体分析工作流相结合。我们给出了一个具体的例子，使用Yelp评论数据集并通过无服务器ETL结合NLP，使用Amazon
+    Comprehend快速创建一个可视化仪表板，并使用Amazon QuickSight进行展示。我们还介绍了通过Amazon Athena进行临时SQL分析，利用一些简单的SQL查询来了解大多数用户的声音或情感。这个解决方案可以与任何社交媒体平台集成，如Twitter、Reddit和Facebook，支持批处理或实时模式。
 - en: In the case of a real-time setup, you would integrate Kinesis Data Firehose
     to have near real-time streaming tweets or social media feeds in this proposed
     workflow or architecture. Check out the *Further reading* section for a really
@@ -1437,6 +1521,7 @@
   id: totrans-213
   prefs: []
   type: TYPE_NORMAL
+  zh: 在实时设置的情况下，你可以集成Kinesis Data Firehose，在这个提议的工作流或架构中实现接近实时的流式推文或社交媒体信息流。查看*进一步阅读*部分，了解一个非常酷的**AI驱动的社交媒体仪表盘**，可以在大规模实施该架构时使用。
 - en: Another approach you can take in terms of document automation is to have Amazon
     Textract extract data from your PDFs in the case of RFPs or agreements, and this
     pipeline can be used to gather sentiment quickly paragraph-wise after performing
@@ -1444,30 +1529,38 @@
   id: totrans-214
   prefs: []
   type: TYPE_NORMAL
+  zh: 你在文档自动化方面可以采取的另一种方法是使用Amazon Textract从你的PDF文件中提取数据，特别是在处理RFP（请求建议书）或协议时，之后在提取的文本上执行Glue
+    ETL操作后，可以按段落快速收集情感分析。
 - en: In the next chapter, we will talk about how you can use AI to automate media
     workflows to reduce costs and monetize content.
   id: totrans-215
   prefs: []
   type: TYPE_NORMAL
+  zh: 在下一章中，我们将讨论如何使用AI自动化媒体工作流，以降低成本并实现内容变现。
 - en: Further reading
   id: totrans-216
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 进一步阅读
 - en: '*How to scale sentiment analysis using Amazon Comprehend, AWS Glue and Amazon
     Athena* by Roy Hasson ([https://aws.amazon.com/blogs/machine-learning/how-to-scale-sentiment-analysis-using-amazon-comprehend-aws-glue-and-amazon-athena/](https://aws.amazon.com/blogs/machine-learning/how-to-scale-sentiment-analysis-using-amazon-comprehend-aws-glue-and-amazon-athena/))'
   id: totrans-217
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*如何使用Amazon Comprehend、AWS Glue和Amazon Athena扩展情感分析* 作者：Roy Hasson ([https://aws.amazon.com/blogs/machine-learning/how-to-scale-sentiment-analysis-using-amazon-comprehend-aws-glue-and-amazon-athena/](https://aws.amazon.com/blogs/machine-learning/how-to-scale-sentiment-analysis-using-amazon-comprehend-aws-glue-and-amazon-athena/))'
 - en: '*AI-Driven Social Media Dashboard* ([https://aws.amazon.com/solutions/implementations/ai-driven-social-media-dashboard/](https://aws.amazon.com/solutions/implementations/ai-driven-social-media-dashboard/))'
   id: totrans-218
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*AI驱动的社交媒体仪表盘* ([https://aws.amazon.com/solutions/implementations/ai-driven-social-media-dashboard/](https://aws.amazon.com/solutions/implementations/ai-driven-social-media-dashboard/))'
 - en: '*Harmonize, Query, and Visualize Data from Various Providers using AWS Glue,
     Amazon Athena, and Amazon QuickSight* by Ben Snively ([https://aws.amazon.com/blogs/big-data/harmonize-query-and-visualize-data-from-various-providers-using-aws-glue-amazon-athena-and-amazon-quicksight/](https://aws.amazon.com/blogs/big-data/harmonize-query-and-visualize-data-from-various-providers-using-aws-glue-amazon-athena-and-amazon-quicksight/))'
   id: totrans-219
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*使用AWS Glue、Amazon Athena和Amazon QuickSight协调、查询和可视化来自不同供应商的数据* 作者：Ben Snively
+    ([https://aws.amazon.com/blogs/big-data/harmonize-query-and-visualize-data-from-various-providers-using-aws-glue-amazon-athena-and-amazon-quicksight/](https://aws.amazon.com/blogs/big-data/harmonize-query-and-visualize-data-from-various-providers-using-aws-glue-amazon-athena-and-amazon-quicksight/))'
