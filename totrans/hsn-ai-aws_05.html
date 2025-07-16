@@ -1,0 +1,623 @@
+<html><head></head><body>
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Detecting and Translating Text with Amazon Rekognition and Translate</h1>
+                </header>
+            
+            <article>
+                
+<p>In this chapter, we will build our first <strong>Artificial Intelligence</strong> (<strong>AI</strong>) application that solves a real-world problem, as opposed to a theoretical demonstration. We will build an application that can translate foreign texts appearing in pictures. We will do this by combining two AWS AI services, Amazon Rekognition and Amazon Translate. The application will use the reference architecture introduced in the previous chapter. In this hands-on project, not only will we be building intelligent capabilities for the current application, we will also be designing them to be reusable components that we can leverage in future hands-on projects.</p>
+<p>We will cover the following topics:</p>
+<ul>
+<li><span>Detecting text in images with Amazon Rekognition</span></li>
+<li><span>Translating text using Amazon Translate</span></li>
+<li><span>Embedding intelligent capabilities into applications</span></li>
+<li><span>Building serverless AI applications with AWS services, RESTful APIs, and web user interface</span></li>
+<li><span>Discussing good design practices and build intelligent capabilities as reusable components</span></li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Making the world smaller</h1>
+                </header>
+            
+            <article>
+                
+<p>In this section of the book, we will start building intelligence-enabled solutions through hands-on projects. These projects will not only get you familiar with Amazon's AI services, they will also help you to strengthen your intuition on how to embed intelligent capabilities into applications to solve real-world problems. We'll start with an application that can make the world smaller.</p>
+<p>When Google revealed a new feature in its Google Lens mobile app, users could just point their phones at something around their environment and get more information about it. Google Lens essentially brought search capabilities into the real world. One particular use case of this app was the real-time language translation of text. Users can point their camera at a street sign or a restaurant menu and get the translation back as an augmented reality camera feed on the phone's display. This feature alone can make the world more accessible to everyone.</p>
+<p>We will be implementing this pictorial translation feature for our hands-on project with AWS AI services. Our application, we'll call it Pictorial Translator, will provide similar translation capabilities, albeit with a much less embellished user interface than Google Lens.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Understanding the architecture of Pictorial Translator </h1>
+                </header>
+            
+            <article>
+                
+<p>Following the architecture template defined in <a href="042787e6-6f54-4728-8354-e22d87be0460.xhtml"/><a href="042787e6-6f54-4728-8354-e22d87be0460.xhtml">Chapter 2</a>, <em>Anatomy of a Modern AI Application</em>, here is the architectural design for Pictorial Translator:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/7d934292-18c1-4c23-a2c5-20e0aa1a2c89.png" style=""/></div>
+<p>We will provide a web user interface for users to upload photos containing foreign text and then view the translation of the foreign text. The web user interface will interact with the <strong>Orchestration Layer</strong> containing two RESTful endpoints to handle the image upload and translation:</p>
+<ul>
+<li><strong>Upload Image Endpoint</strong> will delegate the image upload to our <strong>Storage Service</strong>:
+<ul>
+<li> <strong>Storage Service</strong> provides an abstraction layer to <strong>AWS S3</strong>, where the uploaded photos will be stored, processed, and displayed from.</li>
+</ul>
+</li>
+<li><strong>Translate Image Text Endpoint</strong> will delegate the detection of text within the photos to our <strong>Recognition Service</strong> and the translation of the detected text to our <strong>Translation Service</strong>:
+<ul>
+<li>The <strong>Recognition Service</strong> provides an abstraction layer to the Amazon Rekognition service, more specifically, the text detection capability of Rekognition. We named our service <strong>Recognition</strong>, which is more generic and doesn't directly tie us in with <strong>AWS Rekognition</strong>.</li>
+<li>The <strong>Translation Service</strong> provides an abstraction layer to the Amazon Translate service to perform the language translation.</li>
+</ul>
+</li>
+</ul>
+<p>The <strong>Service Implememntation</strong> might seem redundant to some readers. Why not just have the endpoints talk to the AWS services directly instead of talking through another layer of abstraction? There are many benefits to architecting the application this way. Here are a few examples:</p>
+<ul>
+<li>During development time, we can more easily build and test the application without dependency on AWS services. Any stub or mock implementation of these services can be used during development for speed, cost, and experimentation reasons. This lets us develop and iterate the application faster.</li>
+<li>When other services that provide <span>better</span> storage, recognition, or translation capabilities come along, our application can switch to those capabilities by swapping to a new service implementation with the same abstraction interface. The user interface and the endpoints will not need to be modified to leverage these better capabilities. This gives our application more flexibility to adapt to changes.</li>
+<li><span>This makes our code base more composable and reusable. T</span>he capabilities provided by these AWS services can be reused by other applications. These services are modular packages that can be more easily reused than the orchestration endpoints. The orchestration endpoints usually contain application-specific business logic that limits reuse.</li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Component interactions of Pictorial Translator </h1>
+                </header>
+            
+            <article>
+                
+<p>It's important to think through how the components of an application interact with each other and how the user experience will be influenced by our design choices before we dive into the implementation:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/96e42da4-7c2f-4a83-8e00-2f4beff34319.png"/></div>
+<p>From the user's perspective, the application provides a sequential experience for uploading the image, viewing the uploaded images, and seeing the translated text. We made the design decision to ensure the user waits for each photo to be uploaded and processed (as opposed to bulk uploading many photos at once). This design decision is fine for our application, given our use case assumes that the users are at the physical locations waiting to see the translations before making decisions or taking actions.</p>
+<p>Our Pictorial Translator application's interaction with the Upload Image Endpoint and <kbd>StorageService</kbd> is straightforward. The users' requests is essentially passed through to AWS S3 and back in a chain. Of course, the fact that the storage capability is provided by AWS S3 is shielded from both the endpoint and the application through the layers of abstraction. The photos will be stored in an S3 bucket, and the text detection and translation will be performed from the S3 bucket.</p>
+<p>The translate image text endpoint simplifies some business logic from the Pictorial Translator application. Pictorial Translator is only sending the image ID to the translate image text endpoint and then receiving the translation for every line of text in the image. The translate image text endpoint does a couple of things behind the scenes. <span>This endpoint is calling <kbd>detect_text()</kbd> in <kbd>RecognitionService</kbd> on the entire image, and then calling <kbd>translate_text()</kbd> in Translation Service multiple times for the lines of detected text. The endpoint will only call the Translation Service if the detected line of text meets a minimum confidence threshold.</span></p>
+<p>Here, we made two design decisions:</p>
+<ul>
+<li>First, we translate text at the line level. The thinking is that the text we see in the real world is not always in the same context (for example, multiple street signs in the same photo) or even in the same language. The real-world results of this design decision need to be closely monitored in order to validate its user experience.</li>
+<li>Second, we only translate a line of text that <kbd>RecognitionService</kbd> is very confident about. The real world is messy, the user might upload photos containing text that's not relevant to the translation task (for example, street signs in a distance), or the user might upload photos not fit for quality text detection (for <span>example,</span> poor lighting and bad focus). We don't want to inundate the user with inaccurate translations, so our application took the approach to only translate high-quality text in the photos.</li>
+</ul>
+<p>These are examples of design decisions AI practitioners should evaluate and validate when developing an intelligence-enabled application. Having a flexible architecture allows you to move through the iterations much faster.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Setting up the project structure</h1>
+                </header>
+            
+            <article>
+                
+<p>Let's create a similar base project structure with the steps outlined in <a href="https://cdp.packtpub.com/hands_on_artificial_intelligence_on_amazon_web_services/wp-admin/post.php?post=298&amp;action=edit#post_299">Chapter 2</a><span>, </span><em>Anatomy of a Modern AI Application</em>, including <kbd>pipenv</kbd>, <kbd>chalice</kbd>, and the web files:</p>
+<ol>
+<li>In the terminal, we will create the <kbd>root</kbd> project directory and enter the following commands:</li>
+</ol>
+<pre class="p1" style="padding-left: 60px"><span class="s1">$ mkdir </span>PictorialTranslator<span class="s1"><br/></span><span class="s1">$ cd </span>PictorialTranslator</pre>
+<ol start="2">
+<li>We will create placeholders for the web frontend by creating a directory named <kbd>Website</kbd> and, within this directory, create two files <kbd>index.html</kbd> and <kbd>scripts.js</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px">$ mkdir Website<br/>$ touch Website/index.html<br/>$ touch Website/scripts.js</pre>
+<ol start="3">
+<li>We will create a Python 3 virtual environment with <kbd>pipenv </kbd>in the project's <kbd>root</kbd> directory. Our Python portion of the project needs two packages,<span> </span><kbd>boto3 </kbd>and<span> </span><kbd>chalice</kbd>. We can install them with the following commands:</li>
+</ol>
+<pre style="padding-left: 60px">$ pipenv --three<br/>$ pipenv install boto3<br/>$ pipenv install chalice</pre>
+<ol start="4">
+<li>Remember that the Python packages installed via <kbd>pipenv</kbd> are only available if we activate the virtual environment. One way to do this is with the following command:</li>
+</ol>
+<pre style="padding-left: 60px">$ pipenv shell</pre>
+<ol start="5">
+<li>Next, while still in the virtual environment, we will create the orchestration layer as an AWS <kbd>chalice</kbd> project named <kbd>Capabilities</kbd> with the following commands:</li>
+</ol>
+<pre style="padding-left: 60px">$ chalice new-project Capabilities</pre>
+<ol start="6">
+<li>To create the <kbd>chalicelib</kbd> Python package, issue the following commands:</li>
+</ol>
+<pre style="padding-left: 60px">cd Capabilities<br/>mkdir chalicelib<br/>touch chalicelib/__init__.py<br/>cd ..</pre>
+<p style="padding-left: 60px">The project structure for Pictorial Translator should look like the following:</p>
+<pre style="padding-left: 60px">Project Structure<br/>------------<br/>├── PictorialTranslator/<br/>    ├── Capabilities/<br/>        ├── .chalice/<br/>            ├── config.json<br/>        ├── chalicelib/<br/>            ├── __init__.py<br/>        ├── app.py<br/>        ├── requirements.txt<br/>    ├── Website/<br/>        ├── index.html<br/>        ├── script.js<br/>    ├── Pipfile<br/>    ├── Pipfile.lock</pre>
+<p><span>This is the project structure for Pictorial Translator. It contains the user interface, orchestration, and service implementation layers of the AI application architecture that we defined in <a href="https://cdp.packtpub.com/hands_on_artificial_intelligence_on_amazon_web_services/wp-admin/post.php?post=298&amp;action=edit#post_299">Chapter 2</a>, <em>Anatomy of a Modern AI Application</em>.</span></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Implementing services</h1>
+                </header>
+            
+            <article>
+                
+<p>Now that we know what we are building, let's implement this application layer by layer, starting with the service implementations.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Recognition service – text detection</h1>
+                </header>
+            
+            <article>
+                
+<p>We are going to leverage the Amazon Rekognition service to provide the capability to detect text in an image. Let's first take a test drive of this capability using the AWS CLI. We will use a photo of a German street sign:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/cf161f5f-4879-4913-8785-0e7ec81542c0.png" style=""/></div>
+<p>The source of the preceding photo is <a href="https://www.freeimages.com/photo/german-one-way-street-sign-3-1446112">https://www.freeimages.com/photo/german-one-way-street-sign-3-1446112</a>.<a href="https://www.freeimages.com/photo/german-one-way-street-sign-3-1446112"/></p>
+<p>Since we will be using S3 to hold the photos, let's first upload this photo to an S3 bucket we created in <a href="606f673e-f72c-43ed-9a1e-fc06796b1303.xhtml">Chapter 1</a>, <em>Introduction to Artificial Intelligence on Amazon Web Services</em>. For instance, we will be uploading the image to our <kbd>contents.aws.ai</kbd> <span>bucket. </span>Once uploaded, to perform text detection on a photo with the name <kbd>german_street_sign.jpg</kbd> with the AWS CLI, issue the following command:</p>
+<pre>$ aws rekognition detect-text --image S3Object=\{Bucket=contents.aws.ai,Name=german_street_sign.jpg\}<br/>{<br/>    "TextDetections": [<br/>        {<br/>            "DetectedText": "Einbahnstrabe",<br/>            "Type": "LINE",<br/>            "Id": 0,<br/>            "Confidence": 99.16583251953125,<br/>            "Geometry": {<br/>                "BoundingBox": {<br/>                    "Width": 0.495918333530426,<br/>                    "Height": 0.06301824748516083,<br/>                    "Left": 0.3853428065776825,<br/>                    "Top": 0.4955403208732605<br/>                },<br/>                "Polygon": [<br/>                    ...<br/>                ]<br/>            }<br/>        },<br/>        {<br/>            "DetectedText": "Einbahnstrabe",<br/>            "Type": "WORD",<br/>            "Id": 1,<br/>            "ParentId": 0,<br/>            ...<br/>        }<br/>    ]<br/>}</pre>
+<p>AWS CLI is a handy tool for examining the output formats of AWS services:</p>
+<ul>
+<li>Here, we see a JSON output from the text detection, with portions of the output truncated here for brevity.</li>
+<li>At the top level, we have an object surrounded by curly brackets, <strong>{</strong> and <strong>}</strong>. Within this top level object, we have a name-value pair with the name being <kbd>TextDetections</kbd> and the value being an array surrounded by square brackets, <strong>[</strong> and <strong>]</strong>.</li>
+<li>Within this array are zero or more objects describing the detected texts. Looking at the detected text objects within the array, we see information such as <kbd>DetectedText</kbd>, <kbd>Type</kbd>, <kbd>Id</kbd>, <kbd>Confidence</kbd>, and <kbd>Geometry</kbd>.</li>
+</ul>
+<p>In our photo, we have only one word. However, Rekognition returned two objects in the <kbd>TextDetections</kbd> array. That's because Rekognition returns two types of <kbd>DetectedText</kbd> as objects, <kbd>LINE</kbd> of text as well as all the <kbd>WORD </kbd>objects in that <kbd>LINE</kbd> of text as separate objects. The two objects we got back represent the <kbd>LINE</kbd> as well as the single <kbd>WORD</kbd> in that line. <span>Notice the types of the two objects are different, and the ParentId of the second object (<kbd>WORD</kbd>) refers to <kbd>Id</kbd> of the first object (<kbd>LINE</kbd>), showing the parent/child relationship between lines and words.</span></p>
+<p>We also see the <kbd>Confidence</kbd> level of the text detection we will use this later to filter which lines of text to translate. Rekognition is very confident with the word <kbd>Einbahnstrabe</kbd>, which has a <kbd>Confidence</kbd> score of <kbd>99.16583251953125</kbd>, with 100 being the maximum.</p>
+<p>The <kbd>Geometry</kbd> name/value pair contains two systems to describe the location of the detected text in the image:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/2a286409-cbf0-4a81-9091-d4ad785900a6.png" style=""/></div>
+<p>The previous diagrams explained the following:</p>
+<ul>
+<li><kbd>BoundingBox</kbd> describes a coarse rectangle where the text is located. This system describes the <kbd>BoundingBox</kbd> with the coordinates of the top-left point of the rectangle, and the width and the height of the rectangle.</li>
+<li>These coordinates and measurements are all given in ratios for the image. For example, if the image is 700 x 200 pixels and the service returned left == 0.5 and top == 0.25, then the top-left point of the rectangle is at pixels (350, 50); 700 x 0.5 = 350 and 200 x 0.25 = 50.</li>
+<li><kbd>Polygon</kbd> describes a set of points within the <kbd>BoundingBox</kbd> that gives a fine-grained polygon around the detected text. The <em>x</em> and y coordinates of each point are also using the same ratio system of the <kbd>BoundingBox</kbd> coordinates.</li>
+</ul>
+<p>The information provided in <kbd>Geometry</kbd> is useful for tasks such as highlighting the text in the image or even overlaying other information on top of the image.</p>
+<div class="packt_infobox">Rekognition text detection seems to work well with alphabet-based languages such as English, German, and French, but doesn't work as well with character-based languages such as Chinese, Korean, and Japanese. This definitely limits the use cases of the application.</div>
+<p>With these insights to the text detection output, let's implement our <kbd>RecognitionService</kbd>. Let's create a Python class named <kbd>RecognitionService</kbd> as shown<span> in the</span> following <kbd>recognition_service.py</kbd> file located in the <kbd>chalicelib</kbd> directory:</p>
+<pre><span class="s1">import boto3<br/><br/></span><span class="s1">class RecognitionService:<br/></span><span class="s1"><span class="Apple-converted-space">    </span>def __init__(self, storage_service):<br/></span><span class="s1"><span class="Apple-converted-space">        </span>self.client = boto3.client('rekognition')<br/></span><span class="s1"><span class="Apple-converted-space">        </span>self.bucket_name = storage_service.get_storage_location()<br/><br/></span><span class="s1"><span class="Apple-converted-space">    </span>def detect_text(self, file_name):<br/></span><span class="s1"><span class="Apple-converted-space">        </span>response = self.client.detect_text(<br/></span><span class="s1"><span class="Apple-converted-space">            </span>Image = {<br/></span><span class="s1"><span class="Apple-converted-space">                </span>'S3Object': {<br/></span><span class="s1"><span class="Apple-converted-space">                    </span>'Bucket': self.bucket_name,<br/></span><span class="s1"><span class="Apple-converted-space">                    </span>'Name': file_name<br/></span><span class="s1"><span class="Apple-converted-space">                </span>}<br/></span><span class="s1"><span class="Apple-converted-space">            </span>}<br/></span><span class="s1"><span class="Apple-converted-space">        </span>)<br/></span><span class="s1"><span class="Apple-converted-space">        </span>lines = []<br/></span><span class="s1"><span class="Apple-converted-space">        </span>for detection in response['TextDetections']:<br/></span><span class="s1"><span class="Apple-converted-space">            </span>if detection['Type'] == 'LINE':<br/></span><span class="s1"><span class="Apple-converted-space">                </span>lines.append({<br/></span><span class="s1"><span class="Apple-converted-space">                    </span>'text': detection['DetectedText'],<br/></span><span class="s1"><span class="Apple-converted-space">                    </span>'confidence': detection['Confidence'],<br/></span><span class="s1"><span class="Apple-converted-space">                    </span>'boundingBox': detection['Geometry']['BoundingBox']<br/></span><span class="s1"><span class="Apple-converted-space">                </span>})<br/><br/></span><span class="s1"><span class="Apple-converted-space">        </span>return lines</span></pre>
+<p>In the preceding code, the following applies:</p>
+<ul>
+<li>The constructor, <kbd>__init__()</kbd>, creates a <kbd>boto3</kbd> client for the Rekognition service. The constructor also takes in a parameter for <kbd>storage_location</kbd> as the S3 bucket name in our implementation.</li>
+<li>The <kbd>detect_text()</kbd> method calls the <kbd>boto3</kbd> Rekognition client's <kbd>detect_text()</kbd> function and passes in the S3 bucket name and file key for the image. The <kbd>detect_text()</kbd> method then processes the output in the <kbd>TextDetections</kbd> array:
+<ul>
+<li>Here, we are only keeping the <kbd>LINE </kbd>detected text type and for each line we are storing the <kbd>DetectedText</kbd>, Confidence <span>objects,</span> and the <kbd>BoundingBox</kbd> coordinates.</li>
+<li>Any client using the <kbd>detect_text()</kbd> method of the <span>RecognitionService's </span>will expect these pieces of information to be returned as a Python list with dictionaries (a key-value mapping) as <kbd>text</kbd>, <kbd>confidence</kbd>, and <kbd>boundingBox</kbd>.</li>
+</ul>
+</li>
+</ul>
+<p>Here, we adapted the AWS SDK input and output formats to our own <kbd>RecognitionService</kbd> interface contract. The rest of our application will expect the method parameters and return type of our <kbd>RecognitionService</kbd>. We essentially implemented the adapter design pattern. Even if we swap the AWS Rekognition service for a different one, as long as we adapt the new service to our interface contract, our application can interact with the new service without further modifications.</p>
+<p>There are two ways to specify the image for text detection:</p>
+<ul>
+<li>One way is to provide an <kbd>S3Object</kbd> with the bucket name and object key.</li>
+<li>The other way is to provide the raw bits of the image.</li>
+</ul>
+<p>For our application, the <kbd>S3Object</kbd> way works better.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Translation service – translating text</h1>
+                </header>
+            
+            <article>
+                
+<p>We are going to leverage the Amazon Translate service to provide the language translation capability. Again, let's take a test drive with this capability using the AWS CLI first. To perform a quick translation, let's copy the detected text from the previous section, <kbd>Einbahnstrabe</kbd> and issue the following command:</p>
+<pre>$ aws translate translate-text --text "Einbahnstrabe" --source-language-code auto --target-language-code en<br/>{<br/>    "TranslatedText": "One way",<br/>    "SourceLanguageCode": "de",<br/>    "TargetLanguageCode": "en"<br/>}</pre>
+<p>We used <kbd>auto</kbd> as the source language; this tells Amazon Translate to automatically determine the language of the text. For the target language, we selected <kbd>en</kbd> for English.</p>
+<p>The output of the Amazon Translate service is quite simple, it's just a JSON object with three name/value pairs. As we can see, Amazon Translate correctly determined <kbd>Einbahnstrabe</kbd> is a German word and its English translation is One way. This must be a photo of a <kbd>One Way</kbd> traffic sign.</p>
+<div class="packt_tip">The <kbd>auto</kbd> value for the source language is handy. However, there are situations where the source language cannot be determined with a high level of confidence. In those situations, AWS will throw a <kbd>DetectedLanguageLowConfidenceException</kbd>. This exception will contain the most likely source language. If your application can tolerate this low confidence, you can issue the translation request again with the source language specified in the exception.</div>
+<p class="mce-root">Amazon Translate supports translation between numerous languages, and the list is growing. However, at the time of writing this book, there are still language pairs that are not supported. Check the AWS document on supported language pairs (<a href="https://docs.aws.amazon.com/translate/latest/dg/pairs.html">https://docs.aws.amazon.com/translate/latest/dg/pairs.html</a>) for the latest. If a request is issued to translate a language pair that's not supported, the AWS will throw an <kbd>UnsupportedLanguagePairException</kbd>.</p>
+<p class="mce-root">Let's create a Python class named <kbd>TranslationService</kbd> as shown <span>in the </span>following, <kbd>translation_service.py</kbd> file located in the <kbd>chalicelib</kbd> directory:</p>
+<pre><span class="s1">import boto3<br/><br/></span><span class="s1">class TranslationService:<br/></span><span class="s1"><span class="Apple-converted-space">    </span>def __init__(self):<br/></span><span class="s1"><span class="Apple-converted-space">        </span>self.client = boto3.client('translate')<br/><br/></span><span class="s1"><span class="Apple-converted-space">    </span>def translate_text(self, text, source_language = 'auto', target_language = 'en'):<br/></span><span class="s1"><span class="Apple-converted-space">        </span>response = self.client.translate_text(<br/></span><span class="s1"><span class="Apple-converted-space">            </span>Text = text,<br/></span><span class="s1"><span class="Apple-converted-space">            </span>SourceLanguageCode = source_language,<br/></span><span class="s1"><span class="Apple-converted-space">            </span>TargetLanguageCode = target_language<br/></span><span class="s1"><span class="Apple-converted-space">        </span>)<br/></span><span class="s1"><span class="Apple-converted-space"><br/>        </span>translation = {<br/></span><span class="s1"><span class="Apple-converted-space">            </span>'translatedText': response['TranslatedText'],<br/></span><span class="s1"><span class="Apple-converted-space">            </span>'sourceLanguage': response['SourceLanguageCode'],<br/></span><span class="s1"><span class="Apple-converted-space">            </span>'targetLanguage': response['TargetLanguageCode']<br/></span><span class="s1"><span class="Apple-converted-space">        </span>}<br/><br/></span><span class="s1"><span class="Apple-converted-space">        </span>return translation</span></pre>
+<p>In the preceding code, the following applies:</p>
+<ul>
+<li>The constructor, <kbd>__init__()</kbd>, creates a <kbd>boto3</kbd> client or is being sent to the Translate service.</li>
+<li>The <kbd>translate_text()</kbd> method calls the <kbd>boto3</kbd> Translate client's <kbd>translate_text()</kbd> function and passes in the text, source language, and target language. This method's <kbd>source_language</kbd> and <kbd>target_language</kbd> parameters have default values of <kbd>auto</kbd> and <kbd>en</kbd>, respectively.</li>
+<li>The <kbd>translate_text()</kbd> function then processes the output from the AWS SDK and returns as a Python dictionary with the <kbd>translatedText</kbd>, <kbd>sourceLanguage</kbd>, and <kbd>targetLanguage</kbd> keys. Once again, we adapted the AWS SDK input and output formats to our own <em>X</em> interface contract.</li>
+</ul>
+<p>Amazon Translate service supports the concept of custom terminology. This feature allows developers to set up custom terminology to use during translation. This is useful for use cases where words and phrases in the source text are not part of the standard language such as company names, brands, and products. For example, "Packt" does not get translated correctly. To correct the translation, we can create a custom terminology in our AWS account by uploading a <strong>C<span>omma-Separated Values</span></strong> (<strong><span>CSV</span></strong>) file with a mapping of "Packt" and to how it should be translated in various languages, as shown in the following:</p>
+<pre>en,fr,de,es<br/>Packt, Packt, Packt, Packt</pre>
+<p>During translation, we can specify one or more of these custom terminologies with the TerminologyNames parameter. See the AWS documentation, <a href="https://docs.aws.amazon.com/translate/latest/dg/how-custom-terminology.html">https://docs.aws.amazon.com/translate/latest/dg/how-custom-terminology.html</a>,<a href="https://docs.aws.amazon.com/translate/latest/dg/how-custom-terminology.html"> for more details.</a></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Storage service – uploading files</h1>
+                </header>
+            
+            <article>
+                
+<p>Let's create a Python class named <kbd>StorageService</kbd> as shown in the following, in the <kbd>storage_service.py</kbd> file located in the <kbd>chalicelib</kbd> directory:</p>
+<pre><span class="s1">import boto3<br/><br/></span><span class="s1">class StorageService:<br/></span><span class="s1"><span class="Apple-converted-space">    </span>def __init__(self, storage_location):<br/></span><span class="s1"><span class="Apple-converted-space">        </span>self.client = boto3.client('s3')<br/></span><span class="s1"><span class="Apple-converted-space">        </span>self.bucket_name = storage_location<br/><br/></span><span class="s1"><span class="Apple-converted-space">    </span>def get_storage_location(self):<br/></span><span class="s1"><span class="Apple-converted-space">        </span>return self.bucket_name<br/><br/>    </span><span class="s1">def upload_file(self, file_bytes, file_name):<br/></span><span class="s1"><span class="Apple-converted-space">        </span>self.client.put_object(Bucket = self.bucket_name,<br/></span><span class="s1"><span class="Apple-converted-space">                               </span>Body = file_bytes,<br/></span><span class="s1"><span class="Apple-converted-space">                               </span>Key = file_name,<br/></span><span class="s1"><span class="Apple-converted-space">                               </span>ACL = 'public-read')<br/><br/></span><span class="s1"><span class="Apple-converted-space">        </span>return {'fileId': file_name,<br/></span><span class="s1"><span class="Apple-converted-space">                </span>'fileUrl': "http://" + self.bucket_name + ".s3.amazonaws.com/" + file_name}</span></pre>
+<p>In the preceding code, the following applies:</p>
+<ul>
+<li>The constructor, <kbd>__init__()</kbd>, creates a <kbd>boto3</kbd> client or is being sent to the S3 service. The constructor also takes in a parameter for <kbd>storage_location</kbd> as the S3 bucket name in our implementation. </li>
+<li><span>The <kbd>get_storage_location()</kbd> method </span><span>returns the S3 bucket name as the <kbd>storage_location</kbd>. </span></li>
+<li>The <kbd>upload_file()</kbd> method takes in the raw bytes of the file to be uploaded and the filename. This method then calls the<span> </span><kbd>boto3</kbd> S3 client's <kbd>put_object()</kbd> function and passes in the bucket name, the raw bytes, key, and <strong>Access Control List</strong> (<strong>ACL</strong>) parameter.</li>
+<li><span>The first three parameters of <kbd>upload_file()</kbd> are self-explanatory. </span>The ACL parameter specifies that the file will be publicly readable after it has been uploaded to the S3 bucket. Since the S3 bucket can serve static assets such as images and files, we will use S3 to serve the image in our web user interface.</li>
+<li>Our <kbd>upload_file()</kbd> method then returns the filename along with a URL to the uploaded file in S3. Since the ACL is set to <kbd>public-read</kbd>, anyone with this URL can see this file on the internet.</li>
+</ul>
+<p>This class and its first two methods are exactly the same as <kbd>StorageService</kbd> we implemented in <a href="https://cdp.packtpub.com/hands_on_artificial_intelligence_on_amazon_web_services/wp-admin/post.php?post=298&amp;action=edit#post_299">Chapter 2</a><span>, </span><em>Anatomy of a Modern AI Application</em>. We are duplicating them here to make each hands-on project self-contained, but we are essentially just adding the <kbd>upload_file()</kbd> method to the <a href="https://cdp.packtpub.com/hands_on_artificial_intelligence_on_amazon_web_services/wp-admin/post.php?post=298&amp;action=edit#post_299">Chapter 2</a><span>, </span><em>Anatomy of a Modern AI Application</em>, <kbd>StorageService</kbd> implementation.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">A recommendation on unit testing</h1>
+                </header>
+            
+            <article>
+                
+<p>Even though unit testing is beyond the scope of this book, we want to make a strong recommendation that you make writing unit tests a habit when developing applications that are intelligence-enabled or otherwise. Unit tests should be written for every layer of the application. Unit tests should be run often to execute functionalities and to catch bugs. Testing the application layer by layer will reduce the debugging time and effort by limiting the search space for the bugs. We wrote unit tests throughout the development of all hands-on projects in this book. As an example, the following is a unit test we wrote for <kbd>TranslationService</kbd>:</p>
+<pre><span>return </span>files<br/><span class="s1">import os, sys<br/></span><span class="s1">import unittest<br/><br/></span><span class="s1">from chalicelib import translation_service<br/><br/></span><span class="s1">class TranslationServiceTest(unittest.TestCase):<br/></span><span class="s1"><span class="Apple-converted-space">    </span>def setUp(self):<br/></span><span class="s1"><span class="Apple-converted-space">        </span>self.service = translation_service.TranslationService()<br/></span><span class="s1"><span class="Apple-converted-space"><br/>    </span>def test_translate_text(self):<br/></span><span class="s1"><span class="Apple-converted-space">        </span>translation = self.service.translate_text('Einbahnstrabe')<br/></span><span class="s1"><span class="Apple-converted-space">        </span>self.assertTrue(translation)<br/></span><span class="s1"><span class="Apple-converted-space">        </span>self.assertEqual('de', translation['sourceLanguage'])<br/></span><span class="s1"><span class="Apple-converted-space">        </span>self.assertEqual('One way', translation['translatedText'])<br/><br/></span><span class="s1">if __name__ == "__main__":<br/></span><span class="s1"><span class="Apple-converted-space">    </span>unittest.main</span><span class="s2">()</span></pre>
+<p>This is a simple unit test, but it allowed us to ensure the text translation is working before moving to the next layer. If something doesn't work in the application, we have some assurance that it is not caused by this service implementation.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Implementing RESTful endpoints</h1>
+                </header>
+            
+            <article>
+                
+<p>Now that the services are implemented, let's move to the orchestration layer with the RESTful endpoints.</p>
+<p>Replace the contents of <kbd>app.py</kbd> in the <kbd>Chalice</kbd> project with the following code:</p>
+<pre><span class="s1">from chalice import Chalice<br/></span><span class="s1">from chalicelib import storage_service<br/></span><span class="s1">from chalicelib import recognition_service<br/></span><span class="s1">from chalicelib import translation_service<br/><br/></span><span class="s1">#####<br/></span><span class="s1"># chalice app configuration<br/></span><span class="s1">#####<br/></span><span class="s1">app = Chalice(app_name='Capabilities')<br/></span><span class="s1">app.debug = True<br/><br/></span><span class="s1">#####<br/></span><span class="s1"># services initialization<br/></span><span class="s1">#####<br/></span><span class="s1">storage_location = 'contents.aws.ai'<br/></span><span class="s1">storage_service = storage_service.StorageService(storage_location)<br/></span><span class="s1">recognition_service = recognition_service.RecognitionService(storage_service)<br/></span><span class="s1">translation_service = translation_service.TranslationService()<br/><br/></span><span class="s1">#####<br/></span><span class="s1"># RESTful endpoints<br/></span><span class="s1">#####<br/>...</span></pre>
+<p>In the preceding code, the following applies:</p>
+<ul>
+<li>The first four lines of code handle the imports for <kbd>chalice</kbd> as well as our three services.</li>
+<li>The next two lines of code declare the <kbd>chalice</kbd> app with the name <kbd>Capabilities</kbd>, and turn on the debug flag. The <kbd>debug</kbd> flag tells chalice to output more useful information, which is helpful during development. You can turn this flag to <kbd>False</kbd> when deploying the application to production.</li>
+<li>The next four lines of code define the <kbd>storage_location</kbd> parameter as our S3 bucket, and then instantiate our storage, recognition, and translation services. The <kbd>storage_location</kbd> <span>parameter </span>should be replaced with your S3 bucket name.</li>
+</ul>
+<p>Keep in mind that the <kbd>storage_location</kbd> <span>parameter </span>is more generic than an S3 bucket name. This parameter for both <kbd>StorageService</kbd> and <kbd>RecognitionService</kbd> can represent storage locations other than S3 buckets, for example, the NFS path or resource URI depending on the service implementation. This allows <kbd>StorageService</kbd> and <kbd>RecognitionService</kbd> to change the underlying storage technologies. However, in this design, <kbd>StorageService</kbd> and <kbd>RecognitionService</kbd> are coupled to use the same storage technology. There is an inherent assumption that <kbd>RecognitionService</kbd> can access the file uploaded through <kbd>StorageService</kbd> when performing the text detection task. We could have designed <kbd>StorageService</kbd> to return the raw bytes of the image and then pass it to the <kbd>RecognitionService</kbd>. This design would remove the same storage technology restriction, but it adds complexity and performance overhead. There are always trade-offs when it comes to design: you as an AI practitioner have to make the decisions on the trade-offs for your specific applications.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Translate the image text endpoint</h1>
+                </header>
+            
+            <article>
+                
+<p><span>We will start with the translate image text endpoint. </span>The following code will continue with the Python code of <kbd>app.py</kbd>:</p>
+<pre><span class="s1">...<br/>import json<br/><br/>...<br/>#####<br/># RESTful endpoints<br/>####<br/></span><span>@app.route</span>(<span>'/images/{image_id}/translated-text'</span>, <span>methods </span>= [<span>'POST'</span>], <span>cors </span>= <span>True</span>)<br/><span>def </span>translate_image_text(image_id):<br/>    <span>"""detects then translates text in the specified image"""<br/></span><span>    </span>request_data = json.loads(app.current_request.raw_body)<br/>    from_lang = request_data[<span>'fromLang'</span>]<br/>    to_lang = request_data[<span>'toLang'</span>]<br/><br/>    MIN_CONFIDENCE = <span>80.0<br/></span><span><br/></span><span>    </span>text_lines = recognition_service.detect_text(image_id)<br/><br/>    translated_lines = []<br/>    <span>for </span>line <span>in </span>text_lines:<br/>        <span># check confidence<br/></span><span>        </span><span>if </span><span>float</span>(line[<span>'confidence'</span>]) &gt;= MIN_CONFIDENCE:<br/>            translated_line = translation_service.translate_text(line[<span>'text'</span>], from_lang, to_lang)<br/>            translated_lines.append({<br/>                <span>'text'</span>: line[<span>'text'</span>],<br/>                <span>'translation'</span>: translated_line,<br/>                <span>'boundingBox'</span>: line[<span>'boundingBox'</span>]<br/>            })<br/><br/>    <span>return </span>translated_lines</pre>
+<p>In the preceding code, the following applies:</p>
+<ul>
+<li>The <kbd>translate_image_text()</kbd> function implements the <kbd>RESTful</kbd> endpoint.</li>
+<li>The annotation right above this function describes the HTTP request that can access this endpoint.</li>
+<li>In the <kbd>translate_image_text()</kbd> function, we first get the request data that contains the source language, <kbd>fromLang</kbd>, and target language, <kbd>toLang</kbd>, for the translation.</li>
+<li>Next, we call <kbd>RecognitionService</kbd> to detect text in the image and store the detected lines of text in <kbd>text_lines</kbd>.</li>
+<li>Then, for each line of text in <kbd>text_lines</kbd>, we check the confidence level of the detection. If the confidence level is above <kbd>MIN_CONFIDENCE</kbd>, which is set to <kbd>80.0</kbd>, then we perform the translation on that line of text.</li>
+<li>We then return the <kbd>text</kbd>, <kbd>translation</kbd>, and <kbd>boundingBox</kbd> to the caller as JSON (chalice automatically formats the contents in <kbd>translated_line</kbd> to JSON).</li>
+</ul>
+<p>The following is an HTTP request to this RESTful endpoint. <span>The <kbd>/images</kbd> path is treated as a collection resource in the RESTful convention, and <kbd>image_id</kbd> specifies a specific image within this collection:</span></p>
+<pre>POST &lt;server url&gt;/images/{image_id}/translate-text<br/>{<br/>    fromLang: "auto",<br/>    toLang: "en"<br/>}</pre>
+<p>To perform an action on the specific image specified by the <kbd>/images/{image_id}</kbd> URL, we use a <kbd>POST</kbd> HTTP request to a custom <kbd>translate-text</kbd> <span>action.</span> We have additional parameters as the JSON payload in the request body, <kbd>fromLang</kbd> and <kbd>toLang</kbd>, to specify the language codes of the translation. <span>To read this RESTful HTTP request, we are performing <kbd>translate-text</kbd> action for an image in the <kbd>images</kbd> collection on <kbd>&lt;server url&gt;</kbd> with the specified <kbd>image_id</kbd>.</span></p>
+<p>Let's test this endpoint out by running <kbd>chalice local</kbd> in the Python virtual environment as shown in the following, and then issue the following <kbd>curl</kbd> command and specify an image that has already been uploaded to our S3 bucket:</p>
+<pre>$ curl --header "Content-Type: application/json" --request POST --data '{"fromLang":"auto","toLang":"en"}' http://127.0.0.1:8000/images/german_street_sign.jpg/translate-text<br/>[<br/> {<br/> "text": "Einbahnstrabe",<br/> "translation": {<br/> "translatedText": "One way",<br/> "sourceLanguage": "de",<br/> "targetLanguage": "en"<br/> },<br/> "boundingBox": {<br/> "Width": 0.495918333530426,<br/> "Height": 0.06301824748516083,<br/> "Left": 0.3853428065776825,<br/> "Top": 0.4955403208732605<br/> }<br/> }<br/>]</pre>
+<p>This is the JSON that our web user interface will receive and use to display the translations to the user.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Upload the image endpoint</h1>
+                </header>
+            
+            <article>
+                
+<p>We are going to allow the clients of this endpoint to upload images using Base64 encoding. With Base64 encoding, we can translate binary data, such as image and audio, into ASCII string format and back. This method allows our application to upload images using the JSON payload in the HTTP request. Don't worry, you don't need to be familiar with Base64 to continue with the project implementation.</p>
+<p>Let's have a look at the code of our endpoint function:</p>
+<pre><span class="s1">import base64<br/>import json<br/>...<br/><br/>@app.route('/images', methods = ['POST'], cors = True)<br/></span><span class="s1">def upload_image():<br/></span><span class="s1"><span class="Apple-converted-space">    """processes file upload and saves file to storage service"""<br/>    request_data = json.loads(app.current_request.raw_body)<br/>    file_name = request_data['filename']<br/>    file_bytes = base64.b64decode(request_data['filebytes'])</span></span><span class="s1"><br/><br/></span><span class="s1"><span class="Apple-converted-space">    </span>image_info = storage_service.upload_file(file_bytes, file_name)<br/><br/></span><span class="s1"><span class="Apple-converted-space">    </span>return image_info</span></pre>
+<p>In the <span>preceding </span>code, <span>the following applies</span>:</p>
+<ul>
+<li>The <kbd>upload_image()</kbd> function implements the RESTful endpoint. The annotation right above it describes the HTTP request that can access this endpoint.</li>
+<li>In the <kbd>upload_image()</kbd> function, we use Base64 to decode the uploaded file in the JSON payload in the HTTP request and then upload it through our <kbd>StorageService</kbd>.</li>
+<li>In this function, we return to the caller the output of <kbd>StorageService.upload_file()</kbd> in JSON format.</li>
+</ul>
+<p><span>The following is an HTTP request to this RESTful endpoint. Again, as shown in the following code block, <kbd>/images</kbd> is treated as a collection resource in the RESTful convention:</span></p>
+<pre><span class="s1">POST &lt;server url&gt;/images</span></pre>
+<p>To create a new resource within the collection, the RESTful convention uses the <kbd>POST</kbd> method to the <kbd>/images </kbd><span>collection resource.</span></p>
+<p>With <kbd>chalice local</kbd> running, issue the following <kbd>curl</kbd> command to test the upload endpoint. We are using the <kbd>echo</kbd><span> command to send the JSON payload, including the Base64 encoding, to our endpoint. </span>The file specified in the command must be on your local filesystem:</p>
+<pre>$ (echo -n '{"filename": "german_street_sign.jpg", "filebytes": "'; base64 /&lt;file path&gt;/german_street_sign.jpg; echo '"}') | curl --header "Content-Type: application/json" -d @- http://127.0.0.1:8000/images<br/>{<br/>   "fileId":"germany_street_sign.jpg",<br/>   "fileUrl":"https://contents.aws.ai.s3.amazonaws.com/german_street_sign.jpg"<br/>}<span class="s1"><br/></span></pre>
+<p>In the <span>preceding </span>code, <span>the following applies</span>:</p>
+<ul>
+<li>This is the JSON that our web user interface will receive. We get a <kbd>fileId</kbd> back; this ID can be used to specify the upload image in the <kbd>/images</kbd> collection resource.</li>
+<li>We also get a <kbd>fileUrl</kbd>, and the current <kbd>StorageService</kbd> implementation returns the S3 URL to the file, but this <kbd>fileUrl</kbd> is generic and not tied to any particular service.</li>
+<li>We will use this <kbd>fileUrl</kbd> to display the image in the web user interface.</li>
+</ul>
+<p>At this point, you can go to your S3 bucket and see whether the file has been uploaded successfully.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Implementing the web user interface</h1>
+                </header>
+            
+            <article>
+                
+<p>Next, let's create a simple web user interface with HTML and JavaScript in the <kbd>index.html</kbd> and <kbd>script.js</kbd> files in the <kbd>Website</kbd> directory.</p>
+<p>This is what the final web interface looks like:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/b67dafa3-4a37-448f-91dc-b0869f64d972.png" style=""/></div>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">index.html</h1>
+                </header>
+            
+            <article>
+                
+<p>Let's create the web user interface with the <kbd>index.html</kbd> file, as shown in the following code block:</p>
+<pre><span class="s1">&lt;!doctype html&gt;<br/></span><span class="s1">&lt;html lang="en"/&gt;<br/></span><span class="s1"><br/>&lt;head&gt;<br/></span><span class="s1"><span class="Apple-converted-space">    </span>&lt;meta charset="utf-8"/&gt;<br/></span><span class="s1"><span class="Apple-converted-space">    </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"/&gt;<br/><br/></span><span class="s1"><span class="Apple-converted-space">    </span>&lt;title&gt;Pictorial Translator&lt;/title&gt;<br/><br/></span><span class="s1"><span class="Apple-converted-space">    </span>&lt;link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css"&gt;<br/></span><span class="s1"><span class="Apple-converted-space">    </span>&lt;link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-blue-grey.css"&gt;<br/></span><span class="s1">&lt;/head&gt;<br/><br/></span><span class="s1">&lt;body class="w3-theme-14"&gt;<br/></span><span class="s1"><span class="Apple-converted-space">    </span>&lt;div style="min-width:400px"&gt;<br/></span><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="w3-bar w3-large w3-theme-d4"&gt;<br/></span><span class="s1"><span class="Apple-converted-space">            </span>&lt;span class="w3-bar-item"&gt;Pictorial Translator&lt;/span&gt;<br/></span><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;<br/></span><span class="s1"><span class="Apple-converted-space"><br/>        </span>&lt;div class="w3-container w3-content"&gt;<br/></span><span class="s1"><span class="Apple-converted-space">            </span>&lt;p class="w3-opacity"&gt;&lt;b&gt;Upload&lt;/b&gt;&lt;/p&gt;<br/></span><span class="s1"><span class="Apple-converted-space">            </span>&lt;input id="file" type="file" name="file" accept="image/*"/&gt;<br/></span><span class="s1"><span class="Apple-converted-space">            </span>&lt;input class="w3-button w3-blue-grey" type="submit" value="Upload"<br/></span><span class="s1"><span class="Apple-converted-space">                   </span>onclick="uploadAndTranslate()"/&gt;<br/><br/></span><span class="s1"><span class="Apple-converted-space">            </span>&lt;p class="w3-opacity"&gt;&lt;b&gt;Image&lt;/b&gt;&lt;/p&gt;<br/></span><span class="s1"><span class="Apple-converted-space">            </span>&lt;div id="view" class="w3-panel w3-white w3-card w3-display-container"<br/></span><span class="s1"><span class="Apple-converted-space">                 </span>style="display:none;"&gt;<br/></span><span class="s1"><span class="Apple-converted-space">                </span>&lt;div style="float: left;"&gt;<br/></span><span class="s1"><span class="Apple-converted-space">                    </span>&lt;img id="image" width="600"/&gt;<br/></span><span class="s1"><span class="Apple-converted-space">                </span>&lt;/div&gt;<br/></span><span class="s1"><span class="Apple-converted-space">                </span>&lt;div style="float: right;"&gt;<br/></span><span class="s1"><span class="Apple-converted-space">                    </span>&lt;h5&gt;Translated Text:&lt;/h5&gt;<br/></span><span class="s1"><span class="Apple-converted-space">                    </span>&lt;div id="translations"/&gt;<br/></span><span class="s1"><span class="Apple-converted-space">                </span>&lt;/div&gt;<br/></span><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;<br/></span><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;<br/></span><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;<br/><br/></span><span class="s1"><span class="Apple-converted-space">    </span>&lt;script src="scripts.js"&gt;&lt;/script&gt;<br/></span><span class="s1">&lt;/body&gt;<br/><br/></span><span class="s1">&lt;/html&gt;</span></pre>
+<p>We are using standard HTML tags here, so the code of the web page should be easy to follow. Here are a few things to point out:</p>
+<ul>
+<li>We are using two <kbd>&lt;input&gt;</kbd> tags for the file chooser and the upload button. Typically, <kbd>&lt;input&gt;</kbd> tags are used inside HTML forms, but instead, we are running a JavaScript function, <kbd>uploadAndTranslate()</kbd>, when the upload button is clicked.</li>
+<li>The <kbd>&lt;img&gt;</kbd> tag, with the <kbd>image </kbd><span>ID, </span>will be used to display the uploaded image. This ID will be used by JavaScript to add the image dynamically.</li>
+<li>The <kbd>&lt;div&gt;</kbd> tag, with the <kbd>translations </kbd>ID, will be used to display lines of detected text and their translations. This <kbd>id</kbd> will also be used by JavaScript to add the text and translation dynamically.</li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">scripts.js</h1>
+                </header>
+            
+            <article>
+                
+<p>Let's create <kbd>scripts.js</kbd> as shown in the following. The JavaScript function is interacting with the endpoints and stitching together the overall user experience of the Pictorial Translator. Let's have a look at the following code:</p>
+<ol>
+<li>First, define <kbd>serverUrl</kbd> as the address of <kbd>chalice local</kbd>.</li>
+<li>We will also define a new <kbd>HttpError</kbd> to handle the exceptions that might occur during the HTTP requests.</li>
+<li>Add this JavaScript class at the end of the <kbd>scripts.js</kbd> file:</li>
+</ol>
+<pre style="padding-left: 60px"><span class="s1">"use strict";<br/></span><span class="s1">const serverUrl = "http://127.0.0.1:8000";<br/>...<br/></span>class HttpError extends Error {<br/><span class="s1"><span class="Apple-converted-space"> </span></span><span class="s1">constructor(response) {<br/></span><span class="s1"><span class="Apple-converted-space">        </span>super(`${response.status} for ${response.url}`);<br/></span><span class="s1"><span class="Apple-converted-space">        </span>this.name = "HttpError";<br/></span><span class="s1"><span class="Apple-converted-space">        </span>this.response = response;<br/></span><span class="s1"><span class="Apple-converted-space">    </span>}<br/></span><span class="s1">}<br/></span></pre>
+<ol start="4">
+<li>Next, we will define four functions in <kbd>scripts.js</kbd>:</li>
+</ol>
+<ul>
+<li style="padding-left: 30px"><kbd>uploadImage()</kbd>: This uploads the image via Base64 encoding to our <kbd>UploadImage()</kbd> endpoint.</li>
+<li style="padding-left: 30px"><kbd>updateImage()</kbd>: This updates the user interface to display the uploaded image using the S3 URL.</li>
+<li style="padding-left: 30px"><kbd>translateImage()</kbd>: This calls the translate image text endpoint to translate the text detected in the image.</li>
+<li style="padding-left: 30px"><kbd>updateTranslations()</kbd>: This updates the user interface to display the translated texts.</li>
+</ul>
+<p>These are sequential steps of the user experience. We broke them into individual functions to make the JavaScript code more modular and readable. Each function performs a specific task.</p>
+<p>Let's have a look at the <kbd>uploadImage()</kbd> function, <span>as shown in the following code block:</span></p>
+<pre><span class="s1">async function uploadImage() {<br/>    // encode input file as base64 string for upload<br/>    let file = document.getElementById("file").files[0];<br/>    let converter = new Promise(function(resolve, reject) {<br/>        const reader = new FileReader();<br/>        reader.readAsDataURL(file);<br/>        reader.onload = () =&gt; resolve(reader.result<br/>            .toString().replace(/^data:(.*,)?/, ''));<br/>        reader.onerror = (error) =&gt; reject(error);<br/>    });<br/>    let encodedString = await converter;<br/><br/>    // clear file upload input field<br/>    document.getElementById("file").value = "";<br/><br/>    // make server call to upload image<br/>    // and return the server upload promise<br/>    return fetch(serverUrl + "/images", {<br/>        method: "POST",<br/>        headers: {<br/>            'Accept': 'application/json',<br/>            'Content-Type': 'application/json'<br/>        },<br/>        body: JSON.stringify({filename: file.name, filebytes: encodedString})<br/>    }).then(response =&gt; {<br/>        if (response.ok) {<br/>            return response.json();<br/>        } else {<br/>            throw new HttpError(response);<br/>        }<br/>    })<br/>}</span></pre>
+<p>In the preceding code, <span>the following applies</span>:</p>
+<ul>
+<li>The <kbd>uploadImage()</kbd> function is creating a Base64-encoded string from the file input field in <kbd>index.html</kbd>.
+<ul>
+<li>This function is declared as async because we need to wait for the file to be read and encoded.</li>
+<li>This function creates a JavaScript <kbd>Promise</kbd> function that uses a <kbd>FileReader</kbd> to read the file, and then converts the file content as Base64 with the <kbd>readAsDataURL()</kbd> function.</li>
+</ul>
+</li>
+<li>This function clears the file input field after each upload, so the user can more easily upload another image.</li>
+<li>This function then sends the <span>POST </span>HTTP request with the JSON payload to our Upload Image Endpoint URL and returns <kbd>response.json</kbd>.</li>
+</ul>
+<p>Let's have a look at the <kbd>updateImage()</kbd> function, as shown in the following code block:</p>
+<pre><span class="s1">function updateImage(image) {<br/></span><span class="s1"><span class="Apple-converted-space">    </span>document.getElementById("view").style.display = "block";<br/><br/></span><span class="s1"><span class="Apple-converted-space">    </span>let imageElem = document.getElementById("image");<br/></span><span class="s1"><span class="Apple-converted-space">    </span>imageElem.src = image["fileUrl"];<br/></span><span class="s1"><span class="Apple-converted-space">    </span>imageElem.alt = image["fileId"];<br/></span><span class="s1"><span class="Apple-converted-space"><br/>    </span>return image;<br/></span><span class="s1">}</span></pre>
+<p>In the <span>preceding </span>code, <span>the following applies</span>:</p>
+<ul>
+<li>The <kbd>updateImage()</kbd> function makes the <kbd>&lt;div&gt;</kbd> tag with the <kbd>view</kbd> ID visible to display the image.</li>
+<li>This function finds the <kbd>&lt;img&gt;</kbd> tag with the <kbd>image</kbd> ID and sets the <kbd>src</kbd> attribute to the URL of the image file stored in S3.</li>
+<li>The <kbd>&lt;img&gt;</kbd> tag's <kbd>alt</kbd> attribute is set to the filename in case the image cannot be loaded for some reason.</li>
+</ul>
+<div class="packt_infobox">The <kbd>alt</kbd> attribute makes web pages more accessible for more users, including the visually impaired. For more information on web page accessibility, search for <kbd>508 compliance</kbd>.</div>
+<p><span>Lets, have a look at the <kbd>translateImage()</kbd> function, as shown in the following code block:</span></p>
+<pre><span>function </span><span>translateImage</span>(image) {<br/>    <span>// make server call to translate image<br/></span><span>    // and return the server upload promise<br/></span><span>    </span><span>return </span><span>fetch</span>(<span>serverUrl </span>+ <span>"/images/" </span>+ image[<span>"fileId"</span>] + <span>"/translate-text"</span>, {<br/>        <span>method</span>: <span>"POST"</span>,<br/>        <span>headers</span>: {<br/>            <span>'Accept'</span>: <span>'application/json'</span>,<br/>            <span>'Content-Type'</span>: <span>'application/json'<br/></span><span>        </span>},<br/>        <span>body</span>: <span>JSON</span>.<span>stringify</span>({<span>fromLang</span>: <span>"auto"</span>, <span>toLang</span>: <span>"en"</span>})<br/>    }).<span>then</span>(response =&gt; {<br/>        <span>if </span>(response.<span>ok</span>) {<br/>            <span>return </span>response.<span>json</span>();<br/>        } <span>else </span>{<br/>            <span>throw new </span>HttpError(response);<br/>        }<br/>    })<br/>}</pre>
+<p>In the preceding code, <span>the following applies</span>:</p>
+<ul>
+<li>The <kbd>translateImage()</kbd> function sends the HTTP POST request, along with the JSON body, to our <strong>Translate Image Text Endpoint</strong> URL.</li>
+<li>The function then returns the response JSON with the translation texts.</li>
+</ul>
+<p><span>Let's have a look at the</span> <kbd>annotateImage()</kbd> <span>function, as shown in the following code block:</span></p>
+<pre><span class="s1">function annotateImage(translations) {<br/></span><span class="s1"><span class="Apple-converted-space">    </span>let translationsElem = document.getElementById("translations");<br/></span><span class="s1"><span class="Apple-converted-space">    </span>while (translationsElem.firstChild) {<br/></span><span class="s1"><span class="Apple-converted-space">        </span>translationsElem.removeChild(translationsElem.firstChild);<br/></span><span class="s1"><span class="Apple-converted-space">    </span>}<br/></span><span class="s1"><span class="Apple-converted-space">    </span>translationsElem.clear<br/></span><span class="s1"><span class="Apple-converted-space"><br/>    </span>for (let i = 0; i &lt; translations.length; i++) {<br/></span><span class="s1"><span class="Apple-converted-space">        </span>let translationElem = document.createElement("h6");<br/></span><span class="s1"><span class="Apple-converted-space">        </span>translationElem.appendChild(document.createTextNode(<br/></span><span class="s1"><span class="Apple-converted-space">            </span>translations[i]["text"] + " -&gt; " + translations[i]["translation"]["translatedText"]<br/></span><span class="s1"><span class="Apple-converted-space">        </span>));<br/></span><span class="s1"><span class="Apple-converted-space">        </span>translationsElem.appendChild(document.createElement("hr"));<br/></span><span class="s1"><span class="Apple-converted-space">        </span>translationsElem.appendChild(translationElem);<br/></span><span class="s1"><span class="Apple-converted-space">    </span>}<br/></span><span class="s1">}</span></pre>
+<p><span>In the preceding code, the following applies:</span></p>
+<ul>
+<li>The <kbd>updateTranslations()</kbd> function finds the <kbd>&lt;div&gt;</kbd> tag with the <kbd>translations</kbd> ID and removes any existing translations from the previous image.</li>
+<li>Then, it adds to the <kbd>&lt;div&gt;</kbd> tag <span>for each line of text, </span>a new <kbd>&lt;h6&gt;</kbd> tag to display the detected text as well as its translation.</li>
+</ul>
+<p>All four functions are stitched together by the following <kbd>uploadAndTranslate()</kbd> function:</p>
+<pre><span class="s1">function uploadAndTranslate() {<br/></span><span class="s1"><span class="Apple-converted-space">    </span>uploadImage()<br/></span><span class="s1"><span class="Apple-converted-space">        </span>.then(image =&gt; updateImage(image))<br/></span><span class="s1"><span class="Apple-converted-space">        </span>.then(image =&gt; translateImage(image))<br/></span><span class="s1"><span class="Apple-converted-space">        </span>.then(translations =&gt; annotateImage(translations))<br/></span><span class="s1"><span class="Apple-converted-space">        </span>.catch(error =&gt; {<br/></span><span class="s1"><span class="Apple-converted-space">            </span>alert("Error: " + error);<br/></span><span class="s1"><span class="Apple-converted-space">        </span>})<br/></span><span class="s1">}</span></pre>
+<p>Notice how clear the sequence of events are in the <kbd>uploadAndTranslate()</kbd> function:</p>
+<ol>
+<li>If the <kbd>updateImage()</kbd> function is successful, then run <kbd>updateImage()</kbd> with the image information.</li>
+<li>Then, run the <kbd>translateImage()</kbd> function with the image information. If the <kbd>translateImage()</kbd> function is successful, then run <kbd>updateTranslations()</kbd>.</li>
+<li>Catch any errors in this chain and display it in a pop-up modal.</li>
+</ol>
+<p>The final project structure for the Pictorial Translator application should be as follows:</p>
+<pre>├── Capabilities<br/>│   ├── app.py<br/>│   ├── chalicelib<br/>│   │ ├── __init__.py<br/>│   │ ├── recognition_service.py<br/>│   │ ├── storage_service.py<br/>│   │ └── translation_service.py<br/>│   └── requirements.txt<br/>├── Pipfile<br/>├── Pipfile.lock<br/>└── Website<br/>    ├── index.html<br/>    └── scripts.js<br/></pre>
+<p><span>Now, we have completed the implementation of the Pictorial Translator application.</span></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Deploying Pictorial Translator to AWS</h1>
+                </header>
+            
+            <article>
+                
+<p>The deployment steps for the Pictorial Translator application are the same as the deployment steps of the Rekognition demonstration in <a href="042787e6-6f54-4728-8354-e22d87be0460.xhtml">Chapter 2</a><span>, </span><em>Anatomy of a Modern AI Application</em>; we have included the steps here for completion:</p>
+<ol>
+<li>First, let's tell <kbd>chalice</kbd> to perform policy analysis for us by setting <kbd>autogen_policy</kbd> to <kbd>false</kbd> in the <kbd>config.json</kbd> file in the <kbd>.chalice</kbd> directory of the project structure:</li>
+</ol>
+<pre style="padding-left: 60px">{<br/>  "version": "2.0",<br/>  "app_name": "Capabilities",<br/>  "stages": {<br/>    "dev": {<br/>      "autogen_policy": false,<br/>      "api_gateway_stage": "api"<br/>    }<br/>  }<br/>}</pre>
+<ol start="2">
+<li><span>Next, we create a new <kbd>policy-dev.json</kbd> file in the <kbd>.chalice</kbd> directory to manually specify the AWS services the project needs:</span></li>
+</ol>
+<pre style="padding-left: 60px">{<br/><span> "Version"</span>: <span>"2012-10-17"</span>,<br/><span> "Statement"</span>: [<br/> {<br/><span> "Effect"</span>: <span>"Allow"</span>,<br/><span> "Action"</span>: [<br/><span> "logs:CreateLogGroup"</span>,<br/><span> "logs:CreateLogStream"</span>,<br/><span> "logs:PutLogEvents"</span>,<br/><span> "s3:*"</span>,<br/><span> "rekognition:*",<br/> "translate:*"</span><span><br/></span> ],<br/><span> "Resource"</span>: <span>"*"<br/></span> }<br/> ]<br/>}</pre>
+<ol start="3">
+<li>Next, we deploy the <kbd>chalice</kbd> backend to AWS by running the following command within the <kbd>Capabilities</kbd> directory:</li>
+</ol>
+<pre style="padding-left: 60px">$ chalice deploy<br/>Creating deployment package.<br/>Creating IAM role: Capabilities-dev<br/>Creating lambda function: Capabilities-dev<br/>Creating Rest API<br/>Resources deployed:<br/>  - Lambda ARN: arn:aws:lambda:us-east-1:&lt;UID&gt;:function:Capabilities-dev<br/>  - Rest API URL: https://&lt;UID&gt;.execute-api.us-east-1.amazonaws.com/api/</pre>
+<p style="padding-left: 60px">When the deployment is complete, <kbd>chalice</kbd> will output a RESTful API URL that looks similar to <kbd>https://&lt;UID&gt;.execute-api.us-east-1.amazonaws.com/api/</kbd>, where the <kbd>&lt;UID&gt;</kbd> tag is a unique identifier string. This is the server URL your frontend app should hit to access the application backend running on AWS.</p>
+<ol start="4">
+<li>Next, we will upload the <kbd>index.html</kbd> and <kbd>scripts.js</kbd> files to this S3 bucket, and then <span>set the permissions to publicly readable</span>. Before we do that, we need to make a change in <kbd>scripts.js</kbd>, as shown in the following. Remember, the website will be running in the cloud now, and won't have access to our local HTTP server. Replace the local server URL with the one from our backend deployment:</li>
+</ol>
+<pre style="padding-left: 60px">"use strict";<br/><br/>const serverUrl = "https://&lt;UID&gt;.execute-api.us-east-1.amazonaws.com/api";<br/><br/>...</pre>
+<p>Now the Pictorial Translator application is accessible for everyone on the internet to make our world smaller!</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Discussing project enhancement ideas</h1>
+                </header>
+            
+            <article>
+                
+<p>At the end of each hands-on project in Part 2, we provide you with a few ideas to extend the intelligence-enabled application. Here are a couple of ideas to enhance the Pictorial Translator:</p>
+<ul>
+<li>Add voice read back for both original and translated texts. Voice read back for the original text will help users learn a foreign language. Voice read back of the translated text will help visually impaired users. AWS provides voice-generation capabilities with the Amazon Polly service.</li>
+<li>Create a native mobile app for better user experience. For example, a continuous camera scan for real-time pictorial translation. The mobile app can leverage the same two endpoints we created. The mobile app is just another frontend to the Pictorial Translator application.</li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Summary</h1>
+                </header>
+            
+            <article>
+                
+<p>In this chapter, we built a Pictorial Translator application to translate texts appearing in pictures. We leveraged Amazon Rekognition <span>to first detect lines of text in pictures</span> and then leveraged Amazon Translate to translate the detected texts. This is our first intelligence-enabled solution that solves a real-world problem. Building these solutions through hands-on projects helps to build your intuition for solving problems with AI capabilities. Along the way, we also discussed solution design decisions and trade-offs that must be validated against the real-world usages of our application. From an architectural perspective, not only did we build a working application, we architected it in a way that allows for reusable components that we can leverage in future hands-on projects.</p>
+<p>In the next chapter, we will build more intelligence-enabled applications using additional AWS AI services. As we gain more experience building hands-on projects, pay close attention to the reusable opportunities created by our architecture design decisions.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Further reading</h1>
+                </header>
+            
+            <article>
+                
+<p>For more information on detecting and translating text with Amazon Rekognition and Amazon Translate, please refer to the following links:</p>
+<ul>
+<li><a href="https://www.androidauthority.com/google-lens-augmented-reality-785836/">https://www.androidauthority.com/google-lens-augmented-reality-785836/</a></li>
+<li><a href="https://docs.aws.amazon.com/rekognition/latest/dg/API_DetectText.html">https://docs.aws.amazon.com/rekognition/latest/dg/API_DetectText.html</a></li>
+<li><a href="https://www.cs.vu.nl/~eliens/assets/flex3/langref/flash/geom/Rectangle.html">https://www.cs.vu.nl/~eliens/assets/flex3/langref/flash/geom/Rectangle.html</a> (rectangle image)</li>
+<li><a href="https://en.wikipedia.org/wiki/Base64">https://en.wikipedia.org/wiki/Base64</a></li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    </body></html>

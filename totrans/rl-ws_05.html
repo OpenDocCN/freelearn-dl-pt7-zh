@@ -1,0 +1,537 @@
+<html><head></head><body>
+		<div>
+			<div id="_idContainer404" class="Content">
+			</div>
+		</div>
+		<div id="_idContainer405" class="Content">
+			<h1 id="_idParaDest-159"><a id="_idTextAnchor199"/>5. Dynamic Programming</h1>
+		</div>
+		<div id="_idContainer446" class="Content">
+			<p class="callout-heading">Overview</p>
+			<p class="callout">In this chapter, you will be introduced to the driving principles of dynamic programming. You will be introduced to the classic coin-change problem as an application of dynamic programming. Furthermore, you will learn how to implement policy evaluation, policy iteration, and value iteration and learn the differences between them. By the end of the chapter, you will be able to implement dynamic programming to solve problems in <strong class="bold">Reinforcement Learning</strong> (<strong class="bold">RL</strong>). </p>
+			<h1 id="_idParaDest-160"><a id="_idTextAnchor200"/>Introduction</h1>
+			<p>In the previous chapter, we were introduced to the OpenAI Gym environment and also learned how to implement custom environments, depending on the application. You also learned the basics of TensorFlow 2, how to implement a policy using the TensorFlow 2 framework, and how to visualize learning using TensorBoard. In this chapter, we will see how <strong class="bold">Dynamic Programming</strong> (<strong class="bold">DP</strong>) works in general, from a computer science perspective. Then, we'll go over how and why it is used in RL. Next, we will dive deep into classic DP algorithms such as policy evaluation, policy iteration, and value iteration and compare them. Lastly, we will implement the algorithms in the classic coin-change problem.</p>
+			<p>DP is one of the most fundamental and foundational topics in computer science. Furthermore, RL algorithms such as <strong class="bold">Value Iteration</strong>, <strong class="bold">Policy Iteration</strong>, and others, as we will see, use the same basic principle: avoid repeated computations to save time, which is what DP is all about. The philosophy of DP is not new; it is self-evident and commonplace once you learn the ways to solve it. The hard part is identifying whether a problem can be solved using DP.</p>
+			<p>The basic principle can be explained to a child as well. Imagine counting the number of candies in a box. If you know there are 100 candies in a box, and the shopkeeper offers 5 extra candies, you don't start counting the candies all over again. You use the prior information to add 5 to the original count and say, "I have 105 candies." That's the core of DP: saving intermediate information and reusing it, if required, to avoid re-computation. While it sounds simple, as mentioned before, the hard part is identifying whether a problem can be solved using DP. As we will see later, in the <em class="italic">Identifying Dynamic Programming Problems</em> section, a problem must satisfy a specific prerequisite, such as optimal substructure and overlapping subproblems, to be solved using DP, which we will study in the <em class="italic">Identifying Dynamic Programming Problems</em> section. Once a problem qualifies, there are some well-known techniques such as top-down memoization, that is, saving intermediate states in an unordered fashion, and bottom-up tabulation, which is saving the states in an ordered array or matrix. </p>
+			<p>Combining these techniques can achieve a considerable performance boost over solving them using brute force. Furthermore, the difference in time increases with an increase in the number of operations. Mathematically speaking, solutions solved using DP usually run in O(n<span class="superscript">2</span>), while those using brute force execute in O(2<span class="superscript">n</span>) time, where the notation "O" (Big-O) can be loosely thought of as the number of operations performed. So, for instance, if N=500, which is a reasonably small number, a DP algorithm will roughly execute 500<span class="superscript">2</span> steps, compared to a brute force algorithm, which will use 2<span class="superscript">500</span> steps. For reference, there are 2<span class="superscript">80</span> hydrogen atoms in the sun, which is undoubtedly a much smaller number than 2<span class="superscript">500</span>.</p>
+			<p>The following figure depicts the difference in the number of operations executed for both algorithms:  </p>
+			<div>
+				<div id="_idContainer406" class="IMG---Figure">
+					<img src="image/B16182_05_01.jpg" alt="Figure 5.1: Visualizing Big-O values&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 5.1: Visualizing Big-O values</p>
+			<p>Let's now move toward studying the approach of solving DP problems.</p>
+			<h1 id="_idParaDest-161"><a id="_idTextAnchor201"/>Solving Dynamic Programming Problems</h1>
+			<p>There are two popular ways to solve DP problems: the tabular method and memoization. In the tabular method, we build a matrix that stores the intermediate values one by one in the lookup table. On the other hand, in the memoization method, we store the same values in an unstructured way. Here, unstructured way refers to the fact that the lookup table may be filled all at once.</p>
+			<p>Imagine you're a baker and are selling cakes to shops. Your job is to sell cakes and make the maximum profit out of it. For simplicity, we will assume that all other costs are fixed, and the highest price offered for your product is the only indicator of profits earned, which is a fair assumption for most business cases. So, naturally, you'd wish to sell all your cakes to the shop offering the highest price, but there's a decision to make as there are multiple shops that offer different prices on different sizes of cakes. So, you have two choices: how much to sell, and which shop to trade with. For this example, we'll forget other variables and assume there are no additional hidden costs. We'll tackle the problem using the tabular method, as well as memoization. </p>
+			<p>Phrasing the problem formally, you have a cake with weight W, and an array of prices that different shops are willing to offer, and you have to find out the optimal configuration that yields the highest price (and by the assumptions stated previously, highest profit). </p>
+			<p class="callout-heading">Note</p>
+			<p class="callout">In the code examples, which will be listed further in this section, we have used profit and price interchangeably. So, for example, if you encounter a variable such as <strong class="source-inline">best_profit</strong>, it would also be an indicator of best price and vice-versa.</p>
+			<p>For instance, say W = 5, meaning we have a cake that weighs 5 kilograms and the prices, indicated in the following table, are what are offered by restaurants:</p>
+			<div>
+				<div id="_idContainer407" class="IMG---Figure">
+					<img src="image/B16182_05_02.jpg" alt="Figure 5.2: Different prices offered for different weights of cakes&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 5.2: Different prices offered for different weights of cakes</p>
+			<p>Now consider restaurant A pays $10 for a 1 kg cake, but $40 for a 2 kg cake. So, the question is: should I sell a 5 kg cake and partition it into 5 x 1 kg slices, which will yield $45, or should I sell the 5 kg cake as a whole to restaurant B, which is offering $80. In this case, the most optimal configuration is to partition the cake into a 3 kg part that yields $50 and a 2 kg part that generates $40, which yields a total of $90. The following table indicates various ways of partitioning and the corresponding price that we'll get:</p>
+			<div>
+				<div id="_idContainer408" class="IMG---Figure">
+					<img src="image/B16182_05_03.jpg" alt="Figure 5.3: Different combinations for cake partitioning&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 5.3: Different combinations for cake partitioning</p>
+			<p>Now, from the preceding table, it is quite evident that the best price is provided by the combination of 2 kg + 3 kg. But to really understand the limitation of the brute force approach, we'll assume that we don't know the best combination for yielding the maximum price. We'll try to implement the brute force approach in code. In reality, the number of observations for an actual business problem may be too large for you to arrive at an answer as quickly as you may have done here. The preceding table is just an example to help you understand the limitations of the brute force approach.</p>
+			<p>So, let's try to solve this problem using brute force. We can rephrase the question slightly differently: at every junction, we have a choice – partition or not. If we choose to partition the cake into two unequal parts first, the left side, for instance, becomes one part of the cake, and the right side can be treated as an independent partition. In the next iteration, we'll only concentrate on the right side / the other part. Now, again, we can partition it, and the right side becomes a part of the cake that is divided further. This paradigm is also called <strong class="bold">recursion</strong>.</p>
+			<div>
+				<div id="_idContainer409" class="IMG---Figure">
+					<img src="image/B16182_05_04.jpg" alt="Figure 5.4: Cake partitioned into several pieces &#13;&#10;"/>
+				</div>
+			</div>
+			<p> </p>
+			<p class="figure-caption">Figure 5.4: Cake partitioned into several pieces </p>
+			<p>In the preceding figure, we can see a cake being partitioned into multiple pieces. For a cake that weighs 5 kg (and assuming you can partition the cake in a manner that the minimum weight of each partition is 1 kg, and thus the partitions can only be integral multiples of 1), we are presented with "partition or not" a total of 32 times; here's how: </p>
+			<p class="source-code">2 x 2 x 2 x 2 x 2 = 2<span class="superscript">5</span>= 32</p>
+			<p>So, for starters, let's do this: for each of the 32 possible combinations, calculate the total price, and in the end, report the combination with the highest amount of price. We've defined the price in a list, where the index tells us the weight of a slice of cake:</p>
+			<p class="source-code">PRICES = ["NA", 9, 40, 50, 70, 80]</p>
+			<p>For instance, selling a whole 1 kg cake yields a price of $9; whereas selling a 2 kg cake/slice yields a price of $40. The price on the zero<span class="superscript">th</span> index is NA because we won't ever have a cake that weighs 0 kg. Here is pseudo-code formulated to implement the preceding scenario:</p>
+			<p class="source-code">def partition(cake_size):</p>
+			<p class="source-code">    """</p>
+			<p class="source-code">    Partitions a cake into different sizes, and calculates the</p>
+			<p class="source-code">    most profitable cut configuration</p>
+			<p class="source-code">    Args:</p>
+			<p class="source-code">        cake_size: size of the cake</p>
+			<p class="source-code">    Returns:</p>
+			<p class="source-code">        the best profit possible</p>
+			<p class="source-code">    """</p>
+			<p class="source-code">    if cake_size == 0:</p>
+			<p class="source-code">        return 0</p>
+			<p class="source-code">    best_profit = -1</p>
+			<p class="source-code">    for i in range(1, cake_size + 1):</p>
+			<p class="source-code">        best_profit = max(best_profit, PRICES[i] \</p>
+			<p class="source-code">                         + partition(cake_size - i))</p>
+			<p class="source-code">    return best_profit</p>
+			<p>The preceding function partition, <strong class="source-inline">cake_size</strong>, will take an integer input: the size of the cake. Then, in the <strong class="source-inline">for</strong> loop, we will cut the cake in every possible way and calculate the best profit. Given that we are taking a partition/no partition decision for every single place, the code runs in O(2<span class="superscript">n</span>) time. Now let's call the function using the following code. The <strong class="source-inline">if __name__</strong> block will make sure that your code runs only when you run the script (and not when you import it): </p>
+			<p class="source-code">if __name__ == '__main__':</p>
+			<p class="source-code">    size = 5</p>
+			<p class="source-code">    best_profit_result = partition(size)</p>
+			<p class="source-code">    print(f"Best profit: {best_profit_result}")</p>
+			<p>Upon running it, we can see the best possible profit for a cake of size <strong class="source-inline">5</strong>:</p>
+			<p class="source-code">Best profit: 90</p>
+			<p>The preceding method solves the problem of calculating maximum profit, but it has a huge flaw: it is very slow. We are performing unnecessary computations, and exploring the entire search tree (all possible combinations). Why is this a bad idea? Well, imagine you're traveling from point A to point C, and it costs $10. Would you ever consider traveling from A to B to D to F and then to C, which might cost, say, $150? Of course not, right? The idea is similar: if I know the current path is not the most optimal one, why bother exploring that way? </p>
+			<p>To solve this problem more efficiently, we will look at two great techniques: the tabular method and memoization. Both are based on the same principle: avoid unproductive exploration. But each uses a slightly fundamentally different approach to solving the problem, as you will see.</p>
+			<p>Let's explore memoization in the following section.</p>
+			<h2 id="_idParaDest-162"><a id="_idTextAnchor202"/>Memoization</h2>
+			<p>The <strong class="source-inline">memoization</strong> method refers to a method in which we save the results of the intermediate outputs for further use in a dictionary, also known as memo. Hence the name "memoization."</p>
+			<p>Coming back to our cake partition example, if we modify the <strong class="source-inline">partition</strong> function and print the value of <strong class="source-inline">cake_size</strong> and the best solution for the size, there's a new pattern to be found. Using the same code as was used in the brute force approach before, we add a <strong class="source-inline">print</strong> statement to display the cake size and the corresponding profit:</p>
+			<p class="source-code">def partition(cake_size):</p>
+			<p class="source-code">    """</p>
+			<p class="source-code">    Partitions a cake into different sizes, and calculates the</p>
+			<p class="source-code">    most profitable cut configuration</p>
+			<p class="source-code">    Args:</p>
+			<p class="source-code">        cake_size: size of the cake</p>
+			<p class="source-code">    Returns:</p>
+			<p class="source-code">        the best profit possible</p>
+			<p class="source-code">    """</p>
+			<p class="source-code">    if cake_size == 0:</p>
+			<p class="source-code">        return 0</p>
+			<p class="source-code">    best_profit = -1</p>
+			<p class="source-code">    for i in range(1, cake_size + 1):</p>
+			<p class="source-code">        best_profit = max(best_profit, PRICES[i] \</p>
+			<p class="source-code">                      + partition(cake_size - i))</p>
+			<p class="source-code">    print(f"Best profit for size {cake_size} is {best_profit}")</p>
+			<p class="source-code">    return best_profit</p>
+			<p>Call the function using the <strong class="source-inline">main</strong> block:</p>
+			<p class="source-code">if __name__ == '__main__':</p>
+			<p class="source-code">    size = 5</p>
+			<p class="source-code">    best_profit_result = partition(size)</p>
+			<p class="source-code">    print(f"Best profit: {best_profit_result}")</p>
+			<p>We then see the output as follows:</p>
+			<p class="source-code">Best profit for size 1 is 9</p>
+			<p class="source-code">Best profit for size 2 is 40</p>
+			<p class="source-code">Best profit for size 1 is 9</p>
+			<p class="source-code">Best profit for size 3 is 50</p>
+			<p class="source-code">Best profit for size 1 is 9</p>
+			<p class="source-code">Best profit for size 2 is 40</p>
+			<p class="source-code">Best profit for size 1 is 9</p>
+			<p class="source-code">Best profit for size 4 is 80</p>
+			<p class="source-code">Best profit for size 1 is 9</p>
+			<p class="source-code">Best profit for size 2 is 40</p>
+			<p class="source-code">Best profit for size 1 is 9</p>
+			<p class="source-code">Best profit for size 3 is 50</p>
+			<p class="source-code">Best profit for size 1 is 9</p>
+			<p class="source-code">Best profit for size 2 is 40</p>
+			<p class="source-code">Best profit for size 1 is 9</p>
+			<p class="source-code">Best profit for size 5 is 90</p>
+			<p class="source-code">Best profit: 90</p>
+			<p>As you can see in the preceding output, there is a pattern here – the best profit for a given size remains the same, but we calculate it many times. Especially pay attention to the size and the order of the calculations. It calculates the profit for size 1, and then 2, and now when it wants to calculate it for size 3, it does so by starting from scratch again by calculating the answer for 1, and then 2, and then finally 3. This happens repeatedly since it doesn't store any intermediate results. An obvious improvement would be to store the profit in a memo and then use it later. </p>
+			<p>We add a small modification here: if the <strong class="source-inline">best_profit</strong> for a given <strong class="source-inline">cake_size</strong> is already calculated, we just use it right away without calculating it, as shown in the following code:</p>
+			<p class="source-code">    if cake_size == 0:</p>
+			<p class="source-code">        return 0</p>
+			<p class="source-code">    if cake_size in memo:</p>
+			<p class="source-code">        return memo[cake_size]</p>
+			<p>Let's now look at the complete code snippet:</p>
+			<p class="source-code">def memoized_partition(cake_size, memo):</p>
+			<p class="source-code">    """</p>
+			<p class="source-code">        Partitions a cake into different sizes, and calculates the</p>
+			<p class="source-code">        most profitable cut configuration using memoization.</p>
+			<p class="source-code">        Args:</p>
+			<p class="source-code">            cake_size: size of the cake</p>
+			<p class="source-code">            memo: a dictionary of 'best_profit' values indexed</p>
+			<p class="source-code">                by 'cake_size'</p>
+			<p class="source-code">        Returns:</p>
+			<p class="source-code">            the best profit possible</p>
+			<p class="source-code">        """</p>
+			<p class="source-code">    if cake_size == 0:</p>
+			<p class="source-code">        return 0</p>
+			<p class="source-code">    if cake_size in memo:</p>
+			<p class="source-code">        return memo[cake_size]</p>
+			<p class="source-code">    else:</p>
+			<p class="source-code">        best_profit = -1</p>
+			<p class="source-code">        for i in range(1, cake_size + 1):</p>
+			<p class="source-code">            best_profit = max(best_profit, \</p>
+			<p class="source-code">                              PRICES[i] + memoized_partition\</p>
+			<p class="source-code">                                          (cake_size - i, memo))</p>
+			<p class="source-code">        print(f"Best profit for size {cake_size} is {best_profit}")</p>
+			<p class="source-code">        memo[cake_size] = best_profit</p>
+			<p class="source-code">        return best_profit</p>
+			<p>Now if we run this program, we get the following output:</p>
+			<p class="source-code">Best profit for size 1 is 9</p>
+			<p class="source-code">Best profit for size 2 is 40</p>
+			<p class="source-code">Best profit for size 3 is 50</p>
+			<p class="source-code">Best profit for size 4 is 80</p>
+			<p class="source-code">Best profit for size 5 is 90</p>
+			<p class="source-code">Best profit: 90</p>
+			<p>Here, instead of running the calculations 2<span class="superscript">n </span>times, we're running it just <strong class="source-inline">n</strong> times. That's a vast improvement. And all we had to do was save the result of the output in a dictionary, or memo, hence the name <strong class="bold">memoization</strong>. In this method, we essentially save the intermediate solution in a dictionary to avoid re-computation. This method is also called the top-bottom method as we follow natural ordering analogous to searching in a binary tree, for instance.</p>
+			<p>Next, we will be looking at the tabular method.</p>
+			<h2 id="_idParaDest-163"><a id="_idTextAnchor203"/>The Tabular Method</h2>
+			<p>Using memoization, we arbitrarily store the intermediate computation. The tabular method does almost the same thing, but slightly differently: it goes in a predetermined order, which is almost always fixed – from small to large. This means that to obtain the most profitable cuts, we will first get the most profitable cut in a 1 kg cake, then a 2 kg cake, then 3 kg, and so on. This is usually done using a matrix and is called the bottom-up method as we solve the smaller problems first. </p>
+			<p>Consider the following code snippet: </p>
+			<p class="source-code">def tabular_partition(cake_size):</p>
+			<p class="source-code">    """</p>
+			<p class="source-code">    Partitions a cake into different sizes, and calculates the</p>
+			<p class="source-code">    most profitable cut configuration using tabular method.</p>
+			<p class="source-code">    Args:</p>
+			<p class="source-code">        cake_size: size of the cake</p>
+			<p class="source-code">    Returns:</p>
+			<p class="source-code">        the best profit possible</p>
+			<p class="source-code">    """</p>
+			<p class="source-code">    profits = [0] * (cake_size + 1)</p>
+			<p class="source-code">    for i in range(1, cake_size + 1):</p>
+			<p class="source-code">        best_profit = -1</p>
+			<p class="source-code">        for current_size in range(1, i + 1):</p>
+			<p class="source-code">            best_profit = max(best_profit,\</p>
+			<p class="source-code">                          PRICES[current_size] \</p>
+			<p class="source-code">                          + profits[i - current_size])</p>
+			<p class="source-code">        profits[i] = best_profit</p>
+			<p class="source-code">    return profits[cake_size]</p>
+			<p>The output will be as follows:</p>
+			<p class="source-code">Best profit: 90</p>
+			<p>In the preceding code, we are iterating over the sizes first and then cuts. A good exercise would be to run the code in an IDE using a debugger to see how the <strong class="source-inline">profits</strong> array is updated. First, it would find the most profit in the cake of size 1, and then it would find the most profit in the cake of size 2. But here, the second <strong class="source-inline">for</strong> loop would try both the configurations: one cut (two cakes of size 1), and no cuts (one cake of size 2) indicated by <strong class="source-inline">profits[i – current_size]</strong>. Now, similarly, for every size, it would try to cut the cake in all the possible configurations, without recalculating the profits on the smaller part. For instance, <strong class="source-inline">profits[i – current_size]</strong> would return the best possible configuration, without recalculating it.</p>
+			<h2 id="_idParaDest-164"><a id="_idTextAnchor204"/>Exercise 5.01: Memoization in Practice</h2>
+			<p>In this exercise, we will try to solve a DP problem using the memoization method. The problem is as follows:</p>
+			<p>Given a number <strong class="source-inline">n</strong>, print the n<span class="superscript">th</span> Tribonacci number. The Tribonacci sequence is similar to the Fibonacci sequence but uses three numbers instead of two. This means that the n<span class="superscript">th</span> Tribonacci number is the sum of the prior three numbers. The following is an example:</p>
+			<p>Fibonacci sequence 0, 1, 2, 3, 5, 8… is defined as follows:</p>
+			<div>
+				<div id="_idContainer410" class="IMG---Figure">
+					<img src="image/B16182_05_05.jpg" alt="Figure 5.5: Fibonacci sequence&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 5.5: Fibonacci sequence</p>
+			<p>Tribonacci sequence 0, 0, 1, 1, 2, 4, 7…. is defined as follows:</p>
+			<div>
+				<div id="_idContainer411" class="IMG---Figure">
+					<img src="image/B16182_05_06.jpg" alt="Figure 5.6: Tribonacci sequence&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 5.6: Tribonacci sequence</p>
+			<p>The generalized formula for the Tribonacci sequence is as follows:</p>
+			<p class="source-code">Fibonacci(n) = Fibonacci(n – 1) + Fibonacci(n – 2)</p>
+			<p class="source-code">Tribonacci(n) = Tribonacci(n – 1) \</p>
+			<p class="source-code">                + Tribonacci(n – 2) + Tribonacci(n – 3)</p>
+			<p>The following steps will help you complete the exercise:</p>
+			<ol>
+				<li>Now that we know the formula, the first step is to create a simple recursive implementation in Python. Use the formulas in the description and convert them into a Python function. You can choose to do it in a Jupyter notebook, or just a simple <strong class="source-inline">.py</strong> Python file: <p class="source-code">def tribonacci_recursive(n):</p><p class="source-code">    """</p><p class="source-code">    Uses recursion to calculate the nth tribonacci number</p><p class="source-code">    Args:</p><p class="source-code">        n: the number</p><p class="source-code">    Returns:</p><p class="source-code">        nth tribonacci number</p><p class="source-code">    """</p><p class="source-code">    if n &lt;= 1:</p><p class="source-code">        return 0</p><p class="source-code">    elif n == 2:</p><p class="source-code">        return 1</p><p class="source-code">    else:</p><p class="source-code">        return tribonacci_recursive(n - 1) \</p><p class="source-code">               + tribonacci_recursive(n - 2) \</p><p class="source-code">               + tribonacci_recursive(n - 3)</p><p>In the preceding code, we are recursively calculating the value of the Tribonacci number. Furthermore, if the number is less than or equal to 1, we know the answer is going to be 0, and for 2 it's going to be 1, so we add the <strong class="source-inline">if-else</strong> condition to take care of the edge cases. To test the preceding code, just call it in the <strong class="source-inline">main</strong> block and check the output is as expected:</p><p class="source-code">if __name__ == '__main__':</p><p class="source-code">    print(tribonacci_recursive(6))</p></li>
+				<li>As we've learned, this implementation is quite slow and grows exponentially with higher values of <strong class="source-inline">n</strong>. Now, using the principle of memoization, store the intermediate results so they are not recomputed. Create a dictionary that will check whether the answer to that n<span class="superscript">th</span> tribonacci number is already added to the dictionary. If yes, just return that; otherwise, try to compute it: <p class="source-code">def tribonacci_memo(n, memo):</p><p class="source-code">    """</p><p class="source-code">    Uses memoization to calculate the nth tribonacci number</p><p class="source-code">    Args:</p><p class="source-code">        n: the number</p><p class="source-code">        memo: the dictionary that stores intermediate results</p><p class="source-code">    Returns:</p><p class="source-code">        nth tribonacci number</p><p class="source-code">    """</p><p class="source-code">    if n in memo:</p><p class="source-code">        return memo[n]</p><p class="source-code">    else:</p><p class="source-code">        ans1 = tribonacci_memo(n - 1, memo)</p><p class="source-code">        ans2 = tribonacci_memo(n - 2, memo)</p><p class="source-code">        ans3 = tribonacci_memo(n - 3, memo)</p><p class="source-code">        res = ans1 + ans2 + ans3</p><p class="source-code">        memo[n] = res</p><p class="source-code">        return res</p></li>
+				<li>Now, using the previous code snippet, calculate the nth Tribonacci number without using recursion. Run the code and make sure the output matches the expectation by running it in the <strong class="source-inline">main</strong> block:<p class="source-code">if __name__ == '__main__':</p><p class="source-code">    memo = {0: 0, 1: 0, 2: 1}</p><p class="source-code">    print(tribonacci_memo(6, memo))</p><p>The output will be as follows:</p><p class="source-code">7</p></li>
+			</ol>
+			<p>As you can see in the output, the sum is <strong class="source-inline">7</strong>. We have learned how to convert a simple recursive function into memoized DP code.</p>
+			<p class="callout-heading">Note</p>
+			<p class="callout">To access the source code for this specific section, please refer to <a href="https://packt.live/3dghMJ1">https://packt.live/3dghMJ1</a>. </p>
+			<p class="callout">You can also run this example online at <a href="https://packt.live/3fFE7RK">https://packt.live/3fFE7RK</a>.</p>
+			<p>Next, we will try to do the same with the tabular method.</p>
+			<h2 id="_idParaDest-165"><a id="_idTextAnchor205"/>Exercise 5.02: The Tabular Method in Practice</h2>
+			<p>In this exercise, we will solve a DP problem using the tabular method. The goal of the exercise is to identify the length of the longest common substring between two strings. For instance, if the two strings are <strong class="source-inline">BBBABDABAA</strong> and <strong class="source-inline">AAAABDABBAABB</strong>, then the longest common substring is <strong class="source-inline">ABDAB</strong>. Other common substrings are <strong class="source-inline">AA</strong>, <strong class="source-inline">BB</strong>, and <strong class="source-inline">BA</strong>, and <strong class="source-inline">BAA</strong> but they're not the longest: </p>
+			<ol>
+				<li value="1">Import the <strong class="source-inline">numpy</strong> library:<p class="source-code">import numpy as np</p></li>
+				<li>Implement the brute force method to calculate the longest common substring of two strings first. Imagine we have two variables, <strong class="source-inline">i</strong> and <strong class="source-inline">j</strong>, that indicate the start and end of the substring. Use these pointers to indicate the start and end of the substring for both strings. You can use the <strong class="source-inline">==</strong> operator in Python to see whether the strings match:<p class="source-code">def lcs_brute_force(first, second):</p><p class="source-code">    """</p><p class="source-code">    Use brute force to calculate the longest common </p><p class="source-code">    substring of two strings</p><p class="source-code">    Args:</p><p class="source-code">        first: first string</p><p class="source-code">        second: second string</p><p class="source-code">    Returns:</p><p class="source-code">        the length of the longest common substring</p><p class="source-code">    """</p><p class="source-code">    len_first = len(first)</p><p class="source-code">    len_second = len(second)</p><p class="source-code">    max_lcs = -1</p><p class="source-code">    lcs_start, lcs_end = -1, -1</p><p class="source-code">    # for every possible start in the first string</p><p class="source-code">    for i1 in range(len_first):</p><p class="source-code">        # for every possible end in the first string</p><p class="source-code">        for j1 in range(i1, len_first):</p><p class="source-code">            # for every possible start in the second string</p><p class="source-code">            for i2 in range(len_second):</p><p class="source-code">                # for every possible end in the second string</p><p class="source-code">                for j2 in range(i2, len_second):</p><p class="source-code">                    """</p><p class="source-code">                    start and end position of the current</p><p class="source-code">                    candidates</p><p class="source-code">                    """</p><p class="source-code">                    slice_first = slice(i1, j1)</p><p class="source-code">                    slice_second = slice(i2, j2)</p><p class="source-code">                    """</p><p class="source-code">                    if the strings match and the length is the</p><p class="source-code">                    highest so far</p><p class="source-code">                    """</p><p class="source-code">                    if first[slice_first] == second[slice_second] \</p><p class="source-code">                       and j1 - i1 &gt; max_lcs:</p><p class="source-code">                        # save the lengths</p><p class="source-code">                        max_lcs = j1 - i1</p><p class="source-code">                        lcs_start = i1</p><p class="source-code">                        lcs_end = j1</p><p class="source-code">    print("LCS: ", first[lcs_start: lcs_end])</p><p class="source-code">    return max_lcs</p></li>
+				<li>Call the function using the <strong class="source-inline">main</strong> block:<p class="source-code">if __name__ == '__main__':</p><p class="source-code">    a = "BBBABDABAA"</p><p class="source-code">    b = "AAAABDABBAABB"</p><p class="source-code">    lcs_brute_force(a, b)</p><p>We can verify that the output is correct:</p><p class="source-code"> LCS:  ABDAB</p></li>
+				<li>Let's implement the tabular method. Now that we have a simple solution, we can proceed to optimize it. Look at the main loop, which nests four times. Meaning the solution runs in <strong class="source-inline">O(N^4)</strong>. It performs the same calculations irrespective of whether we have the longest common substring or not. Use the tabular method to come up with more solutions: <p class="source-code">def lcs_tabular(first, second):</p><p class="source-code">    """</p><p class="source-code">    Calculates the longest common substring using memoization.</p><p class="source-code">    Args:</p><p class="source-code">        first: the first string</p><p class="source-code">        second: the second string</p><p class="source-code">    Returns:</p><p class="source-code">        the length of the longest common substring.</p><p class="source-code">    """</p><p class="source-code">    # initialize the table using numpy</p><p class="source-code">    table = np.zeros((len(first), len(second)), dtype=int)</p><p class="source-code">    for i in range(len(first)):</p><p class="source-code">        for j in range(len(second)):</p><p class="source-code">            if first[i] == second[j]:</p><p class="source-code">                table[i][j] += 1 + table[i - 1][j - 1]</p><p class="source-code">    print(table)</p><p class="source-code">    return np.max(table)</p><p>The problem has a nice matrix structure inherent to it. Consider the length of one string to be the rows and the length of the other string as the columns of the matrix. Initialize this matrix with <strong class="source-inline">0</strong>. The values in the matrix at position <strong class="source-inline">i, j</strong> will indicate whether the <strong class="source-inline">i</strong><span class="superscript">th</span> character in the first string is the same as the <strong class="source-inline">j</strong><span class="superscript">th</span> character in the second string. </p><p>Now the longest common substring will have the highest number of ones in a diagonal. Use this fact to increment the maximum length of the substring by 1 if there's a match at the current position and there's a <strong class="source-inline">1</strong> in the <strong class="source-inline">i-1</strong> and <strong class="source-inline">j-1</strong> positions. This will essentially indicate that there are two subsequent matches. Return the <strong class="source-inline">max</strong> element in the matrix using <strong class="source-inline">np.max(table)</strong>. We can also look at the diagonally increasing sequence until the value reaches <strong class="source-inline">5</strong>.</p></li>
+				<li>Call the function using the <strong class="source-inline">main</strong> block:<p class="source-code">if __name__ == '__main__':</p><p class="source-code">    a = "BBBABDABAA"</p><p class="source-code">    b = "AAAABDABBAABB"</p><p class="source-code">    lcs_tabular(a, b)</p><p>The output will be as follows:</p><div id="_idContainer412" class="IMG---Figure"><img src="image/B16182_05_07.jpg" alt="Figure 5.7: Output for LCS&#13;&#10;"/></div></li>
+			</ol>
+			<p class="figure-caption">Figure 5.7: Output for LCS</p>
+			<p>As you can see, there is a direct mapping between the rows (the first string) and the columns (the second string), so the LCS string would just be the diagonal elements counted backward from the LCS length. In the preceding output, you can see that the highest element is 5 and hence you know that the length is 5. The LCS string would be the elements going diagonally upward from the element <strong class="source-inline">5</strong>. The direction of the string will always be diagonally upward since the columns always run from left to right. Note that the solution involves just calculating the length of the LCS and not finding the actual LCS.</p>
+			<p class="callout-heading">Note</p>
+			<p class="callout">To access the source code for this specific section, please refer to <a href="https://packt.live/3fD79BC">https://packt.live/3fD79BC</a>. </p>
+			<p class="callout">You can also run this example online at https://packt.live/2UYVIfK.</p>
+			<p>Now that we have learned how to solve DP problems, we should next learn how to identify them. </p>
+			<h1 id="_idParaDest-166"><a id="_idTextAnchor206"/>Identifying Dynamic Programming Problems</h1>
+			<p>While it is easy to solve a DP problem once you identify how it recurses, it is difficult to determine whether a problem can be solved using DP. For instance, the traveling salesman problem, where you are given a graph and wish to cover all the vertices in the least possible time, is something that can't be solved using DP. Every DP problem must satisfy two prerequisites: it should have an optimal substructure and should have overlapping subproblems. We'll look into exactly what they mean and how to solve them in the subsequent section. </p>
+			<h2 id="_idParaDest-167"><a id="_idTextAnchor207"/>Optimal Substructures </h2>
+			<p>Recall the best path example we discussed earlier. If you want to go from point A to point C through B, and you know that's the best path, there's no point in exploring others. Rephrasing this: If I want to go from A to D and I know the best path from A to C, then the best route from A to D will include the path from A to C. This is called the optimal substructure. Essentially, what it means is the optimal solution to the problem contains optimal solutions to subproblems. Remember how we didn't care to recalculate the best profit for a cake of size <strong class="source-inline">n</strong> once we knew it? Because we know the best profit for the cake of size <strong class="source-inline">n + 1</strong> will include <strong class="source-inline">n</strong> while considering making a cut and dividing the cake into size <strong class="source-inline">n</strong> and<strong class="source-inline"> 1</strong>. To reiterate, the property of optimal substructure would be a requirement if we were to solve the problem using DP.</p>
+			<h2 id="_idParaDest-168"><a id="_idTextAnchor208"/>Overlapping Subproblems</h2>
+			<p>Remember when we were initially designing a brute force solution for the cake partition example, and later using memoization. Initially, it required 32 steps for the brute force approach to arrive at the solution, while memoization took only 5. This was because the brute force approach performed the same computation repeatedly: the optimal solution for size three would call for size two and then one. Then, for size 4, it would again call for three, and then two, and then one. This recursive re-computation is due to the nature of the problem: the overlapping subproblems. This is the reason we could save the answer in a memo and later use the same solution without recomputing it. The overlapping subproblem is another requirement that a problem must have to be solved using DP. </p>
+			<h2 id="_idParaDest-169"><a id="_idTextAnchor209"/>The Coin-Change Problem</h2>
+			<p>The coin-change problem is one of the most commonly asked interview questions in software engineering interviews. The statement is simple: given a list of coin denominations, and a sum value N, identify the number of unique ways to arrive at the sum. For instance, if N = 3 and D, the coin denomination, = {1, 2} the answer is 2. That is, there are two ways to arrive at 3 by having coins of denomination 1 and 2, which are {1, 1, 1} and {2, 1}:  </p>
+			<ol>
+				<li value="1">To solve the problem, you would need to prepare the recursion formula that will calculate the number of ways to arrive at a sum. To do this, you might want to start with a simple version that solves just a single number and then try to convert it to a more general solution.</li>
+				<li>The end output could be a table as shown in the following figure, which can be used to summarize the result. In the following table, the first row represents the denominations, and the first column represents the sum. More specifically, the first row, 0, 1, 2, 3, 4, 5, represents the sum. And the first column represents the available denominations. We initialize the base cases with 1 and not 0 because if the denomination is less than the sum, then we just copy the previous combinations over. <p>The following table represents how to count the number of ways to get to 5 using coins [1, 2]:</p><div id="_idContainer413" class="IMG---Figure"><img src="image/B16182_05_08.jpg" alt="Figure 5.8: Counting the number of ways to get to sum 5 using denominations of 1, 2&#13;&#10;"/></div><p class="figure-caption">Figure 5.8: Counting the number of ways to get to sum 5 using denominations of 1, 2</p></li>
+				<li>So, we can see the number of ways to arrive at the sum of 5 using coins of denominations 1 and 2 is 3, which is basically 1+1+1+1+1, 2+1+1+1, and 2+2+1. Remember we're looking for only unique ways, meaning, 2+2+1 is the same as 1+2+2. </li>
+			</ol>
+			<p>Let's execute an exercise to solve the coin-change problem.</p>
+			<h2 id="_idParaDest-170"><a id="_idTextAnchor210"/>Exercise 5.03: Solving the Coin-Change Problem</h2>
+			<p>In this exercise, we will be solving the classic and very popular coin-change problem. Our goal is to find the number of permutations, in which the coins can be used to arrive at a sum, 5, using the coin denominations of 1, 2, and 3. The following steps will help you complete the exercise:</p>
+			<ol>
+				<li value="1">Import the <strong class="source-inline">numpy</strong> and <strong class="source-inline">pandas</strong> libraries:<p class="source-code">import numpy as np</p><p class="source-code">import pandas as pd</p></li>
+				<li>Let's now try to identify the overlapping subproblem. As previously, there's one common thing: we have to search for all possible denominations and check whether they sum to a certain number. Furthermore, it's a little more complicated than the cake example since we have got two things to iterate on: firstly, the denomination, and secondly the total sum (in the cake example, it was only one variable, the cake size). So, we need a 2D array, or a matrix.<p>On the columns, we will have the sum we are trying to reach, and on the rows, we will consider various denominations available. As we loop over the denominations (columns), we will calculate the number of ways to sum up to <strong class="source-inline">n</strong> by first adding the number of ways to reach the sum without considering the current denomination, and then by considering it. This is analogous to the cake example, where we first performed the cut, calculated the profit, and then didn't perform the cut and calculate the profit. The difference, however, is this time the previous best configuration would be fetched from the row above, and also, we would add the two numbers instead of selecting the maximum out of it since we are interested in the total number of ways to reach the sum. For example, the number of ways to sum up to 4 using {1, 2} would be first to use {2} and then add the number of ways to sum up to 4 – 2 = 2. We could fetch it from the same row and the index would be 2. We will also initiate the first row with 1s as they are either invalid (the number of ways to reach zeros using 1) or valid with one solution:</p><div id="_idContainer414" class="IMG---Figure"><img src="image/B16182_05_09.jpg" alt="Figure 5.9: Initial setup of the algorithm&#13;&#10;"/></div><p class="figure-caption">Figure 5.9: Initial setup of the algorithm</p><p>This logic can be translated into code as follows:</p><p class="source-code">def count_changes(N, denominations):</p><p class="source-code">    """</p><p class="source-code">    Counts the number of ways to add the coin denominations</p><p class="source-code">    to N.</p><p class="source-code">    Args:</p><p class="source-code">        N: number to sum up to</p><p class="source-code">        denominations: list of coins</p><p class="source-code">    Returns:</p><p class="source-code">    """</p><p class="source-code">    print(f"Counting number of ways to get to {N} using coins:\</p><p class="source-code">{denominations}")</p></li>
+				<li>Next, we will initialize a table with the dimension <strong class="source-inline">len(denomination)</strong> x <strong class="source-inline">(N + 1)</strong>. The number of columns is <strong class="source-inline">N + 1</strong> since the index includes zero as well:<p class="source-code">    table = np.ones((len(denominations), N + 1)).astype(int)</p><p class="source-code">    # run the loop from 1 since the first row will always 1s</p><p class="source-code">    for i in range(1, len(denominations)):</p><p class="source-code">        for j in range(N + 1):</p><p class="source-code">            if j &lt; denominations[i]:</p><p class="source-code">                """</p><p class="source-code">                If the index is less than the denomination</p><p class="source-code">                then just copy the previous best</p><p class="source-code">                """</p><p class="source-code">                table[i, j] = table[i - 1, j]</p><p class="source-code">            else:</p><p class="source-code">                """</p><p class="source-code">                If not, the add two things:</p><p class="source-code">                1. The number of ways to sum up to </p><p class="source-code">                   N *without* considering</p><p class="source-code">                   the existing denomination.</p><p class="source-code">                2. And, the number of ways to sum up to N minus </p><p class="source-code">                   the value of the current denomination </p><p class="source-code">                   (by considering the current and the </p><p class="source-code">                   previous denominations)</p><p class="source-code">                """</p><p class="source-code">                table[i, j] = table[i - 1, j] \</p><p class="source-code">                              + table[i, j - denominations[i]]</p></li>
+				<li>Now, in the end, we will print the table:<p class="source-code">    # print the table</p><p class="source-code">    print_table(table, denominations)</p></li>
+				<li>Create a Python script with the following utility, which pretty prints a table. This will be useful for debugging. Pretty printing is essentially used to present data in a more legible and comprehensive way. By setting the denominations as the index, we will see the output more clearly: <p class="source-code">def print_table(table, denominations):</p><p class="source-code">    """</p><p class="source-code">    Pretty print a numpy table</p><p class="source-code">    Args:</p><p class="source-code">        table: table to print</p><p class="source-code">        denominations: list of coins</p><p class="source-code">    Returns:</p><p class="source-code">    """</p><p class="source-code">    df = pd.DataFrame(table)</p><p class="source-code">    df = df.set_index(np.array(denominations))</p><p class="source-code">    print(df)</p><p class="callout-heading">Note</p><p class="callout">For more details on pretty printing, you can refer to the official documentation at the following link: <a href="https://docs.python.org/3/library/pprint.html">https://docs.python.org/3/library/pprint.html</a>.</p></li>
+				<li>Initialize the script with the following configuration: <p class="source-code">if __name__ == '__main__':</p><p class="source-code">    N = 5</p><p class="source-code">    denominations = [1, 2]</p><p class="source-code">    count_changes(N, denominations)</p><p>The output will be as follows:</p><p class="source-code">Counting number of ways to get to 5 using coins: [1, 2]</p><p class="source-code">   0  1  2  3  4  5</p><p class="source-code">1  1  1  1  1  1  1</p><p class="source-code">2  1  1  2  2  3  3</p></li>
+			</ol>
+			<p>As we can see in the entry in the last row and column, the number of ways to get a 5 using [1, 2] is 3. We have now learned about the concept of DP in detail.</p>
+			<p class="callout-heading">Note</p>
+			<p class="callout">To access the source code for this specific section, please refer to <a href="https://packt.live/2NeU4lT">https://packt.live/2NeU4lT</a>. </p>
+			<p class="callout">You can also run this example online at <a href="https://packt.live/2YUd6DD">https://packt.live/2YUd6DD</a>.</p>
+			<p>Next, let's see how it is used to solve problems in RL. </p>
+			<h1 id="_idParaDest-171"><a id="_idTextAnchor211"/>Dynamic Programming in RL</h1>
+			<p>DP plays an important role in RL as the number of choices you have at a given time is too large. For instance, whether the robot should take a left or right turn given the current state of the environment. To solve such a problem, it's infeasible to find the outcome of every state using brute force. We can do that, however, using DP, using the methods we learned in the previous section. </p>
+			<p>We have seen the Bellman equation in previous chapters. Let's reiterate the basics and see how the Bellman equation has both of the required properties for using DP.</p>
+			<p>Assuming the environment is a finite <strong class="bold">Markov Decision Process</strong> (<strong class="bold">MDP</strong>), let's define the state of the environment by a finite set of states, <em class="italic">S</em>. This indicates the state configuration, for instance, the current position of the robot. A finite set of actions, <em class="italic">A</em>, gives the action space, and a finite set of rewards, <em class="italic">R</em>. Let's denote the discounting rate using <img src="image/B16182_05_09a.png" alt="which is a value between"/>, which is a value between 0 and 1. </p>
+			<p>Given a state, <em class="italic">S</em>, the algorithm chooses one of the actions in <em class="italic">A </em>using a deterministic policy, <img src="image/B16182_02_31b.png" alt="a"/>. The policy is nothing but a mapping between state <em class="italic">S</em> and action <em class="italic">A</em>, for instance, a choice a robot would make such as go left or right. And a deterministic policy allows us to choose an action in a non-random fashion (as opposed to a stochastic policy, which has a significant random component).</p>
+			<p>To concretize our understanding, let's take an example of a simple autonomous car. To make it simple, we will make some reasonable assumptions here. The action space can be defined as {left, right, straight, reverse}. A deterministic policy is: if there's a hole in the ground, take a left or right turn to avoid it. A stochastic policy, however, would say: if here's a hole in the ground, take a left turn with 80% probability, which means there's a small chance that the car would purposely enter the hole. While this move might not make sense at the moment, we will see later, in the <em class="italic">Chapter 7, Temporal Difference Learning</em>, that this is a rather important thing to do and addresses one of the critical concepts in RL: the exploration versus exploitation dilemma. </p>
+			<p>Coming back to the original point of using DP in RL, the following is the <strong class="bold">simplified</strong> Bellman equation:</p>
+			<div>
+				<div id="_idContainer417" class="IMG---Figure">
+					<img src="image/B16182_05_10.jpg" alt="Figure 5.10: Simplified Bellman equation &#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 5.10: Simplified Bellman equation </p>
+			<p>The only difference with the complete equation is we are not summing over <img src="image/B16182_05_10a.png" alt="b"/>, which is valid in the case that we have a non-deterministic environment. Here is the complete Bellman equation:</p>
+			<div>
+				<div id="_idContainer419" class="IMG---Figure">
+					<img src="image/B16182_05_11.jpg" alt="Figure 5.11: Complete Bellman equation&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 5.11: Complete Bellman equation</p>
+			<p>In the preceding equation, <img src="image/B16182_05_11a.png" alt="formula "/> is the value function, the reward for being in a particular state. We will look more deeply into it later. <img src="image/B16182_05_11b.png" alt="formula "/> is the reward of taking action <strong class="source-inline">a</strong> and <img src="image/B16182_05_11c.png" alt="formula "/> is the reward of the next state. Two things you can observe are the following:</p>
+			<ul>
+				<li>The recursive nature between <img src="image/B16182_05_11d.png" alt="formula "/> and <img src="image/B16182_05_11e.png" alt="formula "/>, meaning <img src="image/B16182_05_11f.png" alt="formula "/> has an optimal substructure. </li>
+				<li>The computation of <img src="image/B16182_05_11g.png" alt="formula "/> will have to be recomputed at some point meaning it has overlapping subproblems. Both conditions of DP are qualified so we can use it to speed up our solutions. </li>
+			</ul>
+			<p>As we will see later, the structure of the value function is similar to the one we saw before in the coin denomination problem. Instead of saving the number of ways to reach the sum, we are going to save the best <img src="image/B16182_05_11h.png" alt="c"/>, that is, the best value of the value function that yields the highest return. Next, we will look at policy and value iteration, which are the basic algorithms that help us solve RL problems. </p>
+			<h2 id="_idParaDest-172"><a id="_idTextAnchor212"/>Policy and Value Iteration</h2>
+			<p>The main idea of solving a RL problem is to search for the best policies (a way to make decisions) using value functions. This method works well for simple RL problems as we need information on the entire environment: the number of states and the action space. We can use this method even in a continuous space, but the exact solution is not possible in every case. During the updating process, we will have to iterate over all the possible scenarios, and that's the reason using this method becomes infeasible when the state and action space is too high: </p>
+			<ol>
+				<li value="1">Policy Iteration: start with a random policy and iteratively converge to the best one. </li>
+				<li>Value Iteration: state with random values and iteratively update them toward convergence.</li>
+			</ol>
+			<h2 id="_idParaDest-173"><a id="_idTextAnchor213"/>State-Value Functions</h2>
+			<p>The state-value function is an array that represents the reward for being in that state. Imagine having four possible states in a particular game: <strong class="source-inline">S1</strong>, <strong class="source-inline">S2</strong>, <strong class="source-inline">S3</strong>, and <strong class="source-inline">S4</strong>, with <strong class="source-inline">S4</strong> being the terminal (end) state. The state-value table can be represented by an array, as indicated in the following table. Please note that the values are simply examples. Every state has a "value," hence state-value function. This table can be used to make decisions later on in the game:</p>
+			<div>
+				<div id="_idContainer428" class="IMG---Figure">
+					<img src="image/B16182_05_12.jpg" alt="Figure 5.12: Sample table for the state-value function &#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 5.12: Sample table for the state-value function </p>
+			<p>For instance, if you're in state <strong class="source-inline">S3</strong>, you have two possible choices, <strong class="source-inline">S4</strong> and <strong class="source-inline">S2</strong>; you'd go to <strong class="source-inline">S4</strong> since the value of being in that state is higher than that of <strong class="source-inline">S2</strong>. </p>
+			<h2 id="_idParaDest-174"><a id="_idTextAnchor214"/>Action-Value Functions</h2>
+			<p>The action-value function is a matrix that represents the reward for every state-action pair. This again can be used to select the best action to take in a particular state. Unlike the previous state-action table, this time, we have rewards associated with every action as well, as depicted in the following table:</p>
+			<div>
+				<div id="_idContainer429" class="IMG---Figure">
+					<img src="image/B16182_05_13.jpg" alt="Figure 5.13: Sample table for the action-value function&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 5.13: Sample table for the action-value function</p>
+			<p>Note these are just example values and will be calculated using a specific update policy. We will be looking at more specific examples of updating policies in the <em class="italic">Policy Improvement</em> section. The table will be later used in the value iteration algorithm so we can update the table iteratively and not wait till the very end. More on this is in the <em class="italic">Value Iteration</em> section. </p>
+			<h2 id="_idParaDest-175"><a id="_idTextAnchor215"/>OpenAI Gym: Taxi-v3 Environment</h2>
+			<p>We saw what an OpenAI Gym environment is in previous chapters, but we'll be playing a different game this time: Taxi-v3. In this game, we will teach our agent taxi driver to pick up and drop off passengers. The yellow block represents the taxi. There are four possible locations that are labeled with different characters: R, G, B, and Y for Red, Green, Blue, and Yellow, as you can see in the following figure. The agent has to pick up the passenger at a location and drop them off at a second location. Moreover, there are walls in the environment depicted by a <strong class="source-inline">|</strong>. Whenever there's a wall, the number of possible actions is limited as the taxi is not allowed to pass through a wall. This makes the problem interesting as the agent has to smartly navigate through the grid while avoiding the walls and finding the best possible (shortest) solution: </p>
+			<div>
+				<div id="_idContainer430" class="IMG---Figure">
+					<img src="image/B16182_05_14.jpg" alt="Figure 5.14: Taxi-v3 environment&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 5.14: Taxi-v3 environment</p>
+			<p>The following is the list of rewards offered for every action:</p>
+			<ul>
+				<li><strong class="bold">+20</strong>: On a successful drop-off.</li>
+				<li><strong class="bold">-1</strong>: On every step you take. This is important since we are interested in finding the shortest path.</li>
+				<li><strong class="bold">-10</strong>: On an illegal drop-off or pickup.</li>
+			</ul>
+			<p><strong class="bold">Policy</strong></p>
+			<p>Every state in the environment is encoded by a number. For instance, the state in the previous photo can be represented by <strong class="source-inline">54</strong>. There are 500 such unique states in this game. For every such state, we have a corresponding policy (that is, which action to perform). </p>
+			<p>Let's now try the game ourselves.</p>
+			<p>Initialize the environment and print the possible number of states and the action space, which are 500 and 6 currently. In real-world problems, this number will be huge (in the billions) and we can't use discrete agents. But let's make these assumptions for the sake of simplicity and solve it:</p>
+			<p class="source-code">def initialize_environment():</p>
+			<p class="source-code">    """initialize the OpenAI Gym environment"""</p>
+			<p class="source-code">    env = gym.make("Taxi-v3")</p>
+			<p class="source-code">    print("Initializing environment")</p>
+			<p class="source-code">    # reset the current environment</p>
+			<p class="source-code">    env.reset()</p>
+			<p class="source-code">    # show the size of the action space</p>
+			<p class="source-code">    action_size = env.action_space.n</p>
+			<p class="source-code">    print(f"Action space: {action_size}")</p>
+			<p class="source-code">    # Number of possible states</p>
+			<p class="source-code">    state_size = env.observation_space.n</p>
+			<p class="source-code">    print(f"State space: {state_size}")</p>
+			<p class="source-code">    return env</p>
+			<p>The preceding code will print the following output: </p>
+			<div>
+				<div id="_idContainer431" class="IMG---Figure">
+					<img src="image/B16182_05_15.jpg" alt="Figure 5.15: Initiating the Taxi-v3 environment&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 5.15: Initiating the Taxi-v3 environment</p>
+			<p>As you can see, the grid represents the current (initial) state of the environment. The yellow box represents the taxi. The six possible choices are: left, right, up, down, pickup, and drop. Let's go ahead and see how we can control the taxi.</p>
+			<p>Using the following code, we will randomly step through the environment and look at the output. The <strong class="source-inline">env.step</strong> function is used to go from one state to another. The argument it accepts is one of the valid actions in its action space. On stepping, it returns a few values as follows: </p>
+			<ul>
+				<li><strong class="source-inline">new_state</strong>: The new state (an integer denoting the next state)</li>
+				<li><strong class="source-inline">reward</strong>: The reward obtained from transitioning to the next state</li>
+				<li><strong class="source-inline">done</strong>: If the environment needs to be reset (meaning you've reached a terminal state)</li>
+				<li><strong class="source-inline">info</strong>: Debug info that indicates transition probabilities </li>
+			</ul>
+			<p>Since we're using a deterministic environment, we will always have transition probabilities that are <strong class="source-inline">1.0</strong>. There are other environments that have non-1 transition probability that indicate if you take a certain decision; for instance, if you take a right turn, the environment will take a right turn with said probability, meaning there's a chance that you will stay in the same place even after taking a specific action. The agent is not allowed to learn this information as it interacts with the environment as, otherwise, it would be unfair if the agent knows the environment information: </p>
+			<p class="source-code">def random_step(n_steps=5):</p>
+			<p class="source-code">    """</p>
+			<p class="source-code">    Steps through the taxi v3 environment randomly</p>
+			<p class="source-code">    Args:</p>
+			<p class="source-code">        n_steps: Number of steps to step through</p>
+			<p class="source-code">    """</p>
+			<p class="source-code">    # reset the environment</p>
+			<p class="source-code">    env = initialize_environment()</p>
+			<p class="source-code">    state = env.reset()</p>
+			<p class="source-code">    for i in range(n_steps):</p>
+			<p class="source-code">        # choose an action at random</p>
+			<p class="source-code">        action = env.action_space.sample()</p>
+			<p class="source-code">        env.render()</p>
+			<p class="source-code">        new_state, reward, done, info = env.step(action)</p>
+			<p class="source-code">        print(f"New State: {new_state}\n"\</p>
+			<p class="source-code">              f"reward: {reward}\n"\</p>
+			<p class="source-code">              f"done: {done}\n"\</p>
+			<p class="source-code">              f"info: {info}\n")\</p>
+			<p class="source-code">        print("*" * 20)</p>
+			<p>Using this code, we will take random (but valid) steps in the environment and stop when we've reached the terminal state. If we execute the code, we will see the following output:</p>
+			<div>
+				<div id="_idContainer432" class="IMG---Figure">
+					<img src="image/B16182_05_16.jpg" alt="Figure 5.16: Randomly stepping through the environment &#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 5.16: Randomly stepping through the environment </p>
+			<p>Looking at the output, we can see the new state that is stepped through after taking an action and the reward received for taking the action; done will indicate that we've arrived at a terminal stage; and some environment information such as transition probabilities. Next, we will look at our first RL algorithm: policy iteration. </p>
+			<h3 id="_idParaDest-176"><a id="_idTextAnchor216"/>Policy Iteration</h3>
+			<p>As the name suggests, in policy iteration, we iterate over multiple policies and then optimize them. The policy iteration algorithm works in two steps:</p>
+			<ol>
+				<li value="1">Policy evaluation</li>
+				<li>Policy improvement</li>
+			</ol>
+			<p>Policy evaluation calculates the value function for the current policy, which is initialized randomly. We then use the Bellman optimality equation to update the values for every single state. Then, once we have a new value function, we update the policy to maximize the rewards and update the policy, which is also called policy improvement. Now if the policy is updated (that is, even if a single decision in the policy is changed), this newer policy is guaranteed to be better than the older once. If the policy doesn't update, it means that the current policy is already the most optimal one (otherwise, it would have updated and found a better one). </p>
+			<p>The following are the steps in which the policy iteration algorithm works:</p>
+			<ol>
+				<li value="1">Start with a random policy.</li>
+				<li>Compute the value function for all the states.</li>
+				<li>Update the policy to choose the action that maximizes the rewards (Policy Improvement).</li>
+				<li>Stop when the policy doesn't change. This indicates the optimal policy has been obtained.</li>
+			</ol>
+			<p>Let's take a dry run through the algorithm manually and see how it is updated, using a simple example: </p>
+			<ol>
+				<li value="1">Start with a random policy. The following table lists the possible actions for an agent to take in a given position in the Taxi-v3 environment:<div id="_idContainer433" class="IMG---Figure"><img src="image/B16182_05_17.jpg" alt="Figure 5.17: Possible actions for an agent&#13;&#10;"/></div><p class="figure-caption">Figure 5.17: Possible actions for an agent</p><p>In the preceding figure, the table is the environment and the boxes represent the choices. The arrows indicate the action to take if the agent were in that position. </p></li>
+				<li>Calculate the value function for all the unique states. The following table lists the sample state values for each state of the agent. The values are initiated with zeros (some variations of the algorithm also use small random values close to 0):<div id="_idContainer434" class="IMG---Figure"><img src="image/B16182_05_18.jpg" alt="Figure 5.18: Reward values for each state&#13;&#10;"/></div><p class="figure-caption">Figure 5.18: Reward values for each state</p><p>To understand the update rule visually, let's use an extremely simple example:</p><div id="_idContainer435" class="IMG---Figure"><img src="image/B16182_05_19.jpg" alt="Figure 5.19: Sample policy to understand the update rule&#13;&#10;"/></div><p class="figure-caption">Figure 5.19: Sample policy to understand the update rule</p><p>Starting from the blue position, the policy will end in the green (terminal) position after the first <strong class="source-inline">policy_evaluation</strong> step. The values will be updated the following way (one diagram for every iteration):</p><div id="_idContainer436" class="IMG---Figure"><img src="image/B16182_05_20.jpg" alt="Figure 5.20: Reward multiplying at every step&#13;&#10;"/></div><p class="figure-caption">Figure 5.20: Reward multiplying at every step</p><p>At every step, the reward is multiplied by gamma (<strong class="source-inline">0.9</strong> in this case). Also, in this example, we already started out with an optimal policy, so the updated policy will look exactly the same as the current one. </p></li>
+				<li>Update the policy. Let's look at the update rule with a small example. Consider the following as the current value function and the corresponding policy:<div id="_idContainer437" class="IMG---Figure"><img src="image/B16182_05_21.jpg" alt="Figure 5.21: The sample value function and the corresponding policy.&#13;&#10;"/></div><p class="figure-caption">Figure 5.21: The sample value function and the corresponding policy.</p><p>As you can see in the preceding figure, the left table indicates the values, and the right table indicates the policy (decision).</p><p>Once we perform an update, imagine the value function changes to the following:</p><div id="_idContainer438" class="IMG---Figure"><img src="image/B16182_05_22.jpg" alt="Figure 5.22: Updated values of the sample value function&#13;&#10;"/></div><p class="figure-caption">Figure 5.22: Updated values of the sample value function</p><p>Now, the policy, in every cell, will update so that the action will take the agent to the state that yields the highest reward and thus the corresponding policy will look something like the following:</p><div id="_idContainer439" class="IMG---Figure"><img src="image/B16182_05_23.jpg" alt="Figure 5.23: Corresponding policy to the updated value function&#13;&#10;"/></div><p class="figure-caption">Figure 5.23: Corresponding policy to the updated value function</p></li>
+				<li>Repeat steps 1-3 until the policy no longer changes. <p>We will train the algorithm to iteratively approximate the true value function and do that in episodes, which will give us the most optimal policy. One episode is a series of actions until the agent reaches the terminal state. This can be the goal (drop-off, for instance, in the Taxi-v3 environment) state or it can be a number that defines the maximum number of steps the agent can take to avoid infinite loops.  </p><p>Let's use the following code to initialize the environment and the value function table. We will save the value function in the variable <strong class="source-inline">V</strong>. Furthermore, following the first step in the algorithm, we will start out with a random policy using the <strong class="source-inline">env.action_space.sample()</strong> method, which will return a random action every time it's called: </p><p class="source-code">def policy_iteration(env):</p><p class="source-code">    """</p><p class="source-code">    Find the most optimal policy for the Taxi-v3 environment </p><p class="source-code">    using Policy Iteration</p><p class="source-code">    Args:</p><p class="source-code">        env: Taxi=v3 environment</p><p class="source-code">    Returns:</p><p class="source-code">        policy: the most optimal policy</p><p class="source-code">    """</p><p class="source-code">    V = dict()</p></li>
+				<li>Now, in the next section, we will define the variables and initialize them:<p class="source-code">"""</p><p class="source-code">initially the value function for all states</p><p class="source-code">will be random values close to zero</p><p class="source-code">"""</p><p class="source-code">state_size = env.observation_space.n</p><p class="source-code">for i in range(state_size):</p><p class="source-code">    V[i] = np.random.random()</p><p class="source-code"># when the change is smaller than this, stop</p><p class="source-code">small_change = 1e-20</p><p class="source-code"># future reward coefficient</p><p class="source-code">gamma = 0.9</p><p class="source-code">episodes = 0</p><p class="source-code"># train for this many episodes</p><p class="source-code">max_episodes = 50000</p><p class="source-code"># initially we will start with a random policy</p><p class="source-code">current_policy = dict()</p><p class="source-code">for s in range(state_size):</p><p class="source-code">    current_policy[s] = env.action_space.sample()</p></li>
+				<li>Now comes the main loop, which will perform the iteration:<p class="source-code">while episodes &lt; max_episodes:</p><p class="source-code">    episodes += 1</p><p class="source-code">    # policy evaluation</p><p class="source-code">    V = policy_evaluation(V, current_policy, \</p><p class="source-code">                          env, gamma, small_change)</p><p class="source-code">    # policy improvement</p><p class="source-code">    current_policy, policy_changed = policy_improvement\</p><p class="source-code">                                     (V, current_policy, \</p><p class="source-code">                                      env, gamma)</p><p class="source-code">    # if the policy didn't change, it means we have converged</p><p class="source-code">    if not policy_changed:</p><p class="source-code">        break</p><p class="source-code">print(f"Number of episodes trained: {episodes}")</p><p class="source-code">return current_policy</p></li>
+				<li>Now that we have the basic setup ready, we will first do the policy evaluation step using the following code: <p class="source-code">def policy_evaluation(V, current_policy, env, gamma, \</p><p class="source-code">                      small_change):</p><p class="source-code">    """</p><p class="source-code">    Perform policy evaluation iterations until the smallest </p><p class="source-code">    change is less than</p><p class="source-code">    'smallest_change'</p><p class="source-code">    Args:</p><p class="source-code">        V: the value function table</p><p class="source-code">        current_policy: current policy</p><p class="source-code">        env: the OpenAI Tax-v3 environment</p><p class="source-code">        gamma: future reward coefficient</p><p class="source-code">        small_change: how small should the change be for the </p><p class="source-code">          iterations to stop</p><p class="source-code">    Returns:</p><p class="source-code">        V: the value function after convergence of the evaluation</p><p class="source-code">    """</p><p class="source-code">    state_size = env.observation_space.n</p></li>
+				<li>In the following code, we will loop through the states and update <img src="image/B16182_05_23a.png" alt="c"/>: <p class="source-code">    while True:</p><p class="source-code">        biggest_change = 0</p><p class="source-code">        # loop through every state present</p><p class="source-code">        for state in range(state_size):</p><p class="source-code">            old_V = V[state]</p><p class="source-code">            # take the action according to the current policy</p><p class="source-code">            action = current_policy[state]</p><p class="source-code">            prob, new_state, reward, done = env.env.P[state]\</p><p class="source-code">                                            [action][0]</p></li>
+				<li>Next, we will use the Bellman optimality equation to update <img src="image/B16182_05_23b.png" alt="b"/>:<p class="source-code">            V[state] = reward + gamma * V[new_state]</p><p class="source-code">            """</p><p class="source-code">            if the biggest change is small enough then it means</p><p class="source-code">            the policy has converged, so stop.</p><p class="source-code">            """</p><p class="source-code">            biggest_change = max(biggest_change, \</p><p class="source-code">                                 abs(V[state] – old_V))</p><p class="source-code">        if biggest_change &lt; small_change:</p><p class="source-code">            break</p><p class="source-code">    return V</p></li>
+				<li>Once we do the policy evaluation step, we will perform policy improvement with the following code:<p class="source-code">def policy_improvement(V, current_policy, env, gamma):</p><p class="source-code">    """</p><p class="source-code">    Perform policy improvement using the </p><p class="source-code">    Bellman Optimality Equation.</p><p class="source-code">    Args:</p><p class="source-code">        V: the value function table</p><p class="source-code">        current_policy: current policy</p><p class="source-code">        env: the OpenAI Tax-v3 environment</p><p class="source-code">        gamma: future reward coefficient</p><p class="source-code">    Returns:</p><p class="source-code">        current_policy: the updated policy</p><p class="source-code">        policy_changed: True, if the policy was changed, </p><p class="source-code">        else, False</p><p class="source-code">    """</p></li>
+				<li>Let's start by defining all the required variables:<p class="source-code">    state_size = env.observation_space.n</p><p class="source-code">    action_size = env.action_space.n</p><p class="source-code">    policy_changed = False</p><p class="source-code">    for state in range(state_size):</p><p class="source-code">        best_val = -np.inf</p><p class="source-code">        best_action = -1</p><p class="source-code">        # loop over all actions and select the best one</p><p class="source-code">        for action in range(action_size):</p><p class="source-code">            prob, new_state, reward, done = env.env.P[state]\</p><p class="source-code">                                            [action][0]</p></li>
+				<li>Now, here, we will calculate the future reward by taking this action. Note that we're using a simplified equation because we don't have non-one transition probabilities:<p class="source-code">            future_reward = reward + gamma * V[new_state]</p><p class="source-code">            if future_reward &gt; best_val:</p><p class="source-code">                best_val = future_reward</p><p class="source-code">                best_action = action</p><p class="source-code">        """</p><p class="source-code">        using assert statements we can avoid getting </p><p class="source-code">        into unwanted situations</p><p class="source-code">        """</p><p class="source-code">        assert best_action != -1</p><p class="source-code">        if current_policy[state] != best_action:</p><p class="source-code">            policy_changed = True</p><p class="source-code">        # update the best action for this current state</p><p class="source-code">        current_policy[state] = best_action</p><p class="source-code">    # if the policy didn't change, it means we have converged</p><p class="source-code">    return current_policy, policy_changed</p></li>
+				<li>Once the optimal policy is learned, we will test it on a fresh environment. Now that both the parts are ready. Let's call them using the <strong class="source-inline">main</strong> block of code:<p class="source-code">if __name__ == '__main__':</p><p class="source-code">    env = initialize_environment()</p><p class="source-code">    policy = value_iteration(env)</p><p class="source-code">    play(policy, render=True)</p></li>
+				<li>Next, we will add a <strong class="source-inline">play</strong> function that will test the policy on a fresh environment:<p class="source-code">def play(policy, render=False):</p><p class="source-code">    """</p><p class="source-code">    Perform a test pass on the Taxi-v3 environment</p><p class="source-code">    Args:</p><p class="source-code">        policy: the policy to use</p><p class="source-code">        render: if the result should be rendered at every step. </p><p class="source-code">                False by default</p><p class="source-code">    """</p><p class="source-code">    env = initialize_environment()</p><p class="source-code">    rewards = []</p></li>
+				<li>Next, let's define <strong class="source-inline">max_steps</strong>. This is essentially the maximum number of steps the agent is allowed to take. If it doesn't reach a solution in this time, then we call it an episode and proceed:<p class="source-code">    max_steps = 25</p><p class="source-code">    test_episodes = 2</p><p class="source-code">    for episode in range(test_episodes):</p><p class="source-code">        # reset the environment every new episode</p><p class="source-code">        state = env.reset()</p><p class="source-code">        total_rewards = 0</p><p class="source-code">        print("*" * 100)</p><p class="source-code">        print("Episode {}".format(episode))</p><p class="source-code">        for step in range(max_steps):</p><p>Here, we will take the action that we saved in the policy earlier:</p><p class="source-code">            action = policy[state]</p><p class="source-code">            new_state, reward, done, info = env.step(action)</p><p class="source-code">            if render:</p><p class="source-code">                env.render()</p><p class="source-code">            total_rewards += reward</p><p class="source-code">            if done:</p><p class="source-code">                rewards.append(total_rewards)</p><p class="source-code">                print("Score", total_rewards)</p><p class="source-code">                break</p><p class="source-code">            state = new_state</p><p class="source-code">    env.close()</p><p class="source-code">    print("Average Score", sum(rewards) / test_episodes)</p><p>After running the main block, we see the following output:</p><div id="_idContainer442" class="IMG---Figure"><img src="image/B16182_05_24.jpg" alt="Figure 5.24: The agent drops the passenger in the correct location&#13;&#10;"/></div></li>
+			</ol>
+			<p class="figure-caption">Figure 5.24: The agent drops the passenger in the correct location</p>
+			<p>As you can see, the agent drops the passenger in the right location. Note that the output is truncated for presentation purposes.</p>
+			<h3 id="_idParaDest-177"><a id="_idTextAnchor217"/>Value Iteration</h3>
+			<p>As you saw in the previous section, we arrived at the optimal solution after a few iterations, but policy iteration has one disadvantage: we get to improve the policy only once after multiple iterations of evaluation.</p>
+			<p>The simplified Bellman equation can be updated in the following way. Note that this is similar to the policy evaluation step, but the only addition is taking the max value of the value function over all the possible actions:</p>
+			<div>
+				<div id="_idContainer443" class="IMG---Figure">
+					<img src="image/B16182_05_25.jpg" alt="Figure 5.25: Updated Bellman equation&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 5.25: Updated Bellman equation</p>
+			<p>The equation can be comprehended as follows:</p>
+			<p>"<em class="italic">For a given state, take all the possible actions and then store the one with the highest V[s] value</em>."</p>
+			<p>It's as simple as that. Using this technique, we can combine both evaluation and improvement in a single step as you will see now.</p>
+			<p>We will start off as usual by defining the important variables, such as <strong class="source-inline">gamma</strong>, <strong class="source-inline">state_size</strong>, and <strong class="source-inline">policy</strong>, and the value function dictionary:</p>
+			<p class="source-code">def value_iteration(env):</p>
+			<p class="source-code">    """</p>
+			<p class="source-code">    Performs Value Iteration to find the most optimal policy for the</p>
+			<p class="source-code">    Tax-v3 environment</p>
+			<p class="source-code">    Args:</p>
+			<p class="source-code">        env: Taxiv3 Gym environment</p>
+			<p class="source-code">    Returns:</p>
+			<p class="source-code">        policy: the most optimum policy</p>
+			<p class="source-code">    """</p>
+			<p class="source-code">    V = dict()</p>
+			<p class="source-code">    gamma = 0.9</p>
+			<p class="source-code">    state_size = env.observation_space.n</p>
+			<p class="source-code">    action_size = env.action_space.n</p>
+			<p class="source-code">    policy = dict()</p>
+			<p class="source-code">    # initialize the value table randomly</p>
+			<p class="source-code">    # initialize the policy randomly</p>
+			<p class="source-code">    for x in range(state_size):</p>
+			<p class="source-code">        V[x] = 0</p>
+			<p class="source-code">        policy[x] = env.action_space.sample()</p>
+			<p>And using the equation defined before, we will take the same loop and make the change in the <img src="image/B16182_05_25a.png" alt="formula "/> calculation part. We are now using the updated Bellman equation, which was defined earlier:</p>
+			<p class="source-code">"""</p>
+			<p class="source-code">this loop repeats until the change in value function</p>
+			<p class="source-code">is less than delta</p>
+			<p class="source-code">"""</p>
+			<p class="source-code">while True:</p>
+			<p class="source-code">    delta = 0</p>
+			<p class="source-code">    for state in reversed(range(state_size)):</p>
+			<p class="source-code">        old_v_s = V[state]</p>
+			<p class="source-code">        best_rewards = -np.inf</p>
+			<p class="source-code">        best_action = None</p>
+			<p class="source-code">        # for all the actions in current state</p>
+			<p class="source-code">        for action in range(action_size):</p>
+			<p class="source-code">            # check the reward obtained if we were to perform</p>
+			<p class="source-code">            # this action</p>
+			<p class="source-code">            prob, new_state, reward, done = </p>
+			<p class="source-code">              env.env.P[state][action][0]</p>
+			<p class="source-code">            potential_reward = reward + gamma * V[new_state]</p>
+			<p class="source-code">            # select the one that has the best reward</p>
+			<p class="source-code">            # and also save the action to the policy</p>
+			<p class="source-code">            if potential_reward &gt; best_rewards:</p>
+			<p class="source-code">                best_rewards = potential_reward</p>
+			<p class="source-code">                best_action = action</p>
+			<p class="source-code">        policy[state] = best_action</p>
+			<p class="source-code">        V[state] = best_rewards</p>
+			<p class="source-code">        # terminate if the change is not high</p>
+			<p class="source-code">        delta = max(delta, abs(V[state] - old_v_s))</p>
+			<p class="source-code">    if delta &lt; 1e-30:</p>
+			<p class="source-code">        break</p>
+			<p class="source-code">if __name__ == '__main__':</p>
+			<p class="source-code">    env = initialize_environment()</p>
+			<p class="source-code">    # policy = policy_iteration(env)</p>
+			<p class="source-code">    policy = value_iteration(env)</p>
+			<p class="source-code">    play(policy, render=True)</p>
+			<p>Thus, we have successfully implemented the policy iteration and value iteration for the Taxi-v3 environment.</p>
+			<p>In the next activity, we will be using the very popular FrozenLake-v0 environment for policy and value iteration. Before we begin, let's quickly explore the basics of the environment.</p>
+			<h2 id="_idParaDest-178"><a id="_idTextAnchor218"/>The FrozenLake-v0 Environment</h2>
+			<p>The environment is based on a scenario in which there is a frozen lake, except for some parts where the ice has melted. Suppose that a group of friends is playing frisbee near the lake and one of them made a wild throw that landed the frisbee right in the middle of the lake. The goal is to navigate across the lake and get the frisbee back. Now, the fact that has to be considered here is that the ice is slippery, and you cannot always move in the intended direction. The surface is described using a grid as follows:</p>
+			<p class="source-code">SFFF       (S: starting point, safe)</p>
+			<p class="source-code">FHFH       (F: frozen surface, safe)</p>
+			<p class="source-code">FFFH       (H: hole, fall to your doom)</p>
+			<p class="source-code">HFFG       (G: goal, where the frisbee is located)</p>
+			<p>Note that the episode ends when one of the players reaches the goal or falls in the hole. The player is rewarded with a 1 or 0 respectively.</p>
+			<p>Now, in the Gym environment, the agent is supposed to control the movement of the player accordingly. As you know, some tiles in the grid can be stepped upon and some may land you directly into the hole where the ice has melted. Hence, the movement of the player is highly unpredictable and is partially dependent on the direction that the agent has chosen.</p>
+			<p class="callout-heading">Note</p>
+			<p class="callout">For more information on the FrozenLake-v0 environment, please refer to the following link: <a href="https://gym.openai.com/envs/FrozenLake-v0/">https://gym.openai.com/envs/FrozenLake-v0/</a></p>
+			<p>Let's now implement the policy and value iteration techniques to solve the problem and retrieve the frisbee.</p>
+			<h2 id="_idParaDest-179">Activity 5.01: Implementing Policy and <a id="_idTextAnchor219"/>Value Iteration on the FrozenLake-v0 Environment</h2>
+			<p>In this activity, we will solve FrozenLake-v0 using policy and value iteration. The goal of the activity is to define a safe path through the frozen lake and retrieve the frisbee. The episode ends when the goal is achieved or when the agent falls into the hole. The following steps will help you complete the activity:</p>
+			<ol>
+				<li value="1">Import the required libraries: <strong class="source-inline">numpy</strong> and <strong class="source-inline">gym</strong>.</li>
+				<li>Initialize the environment and reset the current one. Set <strong class="source-inline">is_slippery=False</strong> in the initializer. Show the size of the action space and the number of possible states.</li>
+				<li>Perform policy evaluation iterations until the smallest change is less than <strong class="source-inline">smallest_change</strong>.</li>
+				<li>Perform policy improvement using the Bellman optimality equation. </li>
+				<li>Find the most optimal policy for the FrozenLake-v0 environment using policy iteration. </li>
+				<li>Perform a test pass on the FrozenLake-v0 environment.</li>
+				<li>Take steps through the FrozenLake-v0 environment randomly.</li>
+				<li>Perform value iteration to find the most optimal policy for the FrozenLake-v0 environment. Note that the aim here is to make sure the reward value for each action should be one (or close to one) to ensure maximum rewards.</li>
+			</ol>
+			<p>The output should be similar to the following:</p>
+			<div>
+				<div id="_idContainer445" class="IMG---Figure">
+					<img src="image/B16182_05_26.jpg" alt="Figure 5.26: Expected output average score (1.0) &#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 5.26: Expected output average score (1.0) </p>
+			<p class="callout-heading">Note</p>
+			<p class="callout">The solution to this activity can be found on page 711.</p>
+			<p>Thus, with this activity, we have successfully implemented the policy and value iteration methods in the FrozenLake-v0 environment.</p>
+			<p>With this, we have reached the end of the chapter, and you can now confidently implement the techniques learned in this chapter for various environments and scenarios.</p>
+			<h1 id="_idParaDest-180"><a id="_idTextAnchor220"/>Summary</h1>
+			<p>In this chapter, we looked at the two most commonly used techniques to solve DP problems. The first method, memoization, also called the top-bottom method uses a dictionary (or HashMap-like structure) to store intermediate results in a natural (unordered) manner. While the second method, the tabular method, also called the bottom-up method, sequentially solves problems from small to large and usually saves the result in a matrix-like structure.</p>
+			<p>Next, we also looked at how to use DP to solve RL problems using policy and value iteration, and how we overcome the disadvantage of policy iteration by using the modified Bellman equation. We implemented policy and value iteration in two very popular environments: Taxi-v3 and FrozenLake-v0.</p>
+			<p>In the next chapter, we will be studying Monte Carlo methods, which are used to simulate real-world scenarios and are some of the most widely used tools in domains such as finance, mechanics, and trading.</p>
+		</div>
+		<div>
+			<div id="_idContainer447" class="Content">
+			</div>
+		</div>
+	</body></html>

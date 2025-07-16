@@ -1,0 +1,457 @@
+<html><head></head><body><div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Deep Learning for Robotics</h1>
+                </header>
+            
+            <article>
+                
+<p>So far, we've learned how to build an intelligent chatbot, which can play board games just as a human does, and glean insights from stock market data. In this chapter, we're going to move on to what many people in the general public imagine <strong>Artificial Intelligence</strong> (<strong>AI</strong>) to be: self-learning robots. In <a href="91114074-444f-4201-98ef-e510210380f2.xhtml" target="_blank">Chapter 8</a>, <em>Reinforcement Learning</em>, you learned all about reinforcement learning and how to use those methods for basic tasks. In this chapter, we'll learn how to apply those methods to robotic motion. </p>
+<p>In this chapter, we'll be using GPUs to help train these powerful algorithms. If you don't have a GPU- enabled computer, it's recommended that you use either AWS or Google Cloud to give you some more computing power. </p>
+<p>The following topics will be covered in this chapter:</p>
+<ol>
+<li>Setting up your environment</li>
+<li>Setting u a deep deterministic policy gradients model</li>
+<li>The actor-critic network</li>
+<li>DDPG and its implementation</li>
+</ol>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Technical requirements</h1>
+                </header>
+            
+            <article>
+                
+<p>In this chapter, we'll be working with TensorFlow and the OpenAI gym environment, so you'll need the following programs installed on your computer:</p>
+<ul>
+<li>TensorFlow</li>
+<li>OpenAI gym</li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Introduction</h1>
+                </header>
+            
+            <article>
+                
+<p>Traditional robotics, known as <strong>Robotics Process Automation</strong>, is the process of automating physical tasks that would normally be done by a human. Much like the term <strong>machine learning</strong> covers a variety of methods and approaches, including deep learning approaches; robotics<span> covers a wide variety of techniques and methods. In general, we can break these approaches down into two categories: <strong>traditional approaches</strong> and</span> <strong>AI approaches</strong><span>. </span></p>
+<p>Traditional robotic control programming takes a few steps: </p>
+<ol>
+<li><strong>Measurement</strong>: The robot receives data from its sensors regarding actions to take for a given task.</li>
+<li><strong>Inference</strong>: The orientation of the robot is relative to its environment from the data received in the sensors.</li>
+<li><strong>Modeling</strong>: Models what the robot must do at each state of action to complete an action.</li>
+<li><strong>Control</strong>: Codes the low-level controls, such as the steering mechanism, that the model will use to control the robot's movement.</li>
+<li><strong>Deployment of the model</strong>: Checks how the model works in the actual surroundings for which it has been created.</li>
+</ol>
+<p>In traditional robotic development, these methods are hardcoded. With deep learning, however, we can create algorithms that learn actions from end to end, thereby eliminating step <em>2</em> through <em>4</em> in this process, and significantly cutting down on the time it takes to develop a successful robot. What's even more important is the ability of deep learning techniques to generalize; instead of having to program motions for variations of a given task, we can teach our algorithms to learn a general response to that task. In recent years, this AI approach to robotics has made breakthroughs in the field and allowed for significantly more advanced robots. </p>
+<p>Due to a lack of consistency of parts and control systems in the robotics market, designing and creating a physical robot can be a difficult task. <span>In February 2018, OpenAI added virtual simulated robotic arms to its training environments, which opened the door for a myriad of new applications and development. These virtual environments use a physical environment simulator to allow us to immediately begin testing our robot control algorithms without the need to procure expensive and disparate parts. </span></p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Setting up your environment</h1>
+                </header>
+            
+            <article>
+                
+<p>We'll be utilizing the gym environment from OpenAI that we learned about in <a href="91114074-444f-4201-98ef-e510210380f2.xhtml" target="_blank">Chapter 8</a>, <em>Reinforcement Learning,</em> to create an intelligent robotic arm. OpenAI created a virtual environment based on Fetch Robotic Arms, which created the first fully virtualized test space for robotics algorithms:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1428 image-border" src="Images/fb3a5c98-5a77-4e1c-a6ae-9a115da7ecaa.png" style="width:19.67em;height:16.75em;" width="1457" height="1238"/></p>
+<p>You should have these environments already installed on your computer from when we installed gym in<a href="4fc1bf80-b3a2-4615-9057-bfff14c0508b.xhtml" target="_blank"> Chapter 11</a>, <em>Deep Learning for Finance</em>. We'll just need to add two more packages to get this robotics environment up and running:</p>
+<pre><strong>brew install cmake openmpi</strong></pre>
+<p class="highlight highlight-source-shell">Both <kbd>cmake</kbd> and <kbd>openmpi</kbd> are designed to help with the computational efficiency ...</p></article></section></div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">MuJoCo physics engine</h1>
+                </header>
+            
+            <article>
+                
+<p>MuJoCo is a virtual environment that simulates real physical environments for testing intelligent algorithms. It's the environment that the leading AI researchers at Google DeepMind, OpenAI, and others use to teach virtual robots tasks, virtual humans, and spiders to run, among other tasks. Google in particular made quite a splash in the news in 2017 when they published a video of a virtual human that taught itself to run and jump based on reinforcement learning techniques:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1429 image-border" src="Images/2b8cd775-1697-4521-85fc-92fa0e93c3bf.png" style="width:26.67em;height:12.92em;" width="1950" height="945"/></p>
+<p>MuJoCo is a paid licensed program, but they allow for 30-day free trials which we will use to complete our tasks. If you are a student, you can obtain a perpetual license of MuJoCo for free for your own personal projects. There are a few steps to go through to obtain MuJoCo and set up your environment for AI applications: </p>
+<ol>
+<li>Download the MuJoCo binary files from their website</li>
+<li>Sign up for a free trial of MuJoCo</li>
+<li>Place your license key in the <kbd>~|.mujoco|mjkey.txt</kbd> folder</li>
+<li>Install the Python package for MuJoCo</li>
+</ol>
+<p>This may seem a bit cumbersome, but it does give us access to the most cutting-edge simulator that is used in the AI world. If you're having issues with any of these steps, we'll be keeping an up-to-date help document on the GitHub repository for this book. With that, let's walk through these steps.</p>
+<p class="mce-root"/>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Downloading the MuJoCo binary files</h1>
+                </header>
+            
+            <article>
+                
+<p>First things first, let's download the MuJoCo program itself. Navigate to <a href="https://www.roboti.us/index.html" target="_blank">https://<span>www.roboti.us/index.htm</span><span>l</span></a> <span>and download the </span><a href="https://www.roboti.us/index.htm" target="_blank"><span><kbd>mjpro150</kbd></span></a> <span>file that corresponds to your operating system</span><a href="https://www.roboti.us/index.htm" target="_blank"><span>.</span></a> <span>You can also do this through the command line with the following code: </span></p>
+<pre class="graf graf--pre graf-after--p"><strong>cd ~</strong><strong>mkdir .mujoco</strong><strong>cd .mujoco</strong><strong>curl https://www.roboti.us/download/mjpro150_osx.zip</strong></pre>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Signing up for a free trial of MuJoCo</h1>
+                </header>
+            
+            <article>
+                
+<p>Go through the following steps to sign-up for a free trial of MuJoCo:</p>
+<ol>
+<li>Once you've downloaded the binary files for MuJoCo, navigate to <a href="https://www.roboti.us/license.html">https://www.roboti.us/license.html</a> to sign up for a free trial. You should see the following prompt box for signing up for MuJoCo:</li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-large wp-image-533 image-border" src="Images/c26c32f7-64f1-4a17-8b30-bd3ae6565e27.png" style="width:85.33em;height:21.67em;" width="1024" height="260"/></p>
+<ol start="2">
+<li>See those blue links to the right of the computer ID box? You'll need to download the one that corresponds to your operating system. This will generate a key for MuJoCo to keep track of your computer and its trial. If you are using macOS, you can download and get the key with the following code:</li>
+</ol>
+<pre style="padding-left: 60px" class="graf graf--pre graf-after--p"><strong>curl https://www.roboti.us/getid/getid_osx</strong><br/><strong>sudo ./getid_osx</strong></pre>
+<ol start="3">
+<li>If you are on a Linux machine, you can download your MuJoCo key with the following code:</li>
+</ol>
+<pre style="padding-left: 60px" class="graf graf--pre graf-after--p"><strong>wget https://www.roboti.us/getid/getid_linux</strong><br/><strong>sudo ./getid_linux</strong></pre>
+<p>Once you have your key, place it in the prompt box. You should receive an email with a license that will enable you to use MuJoCo.</p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Configuring your MuJoCo files</h1>
+                </header>
+            
+            <article>
+                
+<p>Next, you'll need to configure your access files. You should receive your license key from MuJoCo in an email. Once you do, place it in the following folder so the program can access it:</p>
+<pre><strong><span>~/.mujoco/mjkey.txt</span></strong></pre>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Installing the MuJoCo Python package</h1>
+                </header>
+            
+            <article>
+                
+<p>Lastly, we need to install the MuJoCo Python package that will allow Python to speak to the program. We can do that easily with a <kbd>pip install</kbd>:</p>
+<pre><strong>pip install mujoco-py</strong></pre>
+<p>You should now have access to the most powerful virtualized environment for robotics testing. If you've had issues with any part of this process, remember that you can always access an up-to-date issues page from this book's GitHub repository.</p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Setting up a deep deterministic policy gradients model</h1>
+                </header>
+            
+            <article>
+                
+<p>In <a href="91114074-444f-4201-98ef-e510210380f2.xhtml" target="_blank">Chapter 8</a>, <em>Reinforcement Learning</em>, we learned about how to use policy optimization methods for continuous action spaces. Policy optimization methods learn directly by optimizing a policy from actions taken in their environment, as explained in the following diagram:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1330 image-border" src="Images/3d215981-be18-4299-b4d8-0431ce0fe32b.png" style="width:22.17em;height:12.25em;" width="1076" height="594"/></p>
+<p>Remember, policy gradient methods are <strong>off</strong>-<strong>policy</strong>, meaning that their behavior in a certain moment is not necessarily reflective of the policy they are abiding by. These policy gradient algorithms utilize <strong>policy iteration</strong>, where they evaluate the given policy and follow the policy gradient in order to learn an optimal policy. ...</p></article></section></div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Experience replay buffer</h1>
+                </header>
+            
+            <article>
+                
+<p>Next, let's create the experience replay buffer as we did in <a href="4fc1bf80-b3a2-4615-9057-bfff14c0508b.xhtml" target="_blank">Chapter 11</a>, <em>Deep Learning for Finance,</em> when we looked at creating deep learning models for game playing.</p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Hindsight experience replay </h1>
+                </header>
+            
+            <article>
+                
+<p>To improve on robotic movement, OpenAI researchers released a paper on a technique known as <strong>Hindsight experience replay</strong> (<strong>HER</strong>) in 2018 to attempt to overcome issues that arise when training reinforcement learning algorithms in <strong>sparse environments</strong>. Recall <a href="91114074-444f-4201-98ef-e510210380f2.xhtml" target="_blank">Chapter 8</a>, <em>Reinforcement Learning</em>, choosing an appropriate reward for an agent can make or break the performance of that agent. Anecdotes such as the following often appear as the result of bad reward functions:</p>
+<div class="packt_quote">A friend is training a simulated robot arm to reach toward a point above a table. It turns out the point was defined with respect to the table, and the table wasn’t anchored to anything. The policy learned to slam the table really hard, making the table ...</div></article></section></div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">The actor–critic network </h1>
+                </header>
+            
+            <article>
+                
+<p><span><strong> </strong></span>DDPG models rely on actor-critic frameworks, which are used to learn policies without having to calculate the value function again and again. </p>
+<p>Actor-critic models are essential frameworks in reinforcement learning. They are the basis and inspiration for <strong>Generative Adversarial Networks</strong> (<strong>GANs</strong>), which we learned about in <a href="719394b6-6058-4ac6-89f3-c2ec26563e7a.xhtml" target="_blank"/><a href="719394b6-6058-4ac6-89f3-c2ec26563e7a.xhtml" target="_blank">Chapter 7</a>, <em>Generative Models</em>.</p>
+<p>As you may have guessed,these actor-critic models consist of two parts: </p>
+<ul>
+<li><strong>The actor</strong>: Estimates the policy function</li>
+<li><strong>The critic</strong>: Estimates the value function</li>
+</ul>
+<p>The process works exactly as it sounds; the actor model tries to emulate an action, and the critic model criticizes the actor model to help it improve its performance. Let's take our robotics use case; the goal of robotic motion is to create a robot that simulates human ability. In this case, the actor would want to observe human actions to emulate this, and the critic would help guide the robotic actor to be more human. With actor-critic models, we simply take this paradigm and translate it into mathematical formulas. Altogether, the actor-critic process looks as follows: </p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-641 image-border" src="Images/86427f1d-e4a3-4957-8519-fecbacd3f36d.png" style="width:26.42em;height:24.83em;" width="390" height="367"/></p>
+<p>Each of these networks has its own loss function.</p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">The actor</h1>
+                </header>
+            
+            <article>
+                
+<p>The actor network is also called the <strong>target policy network</strong>. The actor is trained by utilizing gradient descent that has been mini-batched. Its loss is defined with the following function:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="Images/9825ba57-196d-4759-be16-82828f514c27.png" style="width:10.08em;height:1.33em;" width="1650" height="220"/></p>
+<p>Here, <em>s</em> represents a state that has been sampled from the replay buffer.</p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">The critic</h1>
+                </header>
+            
+            <article>
+                
+<p>The output of the critic is the estimate of the action-value function Q (<sup>s,a</sup>), and as such you might see the critic network sometimes called the <strong>action</strong>-<strong>value function approximator</strong>. Its job is to help the actor appropriately approximate the action-value function.</p>
+<p>The critic model works very similarly to the Q-function approximator that we saw in <a href="11b4608a-b8e2-4bea-bef1-8b2569c35a71.xhtml" target="_blank">Chapter 10</a>, <em>Deep Learning for Game Playing</em>. The critic produces a <strong>temporal</strong>-<strong>difference</strong> (<strong>TD</strong>) error, which it uses to update its gradients. The TD error helps the algorithm reduce the variance that occurs from trying to make predictions off of highly correlated data. DDPG utilizes a target network, just as the Deep Q-network did in <a href="11b4608a-b8e2-4bea-bef1-8b2569c35a71.xhtml" target="_blank">Chapter 10</a>, <em>Deep Learning for Game Playing,</em> only the targets are computed by utilizing the outputs of the actor:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="Images/8d38eac6-84d6-4842-84bd-d38721b70e20.png" style="width:17.50em;height:1.67em;" width="2830" height="270"/></p>
+<p>This target network generates targets for the TD error calculations, and acts as a regularizer. Let's break this down: </p>
+<ul>
+<li><img class="fm-editor-equation" src="Images/bc93632b-c702-4cef-9135-b5f59d3ded32.png" style="width:1.08em;height:1.08em;" width="160" height="160"/>represents our TD error.</li>
+<li>r<sup>i</sup> represent the reward received from a certain action.</li>
+<li><img class="fm-editor-equation" src="Images/753c7672-5f60-43fe-99dd-e9aa4975f052.png" style="width:12.67em;height:1.67em;" width="2060" height="270"/> collectively represents the target <img class="fm-editor-equation" src="Images/40dd12d0-0706-4931-aece-ceefb112ba0d.png" style="width:1.17em;height:1.25em;" width="200" height="210"/>for the actor and critic models.<span> Recall that</span><img class="fm-editor-equation" src="Images/f57fbccf-3122-44dc-ba49-4ad5bbb6f6cb.png" style="width:0.67em;height:1.00em;" width="100" height="150"/><span> (gamma) represents a</span><span> </span><strong>discount factor</strong>. <span>Recall that t</span><span>he discount factor can be any value between 0 and 1 that represents the relative importance between a current reward and a future reward. So, our target then becomes the output of the actor/critic models multiplied by the mixing parameter. </span></li>
+<li><img style="font-size: 1em;width:5.58em;height:1.58em;" class="fm-editor-equation" src="Images/5cc11c26-1a2b-4cfb-995c-7c8024c86a8e.png" width="910" height="260"/><span> represents the target of the actor network; it's saying that the target</span> <img style="font-size: 1em;width:1.00em;height:1.33em;" class="fm-editor-equation" src="Images/257aded6-196e-4062-b400-18fa67ad6c49.png" width="170" height="220"/><span>is a function of state <em>s</em></span><span>, given a particular policy </span><img style="font-size: 1em;width:1.17em;height:1.08em;" class="fm-editor-equation" src="Images/5772391f-fe8a-4070-aee2-5386cbc0eb53.png" width="220" height="210"/>.</li>
+<li>Likewise, we then say that the output of the actor network is dependent on the critic network by representing that critic network by its weights <img class="fm-editor-equation" src="Images/44017cfb-fbe4-425e-9c48-31e532cf8bfc.png" style="width:1.25em;height:1.08em;" width="250" height="220"/>.</li>
+</ul>
+<p>The critic tries to minimize its own loss function:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="Images/c5aca07d-2976-4120-8432-d0f760179f86.png" style="width:16.50em;height:3.33em;" width="2470" height="500"/></p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Deep Deterministic Policy Gradients</h1>
+                </header>
+            
+            <article>
+                
+<p>There is a natural extension of <strong>Deep Deterministic Policy Gradients</strong> (<strong>DDPG</strong>) by replacing the feedforward neural networks used for approximating the actor and the critic with recurrent neural networks. This<span> </span>extension<span> </span>is called the <strong>recurrent deterministic policy gradient</strong><span> </span>algorithm (<strong>RDPG</strong>) and is discussed in the f paper N. Heess, J. J. Hunt, T. P. Lillicrap and D. Silver.<span> </span><em>Memory-based control with recurrent neural networks</em>. 2015.</p>
+<p>The recurrent critic and actor are<span> </span>trained<span> </span>using<span> </span><strong>backpropagation through time</strong><span> </span>(<strong>BPTT</strong>). For readers who are interested in it, the paper can be downloaded from<span> </span><a href="https://arxiv.org/abs/1512.04455">https://arxiv.org/abs/1512.04455</a>.</p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Implementation of DDPG</h1>
+                </header>
+            
+            <article>
+                
+<p>This section will show you how to<span> </span>implement<span> </span>the actor-critic architecture using TensorFlow. The code structure is almost the same as the DQN implementation that was shown in the previous chapter.</p>
+<p>The<span> </span><kbd>ActorNetwork</kbd><span> </span>is a simple MLP that takes the observation state as its input:</p>
+<pre>class ActorNetwork:<br/>    <br/>    def __init__(self, input_state, output_dim, hidden_layers, activation=tf.nn.relu):<br/>        <br/>        self.x = input_state<br/>        self.output_dim = output_dim<br/>        self.hidden_layers = hidden_layers<br/>        self.activation = activation<br/>        <br/>        with tf.variable_scope('actor_network'):<br/>            self.output = self._build()<br/>            self.vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, <br/>                                          tf.get_variable_scope().name)<br/>        <br/>    def _build(self):<br/>        <br/>        layer = self.x<br/>        init_b = tf.constant_initializer(0.01)<br/>        <br/>        for i, num_unit in enumerate(self.hidden_layers):<br/>            layer = dense(layer, num_unit, init_b=init_b, name='hidden_layer_{}'.format(i))<br/>            <br/>        output = dense(layer, self.output_dim, activation=self.activation, init_b=init_b, name='output')<br/>        return output</pre>
+<p>The constructor requires four arguments:<span> </span><kbd>input_state</kbd>,<span> </span><kbd>output_dim</kbd>,<span> </span><kbd>hidden_layers</kbd>, and<span> </span><kbd>activation</kbd>.<span> </span><kbd>input_state</kbd> is a tensor for the observation state.<span> </span><kbd>output_dim</kbd> is the dimension of the action space.<span> </span><kbd>hidden_layers</kbd> specifies the number of the hidden layers and the number of units for each layer.<span> </span><kbd>activation</kbd> indicates the activation function for the output layer.</p>
+<p>The<span> </span><kbd>CriticNetwork</kbd><span> </span>is also a MLP, which is enough for the classic control tasks:</p>
+<pre>class CriticNetwork:<br/>    <br/>    def __init__(self, input_state, input_action, hidden_layers):<br/>        <br/>        assert len(hidden_layers) &gt;= 2<br/>        self.input_state = input_state<br/>        self.input_action = input_action<br/>        self.hidden_layers = hidden_layers<br/>        <br/>        with tf.variable_scope('critic_network'):<br/>            self.output = self._build()<br/>            self.vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, <br/>                                          tf.get_variable_scope().name)<br/>    <br/>    def _build(self):<br/>        <br/>        layer = self.input_state<br/>        init_b = tf.constant_initializer(0.01)<br/>        <br/>        for i, num_unit in enumerate(self.hidden_layers):<br/>            if i != 1:<br/>                layer = dense(layer, num_unit, init_b=init_b, name='hidden_layer_{}'.format(i))<br/>            else:<br/>                layer = tf.concat([layer, self.input_action], axis=1, name='concat_action')<br/>                layer = dense(layer, num_unit, init_b=init_b, name='hidden_layer_{}'.format(i))<br/>        <br/>        output = dense(layer, 1, activation=None, init_b=init_b, name='output')<br/>        return tf.reshape(output, shape=(-1,))</pre>
+<p>The network takes the state and the action as its inputs. It first maps the state into a hidden feature representation and then concatenates this representation with the action, followed by several hidden layers. The output layer generates the Q-value that corresponds to the inputs.</p>
+<p>The actor-critic network combines the actor<span> </span>network<span> </span>and the critic network together:</p>
+<pre>class ActorCriticNet:<br/>    <br/>    def __init__(self, input_dim, action_dim, <br/>                 critic_layers, actor_layers, actor_activation, <br/>                 scope='ac_network'):<br/>        <br/>        self.input_dim = input_dim<br/>        self.action_dim = action_dim<br/>        self.scope = scope<br/>        <br/>        self.x = tf.placeholder(shape=(None, input_dim), dtype=tf.float32, name='x')<br/>        self.y = tf.placeholder(shape=(None,), dtype=tf.float32, name='y')<br/>        <br/>        with tf.variable_scope(scope):<br/>            self.actor_network = ActorNetwork(self.x, action_dim, <br/>                                              hidden_layers=actor_layers, <br/>                                              activation=actor_activation)<br/>            <br/>            self.critic_network = CriticNetwork(self.x, <br/>                                                self.actor_network.get_output_layer(),<br/>                                                hidden_layers=critic_layers)<br/>            <br/>            self.vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, <br/>                                          tf.get_variable_scope().name)<br/>            self._build()<br/>    <br/>    def _build(self):<br/>        <br/>        value = self.critic_network.get_output_layer()<br/>        <br/>        actor_loss = -tf.reduce_mean(value)<br/>        self.actor_vars = self.actor_network.get_params()<br/>        self.actor_grad = tf.gradients(actor_loss, self.actor_vars)<br/>        tf.summary.scalar("actor_loss", actor_loss, collections=['actor'])<br/>        self.actor_summary = tf.summary.merge_all('actor')<br/>        <br/>        critic_loss = 0.5 * tf.reduce_mean(tf.square((value - self.y)))<br/>        self.critic_vars = self.critic_network.get_params()<br/>        self.critic_grad = tf.gradients(critic_loss, self.critic_vars)<br/>        tf.summary.scalar("critic_loss", critic_loss, collections=['critic'])<br/>        self.critic_summary = tf.summary.merge_all('critic')</pre>
+<p>The constructor requires six arguments, as follows:<span> </span><kbd>input_dim</kbd><span> </span>and<span> </span><kbd>action_dim</kbd><span> </span>are the dimensions of the state space and the action space, respectively.<span> </span><kbd>critic_layers</kbd><span> </span>and<span> </span><kbd>actor_layers</kbd><span> </span>specify the hidden layers of the critic network and the actor network. <span> </span><kbd>actor_activation</kbd><span> </span>indicates the activation function for the output layer of the actor network.<span> </span><kbd>scope</kbd><span> </span>is the scope name used for the <kbd>scope</kbd><span> </span>TensorFlow variable.</p>
+<p>The constructor first creates an instance of the <kbd>self.actor_network</kbd><span> </span><span>actor network </span>with an input of <kbd>self.x,</kbd><span> </span>where<span> </span><kbd>self.x</kbd><span> </span>represents the current state. It then creates an instance of the critic network using the following as the inputs: <kbd><span>self.actor_network.get_output_layer()</span></kbd> as the output of the actor<span> </span>network and<span> </span><kbd>self.x</kbd> as the current state. Given these two networks, the constructor calls<span> </span><kbd>self._build()</kbd><span> </span>to build the loss functions for the actor and critic that we discussed previously. The actor loss is<span> </span><kbd>-tf.reduce_mean(value)</kbd>, where<span> </span><kbd>value</kbd> is the Q-value computed by the critic network. The critic loss is<span> </span><kbd>0.5 * tf.reduce_mean(tf.square((value - self.y)))</kbd>, where<span> </span><kbd>self.y</kbd><span> </span>is a tensor for the predicted target value computed by the target network.</p>
+<p>The class<span> </span><kbd>ActorCriticNet</kbd> provides the functions for calculating the action and the Q-value given the current state, that is,<span> </span><kbd>get_action</kbd><span> </span>and<span> </span><kbd>get_value</kbd>. It also provides<span> </span><kbd>get_action_value</kbd>, which computes the<span> </span><kbd>state-action value</kbd><span> </span>function given the current state and the action taken by the agent:</p>
+<pre>class ActorCriticNet:<br/>    <br/>    def get_action(self, sess, state):<br/>        return self.actor_network.get_action(sess, state)<br/>    <br/>    def get_value(self, sess, state):<br/>        return self.critic_network.get_value(sess, state)<br/>    <br/>    def get_action_value(self, sess, state, action):<br/>        return self.critic_network.get_action_value(sess, state, action)<br/>    <br/>    def get_actor_feed_dict(self, state):<br/>        return {self.x: state}<br/>    <br/>    def get_critic_feed_dict(self, state, action, target):<br/>        return {self.x: state, self.y: target, <br/>                self.critic_network.input_action: action}<br/>    <br/>    def get_clone_op(self, network, tau=0.9):<br/>        update_ops = []<br/>        new_vars = {v.name.replace(network.scope, ''): v for v in network.vars}<br/>        for v in self.vars:<br/>            u = (1 - tau) * v + tau * new_vars[v.name.replace(self.scope, '')]<br/>            update_ops.append(tf.assign(v, u))<br/>        return update_ops</pre>
+<p>Because DPG has almost the same architecture as DQN, the implementations of the<span> </span>replay<span> </span>memory and the optimizer are not shown in this chapter. For more details, you can refer to the previous chapter or visit our GitHub repository (<a href="https://github.com/PacktPublishing/Python-Reinforcement-Learning-Projects">https://github.com/PacktPublishing/Python-Reinforcement-Learning-Projects</a>). By combining these modules together, we can implement the <kbd>DPG</kbd> class for the deterministic policy gradient algorithm:</p>
+<pre>class DPG:<br/>    <br/>    def __init__(self, config, task, directory, callback=None, summary_writer=None):<br/>        <br/>        self.task = task<br/>        self.directory = directory<br/>        self.callback = callback<br/>        self.summary_writer = summary_writer<br/>        <br/>        self.config = config<br/>        self.batch_size = config['batch_size']<br/>        self.n_episode = config['num_episode']<br/>        self.capacity = config['capacity']<br/>        self.history_len = config['history_len']<br/>        self.epsilon_decay = config['epsilon_decay']<br/>        self.epsilon_min = config['epsilon_min']<br/>        self.time_between_two_copies = config['time_between_two_copies']<br/>        self.update_interval = config['update_interval']<br/>        self.tau = config['tau']<br/>        <br/>        self.action_dim = task.get_action_dim()<br/>        self.state_dim = task.get_state_dim() * self.history_len<br/>        self.critic_layers = [50, 50]<br/>        self.actor_layers = [50, 50]<br/>        self.actor_activation = task.get_activation_fn()<br/>        <br/>        self._init_modules()</pre>
+<p>Here,<span> </span><kbd>config</kbd> includes all the parameters of DPG, for example, batch size and learning rate for training. The <kbd>task</kbd> is an instance of a certain classic control task. In the constructor, the<span> </span>replay<span> </span>memory, Q-network, target network, and optimizer are initialized by calling the <kbd>_init_modules</kbd> function:</p>
+<pre>    def _init_modules(self):<br/>        # Replay memory<br/>        self.replay_memory = ReplayMemory(history_len=self.history_len, <br/>                                          capacity=self.capacity)<br/>        # Actor critic network<br/>        self.ac_network = ActorCriticNet(input_dim=self.state_dim, <br/>                                         action_dim=self.action_dim, <br/>                                         critic_layers=self.critic_layers, <br/>                                         actor_layers=self.actor_layers, <br/>                                         actor_activation=self.actor_activation,<br/>                                         scope='ac_network')<br/>        # Target network<br/>        self.target_network = ActorCriticNet(input_dim=self.state_dim, <br/>                                             action_dim=self.action_dim, <br/>                                             critic_layers=self.critic_layers, <br/>                                             actor_layers=self.actor_layers, <br/>                                             actor_activation=self.actor_activation,<br/>                                             scope='target_network')<br/>        # Optimizer<br/>        self.optimizer = Optimizer(config=self.config, <br/>                                   ac_network=self.ac_network, <br/>                                   target_network=self.target_network, <br/>                                   replay_memory=self.replay_memory)<br/>        # Ops for updating target network<br/>        self.clone_op = self.target_network.get_clone_op(self.ac_network, tau=self.tau)<br/>        # For tensorboard<br/>        self.t_score = tf.placeholder(dtype=tf.float32, shape=[], name='new_score')<br/>        tf.summary.scalar("score", self.t_score, collections=['dpg'])<br/>        self.summary_op = tf.summary.merge_all('dpg')<br/>        <br/>    def choose_action(self, sess, state, epsilon=0.1):<br/>        x = numpy.asarray(numpy.expand_dims(state, axis=0), dtype=numpy.float32)<br/>        action = self.ac_network.get_action(sess, x)[0]<br/>        return action + epsilon * numpy.random.randn(len(action))<br/>    <br/>    def play(self, action):<br/>        r, new_state, termination = self.task.play_action(action)<br/>        return r, new_state, termination<br/><br/>    def update_target_network(self, sess):<br/>        sess.run(self.clone_op)</pre>
+<p>The <kbd>choose_action</kbd> function selects an action based on the<span> </span>current<span> </span>estimate of the actor-critic network and the observed state. </p>
+<div class="packt_infobox">Note that a Gaussian noise controlled by<span> </span><kbd>epsilon</kbd><span> </span>is added for exploration.</div>
+<p>The <kbd>play</kbd> function submits an action into the simulator and returns the feedback from the simulator. The <kbd>update_target_network</kbd> function updates the target network from the current actor-critic network.</p>
+<p>To begin the training process, the following function can be called:</p>
+<pre>    def train(self, sess, saver=None):<br/>        <br/>        num_of_trials = -1<br/>        for episode in range(self.n_episode):<br/>            frame = self.task.reset()<br/>            for _ in range(self.history_len+1):<br/>                self.replay_memory.add(frame, 0, 0, 0)<br/>            <br/>            for _ in range(self.config['T']):<br/>                num_of_trials += 1<br/>                epsilon = self.epsilon_min + \<br/>                          max(self.epsilon_decay - num_of_trials, 0) / \<br/>                          self.epsilon_decay * (1 - self.epsilon_min)<br/>                if num_of_trials % self.update_interval == 0:<br/>                    self.optimizer.train_one_step(sess, num_of_trials, self.batch_size)<br/>                <br/>                state = self.replay_memory.phi(frame)<br/>                action = self.choose_action(sess, state, epsilon) <br/>                r, new_frame, termination = self.play(action)<br/>                self.replay_memory.add(frame, action, r, termination)<br/>                frame = new_frame<br/>                <br/>                if num_of_trials % self.time_between_two_copies == 0:<br/>                    self.update_target_network(sess)<br/>                    self.save(sess, saver)<br/>                <br/>                if self.callback:<br/>                    self.callback()<br/>                if termination:<br/>                    score = self.task.get_total_reward()<br/>                    summary_str = sess.run(self.summary_op, feed_dict={self.t_score: score})<br/>                    self.summary_writer.add_summary(summary_str, num_of_trials)<br/>                    self.summary_writer.flush()<br/>                    break</pre>
+<p>In each episode, it calls<span> </span><kbd>replay_memory.phi</kbd> to get the current state and calls the <kbd>choose_action</kbd> function to select an action based on the current state. This action is submitted into the simulator by calling the <kbd>play</kbd> <span>function, </span>which returns the corresponding reward, next state, and termination signal. Then, the <kbd>(current state, action, reward, termination)</kbd> transition is stored into the replay memory. For every<span> </span><kbd>update_interval</kbd> step (<kbd>update_interval = 1</kbd> ,by default), the actor-critic network is trained with a batch of transitions that are randomly sampled from the replay memory. For every<span> </span><kbd>time_between_two_copies</kbd> step, the target<span> </span>network<span> </span>is updated and the weights of the Q-network are saved to the hard disk.</p>
+<p>After the training step, the following function can be called for evaluating the performance of our trained agent:</p>
+<pre>    def evaluate(self, sess):<br/>        <br/>        for episode in range(self.n_episode):<br/>            frame = self.task.reset()<br/>            for _ in range(self.history_len+1):<br/>                self.replay_memory.add(frame, 0, 0, 0)<br/>            <br/>            for _ in range(self.config['T']):<br/>                print("episode {}, total reward {}".format(episode, <br/>                                                           self.task.get_total_reward()))<br/>                <br/>                state = self.replay_memory.phi(frame)<br/>                action = self.choose_action(sess, state, self.epsilon_min) <br/>                r, new_frame, termination = self.play(action)<br/>                self.replay_memory.add(frame, action, r, termination)<br/>                frame = new_frame<br/><br/>                if self.callback:<br/>                    self.callback()<br/>                    if termination:<br/>                        break</pre>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Summary</h1>
+                </header>
+            
+            <article>
+                
+<p>In this chapter, we expanded upon the knowledge that we obtained about in <a href="91114074-444f-4201-98ef-e510210380f2.xhtml" target="_blank">Chapter 8</a>, <em>Reinforcement Learning</em>, to learn about <span>DDPG, </span>HER, and how to combine these methods to create a reinforcement learning algorithm that independently controls a robotic arm.</p>
+<p>The Deep Q network that we used to solve game challenges worked in discrete spaces; when building algorithms for more fluid motion tasks such as robots or self-driving cards, we need a class of algorithms that can handle continuous action spaces. For this, use policy gradient methods, which learn a policy from a set of actions directly. We can improve this learning by using an experience replay buffer, which stores positive past experiences so that they may be sampled during training ...</p></article></section></div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">References</h1>
+                </header>
+            
+            <article>
+                
+<p class="cdp-organize-book-title"><em>Python Reinforcement Learning Projects</em>, <span>Sean Saito, Yang Wenzhuo, and Rajalingappaa Shanmugamani, <a href="https://www.packtpub.com/big-data-and-business-intelligence/python-reinforcement-learning-projects">https://www.packtpub.com/big-data-and-business-intelligence/python-reinforcement-learning-projects</a>.<a href="https://www.packtpub.com/big-data-and-business-intelligence/python-reinforcement-learning-projects"/></span></p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  </body></html>

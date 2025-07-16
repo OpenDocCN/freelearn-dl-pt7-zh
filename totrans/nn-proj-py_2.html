@@ -1,0 +1,795 @@
+<html><head></head><body>
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Predicting Diabetes with Multilayer Perceptrons</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">In the <span class="calibre5">first chapter, we went through the inner workings of a neural network, how to build our own neural network using Python libraries such as Keras, as well as the end-to-end machine learning workflow. </span>In this chapter, we will apply what we have learned to build <span class="calibre5">a <strong class="calibre4">multilayer perceptron</strong> (<strong class="calibre4">MLP</strong>) </span>that can predict whether a patient is at risk of diabetes. This marks the first neural network project that we will build from scratch.</p>
+<p class="calibre2">In this chapter, we will cover the following topics:</p>
+<ul class="calibre11">
+<li class="calibre12">Understanding the problem that we're trying to tackle—diabetes mellitus</li>
+<li class="calibre12">How AI is being used in healthcare today, and how AI will continue to transform healthcare</li>
+<li class="calibre12">An in-depth analysis of the diabetes mellitus dataset, including data visualization using Python</li>
+<li class="calibre12">Understanding MLPs, and the model architecture that we will use</li>
+<li class="calibre12">A step-by-step guide to implement and train an MLP with Keras</li>
+<li class="calibre12">Analysis of our results</li>
+</ul>
+<p class="calibre2"/>
+<p class="calibre2"/>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Technical requirements</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">The key Python libraries required for this chapter are as follows:</p>
+<ul class="calibre11">
+<li class="calibre12">matplotlib 3.0.2</li>
+<li class="calibre12">pandas 0.23.4</li>
+<li class="calibre12">Keras 2.2.4</li>
+<li class="calibre12">NumPy 1.15.2</li>
+<li class="calibre12">seaborn 0.9.0</li>
+<li class="calibre12">scikit-learn 0.20.2</li>
+</ul>
+<div class="packtinfobox">To download the dataset<span> </span>required for this project, <span>please refer to the instructions at </span><a href="https://raw.githubusercontent.com/PacktPublishing/Neural-Network-Projects-with-Python/master/chapter2/how_to_download_the_dataset.txt" class="calibre20">https://raw.githubusercontent.com/PacktPublishing/Neural-Network-Projects-with-Python/master/Chapter02/how_to_download_the_dataset.txt</a>.</div>
+<p class="calibre2">The code for this chapter can be found in the GitHub repository for the book at <a href="https://github.com/PacktPublishing/Neural-Network-Projects-with-Python" class="calibre10">https://github.com/PacktPublishing/Neural-Network-Projects-with-Python</a>.</p>
+<p class="calibre2">To download the code into your computer, you may run the following <kbd class="calibre13">git clone</kbd> command:</p>
+<pre class="calibre17"><strong class="calibre1"><span>$ git clone https://github.com/PacktPublishing/Neural-Network-Projects-with-Python.git</span></strong></pre>
+<p class="calibre2">After the process is complete, there will be a folder titled <kbd class="calibre13">Neural-Network-Projects-with-Python</kbd><span class="calibre5"> . Enter the folder by running this command:</span></p>
+<pre class="calibre17"><strong class="calibre1">$ cd Neural-Network-Projects-with-Python</strong></pre>
+<p class="calibre2">To install the required Python libraries in a virtual environment, run the following command:</p>
+<div class="title-page-name">
+<div class="title-page-name">
+<pre class="calibre17"><strong class="calibre1"><span>$ conda</span> <span>env</span> <span>create</span> <span>-</span><span>f</span> <span>environment</span><span>.</span><span>yml</span></strong></pre></div>
+</div>
+<p class="calibre2">Note that you should have installed Anaconda on your computer first before running this command. To enter the virtual environment, run the following command:</p>
+<pre class="calibre17"><strong class="calibre1">$ conda activate neural-network-projects-python</strong></pre>
+<p class="calibre2">Navigate to the <kbd class="calibre13"><span><span>Chapter02</span></span></kbd><span class="calibre5"> </span>folder by running the following command:</p>
+<pre class="calibre17"><strong class="calibre1">$ cd Chapter02</strong></pre>
+<p class="calibre2"/>
+<p class="calibre2">The following files are located in the folder:</p>
+<ul class="calibre11">
+<li class="calibre12"><kbd class="calibre13">main.py</kbd>: This is the main code for the neural network.</li>
+<li class="calibre12"><kbd class="calibre13">utils.py</kbd>: This file contains <span>auxiliary utility code that will help us in the implementation of our neural network.</span></li>
+<li class="calibre12"><kbd class="calibre13">visualize.py</kbd>: This file contains code for exploratory data analysis and data visualization.</li>
+</ul>
+<p class="calibre2">To run the code for the neural network, simply execute the <kbd class="calibre13">main.py</kbd> file:</p>
+<pre class="calibre17"><strong class="calibre1">$ python main.py</strong></pre>
+<p class="calibre2">To recreate the data visualizations covered in this chapter, execute the <kbd class="calibre13">visualize.py</kbd> file:</p>
+<pre class="calibre17"><strong class="calibre1">$ python visualize.py</strong></pre>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Diabetes – understanding the problem</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">Diabetes is a chronic medical condition that is associated with elevated blood sugar levels in the body. Diabetes often leads to cardiovascular disease, stroke, kidney damage, and long-term damage to the extremities (that is, limbs and eyes).</p>
+<p class="calibre2">It is estimated that there are 415 million people in the world suffering from diabetes, with up to 5 million deaths every year attributed to diabetes-related complications. In the United States, diabetes is estimated to be the seventh highest cause of death. Clearly, diabetes is a cause of concern to the wellbeing of modern society.</p>
+<p class="calibre2">Diabetes can be divided into two subtypes: type 1 and type 2. Type 1 diabetes results from the body's inability to produce sufficient insulin. Type 1 <span class="calibre5">diabetes</span> is relatively rare compared to type 2 <span class="calibre5">diabetes</span>, and it only accounts for approximately 5% of diabetes. Unfortunately, the exact cause of type 1 diabetes is unknown and therefore, it is difficult to prevent the onset of type 1 diabetes.</p>
+<p class="calibre2">Type 2 diabetes results from the body's gradual resistance to insulin. Type 2 diabetes is the prevalent form of diabetes in the world, and it is caused by excessive body weight, irregular exercise, and a poor diet. Fortunately, the onset of type 2 diabetes can be prevented and reversed if diagnosed early.</p>
+<p class="calibre2">One of the barriers for early detection and diagnosis of diabetes is that the early stages of diabetes are often non-symptomatic. People who are on the path to diabetes (also known as prediabetes) often do not know that they have diabetes until it is too late.</p>
+<p class="calibre2">How can we use machine learning to address this problem? If we have a labeled dataset that contains some vital measurements of patients (for example, age and blood insulin level), as well as a true label indicating the onset of diabetes in the patient sometime after the measurements were taken, then we can train a neural network (machine learning classifier) on this data and use it to make predictions on new patients: </p>
+<p class="mce-root"><img class="alignnone25" src="assets/e97e9572-4f07-4f7b-85e8-a5659671a799.png"/></p>
+<p class="calibre2">In the next section, we'll briefly explore how AI is transforming healthcare.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">AI in healthcare</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">Beyond predicting diabetes using machine learning, the field of healthcare, in general, is ripe for disruption by AI. According to a study by Accenture, the market for AI in healthcare is set for explosive growth, with an estimated <span class="calibre5">compound annual growth rate of 40% by 2021.</span> <span class="calibre5">This significant growth is driven by a proliferation of AI and tech companies in healthcare.</span></p>
+<p class="calibre2">Apple's chief executive officer, Tim Cook, believes that Apple can make significant contributions in healthcare. Apple's vision for disrupting healthcare can be exemplified by its developments in wearable technology. In 2018, Apple announced a new generation of smartwatches with active monitoring of cardiovascular health. Apple's smartwatches can now conduct e<span class="calibre5">lectrocardiography in real time, and even warn you when your heart rate becomes abnormal, which is an early sign of cardiovascular failure. Apple's smartwatches also collect accelerometer and gyroscope measurements to predict in real time if a significant fall has occurred. Clearly, the impact of AI on healthcare will be far-reaching. </span></p>
+<p class="calibre2"/>
+<p class="calibre2">The value of AI in healthcare is not in replacing physicians and other healthcare workers, but rather to augment their activities. AI has the potential to support healthcare workers throughout a patient's journey and to assist healthcare workers in discovering insights into a patient's wellbeing using data. According to experts, AI in healthcare will see the most growth in the following areas:</p>
+<p class="mce-root"><img class="alignnone26" src="assets/90889624-341c-4fa6-80dd-ded51086ff81.png"/></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Automated diagnosis</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">Let's zoom in on automated diagnosis as that is the area of concern for this project. Experts believe that AI will greatly augment the way medical diagnosis is conducted. At the moment, most medical diagnosis is performed by skilled medical experts. In the case of medical diagnosis through images (such as X-rays and MRI scans), skilled radiologists are required to provide their expertise in the diagnostic process. These skilled medical professionals go through years of rigorous training before being certified, and there is a shortage of these medical experts in certain countries, which contributes to poor outcomes. The role of AI is to augment these experts and to offload low-level routine diagnosis, which can be done by an AI agent with a high degree of accuracy. </p>
+<p class="calibre2">This ties back to our original problem statement; using AI to predict which patients are at risk of diabetes. As we shall see, we can use machine learning and neural networks to make this prediction. In this chapter, we will design and implement an MLP that can predict the onset of diabetes using machine learning.</p>
+<p class="calibre2"/>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">The diabetes mellitus dataset</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">The dataset that we will be using for this project comes from the Pima Indians Diabetes dataset, as provided by the <span class="calibre5">National Institute of Diabetes and Digestive and Kidney Diseases (and hosted by Kaggle)</span>.</p>
+<p class="calibre2">The Pima Indians are a group of native Americans living in Arizona, and they are a highly studied group of people due to their genetic predisposition to diabetes. It is believed that the Pima Indians carry a gene that allows them to survive long periods of starvation. This thrifty gene allowed the Pima Indians to store in their bodies whatever glucose and carbohydrates they may eat, which is genetically <span class="calibre5">advantageous in an environment where famines were common.</span></p>
+<p class="calibre2"><span class="calibre5">However, as society modernized and the Pima Indians began to change their diet to one of processed food, the rate of type 2 diabetes among them began to increase as well. Today, the incidence of type 2 diabetes among the Pima Indians is the highest in the world. This makes them a highly studied group of people, as researchers attempt to find the genetic link of diabetes among the Pima Indians.</span></p>
+<p class="calibre2">The Pima Indians diabetes dataset consists of diagnostic measurements collected from a sample of female Pima Indians, along with a label indicating whether the patient developed diabetes within five years of the initial measurement. In the next section, we'll perform exploratory data analysis on the Pima Indians diabetes dataset to uncover important insights about the data.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Exploratory data analysis</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2"><span class="calibre5">Let's dive into the dataset to understand the kind of data we are working with. We import the dataset into pandas:</span></p>
+<pre class="calibre17">import pandas as pd<br class="title-page-name"/><br class="title-page-name"/>df = pd.read_csv('diabetes.csv')</pre>
+<p class="calibre2">Let's take a quick look at the first five rows of the dataset by calling the <kbd class="calibre13">df.head()</kbd><span class="calibre5"> </span>command:</p>
+<pre class="calibre17">print(df.head())</pre>
+<p class="calibre2">We get the following output:</p>
+<p class="mce-root"><img class="alignnone27" src="assets/8f948292-21c1-42bc-9e9f-f44b34b89f5d.png"/></p>
+<p class="calibre2">It looks like there are nine columns in the dataset, which are as follows:</p>
+<ul class="calibre11">
+<li class="calibre12"><kbd class="calibre13">Pregnancies</kbd><span>:</span> Number of previous pregnancies </li>
+<li class="calibre12"><kbd class="calibre13">Glucose</kbd><span>:</span> Plasma glucose concentration</li>
+<li class="calibre12"><kbd class="calibre13">BloodPressure</kbd><span>:</span> Diastolic blood pressure</li>
+<li class="calibre12"><kbd class="calibre13">SkinThickness</kbd><span>:</span> Skin fold thickness measured from the triceps</li>
+<li class="calibre12"><kbd class="calibre13">Insulin</kbd><span> :</span> Blood serum insulin concentration</li>
+<li class="calibre12"><kbd class="calibre13">BMI</kbd><span>:</span> Body mass index</li>
+<li class="calibre12"><kbd class="calibre13">DiabetesPedigreeFunction</kbd><span>:</span> A summarized score that indicates the genetic predisposition of the patient for diabetes, as extrapolated from the patient's family record for diabetes</li>
+<li class="calibre12"><kbd class="calibre13">Age</kbd><span>:</span> Age in years</li>
+<li class="calibre12"><kbd class="calibre13">Outcome</kbd><span>:</span> The target variable we are trying to predict,<span> <kbd class="calibre13">1</kbd> for patients that developed diabetes within five years of the initial measurement, and <kbd class="calibre13">0</kbd> otherwise</span></li>
+</ul>
+<p class="calibre2">Let's start by visualizing the distribution of the nine variables in the dataset. We can do this by plotting a histogram:</p>
+<pre class="calibre17">from matplotlib import pyplot as plt <br class="title-page-name"/><br class="title-page-name"/>df.hist()<br class="title-page-name"/>plt.show()</pre>
+<p class="calibre2"/>
+<p class="calibre2">We get the following output:</p>
+<p class="mce-root"><img class="alignnone28" src="assets/5a73eaea-dfa6-4131-954b-2163e03e0476.png"/></p>
+<p class="calibre2"/>
+<p class="calibre2">The histogram provides some interesting insights into the data. From the histogram for <kbd class="calibre13">Age</kbd>, we can see that most of the data was collected from young people, with the most common age group between <span class="calibre5">20</span>-<span class="calibre5">30</span> years old. We can also see that the distribution for <kbd class="calibre13">BMI</kbd>, <kbd class="calibre13">BloodPressure</kbd>, and <kbd class="calibre13">Glucose</kbd> concentration is normally distributed (that is, a bell curve shape), which is what we we expect when we collect such statistics from a population. However, note that the tail of the <kbd class="calibre13">Glucose</kbd> concentration distribution shows some rather extreme values. It appears that there are people with plasma <kbd class="calibre13">Glucose</kbd> concentration that is almost <span class="calibre5">200</span>. On the opposite end of the distribution, we can see that there are people with <span class="calibre5">0</span> values for <kbd class="calibre13">BMI</kbd>, <kbd class="calibre13">BloodPressure</kbd>, and <kbd class="calibre13">Glucose</kbd>. Logically, we know that it is not possible to have a <span class="calibre5">0</span> value for these measurements. Are these missing values? We shall explore more in the next section on data preprocessing.</p>
+<p class="calibre2">If we look at the distribution for the number of previous <kbd class="calibre13">Pregnancies</kbd>, we can see some outliers as well. We can see that some patients had more than 15 previous pregnancies. While that may not be entirely surprising, we should keep such outliers in mind when we do our analysis, as it can skew our results.</p>
+<p class="calibre2">The distribution of outcome shows that approximately 65% of the population belongs to class 0 (no diabetes), while the remaining 35% belongs to class 1 (diabetes). When building a machine learning classifier, we should always keep in mind the distribution of classes in our training data. In order to ensure that our machine learning classifier works well in the real world, we should ensure that the distribution of classes in our training data mirrors that of the real world. In this case, the distribution of the classes does not match those in the real world, as it is estimated by the <strong class="calibre4">World Health Organization</strong> (<strong class="calibre4">WHO</strong>) that only 8.5% of the world population suffers from diabetes.</p>
+<div class="packttip">We do not need to worry about the distribution of classes in our training data for this project, as we are not going to deploy our classifier in the real world. Nevertheless, it is a good practice for data scientists and machine learning engineers to check the distribution of classes in the training data, in order to ensure strong model performance in the real world.</div>
+<p class="calibre2">Lastly, it is important to note that the variables are on different scales. For example, the <kbd class="calibre13">DiabetesPedigreeFunction</kbd> variable ranges from <span class="calibre5">0</span> to ~<span class="calibre5">2.5</span>, while the <kbd class="calibre13">Insulin</kbd> variable ranges from <span class="calibre5">0</span> to ~<span class="calibre5">800</span>. This difference in scale can cause problems in training our neural network, as variables with larger scales tend to dominate variables with smaller scales. In the next section on data preprocessing, we will look at how we can standardize the variables.</p>
+<p class="calibre2">We can also plot a density plot to investigate the relationship between each variable and the target variable. To do so, we will use seaborn. s<span class="calibre5">eaborn is a Python data visualization library based on matplotlib.</span></p>
+<p class="calibre2">The following code snippet shows how to plot a density plot for each variable. To visualize the difference in distribution between diabetics and non-diabetics, we will also plot them separately on each plot:</p>
+<div class="title-page-name">
+<div class="title-page-name">
+<div class="title-page-name">
+<div class="title-page-name">
+<pre class="calibre17"><span><span>import</span> <span>seaborn</span> <span>as</span> <span>sns<br class="title-page-name"/><br class="title-page-name"/># create a subplot of 3 x 3<br class="title-page-name"/>plt.subplots(3,3,figsize=(15,15))<br class="title-page-name"/><br class="title-page-name"/># Plot a density plot for each variable<br class="title-page-name"/>for idx, col in enumerate(df.columns):<br class="title-page-name"/>    ax = plt.subplot(3,3,idx+1)<br class="title-page-name"/>    ax.yaxis.set_ticklabels([])<br class="title-page-name"/>    sns.distplot(df.loc[df.Outcome == 0][col], hist=False, axlabel= False, <br class="title-page-name"/>    kde_kws={'linestyle':'-',  <br class="title-page-name"/>    'color':'black', 'label':"No Diabetes"})<br class="title-page-name"/>    sns.distplot(df.loc[df.Outcome == 1][col], hist=False, axlabel= False, <br class="title-page-name"/>    kde_kws={'linestyle':'--', <br class="title-page-name"/>    'color':'black', 'label':"Diabetes"})<br class="title-page-name"/>    ax.set_title(col)<br class="title-page-name"/><br class="title-page-name"/># Hide the 9th subplot (bottom right) since there are only 8 plots<br class="title-page-name"/>plt.subplot(3,3,9).set_visible(False)<br class="title-page-name"/><br class="title-page-name"/>plt.show()</span></span></pre></div>
+</div>
+</div>
+</div>
+<p class="calibre2">We'll get the output shown in the following screenshot:</p>
+<p class="mce-root"><img class="alignnone29" src="assets/f2b68949-1ee2-47e3-ab61-844dd4106287.png"/></p>
+<p class="calibre2"><span class="calibre5">The following screenshot shows the output in continuation to the preceding one:</span></p>
+<p class="mce-root"><img class="alignnone30" src="assets/a7258813-1cf1-476d-99c4-133d3bd8112b.png"/></p>
+<p class="calibre2">The preceding density plots look complicated, but let's focus on each individual plot and see what insights can we gain. If we look at the plot for the <kbd class="calibre13">Glucose</kbd> variable, we can see that among the non-diabetics (solid line), the curve has a normal distribution centered around the value 100. This tells us that among non-diabetics, most people have a blood glucose value of 100 mg/dL. On the other hand, if we look at the <kbd class="calibre13">Diabetics</kbd> (dashed line), the curve is wider and is centered around a value of 150. This tells us that diabetics tends to have a wider range of blood glucose value, and the average blood glucose value is around 150 mg/dL. Therefore, there is a significant difference in blood glucose values for diabetes vs non-diabetics.  A similar analysis can also be made for the variable <kbd class="calibre13">BMI</kbd> and <kbd class="calibre13">Age</kbd>. In other words, the <kbd class="calibre13">Glucose</kbd>, <kbd class="calibre13">BMI</kbd>, and <kbd class="calibre13">Age</kbd> variables are strong predictors for diabetes. People with diabetes tend to have higher blood glucose level, higher BMI, and are older.</p>
+<p class="calibre2">On the other hand, we can see that for variables such as <kbd class="calibre13">BloodPressure</kbd> and <kbd class="calibre13">SkinThickness</kbd>, there is no significant difference in the distribution between diabetics and non-diabetics. The two groups of people tend to have similar blood pressure and skin thickness values. Therefore, <kbd class="calibre13">BloodPressure</kbd> and <kbd class="calibre13">SkinThickness</kbd> are poorer predictors for diabetes.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Data preprocessing</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">In the previous section, <em class="calibre8">Exploratory data analysis</em>, we have discovered that there are 0 values in certain columns, which indicates missing values. We have also seen that the variables have different scales, which can negatively impact model performance. In this section, we will perform data preprocessing to handle these issues.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Handling missing values</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2"><span class="calibre5">First, let's call the <kbd class="calibre13">isnull()</kbd> function to check whether there are any missing values in the dataset:</span></p>
+<pre class="calibre17">print(df.isnull().any())</pre>
+<p class="calibre2"/>
+<p class="calibre2">We'll see the following output:</p>
+<p class="mce-root"><img class="alignnone31" src="assets/fb03262d-f2ea-4a91-95e9-040c8af8ad6b.png"/></p>
+<p class="calibre2">It seems like there are no missing values in the dataset, but are we sure? Let's get a statistical summary of the dataset to investigate further:</p>
+<pre class="calibre17">print(df.describe())</pre>
+<p class="calibre2">The output is as follows:</p>
+<p class="mce-root"><img class="alignnone32" src="assets/3802ada8-f2b4-427d-b5c6-da3f14ce1010.png"/></p>
+<p class="calibre2">We can see that there are <kbd class="calibre13">768</kbd> rows of data, and the <kbd class="calibre13">Pregnancies</kbd>, <kbd class="calibre13">Glucose</kbd>, <kbd class="calibre13">BloodPressure</kbd>, <kbd class="calibre13">SkinThickness</kbd>, <kbd class="calibre13">Insulin</kbd>, and <kbd class="calibre13">BMI</kbd> <span class="calibre5">columns </span>have a minimum value of <kbd class="calibre13">0</kbd>. This doesn't quite make sense. The measurements for <span class="calibre5"><kbd class="calibre13">Glucose</kbd>, <kbd class="calibre13">BloodPressure</kbd>, <kbd class="calibre13">SkinThickness</kbd>, <kbd class="calibre13">Insulin</kbd>, and <kbd class="calibre13">BMI</kbd> should never be <kbd class="calibre13">0</kbd>. This is an indication that there are missing values in our dataset. The values were probably recorded as <kbd class="calibre13">0</kbd> due to certain issues during data collection. Perhaps the equipment was faulty, or the patient was unwilling to have their measurements taken.</span></p>
+<p class="calibre2"/>
+<p class="calibre2">In any case, we need to handle these <kbd class="calibre13">0</kbd> values. Let's take a look at how many <kbd class="calibre13">0</kbd> values are there in each column to understand the extent of the problem:</p>
+<pre class="calibre17">print("Number of rows with 0 values for each variable")<br class="title-page-name"/>for col in df.columns:<br class="title-page-name"/>    missing_rows = df.loc[df[col]==0].shape[0]<br class="title-page-name"/>    print(col + ": " + str(missing_rows))</pre>
+<p class="calibre2">We get the following result:</p>
+<p class="mce-root"><img class="alignnone33" src="assets/fd47ea3c-fd73-48bc-a01d-aa3a51c52f9a.png"/></p>
+<p class="calibre2">In the <kbd class="calibre13">Insulin</kbd> column, there are <kbd class="calibre13">374</kbd> rows with <kbd class="calibre13">0</kbd> values. That is almost half of the data that we have! Clearly, we cannot discard these rows with <kbd class="calibre13">0</kbd> values as that will cause a significant drop in model performance.</p>
+<p class="calibre2">There are several techniques to handle these missing values:</p>
+<ul class="calibre11">
+<li class="calibre12">Remove (discard) any rows with missing values.</li>
+<li class="calibre12">Replace the missing values with the mean/median/mode of the non-missing values.</li>
+<li class="calibre12">Predict the actual values using a separate machine learning model.</li>
+</ul>
+<p class="calibre2">Since the missing values comes from continuous variables such as <span class="calibre5"><kbd class="calibre13">Glucose</kbd>, <kbd class="calibre13">BloodPressure</kbd></span>,<span class="calibre5"> <kbd class="calibre13">SkinThickness</kbd>, <kbd class="calibre13">Insulin</kbd>, and <kbd class="calibre13">BMI</kbd>, we will replace the missing values with the mean of the non-missing values.</span></p>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<p class="calibre2">First, let's replace the <kbd class="calibre13">0</kbd> values in the <span class="calibre5"><kbd class="calibre13">Glucose</kbd>, <kbd class="calibre13">BloodPressure</kbd>, <kbd class="calibre13">SkinThickness</kbd>, <kbd class="calibre13">Insulin</kbd>, and <kbd class="calibre13">BMI</kbd> columns with <kbd class="calibre13">NaN</kbd>. This way, pandas will understand that these values are invalid:</span></p>
+<pre class="calibre17">import numpy as np<br class="title-page-name"/><br class="title-page-name"/>df['Glucose'] = df['Glucose'].replace(0, np.nan)<br class="title-page-name"/>df['BloodPressure'] = df['BloodPressure'].replace(0, np.nan)<br class="title-page-name"/>df['SkinThickness'] = df['SkinThickness'].replace(0, np.nan)<br class="title-page-name"/>df['Insulin'] = df['Insulin'].replace(0, np.nan)<br class="title-page-name"/>df['BMI'] = df['BMI'].replace(0, np.nan)</pre>
+<p class="calibre2">Now let's confirm that the <span class="calibre5"><kbd class="calibre13">Glucose</kbd>, <kbd class="calibre13">BloodPressure</kbd>, <kbd class="calibre13">SkinThickness</kbd>, <kbd class="calibre13">Insulin</kbd>, and <kbd class="calibre13">BMI</kbd> columns no longer contain <kbd class="calibre13">0</kbd> values:</span></p>
+<pre class="calibre17">print("Number of rows with 0 values for each variable")<br class="title-page-name"/>for col in df.columns:<br class="title-page-name"/>    missing_rows = df.loc[df[col]==0].shape[0]<br class="title-page-name"/>    print(col + ": " + str(missing_rows))</pre>
+<p class="calibre2">We get the following result:</p>
+<p class="mce-root"><img class="alignnone34" src="assets/028c2dfd-94bf-4def-a37e-d2949e70e9cc.png"/></p>
+<p class="calibre2">Note that we did not modify the <kbd class="calibre13">Pregnancies</kbd> column as <kbd class="calibre13">0</kbd> values in that column (that is, <kbd class="calibre13">0</kbd> previous pregnancies) are perfectly valid.</p>
+<p class="calibre2">Now, let's replace the <kbd class="calibre13">NaN</kbd> values with the mean of the non-missing values. We can do this using the handy <kbd class="calibre13">fillna()</kbd> function in pandas:</p>
+<pre class="calibre17">df['Glucose'] = df['Glucose'].fillna(df['Glucose'].mean())<br class="title-page-name"/>df['BloodPressure'] = df['BloodPressure'].fillna(df['BloodPressure'].mean())<br class="title-page-name"/>df['SkinThickness'] = df['SkinThickness'].fillna(df['SkinThickness'].mean())<br class="title-page-name"/>df['Insulin'] = df['Insulin'].fillna(df['Insulin'].mean())<br class="title-page-name"/>df['BMI'] = df['BMI'].fillna(df['BMI'].mean())</pre>
+<p class="calibre2"/>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Data standardization</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">Data standardization is another important technique in data preprocessing. The goal of data standardization is to transform the numeric variables so that each variable has zero mean and unit variance.</p>
+<p class="calibre2">Standardization of variables as a preprocessing step is a requirement for many machine learning algorithms. In neural networks, it is important to standardize the data in order to ensure that the backpropagation algorithm works as intended. Another positive effect of data standardization is that it shrinks the magnitude of the <span class="calibre5">variables</span>, transforming them to a scale that is more proportional.</p>
+<p class="calibre2">As we have seen earlier, variables such as <kbd class="calibre13">Insulin</kbd> and <kbd class="calibre13">DiabetesPedigreeeFunction</kbd> have vastly different scales; the maximum value for <kbd class="calibre13">Insulin</kbd> is <kbd class="calibre13">846</kbd> while the maximum value for <span class="calibre5"><kbd class="calibre13">DiabetesPedigreeeFunction</kbd> is only <kbd class="calibre13">2.42</kbd>. With such different scales, the variable with the greater scale tends to dominate when training the neural network, causing the neural network to inadvertently place more emphasis on the variable with a greater scale.</span></p>
+<p class="calibre2">To standardize our data, we can use the <kbd class="calibre13">preprocessing</kbd> class from scikit-learn. Let's import the <span class="calibre5"><kbd class="calibre13">preprocessing</kbd> class from scikit-learn and use it to scale our data:</span></p>
+<pre class="calibre17">from sklearn import preprocessing<br class="title-page-name"/><br class="title-page-name"/>df_scaled = preprocessing.scale(df)</pre>
+<p class="calibre2">Since the object returned by the <span class="calibre5"><kbd class="calibre13">preprocessing.scale()</kbd> function is no longer a pandas DataFrame, let's convert it back:</span></p>
+<pre class="calibre17">df_scaled = pd.DataFrame(df_scaled, columns=df.columns)</pre>
+<p class="calibre2">Lastly, since we do not want to scale the <kbd class="calibre13">Outcome</kbd> column (which is the target variable that we are trying to predict) let's use the original <kbd class="calibre13">Outcome</kbd> column:</p>
+<pre class="calibre17">df_scaled['Outcome'] = df['Outcome']<br class="title-page-name"/>df = df_scaled</pre>
+<p class="calibre2">Let's take a look at the mean, standard deviation and the max of each of the transformed variables:</p>
+<pre class="calibre17">print(df.describe().loc[['mean', 'std','max'],].round(2).abs())</pre>
+<p class="calibre2"/>
+<p class="calibre2">We get the following result:</p>
+<p class="mce-root"><img class="alignnone35" src="assets/09b7c567-5add-4a81-a9b0-69fcec4b1cb7.png"/></p>
+<p class="calibre2">We can see that the scale of each variable is now a lot closer to one another.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Splitting the data into training, testing, and validation sets</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">The last step in data preprocessing is to split the data into training, testing, and validation sets:</p>
+<ul class="calibre11">
+<li class="calibre12"><strong class="calibre1">Training set</strong>: The neural network will be trained on this subset of the data.</li>
+<li class="calibre12"><strong class="calibre1">Validation set</strong>: This set of data allows us to perform hyperparameter tuning (that is, tuning the number of hidden layers) using an unbiased source of data.</li>
+<li class="calibre12"><strong class="calibre1">Testing set</strong>: The final evaluation of the neural network will be based on this subset of the data.</li>
+</ul>
+<p class="calibre2">The purpose of splitting the data into training, testing, and validation sets is to avoid overfitting and to provide an unbiased source of data for evaluating model performance. Typically, we will use the training and validation set to tune and improve our model. The validation set can be used for early stopping of training, that is, we continue to train our neural network only to the point where model performance on the validation set stops improving. This allows us to avoid overfitting the neural network. </p>
+<p class="calibre2">The testing set is also known as the holdout dataset, as the neural network will never be trained using it. Instead, we will use the testing set to evaluate the model at the end. This provides us with an accurate reflection of the real-world performance of our model.</p>
+<p class="calibre2">How do we decide the proportion of each split? The competing concerns, in this case, is that if we allocate most of the data for training purposes, model performance will increase at the detriment of our ability to avoid overfitting. Similarly, if we allocate most of the data for validation and testing purposes, model performance will decrease as there might be insufficient data for training.</p>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<p class="calibre2">As a general rule of thumb, we should split the original data into 80% training and 20% testing, and then to split the training data into 80% training and 20% validation again. The following diagram illustrates this process:</p>
+<p class="mce-root"><img class="alignnone36" src="assets/537a32d0-a0c4-45ff-bb2f-ad5c7a2b8c8d.png"/></p>
+<p class="calibre2">One important point to note is that the splitting of data must be done at random. If we were to use a non-random method of splitting the data (for example, the first 80% of rows go to the <strong class="calibre4">Training Set</strong> and the last 20% of rows go to the <strong class="calibre4">Testing</strong> <strong class="calibre4">Set</strong>), we could potentially be introducing bias into our training and testing set. For example, the original data could be sorted in chronological order, so a non-random method of splitting the data could mean that our model is only trained on data from a certain date, which is highly biased and would not work as well in the real world.</p>
+<p class="calibre2">The <kbd class="calibre13">train_test_split</kbd> function from scikit-learn allows us to randomly split a dataset easily.</p>
+<p class="calibre2">First, let's separate the dataset into <kbd class="calibre13">X</kbd> (input features) and <kbd class="calibre13">y</kbd> (target variable):</p>
+<pre class="calibre17">from sklearn.model_selection import train_test_split<br class="title-page-name"/><br class="title-page-name"/>X = df.loc[:, df.columns != 'Outcome']<br class="title-page-name"/>y = df.loc[:, 'Outcome']</pre>
+<p class="calibre2">Then, make the first split to split the data into the training set (80%) and the testing set (20%) according to the preceding diagram:</p>
+<pre class="calibre17">X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)</pre>
+<p class="calibre2">Finally, make the second split to create the final training set and the validation set:</p>
+<pre class="calibre17">X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2)</pre>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">MLPs</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">Now that we have completed exploratory data analysis and data preprocessing, let's turn our attention towards designing the neural network architecture. In this project, we will be using MLPs.</p>
+<p class="calibre2">An MLP is a class of feedforward neural network, and it distinguishes itself from the single-layer perceptron that we've discussed in <a href="1068b86b-d786-48ba-b91c-35d0ff569460.xhtml" target="_blank" class="calibre10">Chapter 1</a>, <em class="calibre8">Machine Learning and Neural Networks 101</em>, by having at least one hidden layer, with each layer activated by a non-linear activation function. This multilayer neural network architecture and non-linear activation allows MLPs to produce non-linear decision boundaries, which is crucial in multi-dimensional real-world datasets such as the Pima Indians Diabetes dataset.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Model architecture</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">The model architecture of the MLP can be represented graphically as follows:</p>
+<p class="mce-root"><img class="alignnone37" src="assets/9a44666b-3e19-42d5-ad40-06a4efa666d0.png"/></p>
+<p class="calibre2">As discussed in <a href="1068b86b-d786-48ba-b91c-35d0ff569460.xhtml" target="_blank" class="calibre10">Chapter 1</a>, <em class="calibre8">Machine Learning and Neural Networks 101</em>, we can use an arbitrary number of hidden layers in our MLP. For this project, we will use two hidden layers in our MLP.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Input layer</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">Each node in the <strong class="calibre4">input layer</strong> (illustrated by the circles in the pink rectangle) refers to each feature (that is, column) in the dataset. Since there are eight features in the Pima Indians dataset, there should be eight nodes in the input layer of our MLP. </p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Hidden layers</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">The next layer after the input layer is known as a <strong class="calibre4">hidden </strong><strong class="calibre4">layer. </strong>As we have seen in <a href="1068b86b-d786-48ba-b91c-35d0ff569460.xhtml" target="_blank" class="calibre10">Chapter 1</a>, <em class="calibre8">Machine Learning and Neural Networks 101</em>, the hidden layer takes the input layer and applies a <strong class="calibre4">non-linear activation function</strong> to it. Mathematically, we can represent the function of the hidden layer as follows:</p>
+<p class="mce-root"><img class="fm-editor-equation10" src="assets/25203d3f-47b4-486b-ad64-302c7facf89d.png"/></p>
+<p class="calibre2"><img class="fm-editor-equation11" src="assets/62638abb-569a-4dbd-bf4e-9e1fa0344ad9.png"/> refers to the input passed from the previous layer, <img class="fm-editor-equation6" src="assets/9b29f759-2464-42fc-9031-6b3eeb8df7f3.png"/> refers to the non-linear activation function, <img class="fm-editor-equation12" src="assets/0a1c0ce4-c44a-4d72-88c5-7c474955aea7.png"/> are the weights, and <img class="fm-editor-equation13" src="assets/862211f8-85fc-4504-8046-f965be7fcc17.png"/> refers to the biases.</p>
+<p class="calibre2">To keep things simple, we will only use two hidden layers in our model for this project. Increasing the number of hidden layers tends to increase the model complexity and training time. For this project, two hidden layers will suffice, as we shall see later when we look at the model performance.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Activation functions</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">When designing the neural network model architecture, we also need to decide what activation functions to use for each layer. Activation functions have an important role to play in neural networks. You can think of activation functions as <em class="calibre8">transformers</em> in neural networks; they take an input value, transform the input value, and pass the transformed value to the next layer. </p>
+<p class="calibre2">In this project, we will use the <strong class="calibre4">rectified linear unit</strong> (<strong class="calibre4">ReLU</strong>) and the <strong class="calibre4">sigmoid</strong> as our activation functions.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">ReLU</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">As a general rule of thumb, ReLU is always used as the activation function for our intermediate hidden layers (that is, non-output layer). In 2011, it was proved by researchers that ReLU is superior to all previously used activation functions for training <strong class="calibre4">deep neural networks</strong> (<strong class="calibre4">DNNs</strong>). Today, ReLU is the most popular choice of activation function for DNNs, and it has become a default choice for activation functions.</p>
+<p class="calibre2">Mathematically, we can represent ReLU as follows:</p>
+<p class="mce-root"><img class="fm-editor-equation14" src="assets/f8264954-9c83-4950-847d-0305e48abd66.png"/></p>
+<p class="calibre2">What the ReLU function does is to simply consider only the non-negative portion of the original <em class="calibre8"><img class="fm-editor-equation15" src="assets/ffe50dd3-9cfb-411f-a82c-ca05ef032f78.png"/></em>, and to treat the negative portion as <em class="calibre8">0</em>. The following graph illustrates this:</p>
+<p class="mce-root"><img class="alignnone38" src="assets/e635eb09-90bd-4f41-a000-6eb6326e29a7.png"/></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Sigmoid activation function</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">For the final output layer, we need an activation function that makes a prediction on the class of the label. For this project, we are making a simple binary prediction on the class: 1 for patients with onset of diabetes and 0 for patients without the onset of diabetes. The sigmoid activation function is ideal for binary classification problems.</p>
+<p class="calibre2">Mathematically, we can represent the sigmoid activation function as follows:</p>
+<p class="mce-root"><img class="fm-editor-equation16" src="assets/9f9e96de-1353-4b51-b79c-39283c052647.png"/></p>
+<p class="calibre2">Although this looks complicated, the underlying function is actually pretty simple. The <strong class="calibre4">Sigmoid Activation Function</strong> simply takes a value and squashes it between <strong class="calibre4">0</strong> and <strong class="calibre4">1</strong>:</p>
+<p class="mce-root"><img class="alignnone39" src="assets/849c7c78-1e4f-4d31-8fc0-b56464c5b3b4.png"/></p>
+<p class="calibre2">If the transformed value <img class="fm-editor-equation17" src="assets/a4e7a8d0-50e1-41cf-a819-9f40fc9c3e42.png"/> is greater than <strong class="calibre4">0.5</strong>, then we classify it as class <strong class="calibre4">1</strong>. Similarly, if the transformed value is less than <strong class="calibre4">0.5</strong>, we classify it as class <strong class="calibre4">0</strong>. The <strong class="calibre4">Sigmoid Activation Function</strong> allows us to take an input value and outputs a binary class (<strong class="calibre4">1</strong> or <strong class="calibre4">0</strong>), which is exactly what we require for this project (that is, to predict whether a person has diabetes or not).</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Model building in Python using Keras</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">We're finally ready to build and train our MLP in Keras.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Model building</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">As we mentioned in <a href="1068b86b-d786-48ba-b91c-35d0ff569460.xhtml" class="calibre10">Chapter 1</a>, <em class="calibre8">Machine Learning and Neural Networks 101</em>, the <kbd class="calibre13">Sequential()</kbd> class in Keras allows us to construct a neural network like Lego, stacking layers on top of one another.</p>
+<p class="calibre2">Let's create a new <kbd class="calibre13">Sequential()</kbd> class:</p>
+<pre class="calibre17">from keras.models import Sequential<br class="title-page-name"/><br class="title-page-name"/>model = Sequential()</pre>
+<p class="calibre2">Next, let's stack our first hidden layer. The first hidden will have 32 nodes, and the input dimensions will be 8 (because there are 8 columns in <kbd class="calibre13">X_train</kbd>). Notice that for the very first hidden layer, we need to indicate the input dimensions. Subsequently, Keras will take care of the size compatibility of other hidden layers automatically.</p>
+<div class="packttip">Another point to note is that we have arbitrarily decided on the number of nodes for the first hidden layer. This variable is a hyperparameter that should be carefully selected through trial and error. In this project, we will skip hyperparameter tuning and just use 32 as the number of nodes since it does not necessarily make much of a difference for this simple dataset.</div>
+<p class="calibre2">Let's add the first hidden layer:</p>
+<pre class="calibre17">from keras.layers import Dense<br class="title-page-name"/># Add the first hidden layer<br class="title-page-name"/>model.add(Dense(32, activation='relu', input_dim=8))</pre>
+<p class="calibre2">The <kbd class="calibre13">activation</kbd> function used is <kbd class="calibre13">relu</kbd>, as discussed in the previous section.</p>
+<p class="calibre2">Next, let's stack on the second hidden layer. Adding more hidden layers increases the complexity of our model, but can sometimes cause the model to overfit. For this project, we will use two hidden layers only, as that is sufficient to produce a satisfactory model.</p>
+<p class="calibre2">Let's add our second hidden layer:</p>
+<pre class="calibre17"># Add the second hidden layer<br class="title-page-name"/>model.add(Dense(16, activation='relu'))</pre>
+<p class="calibre2"/>
+<p class="calibre2">Finally, finish off the MLP by adding the output layer. This layer has only one single node, as we're dealing with binary classification here. The <kbd class="calibre13">activation</kbd> function used is the <kbd class="calibre13">sigmoid</kbd> function, and it <em class="calibre8">squashes</em> the output between 0 and 1 (binary output).</p>
+<p class="calibre2">Now we add the output layer as follows:</p>
+<pre class="calibre17"># Add the output layer<br class="title-page-name"/>model.add(Dense(1, activation='sigmoid'))</pre>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Model compilation</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">Before we start training our model, we need to define the parameters of the training process, which is done via the <kbd class="calibre13">compile</kbd> method. </p>
+<p class="calibre2">There are three different parameters we need to define for the training process:</p>
+<ul class="calibre11">
+<li class="calibre12"><strong class="calibre1">Optimizer</strong>: Let's use the <kbd class="calibre13">adam</kbd> optimizer, which is a popular optimizer in Keras. For most datasets, the <kbd class="calibre13">adam</kbd> optimizer will work well without much tuning.</li>
+<li class="calibre12"><strong class="calibre1">Loss function</strong>: We'll use <kbd class="calibre13">binary_crossentropy</kbd> as our <kbd class="calibre13">loss</kbd> function since the problem at hand is a binary classification problem.</li>
+<li class="calibre12"><strong class="calibre1">Metrics</strong>: We'll use <kbd class="calibre13">accuracy</kbd> (that is, the percentage of correctly classified samples) as our evaluation metric.</li>
+</ul>
+<p class="calibre2">Then, we can run the <kbd class="calibre13">compile()</kbd> function as follows:</p>
+<pre class="calibre17"># Compile the model<br class="title-page-name"/>model.compile(optimizer='adam',<br class="title-page-name"/>              loss='binary_crossentropy',<br class="title-page-name"/>              metrics=['accuracy'])</pre>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Model training</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">To train our MLP model defined in earlier steps, let's call the <kbd class="calibre13">fit</kbd> function. Let's train our model for <kbd class="calibre13">200</kbd> iterations:</p>
+<pre class="calibre17"># Train the model for 200 epochs<br class="title-page-name"/>model.fit(X_train, y_train, epochs=200)</pre>
+<p class="calibre2">We get the following result:</p>
+<p class="mce-root"><img class="alignnone40" src="assets/e09e058e-ecec-4ed8-a802-082d4a211bb3.png"/></p>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<p class="calibre2">As we can see, the loss decreases and the accuracy increases over each epoch, as the learning algorithm continuously updates the weights and biases in the MLP according to the training data. Note that the accuracy shown in the preceding screenshot refers to the accuracy based on the training data. In the next section, we will take a look at the performance of the MLP based on the held out testing data, as well as some other important metrics.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Results analysis</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">Having successfully trained our MLP, let's evaluate our model based on the testing accuracy, confusion matrix, and <strong class="calibre4">receiver operating characteristic</strong> (<strong class="calibre4">ROC</strong>) curve.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Testing accuracy</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">We can evaluate our model on the training set and testing set using the <kbd class="calibre13">evaluate()</kbd> function:</p>
+<pre class="calibre17">scores = model.evaluate(X_train, y_train)<br class="title-page-name"/>print("Training Accuracy: %.2f%%\n" % (scores[1]*100))<br class="title-page-name"/><br class="title-page-name"/>scores = model.evaluate(X_test, y_test)<br class="title-page-name"/>print("Testing Accuracy: %.2f%%\n" % (scores[1]*100))</pre>
+<p class="calibre2">We get the following result:</p>
+<p class="mce-root"><img class="alignnone41" src="assets/1751887a-189c-42ad-9d5e-b18dbab8bed2.png"/></p>
+<p class="calibre2">The accuracy is <span class="calibre5">91.85%</span> and <span class="calibre5">78.57%</span> on the training set and testing set respectively. The difference in accuracy between the training and testing set isn't surprising since the model was trained on the training set. In fact, by training the model over more iterations, we can achieve 100% accuracy on the training set, but that would not be desirable as it just means that we are overfitting our model. The testing accuracy should always be used to evaluate the real-world performance of our model, as the testing set represents real-world data that the model has never seen before.</p>
+<p class="calibre2"/>
+<p class="calibre2">The testing accuracy of <span class="calibre5">78.57%</span> is pretty impressive for our simple MLP with just two hidden layers. What this means is that given the eight measurements from a new patient (glucose, blood pressure, insulin, and so on), our MLP is able to predict with ~80% accuracy whether that patient will develop diabetes within the next five years. In essence, we have developed our first AI agent!</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Confusion matrix</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">The confusion matrix is a useful visualization tool that provides analysis on the true negative, false positive, false negative, and true positives made by our model. Beyond a simple accuracy metric, we should also look at the confusion matrix to understand the performance of the model.</p>
+<p class="calibre2">The definition of true negative, false positive, false negative, and true positives are as follows:</p>
+<ul class="calibre11">
+<li class="calibre12"><strong class="calibre1">True negative</strong>: Actual class is negative (no diabetes), and the model predicted negative (no diabetes)</li>
+<li class="calibre12"><strong class="calibre1">False positive</strong>: Actual class is negative (no diabetes), but the model predicted positive (diabetes)</li>
+<li class="calibre12"><strong class="calibre1">False negative</strong>: Actual class is positive (diabetes), but the model predicted negative (no diabetes)</li>
+<li class="calibre12"><strong class="calibre1">True positive</strong>: Actual class is positive (diabetes), and the model predicted positive (diabetes)</li>
+</ul>
+<p class="calibre2">Clearly, we want our false positive and false negative numbers to be as low as possible, and for the true negative and true positive numbers to be as high as possible. </p>
+<p class="calibre2">We can construct a confusion matrix using the <kbd class="calibre13">confusion</kbd><kbd class="calibre13">_matrix</kbd> class from <kbd class="calibre13">sklearn</kbd>, using <kbd class="calibre13">seaborn</kbd> for the visualization:</p>
+<pre class="calibre17">from sklearn.metrics import confusion_matrix<br class="title-page-name"/>import seaborn as sns<br class="title-page-name"/><br class="title-page-name"/>y_test_pred = model.predict_classes(X_test)<br class="title-page-name"/>c_matrix = confusion_matrix(y_test, y_test_pred)<br class="title-page-name"/>ax = sns.heatmap(c_matrix, annot=True, <br class="title-page-name"/>                 xticklabels=['No Diabetes','Diabetes'],<br class="title-page-name"/>                 yticklabels=['No Diabetes','Diabetes'], <br class="title-page-name"/>                 cbar=False, cmap='Blues')<br class="title-page-name"/>ax.set_xlabel("Prediction")<br class="title-page-name"/>ax.set_ylabel("Actual")</pre>
+<p class="calibre2">And the result is as follows:</p>
+<p class="mce-root"><img class="alignnone42" src="assets/059c6fc4-a341-4a29-9f3d-2b7f7a574261.png"/></p>
+<p class="calibre2">From the preceding confusion matrix, we can see that most predictions are true negatives and true positives (as indicated by the 78.57% test accuracy in the previous section). The remaining <span class="calibre5">19</span> predictions are false negatives and <span class="calibre5">14</span> other predictions are false positives, which are undesirable.</p>
+<p class="calibre2">For diabetes prediction, a false negative is perhaps more damaging than a false positive. A false negative means telling the patient that they will not develop diabetes within the next five years, when in fact they would. Therefore, when we evaluate the performance of different models for predicting the onset of diabetes, a model with a lower false negative is more desirable.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">ROC curve</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">For classification tasks, we should also look at the ROC curve to evaluate our model. The ROC curve is a plot with the <strong class="calibre4">True Positive Rate</strong> (<strong class="calibre4">TPR</strong>) on the <em class="calibre8">y</em> axis and the <strong class="calibre4">False Positive Rate</strong> (<strong class="calibre4">FPR</strong>) on the <em class="calibre8">x </em>axis. TPR and FPR are defined as follows:</p>
+<p class="mce-root"><img class="fm-editor-equation18" src="assets/0a6b9f5f-8686-4ac2-bda5-1f4914f1429d.png"/></p>
+<p class="mce-root"><img class="fm-editor-equation19" src="assets/78951486-57b2-4acb-b924-600aae8dc499.png"/></p>
+<p class="calibre2">When we analyze the ROC curve, we look at the <strong class="calibre4">area under the curve</strong> (<strong class="calibre4">AUC</strong>) to evaluate the performance of the model that produced the curve. A large AUC indicates that the model is able to differentiate the respective classes with high accuracy, while a low AUC indicates that the model makes poor, often wrong predictions. A ROC curve that lies on the diagonal indicates that the model does no better than random. The following diagram illustrates this:</p>
+<p class="mce-root"><img class="alignnone43" src="assets/5b37e12b-9118-4dec-9a60-0a6391164a21.png"/></p>
+<p class="calibre2">Let's plot the ROC curve for our model and analyze its performance. As always, scikit-learn provides a useful <kbd class="calibre13">roc_curve</kbd> class to help us do this. But first, let's get the predicted probabilities of each class using the <kbd class="calibre13">predict()</kbd> function:</p>
+<pre class="calibre17">from sklearn.metrics import roc_curve<br class="title-page-name"/>import matplotlib.pyplot as plt<br class="title-page-name"/><br class="title-page-name"/>y_test_pred_probs = model.predict(X_test)</pre>
+<p class="calibre2">Then, run the <kbd class="calibre13">roc_curve</kbd> function in order to get the corresponding false positive rate and true positive rate for the ROC curve:</p>
+<pre class="calibre17">FPR, TPR, _ = roc_curve(y_test, y_test_pred_probs)</pre>
+<p class="calibre2">Now plot the values on a plot using matplotlib:</p>
+<pre class="calibre17">plt.plot(FPR, TPR)<br class="title-page-name"/>plt.plot([0,1],[0,1],'--', color='black') #diagonal line<br class="title-page-name"/>plt.title('ROC Curve')<br class="title-page-name"/>plt.xlabel('False Positive Rate')<br class="title-page-name"/>plt.ylabel('True Positive Rate')</pre>
+<p class="calibre2">We get the following result:</p>
+<p class="mce-root"><img src="assets/d5ccd4e6-20e1-47b5-8ae1-3448b2931bd7.png" class="calibre25"/></p>
+<p class="calibre2">From the preceding <strong class="calibre4">ROC Curve</strong>, we can see that the model performs rather well, close to the model <strong class="calibre4">ROC Curve</strong> shown in the preceding diagram. This shows that our model is able to differentiate samples of different classes, making good predictions.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Further improvements</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">At this point, it is worth wondering if it is possible to further improve the performance of our model. How can we further improve the accuracy of our model and/or improve the false negative and false positive rate?</p>
+<p class="calibre2">In general, any limitation in performance is usually due to the lack of strong features in the dataset, rather than the complexity of the neural network used. The Pima Indians Diabetes dataset only consists of eight features, and it can be argued that these features alone are insufficient to really predict the onset of diabetes.</p>
+<p class="calibre2">One way to increase the number of features we provide to the model is via <strong class="calibre4">feature engineering</strong>. Feature engineering is the process of using one's domain knowledge of the problem to create new features for the machine learning algorithm. Feature engineering is one of the most important aspects of data science. In fact, many past winners of Kaggle competitions have credited their success to feature engineering, and not just tuning of the machine learning model. However, feature engineering is a double-edged sword and must be done carefully. Adding inappropriate features may create noise for our machine learning model, affecting the performance of our model. </p>
+<p class="calibre2">On the opposite spectrum, we may also consider removing features in order to improve model performance. This is known as <strong class="calibre4">feature selection</strong>. Feature selection is used when we believe that the original dataset contains too much noise, and removing the noisy features (features that are not strong predictors) may improve model performance. One popular way to do feature selection is to use decision trees.</p>
+<p class="calibre2">Decision trees are a separate class of machine learning models with a tree-like data structure. Decision trees are useful as they calculate and rank the most important features according to certain statistical criteria. We can first fit the data using the decision tree, and then use the output from the decision tree to remove features that are deemed unimportant, before providing the reduced dataset to our neural network. Again, feature selection is a double-edged sword that can potentially affect model performance.</p>
+<p class="calibre2">Although feature engineering and feature selection were not done in this project, we will see it being used in other projects in later chapters, as we gradually take on more challenging problems.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Summary</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">In this chapter, we have designed and implemented an MLP that is capable of predicting the onset of diabetes with ~80% accuracy.</p>
+<p class="calibre2">We first performed exploratory data analysis where we looked at the distribution of each variable, as well as the relationship between each variable and the target variable. We then performed data preprocessing to remove missing data and we also standardized our data such that each variable has a mean of 0 with unit standard deviation. Finally, we split our original data randomly into a training set, a validation set, and a testing set.</p>
+<p class="calibre2">We then looked at the architecture of the MLP that we used, which consists of 2 hidden layers, with 32 nodes in the first hidden layer and 16 nodes in the second hidden layer. We then implemented this MLP in Keras using the sequential model, which allows us to stack layers on one another. We then trained our MLP using the training set, where Keras used the Adam optimizer algorithm to modify the weights and biases in the neural network over 200 iterations, gradually improving model's accuracy.</p>
+<p class="calibre2">Finally, we evaluated our model using metrics such as the testing accuracy, confusion matrix, and ROC curve. We saw the importance of looking at metrics such as false negatives and false positives when evaluating our model, and how false negatives and false positives are important metrics, especially for a classifier that predicts the onset of diabetes.</p>
+<p class="calibre2">This concludes the chapter on using a simple MLP to predict the onset of diabetes. In the next chapter, <a href="bf157365-e4d3-42ae-89f4-58c9047e6500.xhtml" target="_blank" class="calibre10">Chapter 3</a>, <em class="calibre8">Predicting Taxi Fares with Deep Feedforward Networks</em>, we will use a more complicated dataset that utilizes temporal and geolocation information to make predictions of taxi fares.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Questions</h1>
+                </header>
+            
+            <article>
+                
+<ol class="calibre14">
+<li class="calibre12">How do we plot a histogram of each variable in a pandas DataFrame, and why are histograms useful?</li>
+</ol>
+<p class="calibre26">We can plot a histogram by calling the <kbd class="calibre13">df.hist()</kbd> function built into a pandas DataFrame class. A histogram provides an accurate representation of the distribution of our numerical data.</p>
+<ol start="2" class="calibre14">
+<li class="calibre12">How do we check for missing values (NaN values) in a pandas DataFrame?</li>
+</ol>
+<p class="calibre26">We can call the <kbd class="calibre13">df.isnull().any()</kbd> function to easily check whether there are any null values in each column of the dataset.</p>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<ol start="3" class="calibre14">
+<li class="calibre12">Besides NaN values, what other kinds of missing values could appear in a dataset?</li>
+</ol>
+<p class="calibre26">Missing values can also appear in the form of 0 values. Missing values are often recorded as 0 in a dataset due to certain issues during data collection—perhaps the equipment was faulty, or there are other issues hindering data collection.</p>
+<ol start="4" class="calibre14">
+<li class="calibre12">Why is it crucial to remove missing values in a dataset before training a neural network with it?</li>
+</ol>
+<p class="calibre26">Neural networks are unable to handle NaN values. Neural networks require all of their inputs to be numerical due to the kind of mathematical operations they perform during forward and back propagation.</p>
+<ol start="5" class="calibre14">
+<li class="calibre12">What does data standardization do, and why is it important to perform data standardization before training a neural network with the data?</li>
+</ol>
+<p class="calibre26">The goal of data standardization is to transform the numeric variables so that each variable has zero mean and unit variance. When training neural networks, it is important to ensure that the data has been standardized. This ensures that features with a larger scale does not dominate features with a smaller scale when training a neural network.</p>
+<ol start="6" class="calibre14">
+<li class="calibre12">How do we split our dataset to ensure unbiased evaluation of model performance?</li>
+</ol>
+<p class="calibre26">Before training a neural network, we should split our dataset into a training set, validation set, and testing set. The neural network will be trained on the training set, while the validation set allows us to perform hyperparameter tuning using an unbiased source of data. Finally, the testing set provides an unbiased source of data to evaluate the performance of the neural network.</p>
+<ol start="7" class="calibre14">
+<li class="calibre12">What are the characteristic features of the model architecture of a MLP?</li>
+</ol>
+<p class="calibre26">MLPs are feedforward neural networks, and they have at least one hidden layer, with each layer activated by a non-linear activation function. This multilayer neural network architecture and non-linear activation allows MLPs to produce non-linear decision boundaries.</p>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<ol start="8" class="calibre14">
+<li class="calibre12">What is the purpose of activation functions in neural networks?</li>
+</ol>
+<p class="calibre26">Activation functions performs a non-linear transformation on the weights and biases before passing it to the next layer. The most popular and effective activation function between hidden layers is the ReLU activation function.</p>
+<ol start="9" class="calibre14">
+<li class="calibre12">What is a suitable loss function to use when training our neural network for a binary classification problem?</li>
+</ol>
+<p class="calibre26">The binary cross entropy is the most appropriate loss function to use when training our neural network for a binary classification problem.</p>
+<ol start="10" class="calibre14">
+<li class="calibre12">What does a confusion matrix represent, and how can we use it to evaluate the performance of our neural network?</li>
+</ol>
+<p class="calibre26">A confusion matrix provides values on the true negative, false positive, false negative, and true positives made by our neural network. Beyond a simple accuracy metric, the confusion matrix allows us to drill down into the kind of mistakes made by our neural network (false positives and false negatives).</p>
+
+
+            </article>
+
+            
+        </section>
+    </body></html>

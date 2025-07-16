@@ -1,0 +1,379 @@
+<html><head></head><body>
+        <section>
+
+                            <header class="header-title chapter-title">
+                    Using Features and Reinforcement Learning to Automate Bank Financing
+                </header>
+            
+            <article>
+                
+<p>Commercial banks make money by earning interest on money that was loaned to borrowers. In many cases, the loan becomes a <strong>Non-Performing Asset</strong> (<strong>NPA</strong>) for the bank. There are instances where the borrower could go bankrupt, leaving the bank with a loss. In such situations, it becomes critical for commercial banks to assess the borrower's ability to repay the loan in a timely manner.</p>
+<p>Now, if we look at this scenario closely, we realize that every loan is funded by the money deposited by other customers. Thus, the <span>commercial bank owes</span> interest to the depositor for the money deposited for a time period. This is usually the interest on the depositor's money that is credited by the banks on a quarterly basis. The bank also profits if it charges the borrower more interest and pays a low interest to the depositor. </p>
+<p><span>In this chapter, we will derive the </span>solution for both of these situations by using <strong>Reinforcement Learning</strong> (<strong>RL</strong>), which is an important area of machine learning. <span>Apart from this, we shall also look at examples of how RL can be helpful in banking functions. RL is one of the three areas of machine learning, with the others being supervised learning and unsupervised learning. RL is specifically applicable where decision-making is required based on the surroundings or the current environment. In RL, an agent is presented with options to move toward the reward. The agent has to choose one of the options available. If the correct option is chosen, the agent gets a reward. Otherwise, the agent gets penalized. The goal for the agent is to maximize their chance of getting closer to the reward with each step and to ultimately obtain it.</span></p>
+<p>All of these concepts shall be divided into the following topics: </p>
+<ul>
+<li>Breaking down the functions of a bank</li>
+<li>AI modeling techniques</li>
+<li>Metrics of model performance</li>
+<li>Building a bankruptcy prediction model</li>
+<li>Funding the loan using reinforcement learning</li>
+</ul>
+<p><span>Before we move forward and learn about RL, it is necessary to understand the banking business and how it functions.</span></p>
+<h1 id="uuid-1a20fb09-7226-4ecc-a9fc-ad4164b771d0">Breaking down the functions of a bank</h1>
+<p>Within a bank, as an intermediary between those with excess money (the depositors) and those who need money (the borrowers), there are two important questions that need to be answered:</p>
+<ul>
+<li>How risky is a borrower?</li>
+<li>What is the funding cost of money? </li>
+</ul>
+<p>These are the two important questions that need to be considered before we look at the profit required for sustaining the business operations in order to cover its running costs.</p>
+<p>When these decisions are not made properly, it threatens the viability of a bank. There could be two possible outcomes in such instances:</p>
+<ul>
+<li>If the bank does not make enough profit to cover the cost of risk and operations when a risky event occurs, the bank could collapse. </li>
+<li>If the bank fails to meet the depositor's requirements or fails to honor its borrower's agreements to lend, it hurts the credibility of the bank, thus driving potential customers away.</li>
+</ul>
+<h2 id="uuid-3e6966f7-976c-4a49-a9db-02450fbafb1a">Major risk types</h2>
+<p>To answer the question, <em>How risky is a borrower?,</em> we first need to understand the factors contributing to risk.</p>
+<p><strong>Risk</strong> is an unfavorable outcome in the future that impacts the functioning of a bank. For a bank, the major contributors include the following:</p>
+<ul>
+<li><strong>Credit risk</strong>: This risk concerns the borrower's inability to repay the capital back to the bank in a lending transaction; for example, the financial distress of the borrowing firm, causing its inability to repay the loan.</li>
+<li><strong>Market risk</strong>: This risk concerns unfavorable price movements in financial markets, such as an interest rate hike in the market from which the bank sources its funding.</li>
+<li><strong>Operational risk</strong>: This risk concerns events happening in the operations of the bank as an organization. This could include internal theft, a cyber attack, and so on. </li>
+</ul>
+<p>For a complete list of the types of risk, please refer to<span> the </span>Basel Framework<span> </span>by BIS (<a href="https://www.bis.org/bcbs/basel3.htm">https://www.bis.org/bcbs/basel3.htm</a>).</p>
+<h2 id="uuid-f3131487-05cd-48aa-97f6-e2922b26f27a" class="mce-root">Asset liability management</h2>
+<p class="mce-root">Commercial banks need deposits in order to fund loans. As well as assessing the riskiness of borrowers, the bank also performs a useful function in that they convert deposits from savers into loans for borrowers. Thus, a pricing mechanism for both depositors and borrowers is important. To a bank, loans sit on the asset side of financial statements, while deposits sit on the liabilities side of the business. Therefore, this is often called <strong>Asset and Liability Management</strong> (<strong>ALM</strong>).</p>
+<p class="mce-root">In this book, we will focus on only one part of the entire ALM function <span>– </span>the funding aspect <span>– </span>without covering other risks such as liquidity risk, interest rate risk, and foreign exchange risk. The following are the objectives of the ALM function of a bank:</p>
+<ul>
+<li>The first objective of ALM is to ensure that loans are supported by deposits and that the bank will have sufficient deposits, in case the depositors ask for their money back. In terms of the total quantity, approximately, a $100 deposit supports a $70 loan. Referencing the ratios from some of the biggest banks, the ratios should be around 1.2:1 to 1.5:1 for a customer deposit to a customer loan.</li>
+<li>Secondly, there is another aspect with regard to how long deposits are placed for and loans are lent out. The question of how long is referred to as the <strong>duration</strong>. To meet long-term loan commitments, the bank also needs deposits to be locked in for a long enough time to ensure that loans are supported by deposits in a long-term manner.</li>
+<li class="mce-root">Thirdly, the ALM function needs to be profitable, which means the ALM income should be higher than the ALM cost. The <em>cost</em> is the ALM pricing that you are giving out. This cost is, in fact, the income for ALMs/banks, while the deposit rate quoted to the client is the bank's expense.</li>
+</ul>
+<p>Part of a bank's well-known secret for profit is to convert the short-term deposit (lower-priced) into a long-term loan (higher interest income). The following curve shows the pricing aspect for a bank for its deposits and loans:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="assets/b5ae9587-1f39-45f6-8620-e8c2db1b43df.png" style="width:30.08em;height:17.08em;"/></p>
+<p>In the preceding <span>graph, the <em>x</em> axis shows how long (in days) the deposit/loan position will remain with the bank, while the <em>y</em> axis shows the annualized interest rate.</span></p>
+<h2 id="uuid-985493ca-290f-474a-a7d6-8445e474ea6d">Interest rate calculation</h2>
+<p><span>Though there are many ways to calculate the interest to be paid on the deposit, the most common way to calculate interest is to quote the interest in its annualized form; that is, as if the interest has been put in place for a year, regardless of how long it will be placed for.</span></p>
+<p><span>For example, if the 7-day interest rate for a deposit is 1%, this means that within 7 days, we will get the following:</span></p>
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="assets/40783a18-fb4d-4228-ae8d-c4d25bd24962.png" style="width:10.67em;height:2.17em;"/></p>
+<p><span>We only need to divide the annualized interest rate by 7 days in order to get what we shall get for the 7-day period. The reason behind this is that it is useful for a market dealer to have a standardized way to quote pricing.</span></p>
+<p><span>We will use this formula for interest pricing and deposit pricing in the <em>Funding a loan using reinforcement learning</em> section, later in this chapter. However, there are a lot of other fine details with regard to interest pricing, with different ways of compounding (interest can be earned from interest) and day-count conventions (365 days, actual calendar or actual working days, 360 days, 220 days, and so on). For illustration purposes, we will assume a year is made up of 365 days and we will use simple interest rates without compounding.</span></p>
+<h2 id="uuid-860bdc7d-ec3d-426e-ae54-61c01db5a519">Credit rating</h2>
+<p>Besides the cost of lending described in ALM, another role of the bank is to assess the level of risk when getting involved with a client. This riskiness is added to the cost of funding. This concept is known as <strong>credit rating</strong><span> </span>in banks.</p>
+<p>The Basel Committee assesses and imposes global regulations on risk management in banks. According to the definition provided by the <em>Definition on Defaul</em><span><em>t/Loss</em> by</span><span> </span>the Basel Committee (<a href="https://www.bis.org/bcbs/qis/qis3qa_f.htm">https://www.bis.org/bcbs/qis/qis3qa_f.htm</a>), credit rating predicts the probability of a borrower (who is the one being rated) going bankrupt in a year's time. Borrowers usually default on a loan due to the bankruptcy of companies. So, we normally use default and bankruptcy interchangeably.</p>
+<p class="mce-root">The essential question is, given the required information, how likely is it that the company could go bankrupt within 1 year, thus failing to meet its repayment obligation? This could be driven by many reasons, but one obvious reason is that the financial health of the company is not good.</p>
+<p class="mce-root">A financial statement is like the report card of a company <span>– </span>even though it takes time to produce, it conforms to a certain internationally accepted standard and comes with the guarantee of quality by the auditors.</p>
+<h1 id="uuid-c045de06-da46-4085-a328-123c9d68e157">AI modeling techniques</h1>
+<p><span>Now that we've understood the functions of a business, it's time to move onto some technical concepts. In this section, we will learn about AI modeling techniques, including Monte Carlo simulation, the logistic regression model, decision trees, and neural networks.</span></p>
+<h2 id="uuid-80337fb5-dd82-411f-8b9f-48a1e411e819" class="mce-root">Monte Carlo simulation</h2>
+<p class="mce-root">Monte Carlo simulation uses heavy computation to predict the behavior of objects by assuming random movements that can be described by probability. This approach is a standard tool that's used to study the movements of molecules in physics, which can only be predicted with a certainty of the movement pattern, which is described by probability.</p>
+<p class="mce-root">Finance professionals adopt this method to describe the pricing movement of securities. We will use it to simulate pricing in the <span><em>Funding the loan using reinforcement learning</em> section,</span> later in this chapter.</p>
+<h2 id="uuid-2b783780-2142-4b6d-a66d-0d7404273277">The logistic regression model</h2>
+<p>The logistic regression model is one of the most popular adoptions of AI in banking, especially in the domain of credit risk modeling. The target variable of the model will be a binary outcome of 1 or 0, with a probability of meeting the target of 1. T<span>he decision of what 1 and 0 refer to depends on how we prepare the data</span>.</p>
+<p>In this case, the target variable can be a company filing for bankruptcy within 1 year. The model is called logistic because the function that models the 1 and 0 is called <strong>logit</strong>. It is called regression because it belongs to a statistical model called the regression model, which strives to determine the causation of factors of an outcome.</p>
+<h2 id="uuid-e130232a-7f77-4662-b003-99fcba2399cd" class="mce-root">Decision trees</h2>
+<p>The decision tree algorithm actually belongs to the supervised learning group of algorithms. However, due to the nature of the algorithm, it is commonly used to solve regression and classification problems. Regression and classification often require decision-making based on the situation at hand. So, these problems are commonly solved using reinforcement learning algorithms.</p>
+<p>The beneficial element of having a decision tree is that we can actually visualize the decision tree's representation. The decision-making process starts at the top of the tree and branches out toward the leaf nodes of the tree. The leaf nodes are the point at which the target variables will end up. All the values of a variable that are classified to the same leaf node contain the same probability of defaulting. The following is an example visualization of a decision tree algorithm that is making a decision to give a loan to the applicant:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="aligncenter size-full wp-image-949 image-border" src="assets/d40afa56-e04a-40ae-9fe9-7de7d29a8c63.png" style="width:38.25em;height:21.67em;"/></p>
+<p class="mce-root">The most common way to move forward in the decision tree is to look at the minimal leaf size, which refers to the size of the bucket that each of the training samples is being classified in. If the bucket contains <span>too few</span> samples than <kbd>min_samples_leaf</kbd> dictates, then it will be scrapped. This can be done to reduce the number of buckets (known as the <strong>leaf node of a decision tree</strong>).</p>
+<p class="mce-root">Reading the decision tree is easy. However, it is quite amazing to realize how the machine learns about the various conditions used for splitting.</p>
+<h2 id="uuid-663c7f78-6fa6-4ea7-be90-e2bf510754a2" class="mce-root">Neural networks</h2>
+<p class="mce-root">A simple neural network looks like the one shown in the following diagram:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="aligncenter size-full wp-image-951 image-border" src="assets/0fe31c9c-dd00-4146-9426-10c46bd80f44.png" style="width:20.33em;height:17.25em;"/></p>
+<p>It consists of three layers, namely the <strong>input layer</strong>, the <strong>hidden layer</strong>, and the <strong>output layer</strong>. Each layer is made up of nodes. The artificial neural network that is used to solve AI problems mimics the physical neural network present in the human brain. The neurons in the human brain are represented by nodes in the artificial neural network. The connections between the neurons are represented in the artificial neural network by weights.</p>
+<p>Let's understand the significance of each of the layers in the neural network. The input layer is used to feed the input into the model. It is also responsible for presenting the condition that the model is being trained for. Every neuron or node in the input layer represents one independent variable that has influence over the output.</p>
+<p>The hidden layer is the most crucial because its job is to process the data it has received from the input layer and is responsible for extracting the necessary features from the input data. T<span>he hidden layer consists of one or more layers.</span></p>
+<p><span>In the case of solving a problem with linearly represented data, the activation function (which processes the input data) can be included in the input layer itself. However, for processing complex representations of data, one or more hidden layers are required. The number of hidden layers depends on the complexity of the data. The hidden layer passes on the processed data to the output layer.</span></p>
+<p>The output layer is responsible for collecting and transmitting information. The pattern that the output layer presents can be traced back to the input layer. The number of nodes in the output layer depends on the number of decisions to be made eventually.</p>
+<h2 id="uuid-95f74479-7020-49b3-bc49-087ef5c26793" class="mce-root">Reinforcement learning</h2>
+<p>In the case of reinforcement learning, the model receives feedback on every step that it takes. First, let's understand the entities involved in reinforcement learning:</p>
+<ul>
+<li class="mce-root"><strong>Agent</strong>: This is someone who acts; in our case, it is the bank.</li>
+<li class="mce-root"><strong>Actions</strong>: This is the actual work done by the agent. In our case, actions refer to the pricing grid offered by the bank.</li>
+<li class="mce-root"><strong>Utility function</strong>: This assigns numbers to represent the desirability of a state. The utility function is learned via interactions from the feedback given by the actual <strong>Profit and Loss</strong> (<strong>P&amp;L</strong>)/funding status versus pricing grids (both deposit and loan) offered.</li>
+<li class="mce-root"><strong>Rewards</strong>: This is the numeric representation of the desirability of the outcome. In our case, it is cumulative P&amp;L (the binary result of meeting or failing the self-funding target, with 1 representing meeting and 0 representing failing). The cumulative P&amp;L will equal 0 if the bank fails the self-funding requirements.</li>
+<li class="mce-root"><strong>Policy</strong>: Choose the action based on the utilities estimated. In our case, our policy does not evolve as it strives to take the pricing grid that provides the maximum next states' rewards. The policy we have leads to exploitation, not exploration, which means the policy does not give away current P&amp;L to generate long-term P&amp;L. This is because the depositors and borrowers will display a certain level of stickiness if they witness non-profitability in the short term while gaining P&amp;L over the long term. Exploration is a normal action among relationship bankers, who <span>treasure the long-term</span> profitability <span>of relationships.</span></li>
+</ul>
+<h2 id="uuid-60f9e3ea-2c24-4661-ac52-a27c70b6d025" class="mce-root">Deep learning</h2>
+<p class="mce-root">With each of the models or techniques that we are learning, the complexity increases. In this example, we will assume that there will be 36 variables/features in the input layer. There will be two variables/features in the output layer <span>– </span>one for profitability and one for the self-funding status. There will be two hidden layers in-between the input and output layers <span>– </span>one next to the input layer with 10 neurons, followed by another layer with 15 neurons. This example will form a neural network that makes general pricing decisions for banks.</p>
+<p class="mce-root">To estimate the profitability and self-funding status of the neural network, there are 127 variables in the input layer, three hidden layers each with 15 neurons, and one output layer with one output neuron to generate profitability (cumulative profit and loss for the day) or the percentage of client deposit to client loan.</p>
+<p class="mce-root">In comparison to the logistic regression model, the input features are much more complex in the case of deep learning and the number of parameters involved is in the magnitude of 10 times more or above.</p>
+<p class="mce-root">The following table shows a summary of the pricing model:</p>
+<table style="border-collapse: collapse;width: 100%" border="1">
+<tbody>
+<tr>
+<td class="CDPAlignCenter CDPAlign">
+<p><strong>Layer</strong></p>
+</td>
+<td class="CDPAlignCenter CDPAlign">
+<p><strong>Shape</strong></p>
+</td>
+<td class="CDPAlignCenter CDPAlign">
+<p><strong>No of parameters</strong></p>
+</td>
+</tr>
+<tr>
+<td class="CDPAlignCenter CDPAlign">
+<p>Input</p>
+</td>
+<td class="CDPAlignCenter CDPAlign">
+<p>(1, 36)</p>
+</td>
+<td class="CDPAlignCenter CDPAlign">
+<p>0</p>
+</td>
+</tr>
+<tr>
+<td class="CDPAlignCenter CDPAlign">
+<p>Hidden 1</p>
+</td>
+<td class="CDPAlignCenter CDPAlign">
+<p>(1, 10)</p>
+</td>
+<td class="CDPAlignCenter CDPAlign">
+<p>370</p>
+</td>
+</tr>
+<tr>
+<td class="CDPAlignCenter CDPAlign">
+<p>Hidden 2</p>
+</td>
+<td class="CDPAlignCenter CDPAlign">
+<p>(1, 15)</p>
+</td>
+<td class="CDPAlignCenter CDPAlign">
+<p>165</p>
+</td>
+</tr>
+<tr>
+<td class="CDPAlignCenter CDPAlign">
+<p>Hidden 3</p>
+</td>
+<td class="CDPAlignCenter CDPAlign">
+<p>(1, 15)</p>
+</td>
+<td class="CDPAlignCenter CDPAlign">
+<p>240</p>
+</td>
+</tr>
+<tr>
+<td class="CDPAlignCenter CDPAlign" colspan="2">
+<p><strong>Total parameters</strong></p>
+</td>
+<td class="CDPAlignCenter CDPAlign">
+<p><strong>775</strong></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p> </p>
+<p>In the preceding table, the first column lists which layer it is <span>– </span>input or hidden. The second column represents the shape of the layer in terms of the number of parameters connected from the previous layer to the current layer.</p>
+<p>To calculate the number of parameters, let's consider the <strong>Hidden 1</strong> layer. In this case, 36 features from the previous layer connect to 10 neurons in the current layer. We also need constants equal to the number of features in the current layer to achieve scaling across features. So, the total parameters come to 36*10 + 10 = 370 parameters in the <strong>Hidden 1</strong> layer.</p>
+<p>Knowing how to count the parameters helps us see whether the amount of training data is sufficient enough to train the network. It is strongly suggested that we ensure that the number of parameters is at least equal to <em>number of records</em> * <em>number of epochs</em>. Think of how many formulas will be required to determine a problem with two variables <span>–</span> at least two. The formula is like training data in deep learning, while the variables are like the parameters of the network.</p>
+<h1 id="uuid-965a0e02-c849-4cbe-8d74-ceb687848290">Metrics of model performance</h1>
+<p class="mce-root">When we build an AI model, the most important aspect of the process is to define a way to measure the performance of a model. This enables the data scientist to decide how to improve and pick the best model.</p>
+<p class="mce-root">In this section, we will learn about three common metrics that are commonly used in the industry to assess the performance of the AI model.</p>
+<h2 id="uuid-0a28390e-89f2-43b1-881f-340ea6a81b82" class="mce-root">Metric 1 <span>–</span> ROC curve</h2>
+<p>The <strong>Receiver Operating Characteristic</strong> (<strong>ROC</strong>) metric measures how well the classifier performs its classification job versus a randomized classifier. The classifier that's used in this metric is a binary classifier. The binary classifier classifies the given set of data into two groups on the basis of a predefined classification rule.</p>
+<p class="mce-root">This is linked to a situation where, say, we compare this model against flipping a fair coin to classify the company as being default or non-default, with heads indicating default and tails indicating non-default. Here, there's a 50% chance of classifying default and a 50% chance of classifying non-default.</p>
+<p class="mce-root">For a completely randomized predictive system such as coin flipping, it is very likely that the probability of hitting a true positive is the same as hitting a false positive rate. But in the case of companies defaulting in 1 year, in the following example, it is 6.3% (123 out of 1,828), which means we have an actual count of 1,828 non-default cases and 123 default cases. A truly random model will predict half of the default cases as non-default.</p>
+<p class="mce-root">Let's plot a chart that shows the true positive and false positive rate as an ROC chart. True or false means the prediction that was made for the default event is factually true or false. Positive means that the classifier is positive (equals 1, which is default, in this case).</p>
+<p class="mce-root">When we make no prediction, the true positive and false positive rate is 0. When we have gone through 50% of the sample, which is given as 1,951/2, we should be getting 50% of the sample by default, where 50% of the guesses are false positive. When we get to 100% of the sample, we should have 100% of the sample as true positive and 100% as false positive.</p>
+<p class="mce-root">This randomized classifier's performance is denoted by the dotted line in this diagram:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="aligncenter size-full wp-image-1095 image-border" src="assets/17680b0a-71e6-4d56-a749-03dcb6b3a1f0.png" style="width:26.17em;height:18.83em;"/></p>
+<p>In the most ideal classifier case, we should be able to improve the true positive rate to 100%, with the false positive rate at 0% (denoted by the yellow line in the preceding diagram).</p>
+<p>For the worst classifier, which classifies everything as 100% incorrect, the true positive rate should be 0% and the false positive rate should be 100% (denoted by the red dot). The use of ROC is also prevalent in credit risk model validation.</p>
+<h2 id="uuid-5e186de7-63b9-46ee-9fed-90e93000f72b" class="mce-root">Metric 2 <span>– c</span>onfusion matrix</h2>
+<p class="mce-root">The confusion matrix is the most popular metric used to measure the performance of a classifier and has two outcomes:</p>
+<table style="border-collapse: collapse;width: 100%" border="1">
+<tbody>
+<tr>
+<td class="CDPAlignCenter CDPAlign"/>
+<td class="CDPAlignCenter CDPAlign"/>
+<td class="CDPAlignCenter CDPAlign" colspan="2">
+<p class="western"><strong>Actual: Ground Truth</strong></p>
+</td>
+</tr>
+<tr>
+<td class="CDPAlignCenter CDPAlign"/>
+<td class="CDPAlignCenter CDPAlign"/>
+<td class="CDPAlignCenter CDPAlign">
+<p class="western">True Default</p>
+</td>
+<td class="CDPAlignCenter CDPAlign">
+<p class="western">False/Non-default</p>
+</td>
+</tr>
+<tr>
+<td class="CDPAlignCenter CDPAlign" rowspan="2">
+<p class="western"><strong>Prediction by Classifier</strong></p>
+</td>
+<td class="CDPAlignCenter CDPAlign">
+<p class="western">Positive/Default</p>
+</td>
+<td class="CDPAlignCenter CDPAlign">
+<p class="western">62</p>
+</td>
+<td class="CDPAlignCenter CDPAlign">
+<p class="western">27</p>
+</td>
+</tr>
+<tr>
+<td class="CDPAlignCenter CDPAlign">
+<p class="western">Negative/Non-default</p>
+</td>
+<td class="CDPAlignCenter CDPAlign">
+<p class="western">61</p>
+</td>
+<td class="CDPAlignCenter CDPAlign">
+<p class="western">1,801</p>
+</td>
+</tr>
+<tr>
+<td class="CDPAlignCenter CDPAlign"/>
+<td class="CDPAlignCenter CDPAlign"/>
+<td class="CDPAlignCenter CDPAlign">
+<p class="western">True Positive Rate = 62/(62+61)</p>
+</td>
+<td class="CDPAlignCenter CDPAlign">
+<p class="western">False Positive Rate = 27/(27+1,801)</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p> </p>
+<p class="mce-root">The confusion matrix also provides results similar to the ROC curve. The major idea behind this is to separate prediction and the ground truth by rows and columns.</p>
+<h2 id="uuid-20a8a965-c249-4dd2-a436-6f9df57a7cfb" class="mce-root">Metric 3 <span>– c</span>lassification report</h2>
+<p class="mce-root">The classification report is another way to appraise the performance of the model, with the following indicators:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="aligncenter size-full wp-image-1007 image-border" src="assets/239d7cff-13cb-44bb-bc07-04f493ccef0c.png" style="width:23.42em;height:7.42em;"/></p>
+<p>The details of the indicators are as follows:</p>
+<ul>
+<li class="mce-root"><strong>Precision and recall:</strong> Precision addresses the true positive rate of the model prediction, while recall addresses the coverage of the model. Precision measures the percentage of the predicted value being the predicted value. Recall measures the percentage of the target values being predicted as the expected values.</li>
+<li class="mce-root"><strong>F1-score</strong>: One of the most important measures of the overall accuracy of the model is the F1-score. It is the harmonic mean of precision and recall. This is what we use to compare the performance of models.</li>
+<li class="mce-root"><strong>Support</strong>: This is another term that means the number of records that are of the value listed in the leftmost column. There are 123 actual default cases (with target <em>value = 1</em> under the <em>default</em> column).</li>
+</ul>
+<h1 id="uuid-dbc3481a-ba8e-4eba-9c51-b037e0b8f8d6">Building a bankruptcy risk prediction model</h1>
+<p>The bank, as the lender, needs to dictate the interest rates that will cover the cost of lending. The bank provides the interest rate by considering its cost of borrowing from others, plus the risk that the company might file for bankruptcy after taking the loan from the bank.</p>
+<p class="mce-root">In this example, we shall assume the role of a banker to assess the probability of the borrowers becoming bankrupt. The data for this has been obtained from data.world (<a href="https://data.world">https://data.world</a>), which provides us with the data for the bankruptcy predictions for different companies. The data available at this link was collected from the <strong>Emerging Markets Information Services</strong> (<strong>EMIS</strong>). The EMIS database has information about the emerging markets in the world. </p>
+<p>EMIS analyzed bankrupt companies for the period 2000-2012 and operating companies for the period 2007-2013. After the data was collected, five classifications were made based on the forecasting period. The first year class is the data that contains the financial rates from the year of the forecasting period. Another class label shows what the bankruptcy status would be after 5 years. </p>
+<h2 id="uuid-fbabeeae-305c-45cd-a214-aa3ab2036842">Obtaining the data</h2>
+<p><span>We are going to use an open source program for data conversion, followed by another program to train a model from the data downloaded:</span></p>
+<ol>
+<li>We begin by obtaining the data that has been downloaded from a new data source. However, it is downloaded via a browser, and not via a data feed. Files ending with <kbd>.arff</kbd> will be obtained from data.world. The URL for this is <a href="https://data.world/uci/polish-companies-bankruptcy-data">https://data.world/uci/polish-companies-bankruptcy-data</a>. Usually, we can use 1-year bankruptcy data as the model predicts bankruptcy within 1 year. For the sake of our example, we will use a dataset containing 5 years' worth of data.</li>
+<li>We will then preprocess the data, as well as performing feature engineering by extraction, transformation, and loading. In this case, the file that will be downloaded from data.world is in <kbd>.arff</kbd> <span>file format, which can't be read easily by Python. The code that can be used to convert the file type can be found on</span> GitHub (<a href="https://github.com/jeffreynghm/AIFinance_Packt">https://github.com/jeffreynghm/AIFinance_Packt</a>)<span>.</span></li>
+</ol>
+<h2 id="uuid-00cf59fb-1a5f-4af5-ab93-82aaa26b1ee6" class="mce-root">Building the model</h2>
+<p><span>In this example, we will try out three types of models: logistic regression, decision tree, and neural network.</span></p>
+<p><span>Before the computing power becomes readily available, it is quite common to choose the model according to the problem we are trying to solve, as well as what answers we need from the machine. However, nowadays, we tend to try out all possible models and pick the best model that delivers the best performance.</span></p>
+<p><span>In this case, we can label it as something we want to predict. The target behavior that we wish to predict is the company default—this is called a target variable in the machine learning world. We will establish how accurate the model is at predicting the target variable when given the input data by deploying common metrics to compare performance across different models.</span></p>
+<p>In this example, we will need the following libraries:</p>
+<ul>
+<li class="mce-root"><kbd>os</kbd>: For file path manipulation.</li>
+<li class="mce-root"><kbd>re</kbd>: Regular expression for matching column headers.</li>
+<li class="mce-root"><kbd>pandas</kbd>: DataFrame to keep the data.</li>
+<li class="mce-root"><kbd>matplotlib.pyplot</kbd>: For plotting the model's result to showcase its accuracy.</li>
+</ul>
+<ul>
+<li class="mce-root"><kbd>seaborn</kbd>: A beautiful visualization tool for data analysis.</li>
+<li class="mce-root"><kbd>sklearn</kbd>: A machine learning library, including very strong data preparation for splitting, training, and testing sets, rescaling the data values to feed to the neural network, handling missing values or value abnormality, and so on.</li>
+<li class="mce-root"><kbd>pickle</kbd>: The file format that's used to save the model generated from the machine learning process.</li>
+<li class="mce-root"><kbd>graphviz</kbd>: Used to visualize the decision tree.</li>
+</ul>
+<p>The steps are as follows:</p>
+<ol>
+<li>Import all the relevant libraries using the following code:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import os<br/>import re<br/>import pandas as pd<br/>import matplotlib.pyplot as plt <br/>import seaborn as sns<br/><br/>from sklearn.metrics import classification_report,roc_curve, auc,confusion_matrix,f1_score<br/>from sklearn.model_selection import train_test_split<br/>from sklearn.feature_selection import RFE<br/>from sklearn import linear_model,tree<br/>from sklearn.neural_network import MLPClassifier<br/>from sklearn.preprocessing import StandardScaler<br/><br/>import pickle<br/>import graphviz</pre>
+<p style="padding-left: 60px" class="mce-root">For logistic regression, when it comes to deciding which features are to be chosen, we will rely on testing the accuracy of different features. The combination that delivers the highest accuracy will be chosen.</p>
+<ol start="2">
+<li class="mce-root">Define the <kbd>optimize_RFE()</kbd> function, which will perform the feature selection process. This function will try out different combinations of features that give the highest true positive and the lowest possible false positive. We will measure the performance in order to decide on the number of features that generate the best performance. The following is the code for the function definitions:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def select_columns(df, col_list):<br/>    ...<br/>def generate_column_lists(col_support,col_list):<br/>    ...<br/>def optimize_RFE(logreg, X, Y, target_features = 10):<br/>    ...<br/>    while trial_cnt&lt;=target_features:<br/>        rfe = RFE(logreg,trial_cnt,verbose=1)<br/>        ...    <br/>        select_cols = generate_column_lists(col_support, col_list)<br/>        X_selected = select_columns(X,select_cols)<br/>       ...            <br/>        #build model<br/>        ...    <br/>        ##metric 1: roc<br/>       ...        <br/>        #memorize this setting if this ROC is the highest<br/>        ...        <br/>    return max_roc_auc, best_col_list, result_list<br/><br/>def train_logreg(X,Y):<br/>    print('Logistic Regression')<br/>    logreg = linear_model.LogisticRegression(C=1e5)<br/>    roc_auc, best_col_list, result_list = optimize_RFE(logreg, \<br/>                                                       X, Y, 20)    <br/>    scaler = StandardScaler()<br/>    scaler.fit(X_train)<br/>    ...<br/>    ##metric 1: roc<br/>    ...<br/>    ##metric 2: Confusion matrix<br/>    Y_pred_logreg = logreg.predict(X_test)<br/>    confusion_matrix_logreg = confusion_matrix(Y_test, \<br/>                                               Y_pred_logreg)<br/>    ...<br/>    #common standard to compare across models<br/>    f1_clf = f1_score(Y_test, Y_pred_logreg, average='binary')<br/>    ##Quality Check: test for dependency<br/>    ...<br/>    ##save model<br/>...</pre>
+<ol start="3">
+<li class="mce-root">Besides a logic regression model, we will also build a decision tree. Feature selection will be performed by the algorithm at the time of training. Therefore, unlike the logistic regression model, we do not need to limit the number of features that are provided as input to the training process:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">'''<br/>## Decision Tree<br/>'''<br/>#feed in data to the decision tree<br/>def train_tree(X,Y):<br/>    print('Decision Tree')<br/>    #split the dataset into training set and testing set<br/>    ...<br/>    tree_clf = \<br/>        tree.DecisionTreeClassifier(min_samples_leaf=min_leaf_size)<br/> <br/>    #preprocessing the data<br/>    scaler = StandardScaler()<br/>    scaler.fit(X_train)    <br/>    ...    <br/>    #fit the training data to the model<br/>    ...<br/>    ##metric 1: roc<br/>    ...<br/>    ##metric 2: Confusion matrix<br/>    ...<br/>    #common standard to compare across models<br/>    ...<br/>    ##save model<br/>    ...</pre>
+<ol start="4">
+<li class="mce-root">Lastly, we will add a neural network into the mix of models. It is similar to the decision tree. Feature selection will be performed by the algorithm at training time. However, it is important to perform a grid search for hyperparameter tuning. The hyperparameters that we are searching for belong to the neural network architecture; that is, how many layers we need to build to deliver the maximum performance. The following code is used to train the logistic regression model:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">##Grid search that simulate the performance of different neural network #design<br/>def grid_search(X_train,X_test, Y_train,Y_test,num_training_sample):<br/>    ...<br/>    #various depth<br/>    for depth in range(1,5):<br/>        ...<br/>        for layer_size in range(1,8):<br/>            ...<br/>            nn_clf = MLPClassifier(alpha=1e-5, \<br/>                     hidden_layer_sizes=hidden_layers_tuple, \<br/>                     random_state=1)<br/>            ...<br/>    ...<br/>                <br/>    #various size<br/><br/>def train_NN(X,Y):<br/>    print('Neural Network')<br/>    #split the dataset into training set and testing set<br/>    ...<br/>    <br/>    #preprocessing the data<br/>    scaler = StandardScaler()<br/>    scaler.fit(X_train)<br/>    ...</pre>
+<p style="padding-left: 60px"><span>For all the models listed in this chapter, we also need to measure the accuracy. We are going to use two different approaches to measure accuracy. Various metrics are used in this classification problem. However, we need to be certain when it comes to building a machine learning model that classifies a company as default or non-default.</span></p>
+<ol start="5">
+<li>After defining these functions, we use the following code sample to actually call the function. All three models are built one by one. The results are stored in <kbd>f1_list</kbd> so that they can be printed out later:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">f1_list = []<br/>f1_score_temp= 0<br/><br/>#logistic regression model<br/>log_reg,f1_score_temp = train_logreg(X,Y)<br/>f1_list.append(f1_score_temp)<br/>log_reg.get_params()<br/><br/>#decision tree<br/>tree_clf,f1_score_temp = train_tree(X,Y)<br/>f1_list.append(f1_score_temp)<br/>tree_clf.get_params()<br/><br/>#neural network<br/>nn_clf,f1_score_temp = train_NN(X,Y)<br/>f1_list.append(f1_score_temp)<br/>nn_clf.get_params()</pre>
+<ol start="6">
+<li class="mce-root">Visualize <span>the performance of each model using t</span>he following code:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">'''<br/>#4 Visualize the result<br/>'''<br/>print('********************')<br/>print('f1 of the models')<br/>print(f1_list)<br/>print('********************')</pre>
+<ol start="7">
+<li>Use the following code sample to visualize the model:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">#for visualization of decision tree<br/>x_feature_name = fields_list[:-1]<br/>y_target_name = fields_list[-1]<br/>d_tree_out_file = 'decision_tree'<br/>dot_data = tree.export_graphviz(tree_clf, out_file=None, <br/>                         feature_names=x_feature_name,  <br/>                         class_names=y_target_name,  <br/>                         filled=True, rounded=True,  <br/>                         special_characters=True) <br/>graph = graphviz.Source(dot_data) <br/>graph.render(d_tree_out_file)</pre>
+<p>In the next section, we will use reinforcement learning to decide whether the loan to the customer shall be funded or not.</p>
+<h1 id="uuid-4d25dce2-2b10-475f-9061-6233ce3741cd" class="mce-root">Funding a loan using reinforcement learning</h1>
+<p>Assuming that our role is the head of the bank, it becomes important to figure out the cost of funding the loan. The problem we are solving is comprised of three parties (or as we call them, <strong>agents</strong>)—<span>the </span>bank, depositors, and borrowers. To begin with, we assume that there is only one bank but many depositors and borrowers. The depositors and borrowers will be created through randomized generated data.</p>
+<p class="mce-root">When it comes to simulating different behaviors for these parties in machine learning, each of these is called an agent or an instance of an object. We need to create thousands of agents, with some being depositors, some being borrowers, one being a bank, and one being a market. These represent the collective behavior of competing banks. Next, we will describe the behavior of each type of agent.</p>
+<p class="mce-root">Let's say we assume the role of treasurer of the bank or head of the treasury. The job of the head of the treasury is to quote the risk-free funding cost. The banker dealing with the customer will take the cost of funding and add the credit risk premium to make up the total cost of financing. Any extra margin higher than this total cost of financing shall be the net contribution of the banker. But when it comes to reporting on financial statements, actual interest income from the client will net off the net interest cost paid to by depositor or borrower to the bank.</p>
+<p class="mce-root">What we want to produce is loan and deposit pricings for each maturity (1 day, 2 days, and so on) before the bank opens for business. There is no such dataset in the public domain. Therefore, we will simulate the data. Maturity, amount of loan or deposit, starting date, and interest rate will all be simulated.</p>
+<h2 id="uuid-b035ae0b-4d4c-4a07-828c-4a65b4e83c9b">Understanding the stakeholders</h2>
+<p>While defining the solution using AI modeling, we usually simulate the behavior of the entities involved. It becomes critical for us to understand the behavior of stakeholders first. For the sake of this example, we must understand the behavioral aspects of three entities <span>– </span>the bank, the depositor, and the borrower.</p>
+<p class="mce-root">A bank has two objectives:</p>
+<ul>
+<li class="mce-root">Generate the pricing grid for the deposit and the loan.</li>
+<li class="mce-root">Calculate its profit/loss, as well as its self-funding status at any point in time.</li>
+</ul>
+<p class="mce-root">The pricing grid for the deposit and the loan is assumed to be priced at a different maturity.</p>
+<p class="mce-root">In this example, reinforcement learning has been introduced to update the pricing, as well as to take on feedback by considering the impact of recent actions on the profit and loss and asset and liability ratios. Depositors are assumed to have varying expectations for the deposit interest as and when the deposit matures. At the end of the day, we assume the depositor is claiming their own interest income, along with the amount of deposit reported in the bank's account.</p>
+<p class="mce-root">During the day before the market opens and on the maturity date of the deposit, the depositor will consider whether they want to stay or withdraw the deposit. At this point, we simulate the decision by randomizing the decision by generating a % chance of expected interest. There is a 50% chance of expectation for interest increasing and a 50% demand for the interest reducing. This expectation will then be compared against the bank's offer rate at that specific maturity. If the bank meets this expectation, then the deposit will stay; otherwise, the deposit will leave the bank for the same maturity period.</p>
+<p class="mce-root">With regard to how the interest rate expectation changes, there are two variations used for depositors: one is completely linear, while the other follows a normal distribution. If the deposit leaves the bank, we assume that the same amount of deposit will be placed in another bank. So, on the maturity date of the deposit in the other bank, the depositors will set their expectations and evaluate whether to stay or go back to the original bank.</p>
+<p class="mce-root">For the borrower, the behavior is assumed to be the same as the depositors', with the same day-end accrual activities. However, during the day, borrowers whose loans mature on the same day will reconsider their intention to stay or not. This is represented by the interest rate expectation and the exact method of simulation is the same as depositors'—but with the difference that the loan offered by the bank has to be lower than the expected pricing of the borrowers for it to stay for refinancing.</p>
+<h2 id="uuid-3959852b-ee44-4e6d-9c72-81165b7167e6">Arriving at the solution</h2>
+<p>The following are the steps for creating the borrowers and depositors to close the bank's book on a daily basis:</p>
+<ol>
+<li>First, we need to import the data from the list of loans and deposits to generate a list of borrowers and depositors. In this step, scenarios are loaded from a spreadsheet to simulate the borrowers and depositors that come in on different days. The following code sample shows the function definition for generating the list of borrowers and depositors:</li>
+</ol>
+<div style="font-weight: 400">
+<pre style="padding-left: 60px">##Step 1: Import Data from the list of Loans and Deposits<br/>##Based on an input file, generate list of borrowers and depositors at the beginning<br/>##Keep the master copy of clean clients list<br/>'''<br/>list_depositors_template,list_borrowers_template = generate_list(f_deposit_path,f_loan_path,start_date)</pre></div>
+<ol start="2">
+<li>At the beginning of each iteration (except the first day of business), the market pricing is provided and the bank needs to provide pricing as well. We generate a fixed amount of simulation (1,000 times). In each simulation, we assume a period of 10 years (3,650 days = 365days/year x 10 years). On any given day, depositors and borrowers set their expectations by referencing the market rate. When we begin the first day of each simulation, depositors and borrowers are created from the list of deposits and loans. The following code runs 1,000 simulations:</li>
+</ol>
+<pre style="padding-left: 60px">print('running simulation')<br/>for run in range(0,1000):<br/>    print('simulation ' +str(run))<br/>    #reward function reset<br/>    reward = 0<br/><br/>    list_depositors = copy.deepcopy(list_depositors_template)<br/>    list_borrowers = copy.deepcopy(list_borrowers_template)<br/>    ...</pre>
+<p style="padding-left: 60px" class="mce-root">Executing the preceding code will create an object of the bank. At that time, two neural networks are initialized inside the bank <span>– </span>one for the deposit pricing and one for the loan pricing. The same thing is done for the bank called <strong>market</strong>.</p>
+<p style="padding-left: 60px" class="mce-root">Market pricing is randomized based on the initial pricing input into the market by Monte Carlo simulation. Based on the market pricing, borrowers and depositors set their expectations by referencing the market pricing, along with the tendency to attribute. After setting their expectations, two variations of the deposit pricing and loan pricing grids are generated.</p>
+<ol start="3">
+<li>Deposit pricing and loan pricing are g<span>enerated by two neural networks and Monte Carlo simulations. The neural network dictates the required grid movement for the loan and deposit pricing grids. However, the <kbd>bank</kbd> object also generates randomized pricing based on the pricing generated by the neural network. The following code is used to build the model:</span></li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">#build a model if this is the first run, otherwise, load the saved model<br/>#bank and environment objects created<br/>...<br/>deposit_pricing_grid_pred = jpm.generate_deposit_grid(deposit_constant_grid)<br/>loan_pricing_grid_pred = jpm.generate_loan_grid(loan_constant_grid)<br/>loan_pricing_grid_prev = loan_empty_grid<br/>deposit_pricing_grid_prev = deposit_empty_grid<br/>loan_pricing_grid_final = loan_empty_grid<br/>deposit_pricing_grid_final = deposit_empty_grid<br/><br/>#market is also a bank (collective behavior of many banks)<br/>#market object created<br/>market = bank()<br/>...<br/><br/>daily_loan_list=[]<br/>daily_deposit_list=[]<br/>daily_net_asset_list=[]<br/>cum_income_earned =0<br/>cum_expense_paid =0<br/><br/>mkt_expense = 0<br/>mkt_income = 0<br/><br/>for i_depositor in list_depositors_template:<br/>...<br/><br/>for i_borrower in list_borrowers_template:<br/>...</pre>
+<p style="padding-left: 60px"><span>With this, the environment has been created. Here, the environment object contains the neural network model that provides the reward estimation for the given pricing grids (loan and deposit), as well as external environments such as market pricing, maturing borrowers, and depositors. </span></p>
+<ol start="4">
+<li class="mce-root">Generate a pricing grid for the day:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">##Generate two pricing grids for the day<br/>mkt_deposit_pricing_grid, mkt_loan_pricing_grid = \<br/>                            market.generate_pricing_grids_MC()<br/>loan_pricing_grid_pred,x_np_loan = jpm.generate_loan_grid_ML(...)<br/>deposit_pricing_grid_pred,x_np_deposit = \<br/>                            jpm.generate_deposit_grid_ML(...)<br/>loan_pricing_grid_prev = loan_pricing_grid_final<br/>deposit_pricing_grid_prev = deposit_pricing_grid_final<br/>...</pre>
+<p style="padding-left: 60px"><span>The pricing model of the bank is based on the machine learning model. The market is based on the randomized process referencing the initial values we hardcoded. </span><span>At the same time, the maturity profile (loan and deposit maturing today) will be calculated and the customers' expectation for pricing is established. This expectation is based on market pricing and the internal demand randomized by the helper function defined. </span></p>
+<ol start="5">
+<li class="mce-root">Generate the list of possible pricings, predict the reward, and pick the best pricing. This step is called <strong>action</strong> in the reinforcement learning domain. Action is the act of quoting prices to customers and market peers. Based on the pricing generated in the previous step, we create a lot more variations (20, in our case) with a randomized process:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">## Generating list of all possible loan / deposit pricing, including previous, and current predicted pricing<br/>...<br/>#generate lots of variations:<br/>for i in range(0,num_randomized_grid):<br/>...<br/>        <br/>#accessing each of the choice<br/>...<br/>        <br/>## Predict the reward values of each the variation and make the choice of pricing<br/>for loan_i in range(0,num_grid_variations):<br/>     for deposit_i in range(0,num_grid_variations):<br/>     ...<br/>     #Policy A<br/>     if max_reward&lt;= temp_reward:<br/>     ...<br/>                    <br/>     #Policy B: if both conditions fail, randomize the choice<br/>     ...<br/>            <br/>     #Policy C: Choose the best choice &amp; reward<br/>     ...</pre>
+<p style="padding-left: 60px"><span>Using the environment object's machine learning model, we can predict the outcome of each of the variations and choose the best variation to maximize the profitability, satisfying the funding requirements with the deposit.</span></p>
+<ol start="6">
+<li class="mce-root">Execute the pricing grid. Income and expenses are generated based on the chosen pricing grid that generates the maximum estimated net profit while meeting the self-funding balance objective. Once the bank's pricing grid has been chosen, it is executed with the maturing borrowers and depositors. Some will stay and some will leave the bank:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">#Carry forward the deposit and Roll-over the loan<br/>#stay or not<br/>##Update borrower and depositor<br/>for i_borrower in list_borrowers:<br/>...<br/>            <br/>for i_depositor in list_depositors:<br/>...<br/><br/># Actualized p n l<br/>##*************************************<br/># with clients<br/>for i_borrower in list_borrowers:<br/>#pocket in the loan interest<br/>...<br/> <br/>for i_depositor in list_depositors:<br/>#pay out the deposit interest<br/>...<br/>        <br/>#market operations<br/>...<br/>        <br/>##*************************************<br/>#End of day closing<br/>##*************************************<br/>#cumulative income = income earned from client + income earned from market (if any excess deposit placed overnight)<br/>...<br/><br/>#cumulative expense = expense paid to the client + expense paid to market (if any insufficient deposit to fund overnight pos)<br/>...<br/>        <br/>#Closed book for the day<br/>...<br/><br/>f_log.write('\n****************summary run:' +str(run) + ' day ' +str(day_cnt)+'****************')<br/>...</pre>
+<p style="padding-left: 60px"><span>At the end of the day, interest will be accrued for those who stay with the bank and will be updated in the bank's accounting book (variables in the <kbd>bank</kbd> object). The daily position is also output to the log file.</span></p>
+<p style="padding-left: 60px" class="mce-root">The winning combination will be fed to the model for further reinforcement learning both for the bank and the environment. The feedback will contain the actual P&amp;L for the bank for both deposit and loan grid pricing; for the environment, the actual profitability and self-funding status will be fed back to the reward model.</p>
+<p style="padding-left: 60px" class="mce-root">The actual P&amp;L and self-funding statuses are provided as feedback to the <kbd>environment</kbd> object and <kbd>bank</kbd> object in order to predict the reward and pricing more accurately.</p>
+<ol start="7">
+<li class="mce-root">After each simulation, the results are saved in an output file and we get to monitor the progress of reinforcement learning. <span>At the end of each simulation, the last day's snapshot result is output. </span>Use the following code to generate the output:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">#output result of this run and save model<br/>print('run ' + str(run) + ' is completed')<br/>...</pre>
+<p>Each bar on the <em>x</em> axis represents the average P&amp;L of 10 simulations. The P&amp;L of the simulation peaked at the eighth bar. By performing a detailed analysis of each simulation result in the log file, we can see that the improvement of P&amp;L stopped at the eighty-seventh simulation since P&amp;L plateaued and stabilized at the eightieth plus simulation. With further training, the P&amp;L dropped, thus showing signs of over-training.</p>
+<h1 id="uuid-da9d4498-8ea0-410c-b171-67a5091c73d1">Summary</h1>
+<p class="mce-root"><span>In this chapter, we learned about different AI modeling techniques through two examples—the first with regard to predicting the chances of the borrower going bankrupt and the other with regard to figuring out the funding for the loan. We also learned about reinforcement learning in this chapter. Other artificial intelligence techniques, including deep learning, neural networks, the logistic regression model, decision trees, and Monte Carlo simulation were also covered. We also learned about the business functions of the bank in the context of the examples provided in this chapter.</span></p>
+<p>In the next chapter, we will continue to learn about more AI modeling techniques. We will learn about the linear optimization and linear regression models and use them to solve problems regarding investment banking. We will also learn how AI techniques can become instrumental in mechanizing capital market decisions.</p>
+
+
+            </article>
+
+            
+        </section>
+    </body></html>

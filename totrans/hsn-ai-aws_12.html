@@ -1,0 +1,387 @@
+<html><head></head><body>
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Discovering Topics in Text Collection</h1>
+                </header>
+            
+            <article>
+                
+<p>One of the most useful ways to understand text is through topics. The process of learning, recognizing, and extracting these topics is called topic modeling. Understanding broad topics in text has several applications. It can be used in the legal industry to surface themes from contracts. (Rather than manually reviewing mountains of contracts for certain provisions, through unsupervised learning, themes or topics can surface). Furthermore, it can be used in the retail industry to identify broad trends in social media conversations. These broad trends can then be used for product innovation—<span>to </span>introduce new merchandise into online and physical stores, to inform others of product assortment, and so on.</p>
+<p>In this chapter, we are going to learn how to synthesize topics from long-form text (text that's longer than 140 characters). We will review the techniques of topic modeling and understand how the <strong>Neural Topic Model</strong> <span>(</span><strong>NTM</strong><span>) </span>works. We will then look at training and deploying NTM in SageMaker.</p>
+<p>In this chapter, we will cover the following topics:</p>
+<ul>
+<li>Reviewing topic modeling techniques</li>
+<li>Understanding how the Neural Topic Model works</li>
+<li>Training NTM in SageMaker</li>
+<li>Deploying NTM and running inference</li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Technical requirements</h1>
+                </header>
+            
+            <article>
+                
+<p>To illustrate the concepts in this chapter, we will use the <strong>Bag of Words</strong> (<a href="https://archive.ics.uci.edu/ml/datasets/bag+of+words">https://archive.ics.uci.edu/ml/datasets/bag+of+words</a>) dataset from the <span><strong>UCI Machine Learning Repository</strong> (<a href="http://archive.ics.uci.edu/ml">http://archive.ics.uci.edu/ml</a>). The dataset contains information on Enron emails, such as email IDs, word IDs, and their count, which is the number of times a particular word appeared in a given email.</span></p>
+<p><span>In the GitHub repository (<a href="https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/tree/master/Ch9_NTM">https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/tree/master/Ch9_NTM</a>) associated with this chapter, you should find the following files:</span></p>
+<ul>
+<li><span><kbd>docword.enron.txt.gz</kbd></span> <span>(<a href="https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/blob/master/Ch9_NTM/data/docword.enron.txt.gz">https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/blob/master/Ch9_NTM/data/docword.enron.txt.gz</a><a href="https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/blob/master/Ch9_NTM/data/docword.enron.txt.gz">):</a></span> Contains Email ID and Word ID</li>
+<li><kbd>vocab.enron.txt</kbd> (<a href="https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/tree/master/Ch9_NTM/data/vocab.enron.txt">https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/tree/master/Ch9_NTM/data/vocab.enron.txt</a>): Contains the actual words that are part of the dataset<a href="https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/blob/master/Ch11_NTM/data/vocab.enron.txt"/></li>
+</ul>
+<p>Let's begin by looking at topic modeling techniques.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Reviewing topic modeling techniques</h1>
+                </header>
+            
+            <article>
+                
+<p>In this section, we look at several linear and non-linear learning techniques when it comes to topic modeling. Linear techniques include Latent Semantic Analysis (two approaches - Singular Vector Decomposition and Non-negative Matrix Factorization), probabilistic Latent Semantic Analysis, and Latent Dirichlet Allocation. On the other hand, non-linear techniques include LDA2Vec and the Neural Variational Document Model.</p>
+<p>In the case of <strong>Latent Semantic Analysis</strong> (<strong>LSA</strong>), topics are discovered by approximating documents into a smaller number of topic vectors. A collection of documents is represented by document-word matrix:</p>
+<ul>
+<li>In its simplest form, the document word matrix consists of raw counts, which is the frequency with which a given word occurs in a given document. Since this approach doesn't account for the significance of each word in the document, we replace raw counts with the <strong>tf-idf</strong> (<strong>term frequency-inverse document frequency</strong>) score.</li>
+<li>Through tf-idf, words that occur frequently within the document in question, but less frequently across all the other documents, will have a higher weight. Given that the matrix of documents and words is sparse and noisy, dimensionality must be reduced to obtain meaningful relationships between documents and words via topics.</li>
+<li>Reducing dimensionality can be done through truncated <strong>SVD</strong> (<strong>Singular Value Decomposition</strong>), where the document-word matrix is broken down into three different matrices, that is, document topic (<em>U</em>), word-topic (<em>V</em>), and singular values matrix (<em>S</em>), where singular values represent the strength of the topics, as shown in the following diagram:</li>
+</ul>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/dfd740bf-c367-4f34-9ef5-59d21c622be1.png" style=""/></div>
+<p>This decomposition is unique. T<span>o represent documents and words in a lower-dimensional space</span>, only <em>T</em> largest singular values are chosen (a subset of the matrix, as shown in the preceding diagram), and only the first <em>T</em> columns of <em>U</em> and <em>V</em> are retained. <em>T</em> is a hyperparameter and can be adjusted to reflect the number of topics we want to find. In linear algebra, any <em>m x n</em> matrix <em>A</em> can be decomposed as follows:</p>
+<ul>
+<li><img class="fm-editor-equation" src="assets/8c95a260-1eb4-4cbb-9766-b5592440c1fc.png" style="width:5.92em;height:0.83em;"/>, where <em>U</em> is called the left singular vector, <em>V</em> is called the right singular vector, and <em>S</em> is called the <strong>singular value matrix</strong>.</li>
+</ul>
+<div class="packt_infobox">For information on how to compute singular values, as well as left and right singular vectors for a given matrix, refer to <a href="https://machinelearningmastery.com/singular-value-decomposition-for-machine-learning/">https://machinelearningmastery.com/singular-value-decomposition-for-machine-learning/</a><a href="https://machinelearningmastery.com/singular-value-decomposition-for-machine-learning/"> intuitive explanation—reconstruct matrix from SVD</a>.</div>
+<ul>
+<li>Therefore, we get, <img class="fm-editor-equation" src="assets/f445a99d-9c18-4e3a-a1a8-90dd11889672.png" style="width:6.50em;height:1.08em;"/>.</li>
+</ul>
+<p class="mce-root"/>
+<p>Besides SVD, you can also conduct matrix factorization through (<strong>non-negative matrix factorization</strong> (<strong>NMF</strong>). NMF belongs to linear algebra algorithms and is used to identify a latent structure in the data. Two non-negative matrices are used to approximate the document-term matrix, as shown in the following diagram (terms and words are used interchangeably):</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/702fe954-7207-45af-996d-391aa2a76ef1.png" style=""/></div>
+<p>Let's compare and contrast the different linear techniques of LSA and look at a variant of LSA that offers more flexibility:</p>
+<ul>
+<li>The difference between NMF and SVD is that with SVD, we can end up with negative component (left and/or right) matrices, which is not natural for interpreting textual representation. NMF, on the other hand, generates non-negative representations for performing LSA.</li>
+<li>The drawback of LSA, in general, is that it has fewer interpretable topics and a less efficient representation. Additionally, it is a linear model and cannot be used to model non-linear dependencies. The number of latent topics is limited by the rank of the matrix.</li>
+</ul>
+<p><strong>Probabilistic LSA</strong> (<strong>pLSA</strong>): The whole idea of pLSA is to find a probabilistic model of latent topics that can generate documents and words we can observe. Therefore, the joint probability, that is, the probability of finding a combination of documents and words, <sub><img class="fm-editor-equation" src="assets/a1fa04af-15cf-4695-a6e0-41c3bf7bc6a1.png" style="width:3.67em;height:1.08em;"/></sub>, can be written as follows:</p>
+<p class="CenterAlign"><img class="fm-editor-equation" src="assets/2216cf84-ecdd-418c-9d69-3229a7fe5c1e.png" style="width:4.08em;height:1.17em;"/><span> = <img class="fm-editor-equation" src="assets/e76f0379-2351-46f4-83ae-782618ed3405.png" style="width:12.33em;height:2.25em;"/></span></p>
+<p class="CDPAlignLeft CDPAlign"><span>Here, <em>D</em>=Document, <em>W</em>=Word, and <em>Z</em>=Topic.</span></p>
+<p>Let's look at how pLSA works and an example of when it is not adequate:</p>
+<ul>
+<li>We can see how pLSA is similar to LSA in that <em>P(Z)</em> corresponds to a singular value matrix, <em>P(D|Z)</em> corresponds to a left singular vector, and <em>P(W|Z)</em> corresponds to a right singular vector from SVD.</li>
+<li>The number one disadvantage with this approach is that we cannot readily generalize it for new documents. LDA addresses this issue.</li>
+</ul>
+<p><strong>Latent Dirichlet Allocation</strong> (<strong>LDA</strong>): While LSA and pLSA are used for semantic analysis or information retrieval, LDA is used for topic mining. In simple terms, you uncover topics based on the word frequency across a collection of documents:</p>
+<ul>
+<li>For a collection of documents, you designate the number of topics you want to uncover. This number can be adjusted depending on the performance of LDA on unseen documents.</li>
+<li>Then, you tokenize the documents, remove any stop words, retain words that appear a certain number of times across the corpus, and conduct stemming.</li>
+<li>To begin with, for each word, you assign a random topic. You then compute the topic mixture by document, that is, the number of times each topic appears in the document. You also compute the word mixture by topic across the corpus, that is, the number of times each word appears in the topic.</li>
+<li>Iteration/Pass 1: For each word, you then reassign a topic after navigating through the entire corpus. The topic is reassigned based on other topic assignments by document. Let's say a document is represented by the following topic mixture: <span>topic 1</span> - 40%, topic 2 - 20%, and topic 3 - 40% and the first word in the document is assigned to topic 2. The word in question appears across these topics (the entire corpus) in the following manner: topic 1 - 52%, topic 2 - 42%, and topic 3 - 6%. In the document, we reassign the word from topic 2 to topic 1 because the word represents topic 1 (40%*52%) more than topic 2 (20%*42%). This process is repeated for all the documents. By the end of pass 1, you will have covered each of the words in the corpus.</li>
+<li>We go through several passes or iterations across the entire corpus for each word until no further reassignment is necessary.</li>
+<li>In the end, we have a few designated topics, with each topic represented by keywords.</li>
+</ul>
+<p>Up until now, we have looked at linear techniques for topic modeling. Now, it's time to turn our attention to non-linear<em> </em>learning. Neural network models for topic modeling are much more flexible, allowing new capabilities to be added (for example, creating contextual words for an input/target word).</p>
+<p><strong>Lda2vec</strong> is a superset of word2vec and LDA models. It is a variation of the skip-gram word2vec model. Lda2Vec can be used for a variety of applications, such as predicting contextual words given a word (known as a pivot or target word), including learning topic vectors for topic modeling.</p>
+<p><span>Lda2vec is similar to <strong>Neural Variational Document Models</strong> (<strong>NVDM</strong>) in terms of producing topic embeddings or vectors. However, NVDM adopts a much cleaner and flexible approach to topic modeling by creating document vectors using neural networks, where a word-to-word relationship is completely disregarded.</span></p>
+<p><strong>NVDM</strong> (<strong>Neural Variational Document Model</strong>)<span> </span>is a flexible generative document modeling process where we learn about <span>multiple representations of documents through topics (hence the word <em>variational—</em>meaning multiple—in NVDM):</span></p>
+<ul>
+<li>NVDM is based on the <strong>Variational Autoencoder</strong> (<strong>VAE</strong>) framework, which uses one neural network to encode (that is, an encoder) a collection of documents and a second one to decode (that is, a decoder) the compressed representation of documents. The goal of this process is to look at the best way to approximate information in a corpus. The autoencoder is optimized by minimizing two types of losses:
+<ul>
+<li><strong>Loss with Decoding</strong> (the <span><strong>reconstruction error</strong>)</span>: Reconstruct the original document from topic embeddings.</li>
+<li><strong>Loss with Encoding</strong> (<span>the <strong>Kullback Leibler or KL Divergence</strong>):</span> Build a stochastic representation of the input document or topic embeddings. KL divergence measures information that's lost when encoding a bag-of-words representation of documents.</li>
+</ul>
+</li>
+</ul>
+<p>Now, let's do a delve into the Neural Topic Model, an implementation of NVDM from AWS. Although <span>AWS offers a readily consumable API, AWS Comprehend, to discover topics, the NTM algorithm </span><span>p</span><span>rovides the fine-grained control and flexibility to uncover topics from long-form text.</span></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Understanding how the Neural Topic Model works</h1>
+                </header>
+            
+            <article>
+                
+<p>The <strong>Neural Topic Model</strong> (<strong>NTM</strong>), as we described previously, is a generative document model that produces multiple representations of a document. It generates two outputs:</p>
+<ul>
+<li>The topic mixture for a document</li>
+<li>A list of keywords that explain a topic, for all the topics across an entire corpus</li>
+</ul>
+<p>NTM is based on the <strong>Variational Autoencoder</strong> architecture. The following illustration shows how NTM works:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/3a82f3ee-d762-4fda-a384-1336257c2599.png" style=""/></div>
+<p>Let's explain this diagram, bit by bit:</p>
+<ul>
+<li>There are two components—<span>an </span>encoder and a decoder. In the encoder, we have a <strong>Multiple Layer Perceptron</strong> (<strong>MLP</strong>) network that takes a bag-of-words representation of documents and creates two vectors, a vector of means <img class="fm-editor-equation" src="assets/120cf1e9-9997-4dae-a4b6-f345d489d798.png" style="width:0.67em;height:0.92em;"/> and a vector of standard deviation <img class="fm-editor-equation" src="assets/77c0a009-13af-4981-a6f0-45d3ccc5162a.png" style="width:0.67em;height:0.67em;"/>. Intuitively, the mean vector controls where encoding the input should be centered, while the standard deviation controls the area around the center. Because the sample that was generated from this area is going to vary each time it's generated, the decoder will learn to reconstruct different latent encodings of the input.</li>
+</ul>
+<div class="packt_infobox"><span>MLP is a class of feedforward <strong>artificial neuron networks</strong> (<strong>ANNs</strong>). It consists of at least three layers of nodes: input, output, and a hidden layer. Except for the input node, each node is a neuron that uses a nonlinear activation function.</span></div>
+<ul>
+<li>The second component is a decoder, which <span>reconstructs a document by independently generating words. The output layer of the network is a Softmax layer that defines the probability of each word by topic by reconstructing the topic words matrix. Each column in the matrix represents a topic, while each row represents a word. The matrix values, for a given column, represent the probability of the distribution of words for the topic.</span></li>
+</ul>
+<div class="packt_infobox"><span>The Softmax decoder uses multinomial logistic regression, where we account for the conditional probability of different topics. The transformation is, effectively, a normalized exponential function that's used to highlight the largest values and suppress values that are significantly below the max value.</span></div>
+<p>NTM is optimized by reducing reconstruction errors and KL divergence, as well as the learning weights and biases of the network. Therefore, NTM is a flexible neural network model for topic mining and producing interpretable topics. It is now time to look at training NTM in SageMaker.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Training NTM in SageMaker</h1>
+                </header>
+            
+            <article>
+                
+<p>In this section, we will train NTM on Enron emails to produce topics. These emails were exchanged between Enron, an American energy company that ceased its operations in 2007 due to financial losses, and other parties that did business with the company.</p>
+<p><span>The dataset contains 39,861 emails and 28,101 unique words. We will work with a subset of these emails – 3,986 emails and 17,524 unique words. Additionally, we will create a text file, <kbd>vocab.txt</kbd>, so that the NTM model can report the word distribution of a topic. </span></p>
+<p>Before we get started, make sure that both <span><kbd>docword.enron.txt.gz</kbd> and <kbd>vocab.enron.txt</kbd> have been uploaded to a folder called <kbd>data</kbd> on the local SageMaker compute instance. Follow these steps:</span></p>
+<ol>
+<li>Create a bag-of-words representation of emails, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">pvt_emails = pd.pivot_table(df_emails, values='count', index='email_ID', columns=['word_ID'], fill_value=0)</pre>
+<p style="padding-left: 60px">In the preceding code, w<span>e used the <kbd>pivot_table()</kbd> function in the pandas library to pivot emails so that email IDs are indexes and word IDs are columns. </span>The values in the pivot table represent word counts. The pivot table contains 3,986 email IDs and 17,524 word IDs.</p>
+<ol start="2">
+<li>Now, let's multiply the word counts by the <strong>Inverse Document Frequency</strong> (<span><strong>IDF</strong>) </span>factor. Our assumption is that words that occur frequently in an email and less frequently in other emails are important in discovering topics, while words that occur frequently in all the emails may not be important for discovering topics.</li>
+</ol>
+<p style="padding-left: 60px">IDF is calculated as follows:</p>
+<pre style="padding-left: 60px">dict_IDF = {name: np.log(float(no_emails) / (1+len(bag_of_words[bag_of_words[name] &gt; 0]))) for name in bag_of_words.columns}</pre>
+<p style="padding-left: 60px"><span> IDF is given by </span><img class="fm-editor-equation" src="assets/b6ba616f-fdc7-4ae9-b30a-10a0749c6c11.png" style="width:6.00em;height:2.67em;"/><span>, where N is the number of emails in the dataset and </span><img class="fm-editor-equation" src="assets/1a526ca1-bdd2-4916-9589-7a96e72a248c.png" style="width:1.58em;height:1.25em;"/><span> is the number of documents containing the word <em>i</em>.</span></p>
+<p style="padding-left: 60px">At the end of this step, a new DataFrame representing the pivoted emails with<span> </span><span>tf-idf </span>values is created.</p>
+<ol start="3">
+<li>Now, we will create a compressed sparse row matrix from the bag of words representation of emails, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">sparse_emails = csr_matrix(pvt_emails, dtype=np.float32)</pre>
+<p style="padding-left: 60px">In the preceding code, we used the <kbd>csr_matrix()</kbd> function from the <kbd>scipy.sparse</kbd> module to produce an efficient representation of the emails matrix. With the compressed sparse row matrix, you are able to run operations on only non-zero values, in addition to using less RAM for computation. The compressed sparse row matrix uses the row pointer to point to the row number and the column index to identify the column in the row, as well as the values for the given row pointer and column index.</p>
+<ol start="4">
+<li>Split the dataset into training, validation, and test sets as follows:</li>
+</ol>
+<pre style="padding-left: 60px">vol_train = int(0.8 * sparse_emails.shape[0])<br/><br/># split train and test<br/>train_data = sparse_emails[:vol_train, :] <br/>test_data = sparse_emails[vol_train:, :] <br/><br/>vol_test = test_data.shape[0]<br/>val_data = test_data[:vol_test//2, :]<br/>test_data = test_data[vol_test//2:, :]</pre>
+<p style="padding-left: 60px">We use 80% of the emails for training, 10% for validation, and the remaining 10% for testing. </p>
+<ol start="5">
+<li>Convert the emails from a compressed sparse row matrix into RecordIO wrapped Protobuf format, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">data_bytes = io.BytesIO()<br/>smamzc.write_spmatrix_to_sparse_tensor(array=sprse_matrix[begin:finish], file=data_bytes, labels=None)<br/>data_bytes.seek(0)</pre>
+<p style="padding-left: 60px"><strong>Protobuf format</strong>, also known as <strong>Protocol Buffers</strong>, is a protocol from Google that's used to serialize or encode structured data. Although JSON, XML, and Protobuf can be used interchangeably, Protobuf is much more enhanced and supports more data types than other formats. RecordIO is a file format that stores serialized data on disk. Its purpose is to store data as a sequence of records for faster reading. Under the hood, RecordIO uses Protobuf to serialize structured data.</p>
+<p style="padding-left: 60px">For distributed training, we take a training dataset and divide it into portions for distributed training. Please see the source code attached to this chapter for additional details. The <kbd>write_spmatrix_to_sparse_tensor()</kbd> function from <kbd>sagemaker.amazon.common</kbd> is used to convert each of these portions from the sparse row matrix format into the sparse tensor format. The function takes a sparse row matrix as input, along with a binary stream that RecordIO records will be written to. We then reset the stream position to the beginning of the stream by calling the <kbd>seek()</kbd> method—this is essential for reading data from the beginning of the file.</p>
+<ol start="6">
+<li>Upload the train and validation datasets to an S3 bucket, as follows:</li>
+</ol>
+<pre style="padding-left: 60px"> file_name = os.path.join(prefix, fname_template.format(i))<br/> boto3.resource('s3').Bucket(bucket).Object(file_name).upload_fileobj(data_bytes)</pre>
+<ol start="7">
+<li>We provide the filename to the binary stream and specify the name of the S3 bucket, which is where the datasets will be stored for training. We call the <kbd>upload_fileobj()</kbd> method of the S3 object to upload the binary data to a designated location.</li>
+<li>Now, we initialize SageMaker's <kbd>Estimator</kbd> object to prepare for training, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">ntm_estmtr = sagemaker.estimator.Estimator(container,<br/> role,<br/> train_instance_count=2,<br/> train_instance_type='ml.c4.xlarge',<br/> output_path=output_path,<br/> sagemaker_session=sess)</pre>
+<ol start="9">
+<li>The estimator <span>object, <kbd>ntm_estmtr</kbd>, is created by passing the Docker registry path of the NTM image, the SageMaker execution role, the number and type of training instances, and the location of the output. Since the number of compute instances we are launching is two, we will be conducting distributed training. In distribution training, data is partitioned and training is conducted in parallel on several chunks of data.</span></li>
+<li>Now, let's define the hyperparameters of the NTM algorithm, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">num_topics = 3<br/>vocab_size = 17524 # from shape from pivoted emails <span>DataFrame</span><br/>ntm_estmtr.set_hyperparameters(num_topics=num_topics, <br/> feature_dim=vocab_size, <br/> mini_batch_size=30, <br/> epochs=150, <br/> num_patience_epochs=5, <br/> tolerance=.001)</pre>
+<p style="padding-left: 60px">Let's take a look at the hyperparameters we specified in the preceding code:</p>
+<ul>
+<li style="list-style-type: none">
+<ul>
+<li><kbd>feature_dim</kbd>: This represents the size of the feature vector. It is set to the vocabulary size, which is 17,524 words.</li>
+<li><kbd>num_topics</kbd>: This represents the number of topics to extract. We chose three topics here, but this can be adjusted based on the model's performance on the test set.</li>
+</ul>
+<ul>
+<li><kbd>mini_batch_size</kbd>: This represents the number of training examples to process before updating the weights. We specify 30 training examples here.</li>
+<li><kbd>epochs</kbd>: This represents the number of backward and forward passes that are made.</li>
+<li><kbd>num_patience_epochs</kbd>: This represents the maximum number of bad epochs (epochs where the loss does not improve) that are executed before stopping.</li>
+<li><kbd>optimizer</kbd>: This represents the algorithm that's used to optimize network weights. We are using the Adadelta optimization algorithm. The Adaptive Delta gradient is an enhanced version of <strong>Adagrad</strong> (<strong>Adaptive Gradient</strong>), where the learning rate decreases based on a rolling window of gradient updates versus all past gradient updates.</li>
+<li><kbd>tolerance</kbd>: This represents the threshold for change in the loss function <span>– the</span> training stops early if the change in the loss within the last designated number of patience epochs falls below this threshold.</li>
+</ul>
+</li>
+</ul>
+<ol start="11">
+<li>Upload the text file containing the vocabulary or words of the dataset to the auxiliary path/channel. This is the channel that's used to provide additional information to SageMaker algorithms during training.</li>
+<li>Fit the NTM algorithm to the training and validation sets, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">ntm_estmtr.fit({'train': s3_train, 'validation': s3_val, 'auxiliary': s3_aux})</pre>
+<ol start="13">
+<li>For training, we call the <kbd>fit()</kbd> method of the <kbd>ntm_estmtr</kbd> object by passing initialized <kbd>S3_input</kbd> objects from the <kbd>sagemaker.session</kbd> module. The <kbd>s3_train</kbd>, <kbd>s3_val</kbd>, and <kbd>s3_aux</kbd> objects provide the location of the train, validation, and auxiliary datasets, as well as their file format and distribution type.</li>
+</ol>
+<p>Now, let's walk through the results from distributed training:</p>
+<ul>
+<li>Review the training output from the first ML compute instance, as follows:</li>
+</ul>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/fc9e2360-1268-4fa7-a057-9b52da5487e8.png" style=""/></div>
+<p style="padding-left: 60px">Remember that there's a total of 3,188 training examples. Because we launched two compute instances for training, on the first instance, we trained on 2,126 examples.</p>
+<ul>
+<li>Review the results from the second training instance, as follows:</li>
+</ul>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/3df3c45b-74ad-4994-9628-cbfeab7a06d7.png" style=""/></div>
+<p style="padding-left: 60px">On the second compute instance, we trained on the remaining 1,062 examples. </p>
+<ul>
+<li>We will report the model's performance on the validation dataset next. For the metrics of the training dataset, please refer to the source code attached to this chapter.</li>
+</ul>
+<p>Now, let's walk through the validation results of the trained model. The model is evaluated against 390 data points that are part of the validation dataset. Specifically, we will look at the following metrics: </p>
+<ul>
+<li><strong>Word Embedding Topic Coherence Metric</strong> (<strong>WETC</strong>): This measures the semantic similarity of the top words in each topic. A good quality model will have top words that are located close to each other in a lower-dimensional space. To locate words in a lower-dimensional space, pre-trained word embeddings from GloVe (Global Vectors) are used.</li>
+<li><strong>Topic Uniqueness</strong> (<strong>TU</strong>): This measures the uniqueness of the topics that are generated. The measure is inversely proportional to the number of times a word appears across all the topics. For example, if a word appears in only one topic, then the uniqueness of the topic is high (that is, 1). However, if a word appears across, say, five topics, then the uniqueness measure is .2 (1 divided by 5). To calculate the topic uniqueness across all the topics, we average the TU measures across all topics.</li>
+<li>Perplexity (logppx) is a statistical measure of how well a probability model predicts a sample (validation dataset). After training, the perplexity of the trained model is computed on the validation dataset (performance of the trained model on the validation dataset). The lower the perplexity, the better, since this maximizes the accuracy of the validation dataset.</li>
+<li>Total Loss (total) is a combination of the <span>Kullback-Leibler Divergence loss and Reconstruction loss.</span></li>
+</ul>
+<p style="padding-left: 60px">Remember that the Neural Topic Model optimizes across several epochs by minimizing loss in the following ways:</p>
+<ul>
+<li style="padding-left: 30px"><strong>Kullback-Leibler Divergence loss</strong> (<strong>kld</strong>): Builds a stochastic representation of emails (topic embeddings) that involve relative entropy, a measure of how one probability distribution is different from a second, that is, a proxy probability distribution.</li>
+<li style="padding-left: 30px"><strong>Reconstruction loss</strong> (<strong>recons</strong>): Reconstructs original emails from topic embeddings.</li>
+</ul>
+<p>The following screenshot shows the validation results and lists all the loss types that were defined:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/e2ab8adc-f6c8-4e68-bf33-b733553f22ba.png" style=""/></div>
+<ul>
+<li>The <strong>total</strong> Loss is <strong>8.47</strong>, <span>where 0.19 is defined as the <strong>kld</strong> Loss and <strong>8.28</strong> is defined as the <strong>recons</strong> loss.</span></li>
+<li>From the preceding screenshot, we can see that, across the three topics, <strong>Word Embedding Topic Coherence</strong> (<strong>WETC</strong>) is <strong>.26</strong>, <strong>Topic Uniqueness</strong> (<strong>TU</strong>) is <strong>0.73</strong>, and <strong>Preplexity</strong> (<strong>logppx</strong>) is <strong>8.47</strong> (same as the <strong>t</strong><strong>otal</strong> Loss).</li>
+<li>The three topics and the words that define each of them are highlighted in the by rectangular boxes.</li>
+</ul>
+<p><span>Now, it's time to deploy the trained NTM model as an endpoint.</span></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Deploying the trained NTM model and running the inference</h1>
+                </header>
+            
+            <article>
+                
+<p>In this section, we will deploy the NTM model, run the inference, and interpret the results. Let's get started:</p>
+<ol>
+<li>First, we deploy the trained NTM model as an endpoint, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">ntm_predctr = ntm_estmtr.deploy(initial_instance_count=1, instance_type='ml.m4.xlarge')</pre>
+<p style="padding-left: 60px"><span>In the preceding code, we call the </span><kbd>deploy()</kbd><span> </span><span>method of the SageMaker Estimator object,</span><span> </span><kbd>ntm_estmtr</kbd><span>, to create an endpoint. We pass the number and type of instances required to deploy the model. The NTM Docker image is used to create the endpoint. SageMaker takes a few minutes to deploy the model. The following screenshot shows the endpoint that was provisioned:</span></p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/3876a0a5-ef0b-4a0c-aa02-089323a66f49.png" style=""/></div>
+<p style="padding-left: 60px"><span>You can see the endpoint you've created by navigating to the SageMaker service, going to the left navigation pane, looking under the </span><span class="packt_screen">Inference</span><span> section, and clicking on </span><strong>Endpoints</strong><span>.</span></p>
+<ol start="2">
+<li>Designate the <span><span><span>request and response content types of test data, as follows:</span></span></span></li>
+</ol>
+<pre style="padding-left: 60px">ntm_predctr.content_type = 'text/csv'<br/>ntm_predctr.serializer = csv_serializer<br/>ntm_predctr.deserializer = json_deserializer</pre>
+<p style="padding-left: 60px"><span>In the preceding code, the </span><kbd>deploy()</kbd><span> </span><span>method of</span><span> </span><kbd>ntm_estmtr</kbd><span> </span><span>returns a </span><kbd>RealTimePredictor</kbd><span> </span><span>object (from the </span><kbd>sagemaker.predictor</kbd><span> </span><span>module). We assign the input content type of the test data and deserializer (the content type of the response) to</span><span> </span><kbd>ntm_predctr</kbd><span>, the</span><span> </span><kbd>RealTimePredictor</kbd><span> object we created.</span></p>
+<ol start="3">
+<li>Now<span><span>, we prepare the test dataset for inference, as follows:</span></span></li>
+</ol>
+<pre style="padding-left: 60px">test_data = np.array(test_data.todense())</pre>
+<p class="mce-root" style="padding-left: 60px"><span>In the preceding code, w</span>e convert the test data format from a compressed sparse row matrix into a dense array using the numpy Python library.</p>
+<ol start="4">
+<li>Then<span>, we invoke the </span><kbd>predict()</kbd><span> method of </span><kbd>ntm_predctr</kbd><span><span> to run the inference, as follows:</span></span></li>
+</ol>
+<pre style="padding-left: 60px">results = ntm_predctr.predict(test_data[1:6])<br/>topic_wts_res = np.array([prediction['topic_weights'] for prediction in results['predictions']])</pre>
+<p style="padding-left: 60px">In the preceding code, we passed the first five emails from the test dataset for inference. Then, we navigated through the prediction results to create a multi-dimensional array of topic weights, where rows represent emails and columns represent <span>topics.</span></p>
+<ol start="5">
+<li>Now, we interpret the results, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">df_tpcwts=pd.DataFrame(topic_wts_res.T)</pre>
+<p style="padding-left: 60px"><span>In the preceding code, w</span>e transpose<span> </span><kbd>topic_wts_res</kbd>, a multi-dimensional array, to create a dataframe,<span> </span><kbd>df_tpcwts</kbd>, so that each row represents a topic. We then plot the topics, as follows:</p>
+<pre style="padding-left: 60px">df_tpcwts.plot(kind='bar', figsize=(16,4), fontsize=fnt_sz)<br/>plt.ylabel('Topic % Across Emails', fontsize=fnt_sz)<br/>plt.xlabel('Topic Number', fontsize=fnt_sz)</pre>
+<p style="padding-left: 60px">On the x-axis, we plot the topic numbers, and on the y-axis, we plot the percentage of emails represented by each topic, as follows:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/c8a27d91-acd7-458c-a100-fd716e0eb889.png" style=""/></div>
+<p><span><span>It is evident from the preceding graph that Topic 0 represents less than 10% of all five emails. However, Topics 1 and 2 are dominant to varying degrees in the emails—around 70% of the 4<sup>th</sup> email is represented by Topic 1, while around 60% of the 5th email is represented by Topic 2.</span></span></p>
+<p>Now, let's look at the word cloud for each topic. It is important to understand the word mixture by each topic so that we know the words that predominantly describe a particular topic. Let's get started:</p>
+<ol>
+<li>Download the trained model, as follows:</li>
+</ol>
+<pre class="mce-root" style="padding-left: 60px">boto3.resource('s3').Bucket(bucket).download_file(model_path, 'downloaded_model.tar.gz')</pre>
+<p style="padding-left: 60px"><span>In the preceding code, w</span>e downloaded a trained NTM model from the path specified by the <kbd>model_path</kbd> variable (the location was specified when at the time of creating the Estimator, <kbd>ntm_estmtr</kbd>).</p>
+<ol start="2">
+<li>Now, we obtain the topic-word matrix from the trained model, as follows:</li>
+</ol>
+<pre class="mce-root" style="padding-left: 60px">model_dict = mx.ndarray.load('params')<br/># Retrieve word distribution for each of the latent topics<br/>W = model_dict['arg:projection_weight'] </pre>
+<p style="padding-left: 60px"><span>In the preceding code, w</span>e extracted the NTM model, <kbd>downloaded_model.tar.gz</kbd>, to load the learned parameters, <kbd>params</kbd>. Remember that the size of the output layer of the model is the same as that of the number of words (vocabulary) in the dataset. We then create a multi-dimensional mxnet array, <em>W</em>, to load word weights by topic. The shape of W is 17,524 x 3, where 17,524 rows represent words and 3 columns represent topics.</p>
+<ol start="3">
+<li>For each topic, run the softmax function on the word weights, as follows:</li>
+</ol>
+<pre class="mce-root" style="padding-left: 60px">pvals = mx.nd.softmax(mx.nd.array(W[:, ind])).asnumpy()</pre>
+<p style="padding-left: 60px"><span>In the preceding code, w</span>e run the softmax function on the word weights for each topic to bring<span> </span>their values to between 0 and 1. The sum of probabilities of words for each topic should add up to 1. Remember that the softmax layer, which is the output layer of the NTM network, highlights the largest values and mutes the values away from the max value.</p>
+<ol start="4">
+<li>Plot the word cloud by topic, as follows:</li>
+</ol>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/3e7bc101-f452-4311-8412-1ea7054b38eb.png" style=""/></div>
+<p>As we can see, <strong>Topic0</strong> is defined predominantly by the words <em>resource</em> and <em>pending</em>, while <strong>Topic1</strong> is primarily defined by the words <em>instruction</em>, <em>andor</em>, and <em>notification</em>.</p>
+<p>Based on the top-ranking words in each of the topics, we can determine the topic that's being discussed in the emails: </p>
+<ul>
+<li><strong>Topic0</strong> (<strong>access to Enron IT apps</strong>): Resource pending request create acceptance admin local type permanent nahoutrdhoustonpwrcommonelectric nahoutrdhoustonpwrcommonpower2region approval kobra click application date directory read risk tail.</li>
+<li><strong>Topic1 </strong><span>(</span><strong>energy trading</strong><span>):</span> Andor <span><span>instruction notification reserves buy responsible sources prohibited order securities downgraded based intelligence strong corp web solicitation privacy clicking coverage.</span></span></li>
+<li><strong>Topic2</strong> <span>(</span><strong>includes a combination of access to IT apps and energy trading</strong><span>): Request resource pending create approval type application date tail directory acceptance admin flip permanent counterparty head click swap kobra risk.</span></li>
+</ul>
+<p>In this section, we have learned how to interpret results from topic modeling. Now, let's summarize all of the concepts we've learned about in this chapter.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Summary</h1>
+                </header>
+            
+            <article>
+                
+<p class="mce-root">In this chapter, we've reviewed topic modeling techniques, including linear and non-linear learning methods. We explained how the NTM from SageMaker works by discussing its architecture and inner workings. We also looked at distributed training of the NTM model, where the dataset is divided into chunks for parallel training. Finally, we deployed a trained NTM model as an endpoint and ran the inference, interpreting topics from Enron emails. It is essential to synthesize information and themes from large volumes of unstructured data for any data scientist. NTM from SageMaker provides a flexible approach to doing this.</p>
+<p>In the next chapter, we will cover the classification of images using SageMaker.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Further reading</h1>
+                </header>
+            
+            <article>
+                
+<p><span>For references to topic modeling techniques—LDA, then please go to </span><a href="http://blog.echen.me/2011/08/22/introduction-to-latent-dirichlet-allocation/">http://blog.echen.me/2011/08/22/introduction-to-latent-dirichlet-allocation/</a>.</p>
+<p style="font-weight: 400"><span>For an i</span>ntuitive explanation of VAE, <span>check out the following links:</span></p>
+<ul>
+<li style="font-weight: 400"><a href="https://jaan.io/what-is-variational-autoencoder-vae-tutorial/">https://jaan.io/what-is-variational-autoencoder-vae-tutorial/</a></li>
+<li style="font-weight: 400"><a href="https://towardsdatascience.com/intuitively-understanding-variational-autoencoders-1bfe67eb5daf">https://towardsdatascience.com/intuitively-understanding-variational-autoencoders-1bfe67eb5daf</a></li>
+</ul>
+<p><span class="MsoHyperlink"><span>For references on </span>neural variational inference for text processing, <span>please go to </span><a href="https://arxiv.org/pdf/1511.06038.pdf">https://arxiv.org/pdf/1511.06038.pdf</a>.</span></p>
+
+
+            </article>
+
+            
+        </section>
+    </body></html>

@@ -1,0 +1,306 @@
+<html><head></head><body>
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Cross-validation and Parameter Tuning</h1>
+                </header>
+            
+            <article>
+                
+<p>Predictive analytics is about making predictions for unknown events. We use it to produce models that generalize data. For this, we use a technique called cross-validation.</p>
+<p>Cross-validation is a validation technique for assessing the result of a statistical analysis that generalizes to an independent dataset that gives a measure of out-of-sample accuracy. It achieves the task by averaging over several random partitions of the data into training and test samples. It is often used for hyperparameter tuning by doing cross-validation for several possible values of a parameter and choosing the parameter value that gives the lowest cross-validation average error.</p>
+<p>There are two kinds of cross-validation: exhaustive and non-exhaustive. K-fold is an example of non-exhaustive cross-validation. It is a technique for getting a more accurate assessment of the model's performance. Using k-fold cross-validation, we can do hyperparameter tuning. This is about choosing the best hyperparameters for our models. Techniques such as k-fold cross-validation and hyperparameter tuning are crucial for building great predictive analytics models. There are many flavors or methods of cross-validation, such as holdout cross-validation and k-fold cross-validation.</p>
+<p>In this chapter, we are going to cover the following topics:</p>
+<ul>
+<li><span>Holdout cross-validation</span></li>
+<li>K-fold cross-validation</li>
+<li>Comparing models with k-fold cross-validation</li>
+<li>Introduction to hyperparameter tuning</li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Holdout cross-validation</h1>
+                </header>
+            
+            <article>
+                
+<p>In holdout cross-validation, we hold out a percentage of observations and so we get two datasets. One is called the training dataset and the other is called the testing dataset. Here, we use the testing dataset to calculate our evaluation metrics, and the rest of the data is used to train the model. This is the process of holdout cross-validation.</p>
+<p>The main advantage of holdout cross-validation is that it is very easy to implement and it is a very intuitive method of cross-validation.</p>
+<p>The problem with this kind of cross-validation is that it provides a single estimate for the evaluation metric of the model. This is problematic because some models rely on randomness. So in principle, it is possible that the evaluation metrics calculated on the test sometimes they will vary a lot because of random chance. So the main problem with holdout cross-validation is that we get only one estimation of our evaluation metric.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">K-fold cross-validation</h1>
+                </header>
+            
+            <article>
+                
+<p>In k-fold cross-validation, we basically do holdout cross-validation many times. So in k-fold cross-validation, we partition the dataset into <em>k</em> equal-sized samples. Of these many <em>k</em> subsamples, a single subsample is retained as the validation data for testing the model, and the remaining <em>k−1</em> subsamples are used as training data. This cross-validation process is then repeated <em>k</em> times, with each of the <em>k</em> subsamples used exactly once as the validation data. The <em>k</em> results can then be averaged to produce a single estimation.</p>
+<p>The following screenshot shows a visual example of 5-fold cross-validation (<em>k=5</em>) :</p>
+<div class="CDPAlignCenter CDPAlign packt_figref"><img src="assets/da18d7be-8cc3-4aa7-a092-e74201a63185.png" style="width:40.33em;height:15.58em;"/></div>
+<p>Here, we see that our dataset gets divided into five parts. We use the first part for testing and the rest for training.</p>
+<p>The following are the steps we follow in the 5-fold cross-validation method:</p>
+<ol>
+<li>We get the first estimation of our evaluation metrics.</li>
+<li>We use the second part for testing and the rest for training, and we use that to get a second estimation of our evaluation metrics.</li>
+<li>We use the third part for testing and the rest for training, and so on. In this way, we get five estimations of the evaluation metrics.</li>
+</ol>
+<p>In k-fold cross-validation, after the <em>k</em> estimations of the evaluation matrix have been observed, an average of them is taken. This will give us a better estimation of the performance of the model. So, instead of having just one estimation of this evaluation metric, we can get <em>n</em> number of estimations with k-fold cross-validation, and then we can take the average and get a better estimation for the performance of the model.</p>
+<p>As seen here, the advantage of the k-fold cross-validation method is that it can be used not only for model evaluation but also for hyperparameter tuning.</p>
+<div class="packt_infobox">In this validation method, the common values for <em>k</em> are 5 and 10.</div>
+<p>The following are the variants of k-fold cross-validation:</p>
+<ul>
+<li><strong>Repeated cross-validation:</strong> In repeated cross-validation, we perform k-fold cross-validation many times. So, if we want 30 estimations of our evaluation metrics, we can do 5-fold cross-validation six times. So then we will get 30 estimations of our evaluation metrics.</li>
+</ul>
+<ul>
+<li><strong>Leave-One-Out (LOO) cross-validation:</strong> In this method, we take the whole dataset for training except for one point. We use that one point for evaluation and then we repeat this process for every data point in our dataset.</li>
+</ul>
+<div class="packt_infobox">If we have millions of points, this validation method will be really expensive computationally. We use repeated k-fold cross-validation in such cases, because this validation method will give us comparatively good results.</div>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Implementing k-fold cross-validation</h1>
+                </header>
+            
+            <article>
+                
+<p>Let's take examples of a <kbd>diamond</kbd> dataset to understand the implementation of k-fold cross-validation.</p>
+<p>For performing k-fold cross-validation in <kbd>scikit-learn</kbd>, we first have to import the libraries that we will use. The following code snippet shows the code used for importing the libraries:</p>
+<pre>import numpy as np<br/>import matplotlib.pyplot as plt<br/>import pandas as pd<br/>%matplotlib inline</pre>
+<p>The second step is to prepare the dataset for the <kbd>diamond</kbd> dataset that we will use in this example. The following shows the code used to prepare data for this dataset:</p>
+<pre># importing data<br/>data_path= '../data/diamonds.csv'<br/>diamonds = pd.read_csv(data_path)<br/>diamonds = pd.concat([diamonds, pd.get_dummies(diamonds['cut'], prefix='cut', drop_first=True)],axis=1)<br/>diamonds = pd.concat([diamonds, pd.get_dummies(diamonds['color'], prefix='color', drop_first=True)],axis=1)<br/>diamonds = pd.concat([diamonds, pd.get_dummies(diamonds['clarity'], prefix='clarity', drop_first=True)],axis=1)<br/>diamonds.drop(['cut','color','clarity'], axis=1, inplace=True)</pre>
+<p>After preparing the data, we will create the objects used for modeling. The following shows the code used to create the objects for modeling:</p>
+<pre>from sklearn.preprocessing import RobustScaler<br/>target_name = 'price'<br/>robust_scaler = RobustScaler()<br/>X = diamonds.drop('price', axis=1)<br/>X = robust_scaler.fit_transform(X)<br/>y = diamonds[target_name]<br/># Notice that we are not doing train-test split<br/>#X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=55)</pre>
+<p>This is the same cell that we used in <a href="765f03c9-7f1e-4eb8-af81-5cf6b0f3d2ee.xhtml">Chapter 1</a>, <em>Ensemble Methods for Regression and Classification</em>. The difference here is that we are not using the <kbd>train_test_split</kbd> function. Here, we are producing the <kbd>X</kbd> matrix, which contains all the features and also has our target feature. So we have our <kbd>X</kbd> matrix and our <kbd>y</kbd> vector.</p>
+<p class="CDPAlignLeft CDPAlign">For training the model, we will instantiate our <kbd>RandomForestRegressor</kbd> function, which we found was the best model in <a href="765f03c9-7f1e-4eb8-af81-5cf6b0f3d2ee.xhtml">Chapter 1</a><a href="765f03c9-7f1e-4eb8-af81-5cf6b0f3d2ee.xhtml"/>, <em>Ensemble Methods for Regression and Classification</em>, for this dataset. The following shows the code used to instantiate the <kbd>RandomForestRegressor</kbd> function<strong>:</strong></p>
+<pre>from sklearn.ensemble import RandomForestRegressor<br/>RF = RandomForestRegressor(n_estimators=50, max_depth=16, random_state=123, n_jobs=-1)</pre>
+<p class="CDPAlignLeft CDPAlign">To perform k-fold cross-validation, we import the <kbd>cross_validate</kbd> function from the <kbd>model_selection</kbd> module in <kbd>scikit-learn</kbd>. The following shows the code used to import the <kbd>cross_validate</kbd> function:</p>
+<pre># this will work from sklearn version 0.19, if you get an error <br/># make sure you upgrade: $conda upgrade scikit-learn<br/>from sklearn.model_selection import cross_validate</pre>
+<p>This <kbd>cross_validate</kbd> function works as follows:</p>
+<ul>
+<li>We provide the estimator, which will be the <kbd>RandomForestRegressor</kbd> function. The following shows the code used to apply the <kbd>RandomForestRegressor</kbd> function:</li>
+</ul>
+<pre style="padding-left: 60px"> scores = cross_validate(estimator=RF,X=X,y=y,<br/> scoring=['mean_squared_error','r2'],<br/> cv=10, n_jobs=-1)</pre>
+<p style="padding-left: 90px">Here, we pass the <kbd>X</kbd> object and the <kbd>y</kbd> object.</p>
+<ul>
+<li>We provide a set of metrics that we want to evaluate for this model and for this dataset. In this case, evaluation is done using the <kbd>mean_squared_error</kbd> function and the <kbd>r2</kbd> metrics, as shown in the preceding code. Here,<span> we pass the value of <em>k</em></span> in <kbd>cv</kbd>. So, in this case, we will do tenfold cross-validation.</li>
+</ul>
+<p>The output that we get from this <kbd>cross_validate</kbd> function will be a dictionary with the corresponding matrix. For better understanding, the output is converted into a dataframe. The following screenshot shows the code use to visualize the scores in the dataframe and the dataframe output:</p>
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-597 image-border" src="assets/9856da4f-8d3d-476e-a72e-661065f019ad.png" style="width:75.50em;height:42.83em;"/></p>
+<p>Here, we apply <kbd>test_mean_squared_error</kbd> and <kbd>test_r2</kbd>, which were the two metrics that we wanted to evaluate. After evaluating, we get the <kbd>train_mean_squared_error</kbd> value and the <kbd>test_r2</kbd> set. So, we are interested in the testing metrics.</p>
+<p>To get a better assessment of the performance of a model, we will take an average (mean) of all of the individual measurements.</p>
+<p>The following shows the code for getting the <kbd>Mean test MSE</kbd> and <kbd>Mean test R-squared</kbd> values and output showing their values:</p>
+<pre>print("Mean test MSE:", round(scores['test_mean_squared_error'].mean()))<br/>print("Mean test R-squared:", scores['test_r2'].mean())</pre>
+<p>So here, on averaging, we see that the mean of the test MSE is the value that we have here and an average of the other metric, which was the R-squared evaluation metrics.</p>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Comparing models with k-fold cross-validation</h1>
+                </header>
+            
+            <article>
+                
+<p>As k-fold cross-validation method proved to be a better method, it is more suitable for comparing models. The reason behind this is that k-fold cross-validation gives much estimation of the evaluation metrics, and on averaging these estimations, we get a better assessment of model performance.</p>
+<p>The following shows the code used to import libraries for comparing models:</p>
+<pre>import numpy as np<br/>import matplotlib.pyplot as plt<br/>import pandas as pd<br/>%matplotlib inline</pre>
+<p>After importing libraries, we'll import the <kbd>diamond</kbd> dataset. The following shows the code used to prepare this <kbd>diamond</kbd> dataset:</p>
+<pre># importing data<br/>data_path= '../data/diamonds.csv'<br/>diamonds = pd.read_csv(data_path)<br/>diamonds = pd.concat([diamonds, pd.get_dummies(diamonds['cut'], prefix='cut', drop_first=True)],axis=1)<br/>diamonds = pd.concat([diamonds, pd.get_dummies(diamonds['color'], prefix='color', drop_first=True)],axis=1)<br/>diamonds = pd.concat([diamonds, pd.get_dummies(diamonds['clarity'], prefix='clarity', drop_first=True)],axis=1)<br/>diamonds.drop(['cut','color','clarity'], axis=1, inplace=True)</pre>
+<p>Now, we have to prepare objects for modeling after preparing the dataset for doing model comparison. The following shows the code used for preparing the objects for modeling. Here we have the <kbd>X</kbd> matrix, showing the features, and the <kbd>y</kbd> vector, which is the target for this dataset:</p>
+<pre>from sklearn.preprocessing import RobustScaler<br/>target_name = 'price'<br/>robust_scaler = RobustScaler()<br/>X = diamonds.drop('price', axis=1)<br/>X = robust_scaler.fit_transform(X)<br/>y = diamonds[target_name]</pre>
+<p>Here, we will compare the KNN model, the random forest model, and the bagging model. In these models, using tenfold cross-validation, we will use the <kbd>KNNRegressor</kbd>, <kbd>RandomForestRegressor</kbd>, and <kbd>AdaBoostRegressor</kbd> functions.</p>
+<p>Then we will import the <kbd>cross_validate</kbd> function. The following shows the code used to import the <kbd>cross_validate</kbd> function for these three models:</p>
+<pre>from sklearn.neighbors import KNeighborsRegressor<br/>from sklearn.ensemble import RandomForestRegressor<br/>from sklearn.ensemble import AdaBoostRegressor<br/>from sklearn.model_selection import cross_validate</pre>
+<p>The next step is to compare the models using the <kbd>cross_validate</kbd> function. The following shows the code block used for comparing these three models:</p>
+<pre>## KNN<br/>knn = KNeighborsRegressor(n_neighbors=20, weights='distance', metric='euclidean', n_jobs=-1)<br/>knn_test_mse = cross_validate(estimator=knn,X=X,y=y,<br/> scoring='mean_squared_error', <br/> cv=10, n_jobs=-1)['test_score']<br/><br/>## Random Forests<br/>RF = RandomForestRegressor(n_estimators=50, max_depth=16, random_state=55, n_jobs=-1)<br/>RF_test_mse = cross_validate(estimator=RF,X=X,y=y,<br/> scoring='mean_squared_error', <br/> cv=10, n_jobs=-1)['test_score']<br/><br/>## Boosting<br/>boosting = AdaBoostRegressor(n_estimators=50, learning_rate=0.05, random_state=55) <br/>boosting_test_mse = cross_validate(estimator=boosting,X=X,y=y,<br/> scoring='mean_squared_error', <br/> cv=10, n_jobs=-1)['test_score']</pre>
+<p>Here, we see the result of the testing evaluation metrics that we will use for every model. We use the <kbd>mean_squared_error</kbd> function. For every model, we use tenfold cross-validation and after getting the result, we get the <kbd>test_score</kbd> variable. This <kbd>test_score</kbd> variable is the mean-squared error in this case, and is shown in the following code:</p>
+<pre> mse_models = -1*pd.DataFrame({'KNN':knn_test_mse,<br/> 'RandomForest': RF_test_mse,<br/> 'Boosting':boosting_test_mse})</pre>
+<p>The following screenshot shows the code for the result that we got after running the tenfold cross-validation for every model and also, the table showing the 10 estimations of the evaluation metrics for the three models:</p>
+<p class="mce-root"/>
+<p class="CDPAlignCenter CDPAlign"><img src="assets/3371935f-fe8f-49f7-97e0-b4f194856d59.png" style="width:27.00em;height:24.42em;"/></p>
+<p>This table shows a lot of variation in estimations of every model. To know the actual performance of any model, we take the average of the result. So, in the preceding figure, we take the mean of all the values and then plot it.</p>
+<p>The following screenshot shows the code used to take the mean and the graph showing the mean MSE values for every model:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="assets/a47895c7-c5aa-4670-896b-0eddabf074f6.png" style="width:33.83em;height:21.58em;"/></p>
+<p>On averaging, the random forest model performs best out of the three models. So, after taking an average, the second place goes to the KNN model, and the boosting model takes last place.</p>
+<p class="mce-root"/>
+<p>The following figure shows the code used to get the box plot for these evaluation metrics and the box plot for the three models:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-602 image-border" src="assets/cc62d4f6-ce2f-4866-9f7c-6fb96e95b6a3.png" style="width:45.50em;height:31.67em;"/></p>
+<p class="mce-root"/>
+<p>So, looking at the box plot for these evaluation metrics, we see that, the random forest performs the best.</p>
+<p>To check the degree of variability of these models, we can analyze the standard deviation of the test MSE for regression models. The following screenshot shows the code used to check the degree of variability and the plot showing the standard deviation of these models:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-603 image-border" src="assets/e98e483d-748c-4067-ab99-27a387d6d1c6.png" style="width:50.42em;height:31.67em;"/></p>
+<p>The preceding screenshot shows that the most model in this case was the KNN model, followed by the boosting model, and random forest model had the least variation. So, the random forest model is the best among these three models. Even for this dataset, the random forest model performs the best.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Introduction to hyperparameter tuning</h1>
+                </header>
+            
+            <article>
+                
+<p>The method used to choose the best estimators for a particular dataset or choosing the best values for all hyperparameters is called <strong>hyperparameter tuning</strong>. Hyperparameters are parameters that are not directly learned within estimators. Their value is decided by the modelers.</p>
+<p>For example, in the <kbd>RandomForestClassifier</kbd> object, there are a lot of hyperparameters, such as <kbd>n_estimators</kbd>, <kbd>max_depth</kbd>, <kbd>max_features</kbd>, and <kbd>min_samples_split</kbd>. Modelers decide the values for these hyperparameters.</p>
+<p class="mce-root"/>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Exhaustive grid search</h1>
+                </header>
+            
+            <article>
+                
+<p>One of the most important and generally-used methods for performing hyperparameter tuning is called the <strong>exhaustive grid search</strong>. This is a brute-force approach because it tries all of the combinations of hyperparameters from a grid of parameter values. Then, for each combination of hyperparameters, the model is evaluated using k-fold cross-validation and any <span>other </span>specified metrics. So the combination that gives us the best metric is the one that is returned by the object that we will use in <kbd>scikit-learn</kbd>.</p>
+<p>Let's take an example of a hyperparameter grid. Here, we try three different values, such as 10, 30, and 50, for the <kbd>n_estimators</kbd> hyperparameter. W<span>e will try </span>two options, such as auto and square root, for <kbd>max_features</kbd>, and assign four values—5, 10, 20, and 30—for <kbd>max_depth</kbd>. So, in this case, we will have 24 hyperparameter combinations. These 24 will be evaluated. For every one of these 24 combinations, in this case, we use tenfold cross-validation and the computer will be training and evaluating 240 models. The biggest shortcoming that grid search faces is the curse of dimensionality which will be covered in the coming chapters. The curse of dimensionality essentially means that the number of times you will have to evaluate your model increases exponentially with the number of parameters.</p>
+<p>If certain combinations of hyperparameters are not tested, then different grids can be passed to the <kbd>GridSearchCV</kbd> object. Here, different grids can be passed in the form of a list of dictionaries because every grid is a dictionary in <kbd>scikit-learn</kbd>.</p>
+<div class="packt_tip">Don't ever use the entire dataset for tuning parameters, always perform train-test split when tuning parameters, otherwise the hyperparameters may be fit to that specific dataset and the model won't generalize well to new data.</div>
+<p>So, we perform the train-test split and use one part of the dataset to learn the hyperparameters of our model; the part that we left for testing should be used for the final model evaluation, and later we use the whole dataset to fit the model.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Hyperparameter tuning in scikit-learn</h1>
+                </header>
+            
+            <article>
+                
+<p>Let's take an example of the <kbd>diamond</kbd> dataset to understand hyperparameter tuning in <kbd>scikit-learn</kbd>.</p>
+<p>To perform hyperparameter tuning, we first have to import the libraries that we will use. To import the libraries, we will use the following code:</p>
+<pre>import numpy as np<br/>import matplotlib.pyplot as plt<br/>import pandas as pd<br/>from sklearn.metrics import mean_squared_error<br/>%matplotlib inline</pre>
+<p>Then, we perform the transformations to the <kbd>diamond</kbd> dataset that we will use in this example. The following shows the code used to prepare data for this dataset:</p>
+<pre># importing data<br/>data_path= '../data/diamonds.csv'<br/>diamonds = pd.read_csv(data_path)<br/>diamonds = pd.concat([diamonds, pd.get_dummies(diamonds['cut'], prefix='cut', drop_first=True)],axis=1)<br/>diamonds = pd.concat([diamonds, pd.get_dummies(diamonds['color'], prefix='color', drop_first=True)],axis=1)<br/>diamonds = pd.concat([diamonds, pd.get_dummies(diamonds['clarity'], prefix='clarity', drop_first=True)],axis=1)<br/>diamonds.drop(['cut','color','clarity'], axis=1, inplace=True)</pre>
+<p>After preparing the data, we will create the objects used for modeling. The following shows the code used to create the objects for modeling:</p>
+<pre>from sklearn.preprocessing import RobustScaler<br/>from sklearn.model_selection import train_test_split<br/>target_name = 'price'<br/>robust_scaler = RobustScaler()<br/>X = diamonds.drop('price', axis=1)<br/>X = robust_scaler.fit_transform(X)<br/>y = diamonds[target_name]<br/>X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=123)</pre>
+<p>After performing and creating the objects used for modeling, we perform the <kbd>train_test_split</kbd> function. In the preceding codeblock, we will set 0.1(10%) of the data for testing, so this portion of the dataset will be used for model evaluation after tuning the hyperparameters.</p>
+<p class="mce-root"/>
+<p>We will tune the <kbd>RandomForestRegressor</kbd> model using<span> the f</span>ollowing parameters:</p>
+<ul>
+<li><kbd>n_estimators</kbd>: This parameter represents the number of trees in the forest.</li>
+<li><kbd>max_features</kbd>: <span>This parameter represents </span>the number of features to consider when looking for best split. The possible choices are <kbd>n_features</kbd>, which corresponds to the auto hyperparameter, or the square root of the <kbd>log2</kbd> of the number of features.</li>
+<li><kbd>max_depth</kbd>: <span>This parameter represents </span>the maximum depth of the tree.</li>
+</ul>
+<p>Different values with a grid search will be used for these parameters. For <kbd>n_estimators</kbd> and <kbd>max_depth</kbd>, we will use four different values. For <kbd>n_estimators</kbd>, we will use <kbd>[25,50,75,100]</kbd> as values, and for <kbd>max_depth</kbd>, we will use <kbd>[10,15,20,30]</kbd> as values. For <kbd>max_features</kbd>, we will use the auto and square root.</p>
+<p>Now we will instantiate the <kbd>RandomForestRegressor</kbd> model explicitly without any hyperparameters. The following shows the code used to instantiate it:</p>
+<pre>from sklearn.ensemble import RandomForestRegressor<br/>RF = RandomForestRegressor(random_state=55, n_jobs=-1)</pre>
+<p>The parameter grid is basically a dictionary where we pass the name of the hyperparameter and the values that we want to try. The following code block shows the parameter grid with different parameters:</p>
+<pre> parameter_grid = {'n_estimators': [25,50,75,100], <br/> 'max_depth': [10,15,20,30],<br/> 'max_features': ['auto','sqrt']}</pre>
+<p>In total, we have four values for <kbd>n_estimators</kbd>, four values for <kbd>max_depth</kbd>, and two for <kbd>max_features</kbd>. So, on calculating, there are in total of 32 combinations of hyperparameters.</p>
+<p>To perform hyperparameter tuning in <kbd>scikit-learn</kbd>, we will use the <kbd>GridSearchCV</kbd> object. The following shows the code used to import the object from <kbd>scikit-learn</kbd>:</p>
+<pre>from sklearn.model_selection import GridSearchCV</pre>
+<p>Here, we pass the estimator we want to tune, in this case, <kbd>RandomForestRegressor</kbd>. The following screenshot shows the code used and the output that we get:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-604 image-border" src="assets/7c374323-bcaa-4d95-b126-082372f965e8.png" style="width:77.67em;height:26.67em;"/></p>
+<p>Then we pass the parameter grid that we want to try. Here, <kbd>refit</kbd> means that this estimator object will refit using the best parameters that it found using this process of grid-search and cross-validation. This is the evaluation metric that will be used by this object to evaluate all of the possible combinations of hyperparameters. In this case, we will use tenfold cross-validation. So after creating that, we can use the <kbd>fit</kbd> method and pass the training object. Since we are using tenfold cross-validation with 32 combinations, the model will evaluate 320 models.</p>
+<p>We can get the results using the <kbd>cv _results_</kbd> attribute from the object that we created using the <kbd>GridSearchCV</kbd> method. The following screenshot shows the code used to get the result and output showing the result:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-605 image-border" src="assets/1c8cf2ba-e2f8-4301-96d2-f7e29f2876c0.png" style="width:76.50em;height:36.58em;"/></p>
+<p>Here, the most important thing is to get <kbd>best_params_</kbd>. So with <kbd>best_params_</kbd>, we can see the combination of parameters of all 32 combinations. The following screenshot shows the input used to get the parameters and the output showing combination of parameters that can give the best result:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-606 image-border" src="assets/99ba11ae-8c28-44e3-bebe-433858fbe813.png" style="width:64.17em;height:7.75em;"/></p>
+<p>Here, we can see that the combination that can give <kbd>best_params_</kbd> is <kbd>max_depth</kbd> with a value of <kbd>20</kbd>, <kbd>max _features</kbd> with a value of auto, and <kbd>n_estimators</kbd> with a value of <kbd>100</kbd>. So this is the best possible combination of parameters.</p>
+<p>We can also get the <kbd>best_estimator_</kbd> object, and this is the complete list of hyperparameters. The following screenshot shows the code used to get <kbd>best_estimator_</kbd> and output showing the result:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-607 image-border" src="assets/5e34b51a-55e9-4422-a75d-599120926bbf.png" style="width:77.08em;height:18.67em;"/></p>
+<p>So, as we tuned the hyperparameters of the random forest model, we got different values from the values that we got before; when we had values for <kbd>n_estimators</kbd> as <kbd>50</kbd>, <kbd>max_depth</kbd> as <kbd>16</kbd>, and <kbd>max_features</kbd> as <kbd>auto</kbd>, the parameters in that model were untuned.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Comparing tuned and untuned models</h1>
+                </header>
+            
+            <article>
+                
+<p>We can compare the best model that we got while tuning the parameters with the best model that we have been using without the help of tuning <kbd>n_estimators</kbd> with a value of <kbd>50</kbd>, <kbd>max_depth</kbd> with a value of <kbd>16</kbd>, and <kbd>max_features</kbd> as <kbd>auto</kbd>, and in both the cases it was random forest. The following code shows the values of the parameters of both the tuned and untuned models:</p>
+<pre>## Random Forests<br/>RF_model1 = RandomForestRegressor(n_estimators=50, max_depth=16, random_state=123, n_jobs=-1)<br/>RF_model1.fit(X_train, y_train)<br/>RF_model1_test_mse = mean_squared_error(y_pred=RF_model1.predict(X_test), y_true=y_test)<br/><br/>## Random Forest with tunned parameters <br/>RF_tunned_test_mse = mean_squared_error(y_pred=RF_classifier.predict(X_test), y_true=y_test)</pre>
+<p>To actually see the comparison between the tuned and untuned models, we can see the value of the mean-square error. The following screenshot shows the code to get the <kbd>mean_squared_error</kbd> value for the two models, and the plot showing the comparison of the MSE value of the two models:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-608 image-border" src="assets/3bb189e2-3e82-45bc-911a-302a14c799f4.png" style="width:72.00em;height:39.17em;"/></p>
+<p>We can clearly observe here that, on comparison, these tuned parameters perform better than the untuned parameters in both of the random forest models.</p>
+<p>To see the actual difference in values between the two models, we can do a little calculation. The following screenshot shows the calculation for getting the percentage of improvement and output showing the actual percentage value:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-609 image-border" src="assets/de47b18f-6727-4197-8078-2b10a3457512.png" style="width:47.50em;height:5.83em;"/></p>
+<p>Here we got an improvement of 4.6% for the tuned model over the untuned one and this is actually very good. In these models, an improvement of 1%-3% percent can also have huge practical implications.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Summary</h1>
+                </header>
+            
+            <article>
+                
+<p>In this chapter, we learned about cross-validation, and different methods of cross-validation, including holdout cross-validation and k-fold cross-validation. We came to know that k-fold cross-validation is nothing but doing holdout cross-validation many times. We implemented k-fold cross-validation using the <kbd>diamond</kbd> dataset. We also compared different models using k-fold cross-validation and found the best-performing model, which was the random forest model.</p>
+<p>Then, we discussed hyperparameter tuning. We came across the exhaustive grid-search method, which is used to perform hyperparameter tuning. We implemented hyperparameter tuning again using the <kbd>diamond</kbd> dataset. We also compared tuned and untuned models, and found that tuned parameters make the model perform better than untuned ones.</p>
+<p>In the next chapter, we will study feature selection methods, dimensionality reduction and <strong>principle component analysis</strong> (<strong>PCA</strong>), and feature engineering. We will also learn about a method to improve the model with feature engineering.</p>
+
+
+            </article>
+
+            
+        </section>
+    </body></html>

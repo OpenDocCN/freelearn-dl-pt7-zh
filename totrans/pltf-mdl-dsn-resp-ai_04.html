@@ -1,0 +1,585 @@
+<html><head></head><body>
+		<div id="_idContainer080">
+			<h1 id="_idParaDest-81" class="chapter-nu ber"><a id="_idTextAnchor093"/>4</h1>
+			<h1 id="_idParaDest-82"><a id="_idTextAnchor094"/>Privacy Management  in Big Data and Model Design Pipelines</h1>
+			<p>This chapter gives a detailed overview of defining and architecting big data and ML pipelines in the cloud. You will learn how to apply the defense techniques you learned in <a href="B18681_02.xhtml#_idTextAnchor040"><span class="No-Break"><em class="italic">Chapter 2</em></span></a> in a scalable, interpretable manner with different use cases and examples. In addition, you will also explore the security principles of the different ML components, microservices, and endpoints. The primary objective of this chapter is to assimilate the knowledge gained in previous chapters and apply it more broadly to proactively build a solid foundation of risk mitigation strategies. By doing this, you will not only be prepared to handle defense at all levels but also equipped to monitor and identify new threats and take timely <span class="No-Break">remedial actions.</span></p>
+			<p>In this chapter, these topics will be covered in the <span class="No-Break">following sections:</span></p>
+			<ul>
+				<li>Designing <span class="No-Break">privacy-proven pipelines</span></li>
+				<li>Designing <span class="No-Break">secure microservices</span></li>
+				<li>Cloud <span class="No-Break">security architecture</span></li>
+				<li>Monitoring and <span class="No-Break">threat detection</span></li>
+			</ul>
+			<h1 id="_idParaDest-83"><a id="_idTextAnchor095"/>Technical requirements</h1>
+			<p>This chapter requires you to have <strong class="source-inline">Vault</strong> installed either on your local PC or in the cloud. To install it on <strong class="bold">Ubuntu</strong>/<strong class="bold">Debian</strong>, execute the <span class="No-Break">following commands:</span></p>
+			<pre class="console">
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+sudo apt-get update &amp;&amp; sudo apt-get install Vault</pre>
+			<p>To install it on <strong class="bold">CentOS</strong>/<strong class="bold">RHEL</strong>, execute the <span class="No-Break">following commands:</span></p>
+			<pre class="console">
+sudo yum install -y yum-utils
+sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+sudo yum -y install Vault</pre>
+			<p>To install it on <strong class="bold">macOS</strong>, run the <span class="No-Break">following commands:</span></p>
+			<pre class="console">
+brew tap hashicorp/tap
+brew install hashicorp/tap/Vault</pre>
+			<p>To install it on <strong class="bold">Windows</strong>, execute <span class="No-Break">the following:</span></p>
+			<pre class="console">
+choco install Vault</pre>
+			<p>At the end of the installation, whichever OS you use, you can type <strong class="source-inline">Vault</strong> in the command prompt, which should show the different usages of <strong class="source-inline">Vault</strong> commands if <span class="No-Break">correctly installed.</span></p>
+			<p>This chapter also requires you to have Python 3.8 installed, along with the Python packages <span class="No-Break">listed here:</span></p>
+			<ul>
+				<li><strong class="source-inline">git </strong><span class="No-Break"><strong class="source-inline">clone</strong></span><span class="No-Break"> </span><span class="No-Break"><strong class="source-inline">https://github.com/as791/Adversarial-Example-Attack-and-Defense</strong></span></li>
+				<li><strong class="source-inline">pip </strong><span class="No-Break"><strong class="source-inline">install interpret</strong></span></li>
+			</ul>
+			<h1 id="_idParaDest-84"><a id="_idTextAnchor096"/>Designing privacy-proven pipelines</h1>
+			<p>When any ML model is deployed<a id="_idIndexMarker434"/> to run in production, it needs a fully private pipeline that takes in data, preprocesses it, and makes it suitable for training and predictive actions. In this section, let us walk through some of the important concepts to be kept in mind while designing pipelines that take in terabytes or even petabytes of data <span class="No-Break">every millisecond.</span></p>
+			<h2 id="_idParaDest-85"><a id="_idTextAnchor097"/>Big data pipelines</h2>
+			<p>In a big data pipeline, we incorporate<a id="_idIndexMarker435"/> security and privacy across the design in terms of data aggregation, data processing, feature engineering, model training, evaluation, and serving<a id="_idIndexMarker436"/> the trained models. Data can come in from innumerable devices ranging from mobile devices, sensors, and IoT and <strong class="bold">Internet of Medical Things</strong> (<strong class="bold">IoMT</strong>) devices in the form of text, numbers, images, or video frames. To architect such an IoT-to-cloud privacy- and security-enabled data pipeline, we follow a hierarchical layered deployment strategy, with four access layers primarily designed to serve the <span class="No-Break">following purposes:</span></p>
+			<ul>
+				<li>The <strong class="bold">device layer</strong> (also called a mesh network) comprises all kinds of devices<a id="_idIndexMarker437"/> (such as embedded<a id="_idIndexMarker438"/> systems, sensors, actuators, and other smart objects) that send data from the edge of <span class="No-Break">the network.</span></li>
+				<li>The <strong class="bold">network layer</strong> (supporting different network protocols on different data formats) is responsible for data transfer<a id="_idIndexMarker439"/> and aggregation from the edge network to various processing engines. For example, devices may choose to transfer JSON data <span class="No-Break">over HTTPS.</span></li>
+				<li>The <strong class="bold">service layer</strong> contains different microservices<a id="_idIndexMarker440"/> responsible for data cleaning, processing, labeling, tagging, feature engineering, model training, and evaluation. The job of the service layer is not only to execute all kinds of processing functions at the decentralized edge server or on the centralized cloud but also to track and maintain data and model lineages by storing them at appropriate <span class="No-Break">storage locations.</span></li>
+				<li>The <strong class="bold">application layer</strong> serves the predicted model<a id="_idIndexMarker441"/> outcomes to end users through <span class="No-Break">API gateways.</span></li>
+			</ul>
+			<p>The following figure illustrates the five different architectural elements along with the security measures (such as anonymization, pseudonymization, HE, SMC, DP, and DLP, as discussed in <a href="B18681_02.xhtml#_idTextAnchor040"><span class="No-Break"><em class="italic">Chapter 2</em></span></a>) that can be incorporated in edge/fog networks in a <span class="No-Break">scalable manner.</span></p>
+			<div>
+				<div id="_idContainer065" class="IMG---Figure">
+					<img src="image/Figure_4.01_B18681.jpg" alt="Figure 4.1 – Security components in edge/fog networks and in cloud systems"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.1 – Security components in edge/fog networks and in cloud systems</p>
+			<p>One of the primary ways to ensure<a id="_idIndexMarker442"/> a high-security design architecture is to ensure that the different availability zones of each data center (corresponding to different geographical locations) are categorized into several security levels of abstraction, such that they form a hierarchical domain structure. This structured abstraction can be implemented based on device types as well as the business and data context, such as the location from where the data is ingested into the system. </p>
+			<p>We can break the overall system into separate partitions based on the type of service rendered, dividing it into four major <span class="No-Break">building units:</span></p>
+			<ul>
+				<li><strong class="bold">IoT and edge gateway</strong>: This element is primarily involved in communicating<a id="_idIndexMarker443"/> with external devices’ interfaces (sensors, IoT, and so on), allowing the transfer of data only from authenticated devices through Bluetooth, Wi-Fi, or <strong class="bold">Radio Frequency Identification</strong> (<strong class="bold">RFID</strong>). The IoT elements and the gateway establish a mutual-trust<a id="_idIndexMarker444"/> relationship by means of global certificate<a id="_idIndexMarker445"/> authorities trusted by both parties. Their public certificates signed by <strong class="bold">Certificate Authorities</strong> (<strong class="bold">CAs</strong>) help to maintain the trust relationship for more than one<a id="_idIndexMarker446"/> domain for the period of the certificate’s validity. The <strong class="bold">secured IoT gateway</strong> privacy design can be further extended to support bandwidth and cryptographic requirements, dynamically generating key sizes based on the computing power of the available hardware units<a id="_idIndexMarker447"/> of the <span class="No-Break">IoT devices.</span></li>
+				<li><strong class="bold">Authorization and authentication layer</strong>: This element displays different policies from the policy<a id="_idIndexMarker448"/> repository to authorize and authenticate devices based on their unique IDs. On successful authentication and policy validation (based on the requesting agent), it generates a unique session ID and responds with a certificate (containing a device ID and a copy of the session key) to allow further data flow to internal <span class="No-Break">authorized microservices.</span></li>
+				<li><strong class="bold">Trusted relationship environment</strong>: This element acts as the solid foundation block<a id="_idIndexMarker449"/> of the security architecture by integrating security protocols of different aspects, such as integrity, conﬁdentiality, and governance. In other words, this block governs the authorization policies to connect the policy agent with the data processing and model <span class="No-Break">training unit.</span></li>
+				<li><strong class="bold">Data transformation and ML engine</strong>: This element is built with two layers of security. The first layer<a id="_idIndexMarker450"/> allows low-level data access (for example, data related to metadata) based on the device/entity’s role within this unit. Here, access control (specifically over databases, columns, queues, and so on) for caches and data repositories is achieved at a granular level. The edge devices can now transmit the data with end-to-end encryption (for example, using homomorphic encryption). This design further allows each device to connect to different transceiver buses, creating an additional security layer. In addition, the second layer of this element also provides fine-grained, high-level data access by communicating with cloud-based private microservices that can be provisioned with/without <span class="No-Break">a firewall.</span></li>
+			</ul>
+			<p>In big data systems using<a id="_idIndexMarker451"/> the Hadoop framework (a distributed processing framework for large volumes of data across clusters), the framework can be supported<a id="_idIndexMarker452"/> by a dedicated reverse-proxy application called <strong class="bold">Apache Knox</strong>, which is responsible for providing a single point of authentication and pluggable policy enforcement for services through <strong class="bold">Representational State Transfer </strong>(<strong class="bold">REST</strong>)-based APIs. <span class="No-Break"><em class="italic">Figure 4</em></span><em class="italic">.2</em> illustrates how Apache Knox<a id="_idIndexMarker453"/> and Apache Ranger can be used to authenticate and <span class="No-Break">authorize users.</span></p>
+			<div>
+				<div id="_idContainer066" class="IMG---Figure">
+					<img src="image/Figure_4.02_B18681.jpg" alt="Figure 4.2 – An architecture with Apache Knox and Ranger for authorization and authentication"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.2 – An architecture with Apache Knox and Ranger for authorization and authentication</p>
+			<p>We can also have a similar<a id="_idIndexMarker454"/> architectural framework with a sequential authorization process with a security gateway, Zookeeper PDP, and a Spark/Storm cluster, which gives the client the flexibility to submit a topology of a Storm cluster. This kind of framework can be used when clients trigger data processing in distributed systems (Spark/Storm clusters) and are allowed entry into the system to make use of the data processing and ML capabilities <span class="No-Break">of Spark/Storm.</span></p>
+			<p>In addition, we can use <strong class="bold">Trusted Execution Environments</strong> (<strong class="bold">TEEs</strong>) to build a trusted cloud ecosystem<a id="_idIndexMarker455"/> hosting applications in<a id="_idIndexMarker456"/> their respective private spaces. The <strong class="bold">Operating System</strong> (<strong class="bold">OS</strong>) can run in its own private space over protected hardware resources.<strong class="bold"> Software Guard Extensions</strong> (<strong class="bold">SGX</strong>) is available in modern computers<a id="_idIndexMarker457"/> with Intel chipsets. SGX contains<a id="_idIndexMarker458"/> a set of security-related instruction codes that are built into some modern Intel <strong class="bold">Central Processing Units</strong> (<strong class="bold">CPUs</strong>), which makes the entire system more efficient in terms of computational cost. Oblivious RAM (the compiler responsible for translating the algorithms so that the resultant algorithms retain the input-output relationship of the actual algorithm with the independent memory access pattern) can help to mitigate attacks that take place due to code-branching information. This security method is risk prone as an adversary<a id="_idIndexMarker459"/> can reverse engineer the model weights given <span class="No-Break">the outputs.</span></p>
+			<h2 id="_idParaDest-86"><a id="_idTextAnchor098"/>Architecting model design pipelines</h2>
+			<p>Now that we have investigated<a id="_idIndexMarker460"/> the security measures related to big data pipelines, let us investigate some of the best practices around privacy and security in adversarial learning, model training, and <span class="No-Break">model retraining.</span></p>
+			<h3>Adversarial perturbation framework</h3>
+			<p>To mitigate privacy attacks<a id="_idIndexMarker461"/> in ML services, one<a id="_idIndexMarker462"/> of the proposed defense mechanisms is to deploy components/services in an architectural framework to achieve the right trade-off between defense mechanisms and model performance metrics. Such a defense pipeline can be architected with the following components <span class="No-Break">in place:</span></p>
+			<ul>
+				<li>An adversarial perturbation generator responsible for crafting adversarial samples in a way that it can hide sensitive private information <span class="No-Break">from attackers</span></li>
+				<li>A privacy leakage evaluator responsible for evaluating the information leakage of the target model and optimizing the target model’s performance by sending feedback back to <span class="No-Break">the generator</span></li>
+				<li>A simulator deployed between the generator and the leakage evaluator that receives the adversarial samples to emulate the classification probability generated by the <span class="No-Break">target model</span></li>
+			</ul>
+			<p><span class="No-Break"><em class="italic">Figure 4</em></span><em class="italic">.3</em> illustrates all of the different<a id="_idIndexMarker463"/> components of the target framework, along with three different ways of generating<a id="_idIndexMarker464"/> <span class="No-Break">perturbation samples.</span></p>
+			<div>
+				<div id="_idContainer067" class="IMG---Figure">
+					<img src="image/Figure_4.03_B18681.jpg" alt="Figure 4.3 – An adversarial defense pipeline setup in model training"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.3 – An adversarial defense pipeline setup in model training</p>
+			<h3>Adversarial perturbation generator</h3>
+			<p>The backbones of this component<a id="_idIndexMarker465"/> are the adversarial algorithm<a id="_idIndexMarker466"/> selector and the perturbation rate controller. The algorithm selector can choose from the set<a id="_idIndexMarker467"/> of available algorithms, such as AdvGAN or the <strong class="bold">Fast Gradient Sign Method</strong> (<strong class="bold">FGSM</strong>). The FGSM is a fast and reliable technique that can be used to generate adversarial examples with higher, more distinguishable perturbation in comparison with other <span class="No-Break">adversarial algorithms:</span></p>
+			<ol>
+				<li>In the following code, we generate an <span class="No-Break">FGSM attack:</span><pre class="console">
+def fgsm_attack(in_data,epsilon,grad_from_data):
+   pert_out = in_data, + epsilon*grad_from_data.sign()
+   pert_out = torch.clamp(pert_out, 0, 1)
+   return pert_out</pre></li>
+				<li>The attack can be invoked with the <span class="No-Break">following code:</span><pre class="console">
+for data, target in test_loader:
+data, target = data.to(device), target.to(device)
+data.requires_grad = True
+output = model(data)
+init_pred = output.max(1, keepdim=True)[1]
+if init_pred.item() != target.item():
+continue
+loss = F.nll_loss(output, target)
+model.zero_grad()
+loss.backward()
+data_grad = data.grad.data
+perturbed_data =    fgsm_attack(data,epsilon,data_grad)</pre></li>
+				<li>This yields the following<a id="_idIndexMarker468"/> output (illustrated in <span class="No-Break"><em class="italic">Figure 4</em></span><em class="italic">.4</em>) demonstrating that the level of privacy in model<a id="_idIndexMarker469"/> training through adversarial training (FGSM) increases with decreases in accuracy. This was carried out on the <span class="No-Break">MNIST dataset.</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer068" class="IMG---Figure">
+					<img src="image/Figure_4.04_B18681.jpg" alt="Figure 4.4 – FGSM perturbation in adversarial defense pipeline"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.4 – FGSM perturbation in adversarial defense pipeline</p>
+			<p>On the other hand, the OPTMARGIN defense technique creates low-distortion adversarial examples from a surrogate model of the region classifier, where examples are robust to small perturbations. Meanwhile, the controller can control and adjust the ratio of adversarial examples in the uploaded upstream training data. The adversarial samples hide the sensitive information of the uploaded datasets by keeping the adversarial distortion, or the Euclidean distance between each adversarial record and the original data, at the smallest level. By using a minimal distortion rate, we can generate adversarial samples<a id="_idIndexMarker470"/> with the same<a id="_idIndexMarker471"/> classification label as that of the <span class="No-Break">original data.</span></p>
+			<h3>Simulator</h3>
+			<p>This component emulates<a id="_idIndexMarker472"/> the probability distribution of the target<a id="_idIndexMarker473"/> model to effectively design shadow models. Shadow models closely follow the behavior and distribution pattern of the target model. The adversarial data can be used to minimize the quadratic loss of <span class="No-Break">the simulator.</span></p>
+			<h3>Privacy leakage evaluator</h3>
+			<p>The privacy leakage evaluator<a id="_idIndexMarker474"/> is responsible<a id="_idIndexMarker475"/> for deducing the privacy-preserving effectiveness of the adversarial samples. It can infer the extent of privacy leakage in any of the evaluator plugins (for example, a membership inference attack) and helps in benchmarking the level of defense achieved through this framework. The evaluator receives feedback and sends the evaluation result to the adversarial perturbation generator, to help the generator discover and generate the right <span class="No-Break">adversarial samples.</span></p>
+			<p>The evaluation functions can employ constraints (such as the generalization gap, a decreasing level of attack accuracy, or the loss function of the attack classifier). Such constraints play an important role in fine-tuning the noise generation process. For example, a high inference accuracy by the evaluator would prompt adjustments in the direction of higher perturbation<a id="_idIndexMarker476"/> disturbance, while a low evaluator inference would prompt adjustments in the<a id="_idIndexMarker477"/> direction of less <span class="No-Break">perturbation disturbance.</span></p>
+			<h3>The objective of adversarial frameworks in ML pipelines</h3>
+			<p>Now that we understand the importance and functionalities of the different components of the adversarial framework, our next task is to introduce it as a part of MLOps and cloud best-practice strategies. We achieve two benefits when we have this framework in place along with the ML model training pipeline. The most important benefit is that we hide protected information<a id="_idIndexMarker478"/> from adversaries when adversaries query the model and retrieve the classification results. The other important benefit is that we get a controller in the architecture<a id="_idIndexMarker479"/> that controls the performance of the new model generated from the synthesis of <span class="No-Break">training data.</span></p>
+			<h2 id="_idParaDest-87"><a id="_idTextAnchor099"/>Incremental/continual ML training and retraining</h2>
+			<p>Let us now explore different learning<a id="_idIndexMarker480"/> approaches by comparing incremental and continual techniques, along with those for retraining, to understand where we can gain more privacy in the training process. Research results demonstrate<a id="_idIndexMarker481"/> that artificial neural networks exhibit the property of catastrophic forgetting when they continuously learn a sequence of tasks. <strong class="bold">Continual learning</strong> (<strong class="bold">CL</strong>), popularly known as life-long, sequential, or incremental learning, enables sequential learning of the model from a data stream. </p>
+			<p>However, a model loses knowledge of previously gathered information when it tries to assimilate new knowledge of subsequent tasks. As models lose information on important parameters and are hit by stability (the ability to retain past knowledge) and plasticity (the ability to assimilate new knowledge) constraints, the models do not consider the probability of adversarial attacks and remain highly susceptible to poisoned-backdoor attacks. There has been a large amount of research to mitigate such risks, resulting in three <span class="No-Break">different approaches:</span></p>
+			<ul>
+				<li><strong class="bold">Data-based approaches</strong> rely on storing historic knowledge (in episodic memory) gained from previous learnings<a id="_idIndexMarker482"/> and combining it with the current training data to complete the training task. Incremental classifiers and representation learning fall under <span class="No-Break">this category.</span></li>
+				<li><strong class="bold">Architectural approaches</strong> try to mitigate the risks of forgetting by assigning different sub-networks<a id="_idIndexMarker483"/> to each task. Here, a different part of the network is leveraged for each task. By delegating a single responsibility to each sub-network, sub-networks do not need to be concerned about training other parts of the neural network, once they have completed a single training task. Some examples of this type of approach include progressive neural networks, Expert Gate, and ensemble-based approaches such as Learn++. We further notice Expert Gate models with sparsity demonstrate better scaling and retention capabilities with <a id="_idIndexMarker484"/>partial activation in parts of <span class="No-Break">the network.</span></li>
+				<li><strong class="bold">Regularization-based approaches</strong> try to address the data storage and architectural complexity<a id="_idIndexMarker485"/> issues present in the earlier approaches. They add an extra regularization term to the loss function to prevent the loss of prior knowledge. During the learning phase or after completing the learning action, the model constantly computes the importance of each parameter in the network through different weight computation mechanisms. This helps to retain information in subsequent learning stages by penalizing drastic changes to the most important parameters. Examples<a id="_idIndexMarker486"/> that fall under this category include <strong class="bold">Elastic Weight Consolidation</strong> (<strong class="bold">EWC</strong>), synaptic intelligence, and <span class="No-Break">memory-aware synapses.</span></li>
+			</ul>
+			<p>Although these CL techniques have shown they are able to retain prior knowledge, their susceptibility to adversarial attacks is still under research. However, research studies suggest that the defense proposals in CL-based EWC can be violated by an intelligent adversary by injecting misinformation into the model during training. The adversary can further control the level of forgetfulness of any task and compromise neural networks by injecting backdoor-poisoned samples, only needing to affect as little as 1% of the training data in a single task. This attack can be used as an effective tool to defeat online-based <span class="No-Break">continual learners.</span></p>
+			<p>In these cases, the risks involved<a id="_idIndexMarker487"/> with CL in model pipelines can be alleviated to some extent by analyzing the model leakage information and quantifying the leakage with metrics such as the differential score and differential rank. Now let us discuss an example of how these metrics can ascertain the leakage caused by model updates, especially<a id="_idIndexMarker488"/> in the case of high-capacity generative natural <strong class="bold">Language Models</strong> (<strong class="bold">LMs</strong>). This use case helps to give direction in the design of a real-time model pipeline when data is continuously ingested into the system. The example further demonstrates the privacy implications when an adversary has access to multiple snapshots of a model, such as when text data is added/removed from the model during the retraining phase. The study should motivate us to follow the right process for retraining models while designing pipelines in a particular situation where the adversary continuously learns from the differences in data used to train <span class="No-Break">the model.</span></p>
+			<p>The design strategy can be extended <a id="_idIndexMarker489"/>to situations where the design of threat models is governed by <span class="No-Break">the following:</span></p>
+			<ul>
+				<li>Limited private datasets to fine-tune pre-trained public <span class="No-Break">large-capacity LMs</span></li>
+				<li>LMs trained with capabilities to memorize out-of-distribution <span class="No-Break">training samples</span></li>
+				<li>Systems with large-scale deployments of LMs, such as predictive keyboards on smartphones, allowing adversaries to analyze the models in <span class="No-Break">greater detail</span></li>
+			</ul>
+			<p>The data leakage threat<a id="_idIndexMarker490"/> is multiplied when fine-tuning a public snapshot of a high-capacity model (for example, transformer models such as BERT or GPT2). The model, when fine-tuned with additional data from an entity, runs the risk of exposing both the fine-tuned model and the original public model to the users of <span class="No-Break">said entity.</span></p>
+			<p>The concept of differential scores<a id="_idIndexMarker491"/> can be used to estimate the difference in the data used to train the two language models. This score helps us to ascertain a token sequence by capturing the probability difference assigned to it by the two models, where a higher differential score signifies the addition of sequences during model updates. Suitable search methods can further help us to identify newly added token sequences and retrieve information related to the difference between datasets. This information is now available to anyone; no background knowledge of the content and distribution of datasets <span class="No-Break">is required.</span></p>
+			<p>To mitigate such attacks and build a solid<a id="_idIndexMarker492"/> defense would involve certain changes in how the model retraining pipeline is scheduled to trigger incremental learning and how it reveals model snapshots to external entities. Hence, design choices should be made to restrict views of two successive model snapshots. It has been found that two snapshots expose more about the data added or removed when they are sequential. The best mitigation strategy to prevent this is to restrict access to the model and provide only a subset of predictions to <span class="No-Break">any agent.</span></p>
+			<p>For example, any external entity can still have full access to the original model <em class="italic">M</em> but only receives the top <em class="italic">k</em> tokens from the updated model <em class="italic">M’</em>. Such a scenario can be realized when clients obtain their predicted results from the cloud by allowing the cloud API to return the specialized model with a truncated version of each query. However, when models are deployed on client devices, they may be allowed to run in TEEs such as Intel SGX or ARM TrustZone on the same device. This method reduces the leakage <span class="No-Break">of information.</span></p>
+			<p>There are three broad approaches related to <span class="No-Break">model retraining:</span></p>
+			<ul>
+				<li><strong class="bold">Retraining from scratch</strong>: This method allows us to train a model from scratch to yield<a id="_idIndexMarker493"/> a fresh model snapshot (M'). This process takes into consideration a fresh (random) initialization of the model parameters, and triggering the process of retraining would yield slightly different output ML models. As this process implies a fresh start to training, the data owner can start the retraining process after pruning <span class="No-Break">the data.</span></li>
+				<li><strong class="bold">Continued training</strong>: This method relies on the principle of continuous training where the original<a id="_idIndexMarker494"/> model is incrementally trained on additional data to yield a fresh model snapshot M'. One of the key advantages of this technique is that it avoids the added computational cost of training a large dataset from the <span class="No-Break">very beginning.</span></li>
+			</ul>
+			<p><span class="No-Break"><em class="italic">Figure 4</em></span><em class="italic">.5</em> illustrates how retraining and continued training differ in terms of data leakage. The vertical axis depicts the perplexity with respect to the data D, while the horizontal axis depicts perplexity with regard to data updates. Here, perplexity<a id="_idIndexMarker495"/> refers to the sudden reaction or the amount of “surprises” a model demonstrates in its next-word choice, and hence, lower perplexity values indicate a better match between the data and <span class="No-Break">the model.</span></p>
+			<p>The first plot shows the impact of updating all the model parameters, while the second plot demonstrates how the parameters of a previously trained model are updated based on completely new data. The diagonal aims to classify the data distributions in terms of whether they resemble either the private data update N or the base data D. The points that lie above the diagonal are closer in distribution to the (private) data update N than to the base data D. As the second plot demonstrates, a large amount of perplexity and a larger degree of mismatch<a id="_idIndexMarker496"/> or uncertainty between the data and model is likely to lead to greater privacy. Here, the greater amount of uncertainty or variation validates the fact that sentences retrieved and returned after continued training are more likely to be private than those extracted after the model is retrained <span class="No-Break">from scratch.</span></p>
+			<div>
+				<div id="_idContainer069" class="IMG---Figure">
+					<img src="image/Figure_4.05_B18681.jpg" alt="Figure 4.5 – Comparing data privacy when retraining from scratch versus continued training"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.5 – Comparing data privacy when retraining from scratch versus continued training</p>
+			<ul>
+				<li><strong class="bold">Two-stage continued training</strong>: This mitigation strategy allows the training process to continue<a id="_idIndexMarker497"/> in two stages. At first, the datasets are split into three equal parts, –D<span class="subscript">orig</span>, D<span class="subscript">extra</span>, <span class="No-Break">and </span><span class="No-Break">D'</span><span class="No-Break"><span class="subscript">extra</span></span><span class="No-Break">.</span></li>
+			</ul>
+			<p>We have seen before that the continued training method can initiate model training by updating the parameters of a previously trained model (on the arrival of new data D or D'). The new two-step training adds an additional step (executed on the dataset D'<span class="subscript">extra</span> after training the model on synthetic/canary data (D<span class="subscript">extra</span>). This method simulates a scenario where we prohibit access to an attacker on two consecutive snapshots. This kind of two-stage or multi-stage continued training can lower the differential score of the training phase, thus further reducing the probability of private <span class="No-Break">information leakage.</span></p>
+			<p>Next, let’s look at how we can scale defense pipelines with adversarial training and retraining on <span class="No-Break">a GPU.</span></p>
+			<h2 id="_idParaDest-88"><a id="_idTextAnchor100"/>Scaling defense pipelines</h2>
+			<p>Now that we know how to introduce<a id="_idIndexMarker498"/> defense mechanisms in model pipelines with continuous model retraining, let us see how we can make such adversarial systems scalable for larger datasets. The scalable design approaches should take into consideration the following principles to quickly train on large volumes of data in a parallel <span class="No-Break">distributed manner.</span></p>
+			<p>The generalization power of neural<a id="_idIndexMarker499"/> networks should be strong enough to detect the most important features from large datasets. Introducing model generalization in an iterative training process can refine the data representation at each step, thereby maintaining both model accuracy and robustness. An iterative model-training mechanism can be designed to label an adversarial sample with the label of the original/natural sample (when the perturbation η&lt;η0). The other way is to label it as an adversarial sample (when perturbation η≥η0) and raise notifications for further analysis by <span class="No-Break">the system.</span></p>
+			<p>The most important aspect lies in making the iterative adversarial training process parallelizable, which is further illustrated in <span class="No-Break"><em class="italic">Figure 4</em></span><em class="italic">.6</em>. The figure shows a distributive adversarial retraining framework and the use of <strong class="bold">Graphics Processing Units </strong>(<strong class="bold">GPUs</strong>). The GPUs can leverage previously generated<a id="_idIndexMarker500"/> adversarial samples (samples generated at <em class="italic">t-2</em>) instead of waiting for the samples to be generated at <em class="italic">t-1</em>. Eliminating the need to wait for the samples to be generated allows <span class="No-Break">faster processing.</span></p>
+			<div>
+				<div id="_idContainer070" class="IMG---Figure">
+					<img src="image/Figure_4.06_B18681.jpg" alt="Figure 4.6 – Scalability in adversarial defense pipelines"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.6 – Scalability in adversarial defense pipelines</p>
+			<p>Further, we can also develop ensemble models such that outputs from the final label are based on the labels provided by two tests, where we add a small amount of random noise to one test set but do not add noise to the other dataset. The small amount of noise is meant to distort the optimal perturbation coming from an adversarial attack, such that images with added noise produce a different output than the image without the noise, providing a clear distinction between the original and the <span class="No-Break">attack images.</span></p>
+			<p>We have now learned how different<a id="_idIndexMarker501"/> mechanisms of model training can add an extra layer <a id="_idIndexMarker502"/>of privacy. Let us reuse some of the concepts from <a href="B18681_02.xhtml#_idTextAnchor040"><span class="No-Break"><em class="italic">Chapter 2</em></span></a>, where we explained the concept of <strong class="bold">Differential Privacy</strong> (<strong class="bold">DP</strong>), and apply them to ML <span class="No-Break">training pipelines.</span></p>
+			<h2 id="_idParaDest-89"><a id="_idTextAnchor101"/>Enabling differential privacy in scalable architectures</h2>
+			<p>DP solutions suffered from a disconnect<a id="_idIndexMarker503"/> between research<a id="_idIndexMarker504"/> and practice, primarily<a id="_idIndexMarker505"/> due to the low model accuracy and high running costs of privacy-enabled algorithms. A private <strong class="bold">Stochastic Gradient Descent</strong> (<strong class="bold">SGD</strong>) algorithm commonly known as <strong class="bold">Bolton Differential Privacy</strong> addressed these challenges and was found to integrate well with scalable SGD-based analytics<a id="_idIndexMarker506"/> systems. The solution entirely depends on adding noise after model convergence. Furthermore, the solution yielded better model performance metrics without incurring <span class="No-Break">additional overhead.</span></p>
+			<p><span class="No-Break"><em class="italic">Figure 4</em></span><em class="italic">.7</em> illustrates the stages of data processing<a id="_idIndexMarker507"/> where DP is involved in a cloud setup in an architecture such as <strong class="bold">Google Cloud Platform</strong> (<strong class="bold">GCP</strong>). As we can see, the sequence of operations is <span class="No-Break">as follows:</span></p>
+			<ol>
+				<li>Retrieving DP-enabled SQL queries <span class="No-Break">from BigQuery.</span></li>
+				<li>Data schema validation <span class="No-Break">with AutoML.</span></li>
+				<li>Feature engineering using AutoML. Features are stored in the <span class="No-Break">cloud database/storage.</span></li>
+				<li>In the next stage, DP again kicks in to ensure private queries and models, ensuring privacy is incorporated into the system by retrieving the processed results <span class="No-Break">from storage.</span></li>
+				<li>Data mining with DP (for running differentially private <span class="No-Break">SQL queries).</span></li>
+				<li>Data preparation for modeling using the Cloud <span class="No-Break">Dataprep tool.</span></li>
+				<li>ML modeling <span class="No-Break">with DP.</span></li>
+				<li>Storage of <span class="No-Break">predicted outcomes.</span></li>
+				<li>Evaluation on a <span class="No-Break">test set.</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer071" class="IMG---Figure">
+					<img src="image/Figure_4.07_B18681.jpg" alt="Figure 4.7 – Differential query with model training on Google Cloud"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.7 – Differential query with model training on Google Cloud</p>
+			<p>Now that we’ve seen how to deploy<a id="_idIndexMarker508"/> DP solutions<a id="_idIndexMarker509"/> on the cloud, let us explore how we <span class="No-Break">interpret them.</span></p>
+			<h3>Interpretability of DP solutions</h3>
+			<p>Here, we’ll demonstrate<a id="_idIndexMarker510"/> how we can<a id="_idIndexMarker511"/> explain privately trained models with Microsoft Research’s <strong class="bold">interpretML</strong> tool. <strong class="bold">Explainable Boosting Machines</strong> (<strong class="bold">EBMs</strong>) is a recent approach that has been used to train interpretable ML models and at the same<a id="_idIndexMarker512"/> time protect sensitive data. Let us see now how we can add differential privacy to EBMswith the <span class="No-Break">following objectives:</span></p>
+			<ul>
+				<li>Trained models offer more understanding of global and local interpretability (ideal for situations where differential privacy is appropriate). With global interpretability, we get to know more about the features that play an important role in the model outcomes, while with local interpretability we can explain each <span class="No-Break">individual prediction.</span></li>
+				<li>Models can be corrected to resolve errors introduced by DP after the <span class="No-Break">training process.</span></li>
+			</ul>
+			<p>Let’s walk through<a id="_idIndexMarker513"/> <span class="No-Break">an example:</span></p>
+			<ol>
+				<li>First, we have the necessary imports, as <span class="No-Break">shown here:</span><pre class="console">
+from interpret.privacy import DPExplainableBoostingClassifier
+from interpret.glassbox import ExplainableBoostingClassifier
+import time
+from sklearn.metrics import roc_auc_score, accuracy_score</pre></li>
+				<li>The next step is to introduce a <strong class="source-inline">DPExplainableBoosting</strong> classifier and measure the <strong class="source-inline">roc_auc</strong> metrics as well as the time taken <span class="No-Break">for evaluation:</span><pre class="console">
+start = time.time()
+dpebm = DPExplainableBoostingClassifier(epsilon=1, delta=1e-6)
+_ = dpebm.fit(X_train, y_train)
+dp_auroc = roc_auc_score(y_test, dpebm.predict_proba(X_test)[:, 1])
+print(f"DP EBM with eps: {dpebm.epsilon} and delta: {dpebm.delta} trained in {end - start:.2f} seconds with a test AUC of {dp_auroc:.3f}")
+end = time.time()</pre></li>
+				<li>Next, we introduce an <strong class="source-inline">ExplainableBoosting</strong> classifier (without DP) and measure the <strong class="source-inline">roc_auc</strong> metrics as well as the time taken <span class="No-Break">for evaluation:</span><pre class="console">
+start = time.time()
+ebm = ExplainableBoostingClassifier()
+_ = ebm.fit(X_train, y_train)
+ebm_auroc = roc_auc_score(y_test, ebm.predict_proba(X_test)[:, 1])
+end = time.time()
+print(f"EBM trained in {end - start:.2f} seconds with a test AUC of {ebm_auroc:.3f}")</pre></li>
+			</ol>
+			<p>The output received is as follows:</p>
+			<pre class="console">
+DP EBM with eps: 1 and delta: 1e-06 trained in 3.38 seconds with a test AUC of 0.878
+EBM trained in 10.43 seconds with a test AUC of 0.923</pre>
+			<ol>
+				<li value="4">In the final step, we show<a id="_idIndexMarker514"/> the global explanations of both models and examine <span class="No-Break">the differences:</span><pre class="console">
+from interpret import show
+show(ebm.explain_global(name='Standard EBM'))
+show(dpebm.explain_global(name='DP EBM'))</pre></li>
+			</ol>
+			<p><span class="No-Break"><em class="italic">Figure 4</em></span><em class="italic">.8</em> illustrates<a id="_idIndexMarker515"/> the output for <strong class="bold">Standard EBM</strong> and <strong class="bold">DP EBM</strong> where features are ranked based on their importance. We see that <strong class="bold">Relationship</strong>, <strong class="bold">Gender</strong>, and <strong class="bold">EducationNum</strong> play a bigger role in DP EBM than Standard EBM. On further analyzing the contribution of each feature (such as <strong class="bold">MaritalStatus</strong>), the scores for <strong class="bold">Separated</strong> and <strong class="bold">DPOther</strong> exhibit a larger range in DP EBM than <span class="No-Break">Standard EBM.</span></p>
+			<div>
+				<div id="_idContainer072" class="IMG---Figure">
+					<img src="image/Figure_4.08_B18681.jpg" alt="Figure 4.8 – Explainability demonstrated on DP models"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.8 – Explainability demonstrated on DP models</p>
+			<p>Now that we know how to create DP training pipelines, let us investigate some proven secure deployment tactics<a id="_idIndexMarker516"/> and the deployment of signed models in a <span class="No-Break">cloud infrastructure.</span></p>
+			<h3>Securing deployment and model signing</h3>
+			<p>One of the primary<a id="_idIndexMarker517"/> security standards is to ensure that all components of the model training<a id="_idIndexMarker518"/> and deployment pipeline are integrated with security verification checks. In addition, we should also carefully protect the privacy and integrity of sensitive data, such as passwords, tokens, and other secrets, that is essential for the end-to-end system functionality in production environments. Hence all production secrets should only be stored in managed digital vaults and should never be checked into repositories and configuration files. We should also have introduced automation to support the dynamic generation of secrets at deployment time, along with the routine checking of processes to detect and mitigate threats arising from the presence of <span class="No-Break">unprotected secrets.</span></p>
+			<p>Now let us see, with help of <span class="No-Break"><em class="italic">Figure 4</em></span><em class="italic">.9,</em> how AWS SageMaker can be used for model packaging and signing (<a href="https://aws.amazon.com/blogs/machine-learning/machine-learning-at-the-edge-with-aws-outposts-and-amazon-sagemaker/">https://aws.amazon.com/blogs/machine-learning/machine-learning-at-the-edge-with-aws-outposts-and-amazon-sagemaker/</a>). This will help us to understand how to package together the model artifacts and provide a valid authorized signature and store at S3 using Amazon SageMaker <span class="No-Break">Edge Manager.</span></p>
+			<p>In real-world scenarios where Amazon SageMaker helps<a id="_idIndexMarker519"/> us to build and train models<a id="_idIndexMarker520"/> in an AWS Region, we can use Amazon SageMaker Edge Manager to train models in an optimized manner, with the models inferred locally and stored in corresponding local data centers of AWS. This kind of optimal training reduces latency in contrast to situations where the distance between the data center and AWS Region is large. ML models can be trained using AWS SageMaker (in an AWS Region) once model artifacts are stored in Amazon S3. Further, the models can be packaged and signed with Amazon SageMaker Edge Manager. The compiled and signed model can be copied from AWS S3 (in the AWS region) to an Amazon EC2 instance on AWS Outposts and can then be served with the model inferences via the SageMaker Edge Manager agent. The following figure illustrates these steps in <span class="No-Break">further detail:</span></p>
+			<div>
+				<div id="_idContainer073" class="IMG---Figure">
+					<img src="image/Figure_4.09_B18681.jpg" alt="Figure 4.9 – Model signing in AWS SageMaker"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.9 – Model signing in AWS SageMaker</p>
+			<p>In GCP, we have BigQuery ML, which supports <strong class="bold">customer-managed encryption keys</strong> (<strong class="bold">CMEK</strong>). BigQuery supports the default encryption practice, but customers<a id="_idIndexMarker521"/> are free to use their own cloud KMS<a id="_idIndexMarker522"/> keys for encrypting machine learning and deep<a id="_idIndexMarker523"/> learning TensorFlow-based models. In the following code snippet, we create an encrypted TensorFlow model using the <strong class="source-inline">CREATE MODEL</strong> call, specifying the <strong class="source-inline">KMS_KEY_NAME</strong> in the training options and the path that can be used to store <span class="No-Break">the model:</span></p>
+			<pre class="source-code">
+CREATE MODEL my_dataset.my_model
+OPTIONS(
+  model_type='tensorflow',
+  path='gs://bucket/path/to/saved_model/*',
+  kms_key_name='projects/my_project/locations/my_location/keyRings/my_ring/cryptoKeys/my_key')
+AS SELECT * FROM my_dataset.my_data</pre>
+			<p>With our new knowledge of securing private ML models, let us investigate how we can design <span class="No-Break">secure microservices.</span></p>
+			<h1 id="_idParaDest-90"><a id="_idTextAnchor102"/>Designing secure microservices</h1>
+			<p>Using ML, we can design different <a id="_idIndexMarker524"/>intelligent, predictive<a id="_idIndexMarker525"/> services that may use one or more algorithms including <strong class="bold">Feed-Forward Neural Networks</strong> (<strong class="bold">FFNNs</strong>), <strong class="bold">Deep Belief Networks</strong> (<strong class="bold">DBNs</strong>) (<a href="https://www.sciencedirect.com/topics/engineering/deep-belief-network">https://www.sciencedirect.com/topics/engineering/deep-belief-network</a>), and <strong class="bold">Recurrent Neural Networks</strong> (<strong class="bold">RNNs</strong>). To facilitate the reuse of customized<a id="_idIndexMarker526"/> algorithms, we may choose to create an abstraction layer<a id="_idIndexMarker527"/> and encapsulate each of the predictive services as data-oriented microservices that can be integrated with applications requiring ML capabilities. Further, one ML microservice may be trained using the TensorFlow library, another may use the PyTorch library, and a third microservice may be trained on the Caffe library. Microservice-based ML models allow maximum reuse of ML libraries, algorithm features, executables, and configurations, fostering collaboration among <span class="No-Break">ML teams.</span></p>
+			<p>For example, as illustrated in <span class="No-Break"><em class="italic">Figure 4</em></span><em class="italic">.10</em>, there are four ML predictive microservices – <strong class="bold">Recommendations</strong>, <strong class="bold">Customer behavior</strong>, <strong class="bold">Location-based ads</strong>, and <strong class="bold">Basket</strong>, along with <strong class="bold">Identity management</strong> and <strong class="bold">Customer transactions</strong>. Now let us see how we can incorporate security mechanisms in these <span class="No-Break">REST-based microservices:</span></p>
+			<ol>
+				<li>Any HTTP client request (from a mobile/web API) lands first in the API<a id="_idIndexMarker528"/> gateway (<em class="italic">step 1a</em>), where it is directed to the <strong class="bold">Identity management</strong> (<strong class="bold">IM</strong>) microservice (<em class="italic">step 1b</em>) through the <span class="No-Break">load balancers.</span></li>
+				<li>On being authenticated<a id="_idIndexMarker529"/> by the IM microservice (<em class="italic">step 2</em>), the client is provided with an authentication token, with which it can further request any <span class="No-Break">predictive service.</span></li>
+				<li>When the authentication service provides the authentication token, it is then used by the microservice as in <em class="italic">step 3</em> to validate the request and send a corresponding response as in <em class="italic">step 6</em>. Each of the microservices can be further secured by providing them with dynamic secrets from the vault (storage allocated for storing secret keys) through its <span class="No-Break">rich APIs.</span></li>
+				<li>Further, each of the microservices issues its request to the backend transaction database in <em class="italic">step 4</em> and receives its response in <span class="No-Break"><em class="italic">step 5</em></span><span class="No-Break">.</span></li>
+			</ol>
+			<p>As the vault is cloud- and application-framework-agnostic, it can easily be migrated across platforms, environments, <span class="No-Break">and machines.</span></p>
+			<p>In addition, we should follow these principles to ensure the security <span class="No-Break">of microservices:</span></p>
+			<ul>
+				<li>Limit permissions and keep them to the minimum number required by each user or <span class="No-Break">service role.</span></li>
+				<li>Never grant pseudo or a privileged account to others for them to <span class="No-Break">run services.</span></li>
+				<li>Always limit access to available resources—for example, we should always define security rules to restrict a container’s access to the host <span class="No-Break">operating system.</span></li>
+				<li>Always store secrets in the vault and run security automation checks to detect secrets stored inside containers <span class="No-Break">or repositories.</span></li>
+				<li>Define isolation or sandbox units through the use of appropriate security rules for available resources<a id="_idIndexMarker530"/> with different levels <span class="No-Break">of sensitivity.</span></li>
+			</ul>
+			<div>
+				<div id="_idContainer074" class="IMG---Figure">
+					<img src="image/Figure_4.10_B18681.jpg" alt="Figure 4.10 – An example of ML-based microservice architecture"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.10 – An example of ML-based microservice architecture</p>
+			<h2 id="_idParaDest-91"><a id="_idTextAnchor103"/>Vault</h2>
+			<p>Vault is a tool for managing<a id="_idIndexMarker531"/> secrets in zero-trust networks. It offers a high level <a id="_idIndexMarker532"/>of protection by keeping data access limited <span class="No-Break">and confidential.</span></p>
+			<p>Vault supports high-throughput-capable API interfaces to help manage secrets for a large number of microservices in different environments. It also has flexible authentication methods using its available plugins, which enable you to authenticate applications running in Nomad or in Kubernetes. Vault has plugins to provide automatic authentication for applications running on any cloud, from Azure, AWS, and GCP to Alibaba <span class="No-Break">and Weiwei.</span></p>
+			<p>Vault provides better security management with dynamic secrets enabling each endpoint to have a separate username and password based on the entity getting assessed. By doing this, Vault can provide an extra shield and is able to prevent a chain of attacks arising from a security breach of any one of the microservices. Here, the attacker is no longer able to attack one insecure area and access secrets to gain access to the entire environment. Another important property of Vault is that the dynamic secrets generated by it are timebound and easily revocable. It thus allows admins to easily revoke secrets in case of a security breach in the environment. This feature of Vault prevents <span class="No-Break">system restart.</span></p>
+			<p>Let us see an example of how Vault limits<a id="_idIndexMarker533"/> the scope and surface area of attacks by removing<a id="_idIndexMarker534"/> an attacker from the system by revoking rights. If a service account (from a cloud provider such as GCP, AWS, or Azure) with zero permissions is authenticated with Vault, then even if the service account gets compromised, the temporary service account (as authenticated by Vault) will help to mitigate attacks. With a Vault-authenticated service account, it is no longer possible for an attacker to spin up hundreds of VMs, which they would have been able to do in the absence of authentication from Vault. Vault<a id="_idIndexMarker535"/> also makes full use of key-rotation techniques using <strong class="bold">Key Management Services</strong> (<strong class="bold">KMSs</strong>) of the various cloud providers to facilitate dynamic key generation, thereby adding extra layers <span class="No-Break">of protection.</span></p>
+			<p>Vault enables Kubernetes’ <strong class="source-inline">auth</strong> method to authenticate clients using a Kubernetes service account token. A Vault agent is used to provide <span class="No-Break">the following:</span></p>
+			<ul>
+				<li><span class="No-Break">Automatic authentication</span></li>
+				<li>Secure delivery/storage <span class="No-Break">of tokens</span></li>
+				<li>Life cycle management of these tokens (renewal <span class="No-Break">and reauthentication)</span></li>
+			</ul>
+			<p>Now let us study an example of how to run a Vault agent within a <span class="No-Break">Kubernetes cluster:</span></p>
+			<ol>
+				<li>The first step is to clone the <strong class="source-inline">hashicorp/Vault-guides</strong> repository <span class="No-Break">from GitHub:</span><pre class="console">
+git clone https://github.com/hashicorp/Vault-guides.git</pre></li>
+				<li>The next step is to navigate inside the <span class="No-Break"><strong class="source-inline">Vault-guides/identity/Vault-agent-k8s-demo</strong></span><span class="No-Break"> directory:</span><pre class="console">
+cd Vault-guides/identity/Vault-agent-k8s-demo</pre></li>
+				<li>Next, we start a Vault development server to listen for requests locally at <strong class="source-inline">0.0.0.0:8200</strong> with <strong class="source-inline">root</strong> as the root <span class="No-Break">token ID:</span><pre class="console">
+Vault server -dev -dev-root-token-id root -dev-listen-address 0.0.0.0:8200</pre></li>
+				<li>To provide an access URL, export an environment variable for the Vault CLI to address the <span class="No-Break">Vault server:</span><pre class="console">
+export VAULT_ADDR=http://0.0.0.0:8200</pre></li>
+				<li>To create a service account, let’s start a Kubernetes cluster running <span class="No-Break">in minikube:</span><pre class="console">
+minikube start --driver=docker</pre></li>
+				<li>Check the status of the minikube environment<a id="_idIndexMarker536"/> to see that it is <span class="No-Break">fully</span><span class="No-Break"><a id="_idIndexMarker537"/></span><span class="No-Break"> available:</span><pre class="console">
+minikube status</pre></li>
+			</ol>
+			<p>The output from the status should be displayed as follows:</p>
+			<pre class="console">
+<strong class="bold">host: Running</strong>
+<strong class="bold">kubelet: Running</strong>
+<strong class="bold">apiserver: Running</strong>
+<strong class="bold">kubeconfig: Configured</strong></pre>
+			<ol>
+				<li value="7">After verifying the status, we examine the contents of <strong class="source-inline">Vault-auth-service-account.yaml</strong> for service <span class="No-Break">account creation.</span></li>
+				<li>Next, we create a Kubernetes service account <span class="No-Break">named </span><span class="No-Break"><strong class="source-inline">Vault-auth</strong></span><span class="No-Break">:</span><pre class="console">
+kubectl create serviceaccount Vault-auth</pre></li>
+				<li>Update the <strong class="source-inline">Vault-auth</strong> <span class="No-Break">service account:</span><pre class="console">
+kubectl apply --filename Vault-auth-service-account.yaml</pre></li>
+				<li>Now, to configure the Kubernetes <strong class="source-inline">auth</strong> method, we create a read-only policy called <strong class="source-inline">myapp-kv-ro</strong> <span class="No-Break">in Vault:</span><pre class="console">
+Vault policy write myapp-kv-ro - &lt;&lt;EOF
+path "secret/data/myapp/*" {
+capabilities = ["read", "list"]}
+EOF</pre></li>
+				<li>In the following step, we<a id="_idIndexMarker538"/> create some<a id="_idIndexMarker539"/> test data at the <span class="No-Break"><strong class="source-inline">secret/myapp</strong></span><span class="No-Break"> path:</span><pre class="console">
+Vault kv put secret/myapp/config \
+      username='appuser' \
+      password='suP3rsec(et!' \
+      ttl='30s'</pre></li>
+				<li>Now let us set the environment variables to point to the running minikube environment. Here, we set the <strong class="source-inline">VAULT_SA_NAME</strong> environment variable value to the <strong class="source-inline">Vault-auth</strong> <span class="No-Break">service account:</span><pre class="console">
+export VAULT_SA_NAME=$(kubectl get sa Vault-auth \
+    --output jsonpath="{.secrets[*]['name']}")</pre></li>
+				<li>Here, we also set the <strong class="source-inline">SA_JWT_TOKEN</strong> environment variable value to the service account JWT used to access the <span class="No-Break"><strong class="source-inline">TokenReview</strong></span><span class="No-Break"> API:</span><pre class="console">
+export SA_JWT_TOKEN=$(kubectl get secret $VAULT_SA_NAME \
+    --output 'go-template={{ .data.token }}' | base64 --decode)</pre></li>
+				<li>Next, we set the <strong class="source-inline">SA_CA_CRT</strong> environment variable value to the PEM-encoded CA cert used to talk to the <span class="No-Break">Kubernetes API:</span><pre class="console">
+export SA_CA_CRT=$(kubectl config view --raw --minify --flatten \
+    --output 'jsonpath={.clusters[].cluster.certificate-authority-data}' | base64 --decode)</pre></li>
+				<li>Now the minikube IP address should be available, hence we point the <strong class="source-inline">K8S_HOST</strong> environment variable value to <span class="No-Break">this address:</span><pre class="console">
+export K8S_HOST=$(kubectl config view --raw --minify --flatten \
+    --output 'jsonpath={.clusters[].cluster.server}')</pre></li>
+				<li>Finally, we need to enable and configure the Kubernetes <strong class="source-inline">auth</strong> method at the default <span class="No-Break">path (</span><span class="No-Break"><strong class="source-inline">auth/kubernetes</strong></span><span class="No-Break">):</span><pre class="console">
+Vault auth enable kubernetes</pre></li>
+				<li>Further, we also let Vault<a id="_idIndexMarker540"/> know how to communicate<a id="_idIndexMarker541"/> with the Kubernetes (<span class="No-Break">minikube) cluster:</span><pre class="console">
+Vault write auth/kubernetes/config \
+        token_reviewer_jwt="$SA_JWT_TOKEN" \
+        kubernetes_host="$K8S_HOST" \
+        kubernetes_ca_cert="$SA_CA_CRT" \      issuer="https://kubernetes.default.svc.cluster.local"</pre></li>
+				<li>Having configured everything, finally, we need to create a role named <strong class="source-inline">example</strong> that maps the Kubernetes service account<a id="_idIndexMarker542"/> to Vault policies and the default token <strong class="bold">Time to </strong><span class="No-Break"><strong class="bold">Live</strong></span><span class="No-Break"> (</span><span class="No-Break"><strong class="bold">TTL</strong></span><span class="No-Break">):</span><pre class="console">
+Vault write auth/kubernetes/role/example \
+        bound_service_account_names=Vault-auth \
+        bound_service_account_namespaces=default \
+        policies=myapp-kv-ro \
+        ttl=24h</pre></li>
+			</ol>
+			<p>As we have seen in the previous step, each authentication method of Vault maps to a role. A role, in turn, maps to <em class="italic">N</em> policies. Policies provide a declarative way to grant or forbid access to certain paths and operations in Vault. The following code snippet demonstrates how paths are associated with <span class="No-Break">different permissions:</span></p>
+			<pre class="source-code">
+path "secret/ms-1" {
+ capabilities = ["read"]
+}
+path "secret/ms-2" {
+ capabilities = ["update"]
+}</pre>
+			<p>Vault offers key-value<a id="_idIndexMarker543"/> storage and can be used to create a key and store<a id="_idIndexMarker544"/> its value in a specified path, as <span class="No-Break">shown here:</span></p>
+			<pre class="source-code">
+Vault kv put secret/my-secret sec_val="value"</pre>
+			<p>Vault can also be used to run as an encryption service, where plain text data from the frontend app can be encrypted with Vault’s secret and then passed to the backend application via any cloud-based microservice. </p>
+			<p>Now let us understand how we can run Vault inside Google Cloud with a storage backend, a Kubernetes cluster, and a Google’s KMS service, as shown in <span class="No-Break"><em class="italic">Figure 4</em></span><span class="No-Break"><em class="italic">.11</em></span><span class="No-Break">:</span></p>
+			<div>
+				<div id="_idContainer075" class="IMG---Figure">
+					<img src="image/Figure_4.11_B18681.jpg" alt="Figure 4.11 – How to use Vault in Google Cloud"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.11 – How to use Vault in Google Cloud</p>
+			<p>To run Vault, we should always<a id="_idIndexMarker545"/> run it inside a completely isolated Kubernetes<a id="_idIndexMarker546"/> cluster, to prevent it from any external threat that could compromise the production environment. The cloud storage unit shown in the preceding figure aids in storing dynamic secrets. Vault also requires a human or automated method of unsealing/unlocking keys, which are often split up and stored inside it. The following code snippet generates the recovery keys using <strong class="source-inline">auto-unseal</strong>. Through the process of auto-sealing, we are able to enable the automatic construction of the master key necessary to decrypt the data <span class="No-Break">encryption key:</span></p>
+			<ol>
+				<li>First, we need to initialize the <span class="No-Break">Vault server:</span><pre class="console">
+vault operator init</pre></li>
+				<li>KMS is used to unlock the split keys (for example, during system restart) by leveraging its auto-key-rotation capability. The key rotation command is executed <span class="No-Break">as follows:</span><pre class="console">
+gcloud kms keys update &lt;KEY_NAME&gt; \
+         --location &lt;LOCATION&gt; \
+         --keyring &lt;KEYRING_NAME&gt; \
+         --rotation-period &lt;ROTATION_PERIOD&gt; \
+         --next-rotation-time &lt;NEXT_ROTATION_TIME&gt;</pre></li>
+			</ol>
+			<p>Now that we have<a id="_idIndexMarker547"/> seen the security options for a cloud-agonistic architecture<a id="_idIndexMarker548"/> with the use of Vault, next, let us look at the security options provided by AWS when individual<a id="_idIndexMarker549"/> microservices are running within pods in <strong class="bold">Elastic Kubernetes Service</strong> (<strong class="bold">EKS</strong>). Further, these services<a id="_idIndexMarker550"/> are dependent on each other, and messages published by one microservice in a Kafka cluster (which is <strong class="bold">Amazon Managed Streaming for Apache Kafka</strong> (<strong class="bold">MSK</strong>)), are consumed by other microservices. The security mechanisms provided by AWS are illustrated in <span class="No-Break"><em class="italic">Figure 4</em></span><span class="No-Break"><em class="italic">.12</em></span><span class="No-Break">.</span></p>
+			<div>
+				<div id="_idContainer076" class="IMG---Figure">
+					<img src="image/Figure_4.12_B18681.jpg" alt="Figure 4.12 – Use of Vault in ML-based enterprise solutions"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.12 – Use of Vault in ML-based enterprise solutions</p>
+			<p>Here, we find authentication mechanisms in four <span class="No-Break">different services:</span></p>
+			<ul>
+				<li><strong class="bold">Transport Layer Security</strong> (<strong class="bold">TLS</strong>) 1.2 in API Gateway for communication<a id="_idIndexMarker551"/> with <span class="No-Break">AWS resources.</span></li>
+				<li>Authentication and authorization for Apache Kafka where IAM is used to authenticate clients and to allow or deny Apache Kafka actions. The alternate mechanism by which Kafka actions can be allowed or denied is through the use of TLS or SASL/SCRAM and Apache <span class="No-Break">Kafka ACLs.</span></li>
+				<li>The Amazon MSK cluster’s simple authentication and <strong class="bold">Security Layer</strong>/<strong class="bold">Salted Challenge Response Authentication Mechanism</strong> (<strong class="bold">SASL</strong>/<strong class="bold">SCRAM</strong>) username and password-based<a id="_idIndexMarker552"/> authentication can be used to enhance protection. With this approach, the credentials can be encrypted using KMS and stored in AWS <span class="No-Break">Secrets Manager.</span></li>
+				<li>Data encryption on the MSK cluster using AWS KMS can provide transparent server-side encryption. In addition, TLS 1.2 can provide encryption of data in transit between the brokers of the MSK cluster. Further, we can also use Kerberos, TLS certificates, and advanced <strong class="bold">Access Control Lists</strong> (<strong class="bold">ACLs</strong>) to establish security between<a id="_idIndexMarker553"/> brokers <span class="No-Break">and Zookeeper.</span></li>
+			</ul>
+			<p>Let us now understand the basic<a id="_idIndexMarker554"/> essential elements needed to add security features<a id="_idIndexMarker555"/> to a cloud <span class="No-Break">system architecture.</span></p>
+			<h1 id="_idParaDest-92"><a id="_idTextAnchor104"/>Cloud security architecture</h1>
+			<p>In this section, let us look at the main security<a id="_idIndexMarker556"/> principles that should be standardized by an organization with respect to cloud security architecture. Here, we will also study some examples of how to architect scalable security architectures when data and models are shared <span class="No-Break">across teams.</span></p>
+			<p>Most of our SaaS-based ML applications need varying levels of security, access control, and data protection techniques when they are deployed on the cloud. We can still leverage the existing security architectures provided by Azure, Google Cloud, and AWS or build a platform-independent security framework for our own customized cloud solution that hosts the prediction APIs. Whichever option<a id="_idIndexMarker557"/> we choose, important components include the <strong class="bold">Cloud Access Security Broker</strong> (<strong class="bold">CASB</strong>), APIs, proxies, gateways, and identity and access management. These tools help us to build a shared-responsibility cloud model and <span class="No-Break">zero-trust architecture.</span></p>
+			<p>For any cloud-based ML system, we need<a id="_idIndexMarker558"/> to quantify the risks faced by the cloud architecture from time to time. During this time, we need to take into consideration the extent to which penetration<a id="_idIndexMarker559"/> tests are performed, whether authentication methods such as multi-factor and <strong class="bold">Single Sign-On</strong> (<strong class="bold">SSO</strong>) are in place, and the extent to which individual cloud components integrate with enterprise authentication and directories. In addition, records of past security breaches and their severity should also be taken <span class="No-Break">into consideration.</span></p>
+			<p>Now, let us take a deeper<a id="_idIndexMarker560"/> look into the foundation principles of cloud security<a id="_idIndexMarker561"/> <span class="No-Break">architecture (</span><a href="https://www.guidepointsecurity.com/education-center/cloud-security-architecture/"><span class="No-Break">https://www.guidepointsecurity.com/education-center/cloud-security-architecture/</span></a><span class="No-Break">):</span></p>
+			<ul>
+				<li><strong class="bold">Identification</strong>: Maintain complete information on users, assets, business environments, policies, vulnerabilities, and threats that exist within the <span class="No-Break">cloud environment.</span></li>
+				<li><strong class="bold">Security controls</strong>: Define parameters and enforce the implementation of policies across users, data, and infrastructure to better manage, evaluate, and access the <span class="No-Break">security landscape.</span></li>
+				<li><strong class="bold">Security by design</strong>: Follow standards and guidelines and undertake timely audits to define the roles and responsibilities of each user and their corresponding devices. Enforce security configuration for each of the big data and ML processing components that run with or <span class="No-Break">without automation.</span></li>
+				<li><strong class="bold">Compliance</strong>: Incorporate new standards for review and their timely introduction in the security verification process. Integrate existing industry standards and regulatory components into the architecture with <span class="No-Break">best practices.</span></li>
+				<li><strong class="bold">Perimeter security</strong>: Define and adhere to traffic flow rules (by setting up proxies and firewalls) such that restricted traffic is not allowed to flow from the organization’s cloud-based resources to the <span class="No-Break">public internet.</span></li>
+				<li><strong class="bold">Segmentation</strong>: Follow the principle of least privilege in isolating and compartmentalizing microservices (during training, pre-processing, and post-processing jobs) to prevent lateral movement in case of an <span class="No-Break">adversarial attack.</span></li>
+				<li><strong class="bold">User identity and access management</strong>: Enforce access rights and permissions and additional protocol measures to enable transparency and the visibility of all users and devices with access to corporate systems. Extend this scope to devices participating in ML training in scenarios such as <span class="No-Break">federated learning.</span></li>
+				<li><strong class="bold">Data anonymization/pseudonymization</strong>: Follow the encryption methodologies discussed in <a href="B18681_02.xhtml#_idTextAnchor040"><span class="No-Break"><em class="italic">Chapter 2</em></span></a> for both streaming data and data at rest. In addition, any communication between microservices should be encrypted to <span class="No-Break">mitigate risks.</span></li>
+				<li><strong class="bold">Automation</strong>: Facilitate rapid security and configuration provisioning and updates as well as quick <span class="No-Break">threat detection.</span></li>
+				<li><strong class="bold">Logging and monitoring</strong>: Introduce the appropriate tools to enable log flow across pipelines. The logs will provide insight into failures and warnings across deployments. Allow consistent log collection to monitor threats and <span class="No-Break">raise alarms.</span></li>
+				<li><strong class="bold">Visibility</strong>: Educate teams to use appropriate tools and processes to ensure the transparency and visibility of multiple ML solutions across <span class="No-Break">different deployments.</span></li>
+				<li><strong class="bold">Flexible design</strong>: Implement the agile methodology not only in architecture and development but also in security life cycle management to ensure timely patching and certificate renewal. Add and modify<a id="_idIndexMarker562"/> extra components or security layers to safeguard the organization’s systems and cloud resources flexibly <span class="No-Break">as required.</span></li>
+			</ul>
+			<p>Now that we are aware of the primary<a id="_idIndexMarker563"/> design principles, let us look at how we establish the security of control over data, security by design, and the segmentation principle, using a practical example of an architecture with a feature <span class="No-Break">store (</span><a href="https://aws.amazon.com/blogs/machine-learning/enable-feature-reuse-across-accounts-and-teams-using-amazon-sagemaker-feature-store/"><span class="No-Break">https://aws.amazon.com/blogs/machine-learning/enable-feature-reuse-across-accounts-and-teams-using-amazon-sagemaker-feature-store/</span></a><span class="No-Break">).</span></p>
+			<h2 id="_idParaDest-93"><a id="_idTextAnchor105"/>Developing in a sandbox environment</h2>
+			<p>In this section, we will understand<a id="_idIndexMarker564"/> how different teams can develop in <span class="No-Break">restricted environments.</span></p>
+			<p><span class="No-Break"><em class="italic">Figure 4</em></span><em class="italic">.13</em> illustrates the use of a number of components to create a sandbox environment in AWS (<a href="https://aws.amazon.com/blogs/security/how-to-centralize-and-automate-iam-policy-creation-in-sandbox-development-and-test-environments/">https://aws.amazon.com/blogs/security/how-to-centralize-and-automate-iam-policy-creation-in-sandbox-development-and-test-environments/</a>) for different data science and engineering teams working on different stages of the model life cycle, including feature engineering, model training, testing, and deployment. Very specific security permissions can be granted on a case-by-case basis to teams. Each team can further customize this workflow according to the specific requirements of the team. In addition, some teams can push data to the feature store and others may access and read the data from the feature store for use in their internal development processes. Sandbox environments thus aid collaboration by restricting privileges to <span class="No-Break">individual teams.</span></p>
+			<p>Now let us try to understand, with reference to <span class="No-Break"><em class="italic">Figure 4</em></span><em class="italic">.13</em>, how to set restricted permissions based on the account type and use AWS CodePipeline to create and manage a workflow running over multiple <span class="No-Break">AWS accounts:</span></p>
+			<ul>
+				<li>An S3 bucket can be used by sandbox administrators to upload <span class="No-Break">IAM policies.</span></li>
+				<li>An IAM role in the automated pipeline is used for accessing the S3 bucket that stores the <span class="No-Break">IAM policies.</span></li>
+				<li>An AWS KMS key is used for encrypting the IAM policies in the <span class="No-Break">S3 bucket.</span></li>
+				<li>An AWS Lambda service is used to validate <span class="No-Break"><em class="italic">allow</em></span><span class="No-Break">/</span><span class="No-Break"><em class="italic">deny</em></span><span class="No-Break"> permissions.</span></li>
+			</ul>
+			<p>An AWS user (say, Alice) can use the IAM visual editor to grant suitable access rights and permissions to allow a team (say, Data Science Team A) to launch and manage EMR clusters to process data from S3 datasets. The IAM JSON<a id="_idIndexMarker565"/> policy document can be uploaded to an S3 bucket using an <strong class="bold">AWS Key Management Service</strong> (<strong class="bold">AWS </strong><span class="No-Break"><strong class="bold">KMS</strong></span><span class="No-Break">) key.</span></p>
+			<p>AWS CodePipeline can further query a central Lambda function in AWS to query an IAM JSON policy document and issue a series of validation checks. Here, the Lambda function can also attach deny rules to the IAM policy to limit user permissions in the sandbox account. On successful validation, the Lambda function creates the user policy (Alice) resulting in the successful setup of the pipeline, further allowing the user to attach it to the right IAM user, group, or role. If the IAM JSON policy fails, the user needs to modify it to make it comply with the security guidelines and resubmit <span class="No-Break">it again.</span></p>
+			<p>Thus, we can see how IAM role<a id="_idIndexMarker566"/> selection can be used to isolate teams’ work environments. It also facilitates restrictive access rights and privileges based on <span class="No-Break">their needs.</span></p>
+			<div>
+				<div id="_idContainer077" class="IMG---Figure">
+					<img src="image/Figure_4.13_B18681.jpg" alt="Figure 4.13 – Access control-based partitions in sandbox environments"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.13 – Access control-based partitions in sandbox environments</p>
+			<p>When our ML solutions are accessed by apps<a id="_idIndexMarker567"/> from multiple users over a cloud platform, we can employ brokers, called <strong class="bold">Cloud Access Security Brokers</strong> (<strong class="bold">CASBs</strong>), to provide insights about potential and upcoming cyber threats. Microsoft leverages<a id="_idIndexMarker568"/> one such broker service by employing Microsoft Defender for Cloud Apps (<a href="https://docs.microsoft.com/en-us/defender-cloud-apps/what-is-defender-for-cloud-apps">https://docs.microsoft.com/en-us/defender-cloud-apps/what-is-defender-for-cloud-apps</a>), which works across deployment platforms (with API connectors and reverse proxies) to facilitate log collection and monitoring activities. This kind of service helps to enforce enterprise-grade security measures and thus helps us to protect organizational resources in real time. Additionally, it acts as an enabler to support content collaboration between different divisions (such as HR, payroll, hiring, and so on), each of which may have its own ML services<a id="_idIndexMarker569"/> and data-related compliance requirements. Defender for Cloud Apps’ unique security features<a id="_idIndexMarker570"/> include <span class="No-Break">the following:</span></p>
+			<ul>
+				<li><strong class="bold">Visibility</strong>: Detect and label all cloud services with a ranking, produced by tracking each user’s access rights to <span class="No-Break">individual services.</span></li>
+				<li><strong class="bold">Data security</strong>: Control of sensitive information with DLP, referencing the security labels <span class="No-Break">on content.</span></li>
+				<li><strong class="bold">Threat protection</strong>: Identify anomalous behaviors and trends with <strong class="bold">User and</strong> <strong class="bold">Entity Behavior Analysis </strong>(<strong class="bold">UEBA</strong>) and provide <strong class="bold">Adaptive Access Control </strong>(<strong class="bold">AAC</strong>) to mitigate malware. Adaptive security or AAC is also known as zero-trust security, which means<a id="_idIndexMarker571"/> not trusting any user<a id="_idIndexMarker572"/> by default. As the base policy does<a id="_idIndexMarker573"/> not have any trust attached to it, applying constant monitoring techniques along with flexible support can help to replace outdated legacy infrastructures with newer <span class="No-Break">adaptive policies.</span></li>
+				<li><strong class="bold">Compliance</strong>: Build reports and dashboards to support cloud and ML governance practices and ensure that data residency and regulatory compliance requirements <span class="No-Break">are met.</span></li>
+				<li>The following figure illustrates the integration<a id="_idIndexMarker574"/> of Defender for Cloud Apps into a cloud-based architecture. The <strong class="bold">Cloud Discovery</strong> service enables the discovery of apps used in an organization’s private enterprise cloud. In addition, application-level logs of firewalls and proxies can also be analyzed. It also uses app connectors to provide insights into app governance and offer better protection. The app connectors integrate with Defender services via the APIs from <span class="No-Break">cloud providers.</span></li>
+			</ul>
+			<p>With Microsoft Defender for Cloud Apps, it is possible to employ a reverse proxy architecture with <strong class="bold">Conditional Access App Control</strong>. Such access control helps to increase visibility over activities<a id="_idIndexMarker575"/> happening in the cloud environment. Defender for Cloud Apps can be used to dynamically set policies and identify risks arising from suspicious data points and unprotected endpoints. Policies often help in integrating remediation processes to carve out a risk mitigation plan. Microsoft also provides a cloud app catalog, which rates the risks exposed by the apps in use, taking into consideration regulatory certifications, industry standards, and <span class="No-Break">best practices.</span></p>
+			<p>Each app can customize its framework by setting limits on incoming request rates, using throttling rules, or by having dynamic time-shifting API windows. Though this procedure increases the amount of time taken to execute scanning operations for requests having a large number of APIs, at the same time it helps to protect us from unwanted adversarial requests. </p>
+			<p>Efficient use of encryption processes, refraining from including credentials in source code and Docker files, and applying different blocking strategies all further enhance <span class="No-Break">security standards.</span></p>
+			<p>The following figure illustrates<a id="_idIndexMarker576"/> further how a set of protected apps can be authorized to access the cloud with full data security and compliance. With added components such as the proxy, firewalls, and app governance, monitoring and logging<a id="_idIndexMarker577"/> become much easier. Moreover, we can see the sequential security controls (<strong class="bold">Role-Based Access Control (RBAC</strong>) | <strong class="bold">Policy Management</strong> | <strong class="bold">Discovery</strong> | <strong class="bold">Settings</strong> | <strong class="bold">Real-Time Controls</strong>) that we can follow to enhance our security stack. All the security controls are explained further in <span class="No-Break"><em class="italic">Figure 4</em></span><span class="No-Break"><em class="italic">.14</em></span><span class="No-Break">:</span></p>
+			<div>
+				<div id="_idContainer078" class="IMG---Figure">
+					<img src="image/Figure_4.14_B18681.jpg" alt=" Figure 4.14 – Different security features to enable access to protected cloud apps"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US"> Figure 4.14 – Different security features to enable access to protected cloud apps</p>
+			<p>These are broken down in the following table, with a discussion of the security management strategies<a id="_idIndexMarker578"/> and the corresponding actions <span class="No-Break">to take:</span></p>
+			<table id="table001-2" class="No-Table-Style _idGenTablePara-1">
+				<colgroup>
+					<col/>
+					<col/>
+					<col/>
+				</colgroup>
+				<tbody>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p class="P-Regular-Table"><strong class="bold">Item No</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p class="P-Regular-Table"><strong class="bold">Life cycle security management strategy</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p class="P-Regular-Table"><strong class="bold">Actions</strong></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p class="P-Regular-Table">1.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p class="P-Regular-Table"><strong class="bold">Role-Based Access Control</strong> (<strong class="bold">RBAC</strong>)</p>
+						</td>
+						<td class="No-Table-Style">
+							<p class="P-Regular-Table">Review users who have access to the Defender for Cloud Apps portal and verify their roles are as required. Validate inventory of external users who have access.</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p class="P-Regular-Table">2.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p class="P-Regular-Table"><strong class="bold">Real-time controls</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p class="P-Regular-Table">Addition/removal of old users from Conditional Access policies. Update SAML certificates for third-party identity providers.</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p class="P-Regular-Table">3.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p class="P-Regular-Table"><strong class="bold">Policy management</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p class="P-Regular-Table">Renew and revisit policies. Frame individual policies for issuing alerts. Ensure alignment of labeling strategy with current security and compliance configuration.</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p class="P-Regular-Table">4.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p class="P-Regular-Table"><strong class="bold">Discovery</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p class="P-Regular-Table">Upgrade the log collector by removing old data sources and add/disable app connectors.</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p class="P-Regular-Table">5.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p class="P-Regular-Table"><strong class="bold">Settings</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p class="P-Regular-Table">Review managed domains, verifying, adding, or removing current IP ranges for corporate and VPN apps. Allow the filtering of apps based on the condition that they were sanctioned, unsanctioned, or the type of tag used. Adjust score metrics. Remove member rights and privileges to view information.</p>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Table 4.1 – Security management strategies</p>
+			<h2 id="_idParaDest-94"><a id="_idTextAnchor106"/>Managing secrets in cloud orchestration services</h2>
+			<p>In orchestration services<a id="_idIndexMarker579"/> such as<a id="_idIndexMarker580"/> Kubernetes (which is a portable, extensible, open source platform responsible for managing containerized workloads and services: <a href="https://kubernetes.io/docs/home/">https://kubernetes.io/docs/home/</a>), secrets can be easily modified (<a href="https://kubernetes.io/docs/concepts/configuration/secret/">https://kubernetes.io/docs/concepts/configuration/secret/</a>) with APIs as they are stored unencrypted<a id="_idIndexMarker581"/> in the API server’s etcd data directory. Even teams or individuals<a id="_idIndexMarker582"/> authorized to create a Pod in a namespace can use the same access rights to read secrets in that namespace. The key ways to protect<a id="_idIndexMarker583"/> such secrets is to do <span class="No-Break">the following:</span></p>
+			<ul>
+				<li>Enable encryption at rest <span class="No-Break">for secrets.</span></li>
+				<li>Enable and configure RBAC rules to restrict read permissions and prevent the reading of data <span class="No-Break">in secrets.</span></li>
+				<li>Leverage the use of RBAC to selectively choose and allow principals for creating new secrets and replace <span class="No-Break">existing secrets.</span></li>
+			</ul>
+			<p>Now let us discuss the importance of monitoring and threat detection and understand the chief components <span class="No-Break">involved here.</span></p>
+			<h1 id="_idParaDest-95"><a id="_idTextAnchor107"/>Monitoring and threat detection</h1>
+			<p>To get security-enabled systems<a id="_idIndexMarker584"/> running in production, we need to incorporate threat detection <a id="_idIndexMarker585"/>strategies as a part of the secured cloud environment. Our monitoring actions should be automated so that we can quickly detect malicious activity and react with mitigation efforts to neutralize the vulnerabilities. If we are not prompt with the detection, we run the risk of losing critical and sensitive information <span class="No-Break">to attackers.</span></p>
+			<p>ML services in production primarily face two types of threats – known threats and unknown threats, where unknown<a id="_idIndexMarker586"/> threats are targeted by attackers using new methods and technologies. Both types of threats<a id="_idIndexMarker587"/> can be addressed by using threat intelligence services, such as <strong class="bold">Security Information and Event Management</strong> (<strong class="bold">SIEM</strong>) systems, antivirus software, <strong class="bold">Intrusion Detection Systems</strong> (<strong class="bold">IDSs</strong>), and web <span class="No-Break">proxy technologies.</span></p>
+			<p>One of the primary components of IT and information security strategies is to track and monitor user and entity behavior analytics to prevent attacks and do a root cause analysis. Another important proactive action taken by security teams is to set up traps, hoping that the attacker will take the bait. Such traps might include a honeypot target. These traps look lucrative to attackers and provoke them to attack. Once they enter the system, alerts are sent to the security team to notify everyone of suspicious activity that should be <span class="No-Break">handled promptly.</span></p>
+			<p>The third mechanism of threat detection is to use security tools that can hunt threats by actively scanning services, networks, and endpoints to discover and raise alerts for threats or attacks that may be lurking but are not <span class="No-Break">yet detected.</span></p>
+			<p>A robust threat detection program should incorporate the following defensive actions by employing advanced <span class="No-Break">security technologies:</span></p>
+			<ul>
+				<li>Aggregate data from events across the network, including authentication, network access, and logs from critical components and microservices across the <span class="No-Break">cloud system.</span></li>
+				<li>Analyze traffic patterns on the network and monitor traffic within and between trusted networks and <span class="No-Break">external interfaces.</span></li>
+				<li>Leverage endpoint threat detection techniques to collect and provide logs on malicious events from user machines to aid in threat <span class="No-Break">investigation processes.</span></li>
+			</ul>
+			<p>The primary threat detection components should have built-in capabilities for both live data streams and data stored in databases or caches. In other words, they should have monitoring agents running on all the components (including proxies, load balancers, microservices, databases, caches, and messaging pipelines) to aid incident responses <span class="No-Break">and alerts.</span></p>
+			<p>Now let us see with an example<a id="_idIndexMarker588"/> how AWS classifies different events based<a id="_idIndexMarker589"/> on their severity by monitoring VPC flow logs, DNS logs, and logs from Amazon CloudTrail (which records user activity and account usage). AWS cloud has a service called GuardDuty (see <span class="No-Break"><em class="italic">Figure 4</em></span><em class="italic">.15</em>) that constantly scans for malicious<a id="_idIndexMarker590"/> activity and adversarial attacks. It uses ML, anomaly detection, and integrated threat intelligence to identify the severity <span class="No-Break">of attacks.</span></p>
+			<div>
+				<div id="_idContainer079" class="IMG---Figure">
+					<img src="image/Figure_4.15_B18681.jpg" alt="Figure 4.1﻿5 – AWS GuardDuty to monitor logs and classify events"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.15 – AWS GuardDuty to monitor logs and classify events</p>
+			<p>One of the mandatory checklists before productionizing training pipelines and ML-based microservices is to enumerate <strong class="bold">STRIDE</strong> threats—short for <strong class="bold">Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, and Elevation of Privilege</strong>—across all trust boundaries to find an effective<a id="_idIndexMarker591"/> way to catch design errors during the development phase, rather than discovering them when it’s too late. Leakage detection tools such as port scanners and network monitors should be deployed based on existing and emerging top vulnerability areas. Now that we have seen the security properties needed to mitigate threats, let us quickly summarize what we've learned about the principal security components where we should be investing our efforts to identify potential areas of data and <span class="No-Break">privacy leakage.</span></p>
+			<h1 id="_idParaDest-96"><a id="_idTextAnchor108"/>Summary</h1>
+			<p>In this chapter, we have learned about the different security practices in big data architectures both for batch and streaming data. We have examined the different components involved along with the messages exchanged to set up authorization and authentication processes in a Hadoop ecosystem. We further extended the scope to understand how model training pipelines can be made to fit in a scalable architecture by analyzing design strategies for adversarial model training. We explored concepts including retraining from scratch, continued training, and two-stage continued training to deep dive into concepts such as privacy-enabled retraining. Our examination of the design of secure ML-based microservices gave us insights into how to embed layers of security with individual microservices and in situations when one microservice is dependent on sensitive data from <span class="No-Break">another microservice.</span></p>
+			<p>When we talked about privacy-enabled training, we investigated how to run scalable DP-based ML systems. We also talked about the principles of cloud security design and methods to monitor threats in different infrastructures. This chapter further helped us to study, by way of specific examples, how can we establish collaboration among teams (with isolated sandbox environments) and at the same time follow the principle of least privilege. After gaining thorough insights into the privacy aspects of ML and big data pipelines, we will now examine how to ensure fairness in data collection and design fair algorithms in the next <span class="No-Break">few chapters.</span></p>
+			<p>In the next chapter, we will look at some important considerations around fairness and the mechanisms available with which we can generate fair <span class="No-Break">synthetic data.</span></p>
+			<h1 id="_idParaDest-97"><a id="_idTextAnchor109"/>Further reading</h1>
+			<ul>
+				<li><em class="italic">Analyzing Information Leakage of Updates to Natural Language Models</em>, Zanella-Béguelin Santiago, Lukas Wutschitz, Shruti Tople, Victor Rühle, Andrew Paverd, Olga Ohrimenko, Boris Köpf, and Marc Brockschmidt. <span class="No-Break">2020. </span><a href="https://arxiv.org/pdf/1912.07942.pdf"><span class="No-Break">https://arxiv.org/pdf/1912.07942.pdf</span></a></li>
+				<li><em class="italic">Bolt-on Differential Privacy for Scalable Stochastic Gradient Descent-based Analytics</em>, Wu Xi, Fengan Li, Arun Kumar, Kamalika Chaudhuri, Somesh Jha, and Jeffrey Naughton. <span class="No-Break">2017.</span><span class="No-Break"><em class="italic"> </em></span><a href="https://andrewxiwu.github.io/public/papers/2017/WLKCJN17-bolt-on-differential-privacy-for-scalable-stochastic-gradient-descent-based-analytics.pdf"><span class="No-Break">https://andrewxiwu.github.io/public/papers/2017/WLKCJN17-bolt-on-differential-privacy-for-scalable-stochastic-gradient-descent-based-analytics.pdf</span></a></li>
+				<li><em class="italic">Adversarial Targeted Forgetting in Regularization and Generative Based Continual Learning Models, </em>Umer Muhammad and Robi <span class="No-Break">Polikar. </span><a href="https://arxiv.org/pdf/2102.08355.pdf"><span class="No-Break">https://arxiv.org/pdf/2102.08355.pdf</span></a></li>
+				<li><em class="italic">EasyFL: A Low-code Federated Learning Platform For Dummies. </em>ArXiv abs/2105.07603 (2022), Zhuang, Weiming et <span class="No-Break">al.</span><span class="No-Break"><em class="italic"> </em></span><a href="https://arxiv.org/pdf/2105.07603.pdf"><span class="No-Break">https://arxiv.org/pdf/2105.07603.pdf</span></a></li>
+				<li><em class="italic">Targeted Forgetting and False Memory Formation in Continual Learners through Adversarial Backdoor Attack, </em>Umer Muhammad and Glenn Dawson and Robi <span class="No-Break">Polikar. </span><a href="https://arxiv.org/pdf/2002.07111.pdf"><span class="No-Break">https://arxiv.org/pdf/2002.07111.pdf</span></a></li>
+				<li><em class="italic">Microservice security with </em><span class="No-Break"><em class="italic">Vault</em></span><span class="No-Break"> </span><a href="https://www.hashicorp.com/resources/microservice-security-with-Vault"><span class="No-Break">https://www.hashicorp.com/resources/microservice-security-with-Vault</span></a></li>
+				<li><em class="italic">Secure machine learning against adversarial samples at test time,</em> Lin, J., Njilla, L.L. , and Xiong, K.<em class="italic"> </em>EURASIP J. on Info. Security <span class="No-Break">2022. </span><a href="https://jis-eurasipjournals.springeropen.com/articles/10.1186/s13635-021-00125-2"><span class="No-Break">https://jis-eurasipjournals.springeropen.com/articles/10.1186/s13635-021-00125-2</span></a></li>
+				<li><em class="italic">A Defense Framework for Privacy Risks in Remote Machine Learning Service, </em>Bai Yang, Yu Li, Mingchuang Xie, and Mingyu <span class="No-Break">Fan. </span><a href="https://www.hindawi.com/journals/scn/2021/9924684/"><span class="No-Break">https://www.hindawi.com/journals/scn/2021/9924684/</span></a></li>
+				<li><em class="italic">From the Cloud to the Edge: Towards a Distributed and Light Weight Secure Big Data Pipelines for IoT Applications. Feras Awaysheh, </em>Awaysheh, Feras. (<span class="No-Break">2021). </span><a href="https://www.researchgate.net/publication/356343773_From_the_Cloud_to_the_Edge_Towards_a_Distributed_and_Light_Weight_Secure_Big_Data_Pipelines_for_IoT_Applications"><span class="No-Break">https://www.researchgate.net/publication/356343773_From_the_Cloud_to_the_Edge_Towards_a_Distributed_and_Light_Weight_Secure_Big_Data_Pipelines_for_IoT_Applications</span></a></li>
+				<li><em class="italic">“Machine learning as a reusable microservice,” NOMS 2018 - 2018 IEEE/IFIP Network Operations and Management Symposium, </em>M. Pahl and M. Loipfinger,<em class="italic"> </em>2018, pp. <span class="No-Break">1-7,</span><span class="No-Break"><em class="italic"> </em></span><a href="https://ieeexplore.ieee.org/document/8406165"><span class="No-Break">https://ieeexplore.ieee.org/document/8406165</span></a></li>
+				<li><em class="italic">Protecting models with customer-managed encryption </em><span class="No-Break"><em class="italic">keys</em></span><span class="No-Break"> </span><a href="https://cloud.google.com/bigquery-ml/docs/customer-managed-encryption-key"><span class="No-Break">https://cloud.google.com/bigquery-ml/docs/customer-managed-encryption-key</span></a></li>
+				<li><em class="italic">InterpretML: A Unified Framework for Machine Learning, </em>Nori Harsha, Samuel Jenkins, Paul Koch, and Rich <span class="No-Break">Caruana</span><span class="No-Break"><em class="italic"> </em></span><a href="https://arxiv.org/pdf/1909.09223.pdf"><span class="No-Break">https://arxiv.org/pdf/1909.09223.pdf</span></a></li>
+			</ul>
+		</div>
+	</body></html>

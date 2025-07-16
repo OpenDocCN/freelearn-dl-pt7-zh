@@ -1,0 +1,456 @@
+<html><head></head><body>
+		<div id="_idContainer098">
+			<h1 id="_idParaDest-98" class="chapter-nu ber"><strong class="bold"><a id="_idTextAnchor110"/></strong>5</h1>
+			<h1 id="_idParaDest-99"><a id="_idTextAnchor111"/>ML Pipeline, Model Evaluation, and Handling Uncertainty</h1>
+			<p>This chapter starts with the introduction of the AI/ML workflow. The chapter then delves into different ML algorithms used for classification, regression, generation, and reinforcement learning. The chapter also discusses issues related to the reliability and trustworthiness of these algorithms. We start with an introduction to the various components of an ML pipeline and explain the need for continuous training. The chapter then briefly explores the important AI/ML algorithms for the tasks of classification, regression, and clustering. Further, we discuss approaches for identifying bias in learning algorithms and causes of uncertainty in <span class="No-Break">model prediction.</span></p>
+			<p>In this chapter, these topics will be covered in the <span class="No-Break">following sections:</span></p>
+			<ul>
+				<li>Understanding different components of <span class="No-Break">ML pipelines</span></li>
+				<li>ML tasks <span class="No-Break">and algorithms</span></li>
+				<li>Causes of uncertainty in <span class="No-Break">model prediction</span></li>
+				<li>Uncertainty in <span class="No-Break">classification algorithms</span></li>
+				<li>Uncertainty in <span class="No-Break">regression algorithms</span></li>
+			</ul>
+			<p>Further, we will write Python code to quantify both aleatoric and epistemic uncertainty for <span class="No-Break">regression tasks.</span></p>
+			<h1 id="_idParaDest-100"><a id="_idTextAnchor112"/>Technical requirements</h1>
+			<p>This chapter requires you to have Python 3.8, along with some necessary <span class="No-Break">Python packages:</span></p>
+			<ul>
+				<li><span class="No-Break"><strong class="source-inline">TensorFlow 2.7.0</strong></span></li>
+				<li><span class="No-Break"><strong class="source-inline">NumPy</strong></span></li>
+				<li><span class="No-Break"><strong class="source-inline">matplotlib</strong></span></li>
+				<li>Keras-Uncertainty – to install it, use <span class="No-Break">the following:</span><pre class="console">
+<strong class="bold">!pip install --user git+https://github.com/mvaldenegro/keras-uncertainty.git</strong></pre></li>
+			</ul>
+			<h1 id="_idParaDest-101"><a id="_idTextAnchor113"/>Understanding different components of ML pipelines</h1>
+			<p>As any data scientist knows, ML<a id="_idIndexMarker592"/> is only as good as the data it’s trained on. In the real world, data is messy and complicated. Building a successful ML system, therefore, requires more than just building algorithms. It also requires a vast and complex infrastructure to support it. This includes everything from collecting and cleansing data to deploying and monitoring models. The problem is further complicated by the fact that changing anything in the system can have ripple effects throughout. A minor tweak in hyperparameters, for example, can require changes to the way data is collected and processed. As a result, building a successful ML system is an immensely <span class="No-Break">complex undertaking.</span></p>
+			<div>
+				<div id="_idContainer081" class="IMG---Figure">
+					<img src="image/Figure_5.1_B18681.jpg" alt="Figure 5.1 – ML workflow"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 5.1 – ML workflow</p>
+			<p>We can divide the ML<a id="_idIndexMarker593"/> workflow into five <span class="No-Break">main components:</span></p>
+			<ul>
+				<li><strong class="bold">Data Extraction</strong>: This is the phase where data needed<a id="_idIndexMarker594"/> for training the model<a id="_idIndexMarker595"/> is curated. It is the process of identifying relevant information from a larger dataset and converting it into a format that can be used for further analysis. This can be done manually, but it is more commonly done using automated algorithms. Data extraction can be used to extract contact information from a list of emails, to identify trends in stock prices, or to find new potential customers. The data can be in different forms (tabular data, image files, text, and so on). The data is decided on by the business needs of the specific use case. For example, if your use case is AI for retail, you will have data such as product pictures and tags. The process of data extraction typically begins with pre-processing, which involves identifying the relevant information from the dataset. Once the relevant information has been identified, it is then converted into a format that can be used by the ML algorithm. It allows the algorithm to focus on the most relevant information and ignore irrelevant data. This can improve the accuracy of the ML algorithm and help to speed<a id="_idIndexMarker596"/> up the <span class="No-Break">training</span><span class="No-Break"><a id="_idIndexMarker597"/></span><span class="No-Break"> process.</span></li>
+				<li><strong class="bold">Data Engineering</strong>: In this phase, the data<a id="_idIndexMarker598"/> is analyzed, cleaned, explored, and pre-processed<a id="_idIndexMarker599"/> to be fed to the model. The phase may involve combining one or more features and/or dimensionality reduction of the data for computational efficiency. The goal of data engineering is to create a dataset that is both accurate and representative of the real world in a <span class="No-Break">reproducible way.</span></li>
+				<li><strong class="bold">Model Training</strong>: This is an iterative phase, where model<a id="_idIndexMarker600"/> experiments are performed. It involves<a id="_idIndexMarker601"/> selecting the best model, performing hyperparameter tuning, and validating the trained model using desired metrics. Finding the right set of hyperparameters is an art and, in earlier days of ML, only some experts were able to do it effectively. As a result, many used to call ML “alchemy.” However, today, with the availability of robust and reliable optimizers and AutoML features, we can generate reliable and reproducible results. It is worth mentioning, though, that this step is time- <span class="No-Break">and compute-intensive.</span></li>
+				<li><strong class="bold">Model Deployment</strong>: The final model is deployed<a id="_idIndexMarker602"/> to production. It is important<a id="_idIndexMarker603"/> to monitor the model’s performance and for any degradation in the performance to be reported and acted upon. The deployed model needs to be monitored for both <em class="italic">data drift</em> and <em class="italic">concept drift</em>. We will talk about these concepts in detail in <a href="B18681_06.xhtml#_idTextAnchor126"><span class="No-Break"><em class="italic">Chapter 6</em></span></a><span class="No-Break">.</span></li>
+				<li><strong class="bold">User Interface</strong>: Once the model is deployed, it is ready<a id="_idIndexMarker604"/> for consumption. It will take<a id="_idIndexMarker605"/> user input and perform predictions, which can be shared via the <span class="No-Break">visual dashboards.</span></li>
+			</ul>
+			<p>Depending upon the level of expertise and need, different components of the ML pipeline can be done manually, automated as MLOps (for details, refer to <a href="B18681_06.xhtml#_idTextAnchor126"><span class="No-Break"><em class="italic">Chapter 6</em></span></a>), or fully automated as <span class="No-Break">CI/CD processes.</span></p>
+			<h1 id="_idParaDest-102"><a id="_idTextAnchor114"/>ML tasks and algorithms</h1>
+			<p>In general, ML tasks can be categorized into four categories: classification, regression, clustering, and dimensionality reduction (<span class="No-Break"><em class="italic">Figure 5</em></span><span class="No-Break"><em class="italic">.2</em></span><span class="No-Break">).</span></p>
+			<div>
+				<div id="_idContainer082" class="IMG---Figure">
+					<img src="image/Figure_5.2_B18681.jpg" alt="Figure 5.2 – Different ML tasks and popular algorithms"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 5.2 – Different ML tasks and popular algorithms</p>
+			<p>For each of them, there exist many standard algorithms. For the sake of completeness, we will list ML tasks and some common algorithms <span class="No-Break">for them:</span></p>
+			<ul>
+				<li><strong class="bold">Classification</strong>: When data needs to be divided<a id="_idIndexMarker606"/> into different categories or classes, we use classification<a id="_idIndexMarker607"/> algorithms. This is a supervised learning problem where the aim is to predict the discrete class label of new examples, based on training data. It is one of the most commonly used techniques in ML, and has a wide range of applications, from identifying spam emails to facial recognition. The basic idea behind classification is to build a model that can learn the relationship between the input data and the class labels. This model can then be used to make predictions on new data points. There are a variety of different algorithms that can be used for classification, each with its own strengths and weaknesses. The choice of algorithm will largely depend<a id="_idIndexMarker608"/> on the nature of the data and the required<a id="_idIndexMarker609"/> accuracy of <span class="No-Break">the predictions.</span></li>
+				<li><strong class="bold">Regression</strong>: In ML, regression<a id="_idIndexMarker610"/> is a technique<a id="_idIndexMarker611"/> used to predict continuous values, such as prices or weights. It assumes that there is a linear relationship between the predictor variables and the response variable. In other words, as the predictor variables increase, the response variable will also increase (or decrease) by a constant amount. Regression models can be used to identify which predictors are most important for determining the value of the response variable. They can also be used to estimate uncertainty in the predictions. Despite its simplicity, regression is a powerful tool that can be used to solve many real-world problems. Regression, like classification, is a supervised <span class="No-Break">learning problem.</span></li>
+				<li><strong class="bold">Clustering</strong>: Clustering is a ML technique<a id="_idIndexMarker612"/> that groups similar data points together. It is used to segment customers, classify<a id="_idIndexMarker613"/> documents, and identify patterns in data. There are a variety of clustering algorithms, but they all operate on the same principle: they partition data into groups, called clusters, by finding similarities between data points. Clustering<a id="_idIndexMarker614"/> is an unsupervised learning technique, which means that it does not require labeled data. This makes it particularly well-suited for exploratory data analysis. Clustering can be used to find structure in data, generate hypotheses about how the data is organized, and identify outliers. By grouping together similar data points, clustering can simplify complex datasets and make them easier to work with. Clustering is an essential tool for ML and data science. It can be used alone or in combination with other techniques to solve a variety of problems. Many clustering algorithms, such as k-means, are based on an unsupervised <span class="No-Break">learning paradigm.</span></li>
+				<li><strong class="bold">Dimensionality Reduction</strong>: In ML, dimensionality reduction is the process<a id="_idIndexMarker615"/> of reducing the number<a id="_idIndexMarker616"/> of features in a dataset. This can be done for a variety of reasons, such as reducing the training time or improving the model’s performance. There are a number of different methods for dimensionality<a id="_idIndexMarker617"/> reduction, and the most appropriate<a id="_idIndexMarker618"/> method will depend on the dataset and the desired results. Some common methods include <strong class="bold">Principal Component Analysis</strong> (<strong class="bold">PCA</strong>) and <strong class="bold">Linear Discriminant Analysis</strong> (<strong class="bold">LDA</strong>). In general, dimensionality reduction can be a useful tool for improving ML models. However, it is important to carefully select the right method for the specific dataset and desired results. Otherwise, it can harm the <span class="No-Break">model’s performance.</span></li>
+			</ul>
+			<p>The following table lists some of the commonly used algorithms and deep learning models used for <span class="No-Break">each task.</span></p>
+			<table id="table001-3" class="T---Table _idGenTablePara-1">
+				<colgroup>
+					<col/>
+					<col/>
+					<col/>
+					<col/>
+				</colgroup>
+				<thead>
+					<tr class="T---Table">
+						<td class="T---Table T---Header">
+							<p class="P-Regular-Table"><strong class="bold">Classification</strong></p>
+						</td>
+						<td class="T---Table T---Header">
+							<p class="P-Regular-Table"><strong class="bold">Regression</strong></p>
+						</td>
+						<td class="T---Table T---Header">
+							<p class="P-Regular-Table"><strong class="bold">Clustering</strong></p>
+						</td>
+						<td class="T---Table T---Header">
+							<p class="P-Regular-Table"><strong class="bold">Dimensionality Reduction</strong></p>
+						</td>
+					</tr>
+				</thead>
+				<tbody>
+					<tr class="T---Table">
+						<td class="T---Table T---Body">
+							<ul>
+								<li class="L-Bullet-Table">Logistic Regression</li>
+								<li class="L-Bullet-Table">Support Vector Machines</li>
+								<li class="L-Bullet-Table">Decision Tree Classifier</li>
+								<li class="L-Bullet-Table">Random Forest Classifier</li>
+								<li class="L-Bullet-Table">XGBOOST Classifier</li>
+								<li class="L-Bullet-Table">Naïve Bayes Classifier</li>
+								<li class="L-Bullet-Table">Multilayered Perceptron</li>
+								<li class="L-Bullet-Table">Convolutional Neural network</li>
+							</ul>
+						</td>
+						<td class="T---Table T---Body">
+							<ul>
+								<li class="L-Bullet-Table">Linear Regression</li>
+								<li class="L-Bullet-Table">Ridge Regression</li>
+								<li class="L-Bullet-Table">Decision Tree Regression</li>
+								<li class="L-Bullet-Table">Random Forest Regressor</li>
+								<li class="L-Bullet-Table">Support Vector Machine Regressor</li>
+								<li class="L-Bullet-Table">Neural Network Regressor</li>
+								<li class="L-Bullet-Table">Lasso Regressor</li>
+							</ul>
+						</td>
+						<td class="T---Table T---Body">
+							<ul>
+								<li class="L-Bullet-Table">K-means</li>
+								<li class="L-Bullet-Table">Density-based Spatial Clustering</li>
+								<li class="L-Bullet-Table">Gaussian Mixture Model</li>
+								<li class="L-Bullet-Table">Affinity Propagation Clustering</li>
+								<li class="L-Bullet-Table">Balance Iterative Reducing and Clustering Hierarchies</li>
+								<li class="L-Bullet-Table">Mean Shift Clustering</li>
+								<li class="L-Bullet-Table">Agglomerative Hierarchy Clustering</li>
+								<li class="L-Bullet-Table"><strong class="bold">Ordering Points to Identify the Clustering Structure</strong> (<strong class="bold">OPTICS</strong>)</li>
+							</ul>
+						</td>
+						<td class="T---Table T---Body">
+							<ul>
+								<li class="L-Bullet-Table">Principal Component Analysis</li>
+								<li class="L-Bullet-Table">T-distributed Stochastic Neighbor Embedding</li>
+								<li class="L-Bullet-Table">Singular Value Decomposition</li>
+								<li class="L-Bullet-Table">Linear Discriminant Analysis</li>
+								<li class="L-Bullet-Table">Factor Analysis</li>
+								<li class="L-Bullet-Table">Multidimensional scaling</li>
+								<li class="L-Bullet-Table">Random Forests</li>
+							</ul>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Table 5.1 – A table of ML algorithms</p>
+			<p>The algorithms listed in <em class="italic">Table 5.1</em> use either supervised<a id="_idIndexMarker619"/> learning or unsupervised learning paradigms. However, there is a third paradigm of ML, <strong class="bold">Reinforcement Learning</strong> (<strong class="bold">RL</strong>). It has been explored to train artificial agents to play games, for self-driving cars, and in AutoML to find the best models and hyperparameters for <span class="No-Break">different tasks.</span></p>
+			<p>Additionally, in recent<a id="_idIndexMarker620"/> years, researchers<a id="_idIndexMarker621"/> have developed <a id="_idIndexMarker622"/>AI algorithms that can be used to generate data (for example, <strong class="bold">generative adversarial networks</strong>, <strong class="bold">variational autoencoders</strong>, <strong class="bold">diffusion models</strong>, and so on). These algorithms have been explored to generate text, images, art, and <span class="No-Break">much more.</span></p>
+			<p>Each of these algorithms has its strengths and weaknesses, so choosing the optimal algorithm for a task often requires you to iterate through different algorithms and choose the one giving the best performance in terms of the evaluation metrics. However, to build a responsible<a id="_idIndexMarker623"/> AI solution, it is important that models are also evaluated against bias and fairness, and that the end user is made aware of the uncertainty in the predictions of <span class="No-Break">the model.</span></p>
+			<p>In the next section, we will talk about uncertainty and how to estimate uncertainty in <span class="No-Break">model prediction.</span></p>
+			<h1 id="_idParaDest-103"><a id="_idTextAnchor115"/>Uncertainty in ML</h1>
+			<p>ML is inseparably connected<a id="_idIndexMarker624"/> with uncertainty. After all, machines learn from data that is itself uncertain. This data might be noisy, incomplete, or just plain wrong. As a result, any conclusions that the machine draws from this data are going to be subject to some degree of uncertainty. And thus, we need to be aware of the inherent uncertainty in any results that we obtain and account for it appropriately. Only then can we hope to make the best use of ML in our decision-making processes. To make this point, here is a prediction using <strong class="source-inline">EfficientNet</strong>, one of the top-scoring networks on the <strong class="source-inline">ImageNet</strong> dataset (Tan and <span class="No-Break">Le, 2019).</span></p>
+			<p><strong class="source-inline">EfficientNet</strong> receives the <span class="No-Break">following image:</span></p>
+			<div>
+				<div id="_idContainer083" class="IMG---Figure">
+					<img src="image/Figure_5.3_B18681.jpg" alt="Figure 5.3 – Input to EfficientNetB0 from the ImageNet dataset"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 5.3 – Input to EfficientNetB0 from the ImageNet dataset</p>
+			<p>It returns the <span class="No-Break">following output:</span></p>
+			<pre class="console">
+Predicted: [('n04326547', 'stone_wall', 0.81027746)]</pre>
+			<p>As you can see, on being presented with a photo of wooden logs, the model predicts it as <strong class="source-inline">'stone_wall'</strong> with <span class="No-Break">81% confidence.</span></p>
+			<p>Before we delve further into uncertainty in ML, it would be nice to remember how we humans deal with uncertainty. If you are asked a question – let’s say “<em class="italic">What is the NASDAQ index today?</em>” – if you have been following the stock market, you will give either its value or probably say it is bullish or bearish, as the case may be. But if you are not into the stock market, you will simply say “<em class="italic">I don’t know</em>." ML algorithms, however, will give a prediction irrespective of the input. So, if you have an ML algorithm trained to classify flowers, it will tell you what flower <em class="italic">you</em> are, even though human identification is not its domain. It would be wonderful if our ML models could also say “<em class="italic">Sorry, I do not know – it is not in my domain!</em>” Consider, for example, the self-driving car: it should be able to tell the driver “<em class="italic">Hey, I am not sure if what I am seeing is a pedestrian or not. Can you take control?</em>” This becomes even more crucial when we are using deep learning models for crucial decision making, such as providing a loan, providing medical facilities, and <span class="No-Break">so on.</span></p>
+			<p>One way to deal with this problem<a id="_idIndexMarker625"/> is to quantify uncertainty in the prediction so that when making a prediction a model will tell us how confident it is about its prediction or how reliable its predictions are. In this section, we will explore some of the ways the uncertainty of a model can be quantitatively described. But first, let us see what the different types of uncertainty are and what <span class="No-Break">causes them.</span></p>
+			<h2 id="_idParaDest-104"><a id="_idTextAnchor116"/>Types of uncertainty</h2>
+			<p>In ML, we often talk about two<a id="_idIndexMarker626"/> different types of uncertainty. The first type is <strong class="bold">aleatoric uncertainty</strong>, which refers to the inherent noise in data. This might be, for example, the fact that two people who are measuring the same thing will get slightly different <a id="_idIndexMarker627"/>results. Another type of uncertainty is <strong class="bold">epistemic uncertainty</strong>, which refers to our lack of knowledge about the model itself. For instance, if we’re trying to predict the price of a stock, there will always be some uncertainty due to the fact that we can’t know everything about the stock market. Uncertainty is an important part of ML, and understanding the different types can help us build <span class="No-Break">better models.</span></p>
+			<p>Let’s delve deep into the types <span class="No-Break">of uncertainty.</span></p>
+			<h3>Aleatoric uncertainty</h3>
+			<p>Aleatoric uncertainty<a id="_idIndexMarker628"/> represents the uncertainty<a id="_idIndexMarker629"/> that exists because of the random nature of natural processes. It is inherent uncertainty, present due to probabilistic variability. For example, when tossing a coin, there will always be a certain degree of uncertainty in predicting whether the next toss will be heads or tails. We can never eliminate this uncertainty, no matter how much data we have. To give another example, if we’re trying to predict the weather, there will always be some uncertainty due to the chaotic nature of the atmosphere. There is no way to remove this uncertainty. In essence, every<a id="_idIndexMarker630"/> time you repeat the<a id="_idIndexMarker631"/> experiment, the results will have <span class="No-Break">certain variations.</span></p>
+			<h3>Epistemic uncertainty</h3>
+			<p>Epistemic uncertainty comes from the lack<a id="_idIndexMarker632"/> of knowledge or a lack of information. There can be various reasons for a lack of knowledge, for example, inadequate understanding of underlying processes, incomplete knowledge of the phenomena, and so on. This type of uncertainty can be reduced. </p>
+			<p>For example, you can get more data, conduct more experiments, and so on. You can also try to reduce the uncertainty by using a more powerful model or training the model <span class="No-Break">for longer.</span></p>
+			<h3>Predictive uncertainty</h3>
+			<p>In ML, we are mostly<a id="_idIndexMarker633"/> concerned with the uncertainty that is propagated in a prediction, also called predictive uncertainty. On the basis<a id="_idIndexMarker634"/> of input data, predictive uncertainty is of <span class="No-Break">three types:</span></p>
+			<ul>
+				<li><strong class="bold">In-domain uncertainty</strong>: The cause of this uncertainty<a id="_idIndexMarker635"/> is unequal training data distribution, for example, having more samples of class A as compared to class B. This uncertainty can be reduced by improving the <span class="No-Break">data quality.</span></li>
+				<li><strong class="bold">Domain-shift uncertainty</strong>: This uncertainty arises when the training data distribution<a id="_idIndexMarker636"/> varies significantly from the real-world situation. For example, a model trained to recognize faces does not work well when the faces are occluded, the person is wearing glasses, a cap, or a face mask, and so on. It is possible to improve the model by including data-occluded samples <span class="No-Break">in training.</span></li>
+				<li><strong class="bold">Out-of-domain (OOD) uncertainty</strong>: As the name suggests, this is uncertainty<a id="_idIndexMarker637"/> that arises when the input is drawn from a completely unknown subspace. For example, if we train a model on dog photos and present it with a human, our ML algorithm is unable to tell that the input is outside of the domain it <span class="No-Break">has learned.</span></li>
+			</ul>
+			<h3>Causes of uncertainty</h3>
+			<p>There can be various causes<a id="_idIndexMarker638"/> of uncertainty (for more details, you should refer to the publication by Zio and Pedroni, 2012 – see the <em class="italic">Further </em><span class="No-Break"><em class="italic">reading</em></span><span class="No-Break"> section):</span></p>
+			<ul>
+				<li><strong class="bold">Lack of knowledge</strong>: In a supervised learning task, this can be translated as a lack of data that can encapsulate the relationship between input and output. This can be quantitative – for example, we may not know the probability distribution of features – or qualitative, where the features and their distribution are known but the features to describe the problem are unknown. By gaining more data, working closely with experts in the domain can reduce this cause <span class="No-Break">of uncertainty.</span></li>
+				<li><strong class="bold">An abundance of data</strong>: While today there is no dearth of data that one can save and access, the problem is finding features that are relevant to the use case. Rigorous feature engineering and data exploration can help in selecting <span class="No-Break">relevant features.</span></li>
+				<li><strong class="bold">The conflicting nature of data</strong>: When we build a ML model, the input features and the output variables are supposed to have some form of a cause-and-effect relationship. However, despite expert knowledge, we can never be sure that the correlations we are seeing in the data are also causation. An interesting example of funny correlations can be found on this <span class="No-Break">site: </span><a href="https://www.fastcompany.com/3030529/hilarious-graphs-prove-that-correlation-isnt-causation"><span class="No-Break">https://www.fastcompany.com/3030529/hilarious-graphs-prove-that-correlation-isnt-causation</span></a><span class="No-Break">.</span></li>
+				<li><strong class="bold">Measurement errors</strong>: The measurement of physical quantities via sensors always has some level of uncertainty due to the nature of the measuring <span class="No-Break">device itself.</span></li>
+				<li><strong class="bold">Linguistic ambiguity</strong>: It is often the case that words have different meanings in different contexts. Despite great advancements in natural language processing and new transformer architecture (Vaswani, 2017) that can converse almost like a human being (<a href="https://blog.google/technology/ai/lamda/">https://blog.google/technology/ai/lamda/</a>), we still do not have systems that can understand the complexities of <span class="No-Break">human language.</span></li>
+				<li><strong class="bold">The subjectivity of analyst opinions</strong>: Finally, there is the human factor. There can be uncertainty due to the subjective interpretation of the data analyst. The same piece of data may result in different interpretations depending on the cultural background and competence of the <span class="No-Break">data analyst.</span></li>
+			</ul>
+			<p>As we can see, while there are ways to reduce some of the causes of uncertainty, it is not possible to completely eliminate them. Therefore, in the rest of this part of the chapter, we will find ways to quantify<a id="_idIndexMarker639"/> and ways to reduce uncertainty in different <span class="No-Break">ML tasks.</span></p>
+			<h2 id="_idParaDest-105"><a id="_idTextAnchor117"/>Quantifying uncertainty</h2>
+			<p>We can divide the deep neural network<a id="_idIndexMarker640"/> uncertainty quantification methods available in the literature into four types. They are based on the number (single or multiple) and the nature (deterministic or stochastic) of the deep neural networks used. <span class="No-Break"><em class="italic">Figure 5</em></span><em class="italic">.4</em> shows the different types of uncertainty quantification methods in <span class="No-Break">the literature.</span></p>
+			<div>
+				<div id="_idContainer084" class="IMG---Figure">
+					<img src="image/Figure_5.4_B18681.jpg" alt="Figure 5.4 – Different uncertainty quantification methods"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 5.4 – Different uncertainty quantification methods</p>
+			<p>Let us understand each of <span class="No-Break">these methods:</span></p>
+			<ul>
+				<li><strong class="bold">Single-Network Deterministic Methods</strong>: Conventional neural networks have their weights fixed<a id="_idIndexMarker641"/> after training and therefore, for the same input, each prediction results<a id="_idIndexMarker642"/> in the same result. In single-network deterministic methods, one works<a id="_idIndexMarker643"/> with conventional neural networks, but to add the uncertainty <a id="_idIndexMarker644"/>score to the model, one can modify the network by changing the architecture or loss function (<strong class="bold">internal methods</strong>). Alternatively, there are approaches (<strong class="bold">external methods</strong>) where the model and training are not changed. Instead, uncertainty is measured using additional components, for example, training two neural networks, one for the actual prediction task and a second one for the prediction of uncertainty in the first <span class="No-Break">network’s prediction.</span></li>
+				<li><strong class="bold">Bayesian Methods</strong>: These methods make use of the Bayesian<a id="_idIndexMarker645"/> approach. In <strong class="bold">variational inference methods</strong>, the general approach is to approximate<a id="_idIndexMarker646"/> the posterior distribution<a id="_idIndexMarker647"/> by optimizing over a family of tractable distributions. This is done by minimizing the KL divergence. The <strong class="bold">sampling methods</strong> are based on Markov chain Monte Carlo approaches. <strong class="bold">Laplace approximation methods</strong> work by approximating the log-posterior<a id="_idIndexMarker648"/> distribution and, based on it, deriving a normal<a id="_idIndexMarker649"/> distribution over the weight<a id="_idIndexMarker650"/> of <span class="No-Break">the</span><span class="No-Break"><a id="_idIndexMarker651"/></span><span class="No-Break"> network.</span></li>
+				<li><strong class="bold">Ensemble Methods</strong>: These make use of more than one conventional deterministic neural network. Predictions<a id="_idIndexMarker652"/> from several models are combined into one prediction. Since<a id="_idIndexMarker653"/> the method depends on a variety of ensembles, the variety can be introduced by using random initialization and data shuffling. Using methods such as bagging and boosting to vary the distribution of training data and data augmentation are some of the common ways to have <span class="No-Break">multiple models.</span></li>
+				<li><strong class="bold">Test-Time Augmentation Methods</strong>: Here, the idea is to create multiple test data from the original test<a id="_idIndexMarker654"/> data using the technique<a id="_idIndexMarker655"/> of data augmentation. Augmented test data allows the exploration of different views and enables the capturing <span class="No-Break">of uncertainty.</span></li>
+			</ul>
+			<p>Out of the four, single-network<a id="_idIndexMarker656"/> deterministic methods are very straightforward, easy to implement, and computationally less expensive. A lot of interest in recent years has been generated in Bayesian methods, and with the availability of frameworks such as TensorFlow Probability, it has become easier to experiment <span class="No-Break">with them.</span></p>
+			<h1 id="_idParaDest-106"><a id="_idTextAnchor118"/>Uncertainty in regression tasks</h1>
+			<p>Let us consider a sensor whose<a id="_idIndexMarker657"/> output can be modeled <a id="_idIndexMarker658"/>by a linear process, defined by the relationship <em class="italic">y = </em><span class="No-Break"><em class="italic">x</em></span><span class="No-Break">.</span></p>
+			<p>Let us say we sample data for <em class="italic">x</em> lying in the range [-2.5,2.5]. Now, there would always be some noise introduced because of the inherent physical processes of the sensor (for example, white noise). Additionally, the sensor may have limitations such as temperature or pressure requirements. The following graph shows data from <span class="No-Break">our sensor:</span></p>
+			<div>
+				<div id="_idContainer085" class="IMG---Figure">
+					<img src="image/Figure_5.5_B18681.jpg" alt="Figure 5.5 – Different kinds of uncertainty in data"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 5.5 – Different kinds of uncertainty in data</p>
+			<p>We can see that in the lower-left corner, due to some malfunction, there is high aleatoric uncertainty. Also, there are large gaps where there is no observed training data, which can cause high epistemic uncertainty in that range <span class="No-Break">of inputs.</span></p>
+			<p>Before we talk about measuring<a id="_idIndexMarker659"/> these uncertainties, let us build a model and train<a id="_idIndexMarker660"/> it on the <span class="No-Break">training data.</span></p>
+			<p>We use TensorFlow Dense layers to build the model.  We start with an input layer and then add the hidden layers using the <strong class="source-inline">for</strong> loop, along with the <strong class="source-inline">Dropout</strong> layer after each hidden layer, finally followed by a <strong class="source-inline">Dense</strong> <span class="No-Break">output layer:</span></p>
+			<pre class="source-code">
+def build_model(layers_shape, input_dim, output_dim):
+    inputs = Input(shape=(input_dim,))
+    hidden = Dense(layers_shape[0], activation='relu', kernel_regularizer=l2(0.004))(inputs)
+    hidden = Dropout(0.05)(hidden, training=True)
+    for i in range(len(layers_shape)-1):
+        hidden = Dense(layers_shape[i+1], activation='relu', kernel_regularizer=l2(0.004))(hidden)
+        hidden = Dropout(0.05)(hidden, training=True)
+    outputs = Dense(output_dim)(hidden)
+    model = Model(inputs, outputs)
+    return model
+model = build_model(layers_shape=[5,10,20,10,5], input_dim= 1, output_dim=1)
+model.summary()</pre>
+			<p>An important point to note here is that the Dropout layers have the <strong class="source-inline">training</strong> parameter set to the <strong class="source-inline">True</strong> value. What this means<a id="_idIndexMarker661"/> is that dropout will be applied even during inference, and as a result, we<a id="_idIndexMarker662"/> will get a variation in predictions. The model summary is <span class="No-Break">as follows:</span></p>
+			<pre class="source-code">
+Model: "model"
+______________________________________________________
+ Layer (type)             Output Shape         Param #
+======================================================
+ input_1 (InputLayer)    [(None, 1)]              0
+ dense (Dense)            (None, 5)               10
+ dropout (Dropout)        (None, 5)               0
+ dense_1 (Dense)          (None, 10)             60
+ dropout_1 (Dropout)      (None, 10)             0
+ dense_2 (Dense)          (None, 20)             220
+ dropout_2 (Dropout)      (None, 20)             0
+ dense_3 (Dense)          (None, 10)             210
+ dropout_3 (Dropout)      (None, 10)             0
+ dense_4 (Dense)          (None, 5)              55
+ dropout_4 (Dropout)      (None, 5)              0
+ dense_5 (Dense)          (None, 1)              6
+======================================================
+Total params: 561
+Trainable params: 561
+Non-trainable params: 0
+______________________________________________________</pre>
+			<p>We use the <strong class="source-inline">rmsprop</strong> optimizer, and use the mean square error as the <span class="No-Break">loss function:</span></p>
+			<pre class="source-code">
+model.compile(optimizer='rmsprop', loss='mse', metrics=['mae'])</pre>
+			<p>And we train it using the training data plotted (red dots) in <span class="No-Break"><em class="italic">Figure 5</em></span><span class="No-Break"><em class="italic">.5</em></span><span class="No-Break">:</span></p>
+			<pre class="source-code">
+history = model.fit(x_data, y_data, batch_size=10, epochs=200, shuffle=True, verbose=1)</pre>
+			<p>The following graph (<span class="No-Break"><em class="italic">Figure 5</em></span><em class="italic">.6</em>) shows the<a id="_idIndexMarker663"/> evolution of loss as the training<a id="_idIndexMarker664"/> progresses. We can see that the model learned quite early, and after roughly 25 epochs there is no significant decrease in the <span class="No-Break">loss function:</span></p>
+			<div>
+				<div id="_idContainer086" class="IMG---Figure">
+					<img src="image/Figure_5.6_B18681.jpg" alt="Figure 5.6 – Training loss as the model learn﻿"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 5.6 – Training loss as the model learn</p>
+			<p>Let us now see how this model performs on test data. We take input as varying in the range <strong class="source-inline">[-</strong><span class="No-Break"><strong class="source-inline">10, 10]</strong></span><span class="No-Break">:</span></p>
+			<pre class="console">
+x_test = np.linspace(-10,10,100)
+y_pred = model.predict(x_test)</pre>
+			<p>Let us plot<a id="_idIndexMarker665"/> <span class="No-Break">the </span><span class="No-Break"><a id="_idIndexMarker666"/></span><span class="No-Break">data:</span></p>
+			<pre class="console">
+fig, ax = plt.subplots(1,1,figsize=(10,10))
+ax.scatter(x_data, y_data, s=10, label='train data', color='red')
+ax.plot(x_test, x_test, ls='--', label='ground truth', color='blue')
+ax.plot(x_test, y_pred, label='Model Prediction - R2 {:.2f}'.format(r2_score(x_test, y_pred)), color='green')
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+ax.legend()
+ax.set_title('Model performance on test data');</pre>
+			<p>The following plot shows the performance on the <span class="No-Break">test dataset:</span></p>
+			<div>
+				<div id="_idContainer087" class="IMG---Figure">
+					<img src="image/Figure_5.7_B18681.jpg" alt="Figure 5.7 – Model performance on test dataset"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 5.7 – Model performance on test dataset</p>
+			<p>We can see that<a id="_idIndexMarker667"/> on the test data, the R2 score is 0.98. For the most<a id="_idIndexMarker668"/> part, this is a great model. However, as we said earlier, there are regions of high epistemic and high aleatory uncertainty in <span class="No-Break">the data.</span></p>
+			<p>Let us first explore epistemic uncertainty. We evaluate our model on the test dataset about 500 times, meaning that we predict 500 times using our trained model on the same test data. This is equivalent to simulating a Gaussian process. Each time, we obtain a range of output values for each input scalar from test data. As a result, we can calculate the standard deviation<a id="_idIndexMarker669"/> of the posterior distribution and display<a id="_idIndexMarker670"/> it as a measure of <span class="No-Break">epistemic uncertainty:</span></p>
+			<pre class="source-code">
+predictions = []
+for _ in range(500):
+  predictions += [model.predict(x_test,verbose=0)]
+mean, std = np.mean(np.array(predictions), axis=0), np.std(np.array(predictions), axis=0)
+fig, ax = plt.subplots(1,1,figsize=(10,10))
+ax.plot(x_test, x_test, ls='--', color='green', label='test data')
+ax.scatter(x_data, y_data, color='blue', label='train data')
+ax.set_title('{} - R2 {:.2f}'.format('Epistemic Uncertainity', r2_score(x_test, mean)))
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+ax.fill_between(np.squeeze(x_test), np.squeeze(mean+1*std), np.squeeze(mean-1*std),  alpha=0.4, label='Epistemic Uncertainty', color='orange')
+ax.legend();</pre>
+			<p><span class="No-Break"><em class="italic">Figure 5</em></span><em class="italic">.8</em> shows the epistemic uncertainty for <span class="No-Break">our model:</span></p>
+			<div>
+				<div id="_idContainer088" class="IMG---Figure">
+					<img src="image/Figure_5.8_B18681.jpg" alt="Figure 5.8 – Epistemic uncertainty on test dataset"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 5.8 – Epistemic uncertainty on test dataset</p>
+			<p>We can see from the figure<a id="_idIndexMarker671"/> that epistemic uncertainty is high in the regions<a id="_idIndexMarker672"/> where we do not have sufficient training data. We would like to mention here that, normally, to access epistemic uncertainty one has to build a Bayesian approximation model so that the variations in weight can be captured. One can do it using <strong class="source-inline">VariableLayer</strong>,<strong class="bold"> </strong>available in TensorFlow Probability. However, here, we made use of the fact that dropout layers can act as a Bayesian approximation (Gal and <span class="No-Break">Ghahramani, 2017).</span></p>
+			<p>Epistemic uncertainty is a property of the model. Aleatoric uncertainty, on the other hand, is a property of data. There<a id="_idIndexMarker673"/> are two types of aleatoric uncertainty. One is <strong class="bold">homoscedastic uncertainty</strong>, where uncertainty is constant and does not change with input. If it is not constant, then we call it <strong class="bold">heteroscedastic uncertainty</strong>. Since heteroscedastic aleatory<a id="_idIndexMarker674"/> uncertainty depends on input, we can predict it as a model output. To be able to do that, we can change our loss function to aleatoric loss and instead of a single output tensor, the model outputs a 2D tensor. This enables the model to not just learn the output <strong class="source-inline">y</strong>, but also its variance. The same can be achieved using the <strong class="source-inline">DistributionLambda</strong> layer of <span class="No-Break">TensorFlow Probability.</span></p>
+			<p>We use the same data as before, and define the heteroscedastic aleatoric loss function (Kendal and <span class="No-Break">Gal, 2017):</span></p>
+			<div>
+				<div id="_idContainer089" class="IMG---Figure">
+					<img src="image/Formula_05_004.jpg" alt=""/>
+				</div>
+			</div>
+			<p>Here, <em class="italic">N</em> is the number of data samples, <em class="italic">y</em><span class="subscript">i</span> is the ground truth, and ŷ<span class="subscript">i</span> is the predicted output. Variance in input is σ<span class="superscript">2</span>. Now, if you see<a id="_idIndexMarker675"/> this function, the first term is a scaled version of the mean square<a id="_idIndexMarker676"/> error and ensures that the model predicts close to the ground truth. However, if its predictions are not accurate, the variance term (uncertainty) in the denominator increases to reduce the contribution of the first term. The second term ensures that the model does not go on increasing <span class="No-Break">the uncertainty.</span></p>
+			<p>Let us see how regressive <span class="No-Break">uncertainty works:</span></p>
+			<ol>
+				<li>The following Python code implements the preceding <span class="No-Break">loss function:</span><pre class="console">
+# aleatoric loss function
+def aleatoric_loss(y_true, y_pred):
+    N = y_true.shape[0]
+    se = K.pow((y_true[:,0]-y_pred[:,0]),2)
+    inv_std = K.exp(-y_pred[:,1])
+    mse = K.mean(inv_std*se)
+    reg = K.mean(y_pred[:,1])
+    return 0.5*(mse + reg)</pre></li>
+				<li>Next, we build the model. Earlier, we had only one neuron<a id="_idIndexMarker677"/> in the output layer. Now, we will have two neurons, one corresponding<a id="_idIndexMarker678"/> to predicted output <strong class="source-inline">y</strong>, and the other corresponding to <span class="No-Break">the variance:</span><pre class="console">
+def build_model(layers_shape, input_dim, output_dim):
+    inputs = Input(shape=(input_dim,))
+    hidden = Dense(layers_shape[0], activation='relu', kernel_regularizer=l2(0.004))(inputs)
+    for i in range(len(layers_shape)-1):
+        hidden = Dense(layers_shape[i+1], activation='relu', kernel_regularizer=l2(0.004))(hidden)
+    outputs = Dense(output_dim)(hidden)
+    model = Model(inputs, outputs)
+    return model
+model = build_model(layers_shape=[5,10,20,10,5], input_dim= 1, output_dim=2)
+model.summary()</pre></li>
+			</ol>
+			<p>Here is the model summary:</p>
+			<pre class="console">
+Model: "model"
+___________________________________________________________
+ Layer (type)                Output Shape              Param #
+===========================================================
+ input_1 (InputLayer)        [(None, 1)]               0
+ dense (Dense)               (None, 5)                 10
+ dense_1 (Dense)             (None, 10)                60
+ dense_2 (Dense)             (None, 20)                220
+ dense_3 (Dense)             (None, 10)                210
+ dense_4 (Dense)             (None, 5)                 55
+ dense_5 (Dense)             (None, 2)                 12
+===========================================================
+Total params: 567
+Trainable params: 567
+Non-trainable params: 0
+___________________________________________________________</pre>
+			<ol>
+				<li value="3">Now, to train the model, we need<a id="_idIndexMarker679"/> to reshape the data to adjust<a id="_idIndexMarker680"/> for the change in <span class="No-Break">the model:</span><pre class="console">
+x_data_reshaped = x_data.reshape(x_data.shape[0], 1)
+y_data_reshaped = np.vstack([y_data, np.zeros(y_data.shape)]).T</pre></li>
+				<li>Let us now define the optimizer. We keep it the same as in the first case, <strong class="source-inline">rmsprop</strong>, and change the loss to our <span class="No-Break">customized loss:</span><pre class="console">
+model.compile(optimizer='rmsprop', loss=aleatoric_loss, metrics=['mae'])</pre></li>
+				<li>And finally, <span class="No-Break">train it:</span><pre class="console">
+model.fit(x_data_reshaped, y_data_reshaped,
+          batch_size=10, epochs=1000, shuffle=True, verbose=1)</pre></li>
+				<li>Let us now plot the <span class="No-Break">aleatoric uncertainty:</span><pre class="console">
+x_test=np.linspace(-10,10,100)
+p = np.array([model.predict(x_test, verbose=0)])
+mean, epistemic_std = np.mean(p[:,:,0], axis=0), np.std(p[:,:,0], axis=0)
+aleatoric_std = np.exp(0.5*np.mean(p[:,:,1], axis=0))
+fig, ax = plt.subplots(1,1,figsize=(10,10))
+ax.scatter(x_data, y_data, s=10, label='train data')
+ax.plot(x_test, x_test, ls='--', label='test data', color='green')
+ax.fill_between(np.squeeze(x_test), np.squeeze(mean+1*aleatoric_std), np.squeeze(mean-1*aleatoric_std),  alpha=0.4, label='Aleatoric Uncertainty (1 SD)', color='orange')
+ax.fill_between(np.squeeze(x_test), np.squeeze(mean+2*aleatoric_std), np.squeeze(mean-2*aleatoric_std),  alpha=0.2, label='Aleatoric Uncertainty (2 SD)', color='blue')
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+ax.set_title('{} - R2 {:.2f}'.format('Aleatoric Uncertainity', r2_score(x_test, mean)))
+ax.legend()</pre></li>
+			</ol>
+			<p>The plot<a id="_idIndexMarker681"/> for aleatoric<a id="_idIndexMarker682"/> uncertainty is as follows:</p>
+			<div>
+				<div id="_idContainer090" class="IMG---Figure">
+					<img src="image/Figure_5.9_B18681.jpg" alt="Figure 5.9 – Aleatoric uncertainty on the test dataset"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 5.9 – Aleatoric uncertainty on the test dataset</p>
+			<p>From the figure, we can see that at around <strong class="bold">-2.5</strong>, the aleatoric uncertainty is high, since this was the place in our original training data where there was more noise in the data itself. This type of uncertainty<a id="_idIndexMarker683"/> can be problematic for applications where the AI<a id="_idIndexMarker684"/> may need to make decisions that can have life-threatening consequences, for example, in the case of a self-driving car. Therefore, there is a need to build models that can not only predict but also score epistemic and aleatory uncertainties while <span class="No-Break">making predictions.</span></p>
+			<p>Now that we have seen how to model uncertainty in a regression task, let us move on to quantifying uncertainty in a <span class="No-Break">classification task.</span></p>
+			<h1 id="_idParaDest-107"><a id="_idTextAnchor119"/>Uncertainty in classification tasks</h1>
+			<p>In classification<a id="_idIndexMarker685"/> tasks, the standard procedure is to use <strong class="bold">SoftMax activation</strong> in the final layer. This SoftMax activation, by default, already has<a id="_idIndexMarker686"/> a measure<a id="_idIndexMarker687"/> of confidence (<span class="No-Break"><em class="italic">Figure 5</em></span><em class="italic">.10</em>). However, SoftMax is not very reliable. Consider, for example, a model trained to classify horses and zebras, and it sees a dog; it would not say 50% horse and 50% zebra, instead of assuming it is a black dog. It might think it’s more like a horse, and classify it as a horse with <span class="No-Break">60% probability.</span></p>
+			<div>
+				<div id="_idContainer091" class="IMG---Figure">
+					<img src="image/Figure_5.10_B18681.jpg" alt="Figure 5.10 – Image from MNIST data and its SoftMax confidence"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 5.10 – Image from MNIST data and its SoftMax confidence</p>
+			<p>Mathematically, classification tasks use maximal class probability to determine <span class="No-Break">the class:</span></p>
+			<div>
+				<div id="_idContainer092" class="IMG---Figure">
+					<img src="image/Formula_05_008.jpg" alt=""/>
+				</div>
+			</div>
+			<p>Here, <em class="italic">K</em> is the total number of classes, and p<span class="subscript">k</span> is the SoftMax value for class <em class="italic">k</em> for that prediction. Some researchers have also tried to use entropy <img src="image/Formula_05_010.png" alt=""/> of the SoftMax prediction. The maximal probability represents a direct representation of certainty, while entropy describes the average level of information in a <span class="No-Break">random variable.</span></p>
+			<p>Despite being simple and straightforward<a id="_idIndexMarker688"/> to use, these approaches<a id="_idIndexMarker689"/> are unreliable, especially when we are dealing with a critical decision AI model such as <span class="No-Break">medical diagnosis.</span></p>
+			<div>
+				<div id="_idContainer094" class="IMG---Figure">
+					<img src="image/Figure_5.11_B18681.jpg" alt="Figure 5.11 – Deep ensemble architecture"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 5.11 – Deep ensemble architecture</p>
+			<p>One of the ways to quantify uncertainty in classification tasks is by using ensemble methods. Lakshminarayanan et al., show in their paper that using ensemble methods is better than other approaches when the model is presented with out-of-domain data. They trained an ensemble of deep neural networks (<span class="No-Break"><em class="italic">Figure 5</em></span><em class="italic">.11</em>), using the entire MNIST training dataset. The predictions from the trained models were combined <span class="No-Break">as follows:</span></p>
+			<div>
+				<div id="_idContainer095" class="IMG---Figure">
+					<img src="image/Formula_05_011.jpg" alt=""/>
+				</div>
+			</div>
+			<p>Here, <em class="italic">M</em> is the number of ensembled models. In the paper, <em class="italic">M=5</em>, <em class="italic">y</em> is the prediction for input <em class="italic">x</em>, and the θ<span class="subscript">m</span> instances<a id="_idIndexMarker690"/> are the network parameters. As you can<a id="_idIndexMarker691"/> see, for classification, this corresponds to averaging the prediction probabilities. Additionally, they also generated adversarial examples and performed adversarial training for each network of the ensemble. <span class="No-Break"><em class="italic">Figure 5</em></span><em class="italic">.12</em>, shows the results for the MNIST and <span class="No-Break">NotMNIST datasets:</span></p>
+			<div>
+				<div id="_idContainer096" class="IMG---Figure">
+					<img src="image/Figure_5.12_B18681.jpg" alt=" Figure 5.12 – Entropy values for the MNIST dataset (blue) and the NotMNIST dataset (red)"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US"> Figure 5.12 – Entropy values for the MNIST dataset (blue) and the NotMNIST dataset (red)</p>
+			<p>As you can see in the figure, the ensembles work better when presented with the NotMNIST dataset, since the entropy value for NotMNIST spreads over a bigger range and the peak is reduced. They also compared their approach with the Bayesian method (adding Monte Carlo dropout). The figure shows that ensembles give better results. Thus, they showed that deep ensembles generate a low confidence output for out-of-distribution data. In general, for dataset<a id="_idIndexMarker692"/> shift and out-of-domain<a id="_idIndexMarker693"/> distributions, deep ensembles give consistently better performance when compared to <span class="No-Break">other methods.</span></p>
+			<h1 id="_idParaDest-108"><a id="_idTextAnchor120"/>Tools for benchmarking and quantifying uncertainty</h1>
+			<p>A lot of work has been done to quantify<a id="_idIndexMarker694"/> uncertainty and create benchmarks<a id="_idIndexMarker695"/> for uncertainty and robustness. In this section, we will cover some of the prominent ones. Please remember that the standards are still in the nascent stage, and as a result, many of these tools and GitHub<a id="_idIndexMarker696"/> repos may have<a id="_idIndexMarker697"/> <span class="No-Break">certain limitations.</span></p>
+			<h2 id="_idParaDest-109"><a id="_idTextAnchor121"/>The Uncertainty Baselines library</h2>
+			<p>Developed by researchers<a id="_idIndexMarker698"/> from the Google Brain research team, the University of Oxford, the University of Cambridge, Harvard University, and the University of Texas, the <strong class="bold">Uncertainty Baselines library</strong> contains a set of baselines that you can use to compare the performance of different deep learning methods. The baselines are implemented using high-quality methods, and they are available for a variety of tasks. You can use these baselines to get started with your own experiments. The complete work is accessible via the GitHub repo <span class="No-Break">at </span><a href="https://github.com/google/uncertainty-baselines"><span class="No-Break">https://github.com/google/uncertainty-baselines</span></a><span class="No-Break">.</span></p>
+			<p>At present, there is no stable version. However, users can install it and experiment directly via Git. The library aims to provide users with a modular, framework-agnostic, <span class="No-Break">hardware-agnostic tool.</span></p>
+			<h2 id="_idParaDest-110"><a id="_idTextAnchor122"/>Keras-Uncertainty</h2>
+			<p><strong class="bold">Keras-Uncertainty</strong> is a high-level API that can be used to measure<a id="_idIndexMarker699"/> how trustworthy a ML model’s predictions are. This is important for many real-world applications, where you not only need to know what the model predicts but also how confident we should be in its predictions. The library is available at <a href="https://github.com/mvaldenegro/keras-uncertainty">https://github.com/mvaldenegro/keras-uncertainty</a>. <span class="No-Break"><em class="italic">Figure 5</em></span><em class="italic">.13</em> shows the uncertainty for a classification task using Keras-Uncertainty. For demonstration, we used the <strong class="source-inline">make_moon</strong> method from scikit-learn to create synthetic classification data. We trained five models and plotted the respective uncertainty using the <span class="No-Break">Keras-Uncertainty library.</span></p>
+			<div>
+				<div id="_idContainer097" class="IMG---Figure">
+					<img src="image/Figure_5.13_B18681.jpg" alt="Figure 5.13 – Uncertainty for binary classification problem"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 5.13 – Uncertainty for binary classification problem</p>
+			<h2 id="_idParaDest-111"><a id="_idTextAnchor123"/>Robustness metrics</h2>
+			<p>Developed by Google Research, the Robustness Metrics library<a id="_idIndexMarker700"/> provides functions and methods that can help in the evaluation of classification models. It defines three sets <span class="No-Break">of metrics:</span></p>
+			<ul>
+				<li><strong class="bold">Out-of-distribution generalization</strong>: This measure assesses the model’s ability to accurately classify<a id="_idIndexMarker701"/> objects that share similarities but may have <span class="No-Break">varying perspectives.</span></li>
+				<li><strong class="bold">Stability</strong>: This measure evaluates the stability of predictions<a id="_idIndexMarker702"/> made by the model when there are changes in the input, and how effectively the model performs with <span class="No-Break">natural disturbances.</span></li>
+				<li><strong class="bold">Uncertainty</strong>: This measure gauges the proximity<a id="_idIndexMarker703"/> of the probabilities estimated by a model to the <span class="No-Break">actual probabilities.</span></li>
+			</ul>
+			<p>The Robustness Metrics library can be used even for non-vision models. Essentially, if you have a classification task, you can try this library. It depends on TensorFlow and TensorFlow Probability, therefore, before you use it you should install them on <span class="No-Break">your system.</span></p>
+			<h1 id="_idParaDest-112"><a id="_idTextAnchor124"/>Summary</h1>
+			<p>This chapter started by introducing the different components of ML pipelines. Then we discussed various ML tasks and different algorithms that are used for <span class="No-Break">those tasks.</span></p>
+			<p>The main theme of the chapter was uncertainty in deep learning. This uncertainty can be due to the data or the model – or both. We discussed the two types of uncertainty, aleatory and epistemic. The chapter also discussed various methods that have been used in the literature to quantify uncertainty. It also delved deep into the causes of uncertainty. Next, we implemented algorithms to quantify uncertainty in regression tasks. Finally, the chapter discussed the methods used to quantify uncertainty in classification tasks. There is a need to develop baselines and benchmarks for uncertainty and robustness in deep learning. A lot of work is taking place in this area; however, uncertainty and robustness are still critical research problems in AI <span class="No-Break">and ML.</span></p>
+			<p>In the next chapter, we will delve into the concept of hyperparameters, and how to use AutoML and MLOps to streamline your <span class="No-Break">ML workflow.</span></p>
+			<h1 id="_idParaDest-113"><a id="_idTextAnchor125"/>References</h1>
+			<ul>
+				<li><em class="italic">Efficientnet: Rethinking model scaling for convolutional neural networks</em>. In <em class="italic">International conference on ML, </em>Tan, M., &amp; Le, Q. (2019, May). (pp. 6105-6114). <span class="No-Break">PMLR. </span><a href="http://proceedings.mlr.press/v97/tan19a/tan19a.pdf"><span class="No-Break">http://proceedings.mlr.press/v97/tan19a/tan19a.pdf</span></a><span class="No-Break">)</span></li>
+				<li><em class="italic">Uncertainty characterization in risk analysis for decision-making practice</em>, Zio, E., &amp; Pedroni, N. (2012). <span class="No-Break">FonCSI. </span><a href="https://www.researchgate.net/publication/266391086_Uncertainty_characterization_in_risk_analysis_for_decision-making_practice"><span class="No-Break">https://www.researchgate.net/publication/266391086_Uncertainty_characterization_in_risk_analysis_for_decision-making_practice</span></a></li>
+				<li><em class="italic">Attention is all you need. Advances in neural information processing systems</em>, Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., ... &amp; Polosukhin, I. (2017). <span class="No-Break">30. </span><a href="https://proceedings.neurips.cc/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf"><span class="No-Break">https://proceedings.neurips.cc/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf</span></a></li>
+				<li><em class="italic">Dropout as a Bayesian approximation: Representing model uncertainty in deep learning</em>. In <em class="italic">International conference on ML, </em>Gal, Y., &amp; Ghahramani, Z. (2016, June). (pp. 1050-1059). <span class="No-Break">PMLR. </span><a href="http://proceedings.mlr.press/v48/gal16.pdf"><span class="No-Break">http://proceedings.mlr.press/v48/gal16.pdf</span></a></li>
+				<li><em class="italic">What uncertainties do we need in Bayesian deep learning for computer vision?</em> In <em class="italic">Advances in neural information processing systems</em>, Kendall, A., &amp; Gal, Y. (2017). <span class="No-Break">30. </span><a href="https://arxiv.org/pdf/1703.04977.pdf"><span class="No-Break">https://arxiv.org/pdf/1703.04977.pdf</span></a></li>
+				<li><em class="italic">A survey of uncertainty in deep neural networks, </em>Gawlikowski, J., Tassi, C. R. N., Ali, M., Lee, J., Humt, M., Feng, J., ... &amp; Zhu, X. X. (2021). arXiv preprint <span class="No-Break">arXiv:2107.03342. </span><a href="https://arxiv.org/pdf/2107.03342.pdf"><span class="No-Break">https://arxiv.org/pdf/2107.03342.pdf</span></a></li>
+				<li><em class="italic">A review of uncertainty quantification in deep learning: Techniques, applications and challenges, </em>Abdar, M., Pourpanah, F., Hussain, S., Rezazadegan, D., Liu, L., Ghavamzadeh, M., ... &amp; Nahavandi, S. (2021). In <em class="italic">Information Fusion</em>, 76, <span class="No-Break">243-297. </span><a href="https://arxiv.org/pdf/2011.06225.pdf"><span class="No-Break">https://arxiv.org/pdf/2011.06225.pdf</span></a></li>
+				<li><em class="italic">Simple and scalable predictive uncertainty estimation using deep ensembles</em>. In <em class="italic">Advances in neural information processing systems</em>, Lakshminarayanan, B., Pritzel, A., &amp; Blundell, C. (2017). <span class="No-Break">30. </span><a href="https://arxiv.org/pdf/1612.01474.pdf"><span class="No-Break">https://arxiv.org/pdf/1612.01474.pdf</span></a></li>
+				<li><em class="italic">Robustness Metrics</em>, J. Djolonga, F. Hubis, M. Minderer, Z. Nado, J. Nixon, R. Romijnders, D. Tran, and M. Lucic. <span class="No-Break">2020. </span><a href="https://github.com/google-research/robustness_metrics"><span class="No-Break">https://github.com/google-research/robustness_metrics</span></a></li>
+				<li><em class="italic">Uncertainty Baselines: Benchmarks for uncertainty &amp; robustness in deep learning</em>, Nado, Z., Band, N., Collier, M., Djolonga, J., Dusenberry, M. W., Farquhar, S., ... &amp; Tran, D. (2021). arXiv preprint <span class="No-Break">arXiv:2106.04015. </span><a href="https://arxiv.org/pdf/2106.04015"><span class="No-Break">https://arxiv.org/pdf/2106.04015</span></a></li>
+				<li><em class="italic">On robustness and transferability of convolutional neural networks, </em>Djolonga, J., Yung, J., Tschannen, M., Romijnders, R., Beyer, L., Kolesnikov, A., ... &amp; Lucic, M. (2021). In <em class="italic">Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition</em> (pp. <span class="No-Break">16458-16468). </span><a href="https://arxiv.org/pdf/2007.08558.pdf"><span class="No-Break">https://arxiv.org/pdf/2007.08558.pdf</span></a></li>
+			</ul>
+		</div>
+	</body></html>

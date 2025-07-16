@@ -1,0 +1,450 @@
+<html><head></head><body><div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Recurrent Neural Networks</h1>
+                </header>
+            
+            <article>
+                
+<p><strong>Recurrent Neural Networks</strong> (<strong>RNNs</strong>) are the most flexible form of networks and are widely used in <strong>natural language processing </strong>(<strong>NLP</strong>), financial services, and a variety of other fields. Vanilla feedforward networks, as well as their convolutional varieties, accept a fixed input vector and output a fixed vector; they assume that all of your input data is independent of each other. RNNs, on the other hand, operate on sequences of vectors and output sequences of vectors, and allow us to handle many exciting types of data. RNNs are actually turing-complete, in that they can simulate arbitrary tasks, and hence are very appealing models from the perspective of the Artificial Intelligence scientist. </p>
+<p>In this chapter, we'll introduce ...</p></article></section></div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Technical requirements</h1>
+                </header>
+            
+            <article>
+                
+<p>This chapter will be utilizing TensorFlow in Python 3. The corresponding code for this chapter is available in the book's GitHub repository.</p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">The building blocks of RNNs</h1>
+                </header>
+            
+            <article>
+                
+<p><span>When we think about how a human thinks, we don't just observe a situation once; we constantly update what we're thinking based on the context of the</span> situation<span>. Think about reading a book: each chapter is an</span> amalgamation<span> of words that make up its meaning. Vanilla feedforward networks don't take sequences as inputs, and so it becomes very difficult to model unstructured data such as natural language. RNNs can help us achieve this.</span></p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Basic structure</h1>
+                </header>
+            
+            <article>
+                
+<p><span>RNNs differ from other networks in the fact that they have a recursive structure; they are recurring over time. RNNs utilize recursive loops, which allow information to persist within the network. We can think of them as multiple copies of the same network, with information being passed between each successive iteration. Without recursion, an RNN tasked with learning a sentence of 10 words would need 10 connected copies of the same layer, one for each word. RNNs also share parameters across the network. Remember in the past few chapters how the number of parameters we had in our network could get unreasonably large with complex layers? With recursion and parameter sharing, we are able to more effectively learn increasingly long sequence structures and minimize the amount of overall parameters that we have to learn. </span></p>
+<p>Basically, recurrent networks take in items from a sequence and recursively iterate over them. In the following diagram, our sequence <em>x </em>gets fed into the network:</p>
+<div class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1353 image-border" src="Images/7d33b17a-8b3b-477d-8737-1c5a7d49788a.png" style="width:8.92em;height:19.58em;" width="321" height="705"/></div>
+<p>RNNs have memory, or <strong>hidden states</strong>, which help them manage and learn complex knowledge; we represent them with the variable <em>h.</em> These hidden states capture important information from the previous pass, and store it for future passes. RNN hidden states are initialized at zero and updated during the training process. Each pass in an RNN's is called a <strong>time step</strong>; if we have a 40-character sequence, our network will have 40 time steps. During an RNN time step, our network takes the input sequence <em>x</em> and returns both an output vector <em>y</em><strong> </strong>as well as an updated hidden state. After the first initial time step, the hidden state <em>h</em> also gets fed into the network at each new step along with the input <em>x. </em>The output of the network is then the value of the hidden state after the last time step.</p>
+<p>While RNNs are recursive, we could easily unroll them to graph what their structure looks like at each time step. Instead of viewing the RNN as a box, we can unpack its contents to examine its inner workings:</p>
+<div class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1352 image-border" src="Images/f381e150-58cb-4aad-8a03-21573b2ff6f9.png" style="width:14.75em;height:11.33em;" width="604" height="464"/></div>
+<p>In the preceding diagram, our RNN is represented as the function <em>f</em> to which we apply the weights <em>w</em>, just as we would with any other neural network. In RNNs, however, we call this function the <strong>recurrence formula</strong>, and it looks something such as this:</p>
+<div class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="Images/dd0434c2-a294-498e-a5f5-b80982e06abd.png" style="width:9.33em;height:1.58em;" width="1300" height="220"/></div>
+<p>Here, <em>h<sub>t</sub> </em>represents our new state that will be the output of a single time step. The <em>h<sub>t-1</sub> </em>expression represents our previous state, and <em>x</em> is our input data from the sequence. This recurrence formula gets applied to an element of a sequence until we run out of time stamps.</p>
+<p>Let's apply and dissect how a basic RNN works by walking through its construction in TensorFlow.</p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Vanilla recurrent neural networks</h1>
+                </header>
+            
+            <article>
+                
+<p>Let's walk through the architecture of a basic RNN; to illustrate, we are going to create a basic RNN that predicts the next letter in a sequence. For our training data, we will be using the opening paragraph of Shakespeare's Hamlet. Let's go ahead and save that <kbd>corpus</kbd> as a variable that we can use in our network.</p>
+<pre>corpus = "Hamlet was the only son of the King of Denmark. He loved his father and mother dearly--and was happy in the love of a sweet lady named Ophelia. Her father, Polonius, was the King's Chamberlain. While Hamlet was away studying at Wittenberg, his father died. Young Hamlet hastened home in great grief to hear that a serpent had stung the King, and that he was dead. The young Prince had loved ...</pre></article></section></div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">One-to-many</h1>
+                </header>
+            
+            <article>
+                
+<p>Image captioning represents a <strong>one-to-many</strong> scenario. We take in a single vector that represents that input image, and output a variable length description of the image. One-to-many scenarios output a label, word, or other output at each time step:</p>
+<div class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1354 image-border" src="Images/2bc2ca76-b366-4eca-aa5f-0ac379ac3779.png" style="width:26.17em;height:17.00em;" width="967" height="627"/></div>
+<p>Music generation is another example of a one-to-many scenario, where we output a variable set of notes.</p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Many-to-one</h1>
+                </header>
+            
+            <article>
+                
+<p>In cases such as sentiment analysis, we are interested in a single and final hidden state for the network. We call this a <strong>many-to-one</strong> scenario. When we arrive at the last time step, we output a classification or some other value, represented in the computational graph by <em>yt</em>:</p>
+<div class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1356 image-border" src="Images/1015fed0-a2e7-42ca-85c0-6fc82cba321b.png" style="width:36.92em;height:21.67em;" width="981" height="576"/></div>
+<p>Many-to-one scenarios can also be used for tasks such as music genre labeling, where the network takes in notes and predicts a genre.</p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Many-to-many</h1>
+                </header>
+            
+            <article>
+                
+<p>If we wanted to classify the expression of a person during a video, or perhaps label a scene at any given time, or even for speech-to-text recognition, we would use a <strong>many-to-many</strong> architecture. Many-to-many architectures take in a variable's length sequence while also outputting a variable length sequence:</p>
+<div class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1357 image-border" src="Images/a6ed4412-0a2a-4c8e-b50c-fef908b3d6f7.png" style="width:36.75em;height:20.50em;" width="1042" height="581"/></div>
+<p><span>An output vector is computed at every step of the process, and we can compute individual losses at every step in the sequence. Frequently, we utilize a softmax loss for explicit labeling tasks. The final loss will be the sum of these individual losses.</span></p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Backpropagation through time</h1>
+                </header>
+            
+            <article>
+                
+<p>RNN utilizes a special variation of regular backpropagation called <strong>backpropagation through time</strong>. Like regular old backpropagation, this process is often handled for us in TensorFlow; however, it's important to note how it differs from standard backpropagation for feedforward networks.</p>
+<p>Let's recall that RNNs utilize small <em>copies</em> of the same network, each with its own weights and bias factors. When we backpropagate through RNNs, we calculate the gradients at each time step, and sum the gradients across the entire network when computing the loss. We'll have a separate gradient from the weight that flows to the computation that happens at each of the time steps, and the final gradient for <em>W</em> will be the sum of the ...</p></article></section></div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Memory units – LSTMs and GRUs</h1>
+                </header>
+            
+            <article>
+                
+<p>While regular RNNs can theoretically ingest information from long sequences, such as full documents, they are limited in <em>how far back</em> they can look to learn information. To overcome this, researchers have developed variants on the traditional RNN that utilize a unit called a <strong>memory cell</strong>, which helps the network <em>remember</em> important information. <span>They were developed as a means to solve the vanishing gradient problem that occurs with traditional RNN models. </span>There are two main variations of RNN that utilize memory cell architectures, known as the <strong>GRU</strong> and the <strong>LSTM</strong>. These architectures are the most widely used RNN architectures, so we'll pay some what attention to their mechanics.</p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">LSTM</h1>
+                </header>
+            
+            <article>
+                
+<p>LSTMs are a special form of RNN that excel at learning long-term dependencies. Developed by Hochreiter and Schmidhuber in 1997, LSTMs have several different layers that information passes through to help them keep what is important and jettison the rest. Unlike vanilla recurrent networks, the LSTM has not one but two states; the standard hidden state that we've been representing as <em>h<sub>t</sub></em>, as well as a state that is specific to the LSTM cell called the <strong>cell state</strong>, which we will denote with <em>c<sub>t</sub></em>. These LSTM states are able to update or adjust these states with <strong>gating mechanisms</strong>. These gates help to control the processing of information through the cell, and consist of an activation function and a basic <strong>point wise operation</strong>, such as vector multiplication. ...</p></article></section></div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">GRUs</h1>
+                </header>
+            
+            <article>
+                
+<p>GRUs were developed in 2014 as a new take on the classic LSTM cell. Instead of having four separate gates, it combines the forget and input gates into a single update gate; you can think of this in the sense of: whatever is not written, gets forgotten. It also merges the cell state <em>c<sub>t</sub></em> from the LSTM with the overall hidden state <em>h<sub>t</sub></em>. At the end of a cycle, the GRU exposes the entire hidden state: </p>
+<ul>
+<li><strong>Update gate</strong>: The update gate combines the forget and input gates, essentially stating that whatever is not written into memory is forgotten. The update gate takes in our input data <em>x</em> and multiplies it by the hidden state. The result of that expression is then multiplied by the weight matrix and fed through a sigmoid function: </li>
+</ul>
+<div class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="Images/8e6d1821-5f52-4e09-88a1-3ecbe59d4af9.png" style="width:12.08em;height:1.50em;" width="1770" height="220"/></div>
+<ul>
+<li><strong>Reset gate</strong>: The reset gate functions similarly to the output gate in the LSTM. It decides what and how much is to be written to memory. Mathematically, it is the same as the update gate:</li>
+</ul>
+<div class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="Images/9c0f8c8a-6885-4739-ba77-39b5ac47e859.png" style="width:12.50em;height:1.58em;" width="1740" height="220"/></div>
+<ul>
+<li><strong>Memory gate</strong>: A tanh operation that actually stores the output of the reset gate into memory, similar to the write gate in the LSTM. The results of the reset gate are combined with the raw input, and put through the memory gate to calculate a provisional hidden state: </li>
+</ul>
+<div class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="Images/72573546-7ff8-400a-81b0-61c7682c3493.png" style="width:16.00em;height:1.67em;" width="2300" height="240"/></div>
+<p>Our end state is calculated by taking the provisional hidden state and conducting an operation with the output of the update gate: </p>
+<div class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="Images/b34874a5-54cd-4f9c-a89b-3dc2ba3f1d12.png" style="width:15.58em;height:1.67em;" width="2340" height="250"/></div>
+<p>The performance of a GRU is similar to that of the LSTM; where GRUs really provide benefit is that they are more computationally efficient due to their streamlined structure. In language modeling tasks, such as the intelligent assistant that we will create in a later chapter, GRUs tend to perform better especially in situations with less training data. </p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Sequence processing with RNNs</h1>
+                </header>
+            
+            <article>
+                
+<p>Now that we've learned about the components of RNNs, let's dive into what we can do with them. In this section, we'll look at two primary examples: <strong>machine translation</strong> and <strong>generating image captions</strong>. Later on in this book, we'll utilize RNNs to build a variety of end-to-end systems. </p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Neural machine translation</h1>
+                </header>
+            
+            <article>
+                
+<p>Machine translation represents a sequence-to-sequence problem; you'll frequently see these networks described as <strong>sequence-to-sequence</strong> (or <strong>Seq2Seq</strong>) models. <span>Instead of utilizing traditional techniques that involve feature engineering and n-gram counts, neural machine translation maps the overall meaning of a sentence to a singular vector, and we then generate a translation based on that singular meaning vector. </span></p>
+<p><strong>Machine translation</strong> models rely on an important concept in artificial intelligence known as the <strong>encoder</strong>/<strong>decoder</strong> paradigm. In a nutshell: </p>
+<ul>
+<li><strong>Encoders</strong> parse over input and output a condensed, vector representation of the input. We typically use a GRU or LSTM for this task</li>
+<li><strong>Decoders</strong> take the condensed representation, and extrapolate to create a new sequence from it</li>
+</ul>
+<p>These concepts are extremely import in understanding generative adversarial networks, which we will learn about in a coming chapter. <span>The first part of this network acts as an encoder that will parse over your sentence in English; it represents the summarization of the sentence in E</span><span>nglish.</span></p>
+<p>Architecturally, neural machine translation networks are many-to-one and one-to-many, which sit back-to-back with each other, as demonstrated in the following diagram:</p>
+<div class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1362 image-border" src="Images/c7641cfc-342f-4982-b03c-b2a3f676a93a.png" style="width:41.42em;height:19.75em;" width="1000" height="478"/></div>
+<p>This is the same architecture that Google uses for Google Translate.</p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Attention mechanisms</h1>
+                </header>
+            
+            <article>
+                
+<p><strong>Neural machine translation </strong>(<strong>NMT</strong>) models suffer from the same long-term dependency issues that RNNs in general suffer from. While we saw that LSTMs can mitigate much of this behavior, it still becomes problematic with long sentences. Especially in machine translation, where the translation of the sentence is largely dependent on how much information is contained within the hidden state of the encoder network, we must ensure that those end states are as rich as possible. We solve this with something called <strong>attention mechanisms</strong>.</p>
+<p>Attention mechanisms allow the decoder to select parts of the input sentence based on context and what has generated thus far. We utilize a vector called a <strong>context vector</strong> to store scores from the ...</p></article></section></div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Generating image captions</h1>
+                </header>
+            
+            <article>
+                
+<p class="mce-root CDPAlignLeft CDPAlign">RNNs can also work with problems that require fixed input to be transformed into a variable sequence. Image captioning takes in a fixed input picture, and outputs a completely variable description of that picture. These models utilize a CNN to input the image, and then feed the output of that CNN into an RNN, which will generate the caption one word at a time:</p>
+<div class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1363 image-border" src="Images/757eb8e8-e8e5-4820-9285-6c0a0d4fab09.png" style="width:41.92em;height:16.67em;" width="948" height="377"/></div>
+<p> We'll be building a neural captioning model based on the Flicker 30 dataset, provided by the University of California, Berkley, which you can find in the corresponding GitHub repository for this chapter. In this case, we'll be utilizing pretrained image embeddings for the sake of time; however you can find an example of an end-to-end model in the corresponding GitHub repository.</p>
+<ol>
+<li>Let's start with our imports:</li>
+</ol>
+<pre style="padding-left: 60px">import math<br/>import os<br/>import tensorflow as tf<br/>import numpy as np<br/>import pandas as pd<br/><br/>import tensorflow.python.platform<br/>from keras.preprocessing import sequence</pre>
+<ol start="2">
+<li>Next, let's load the image data from the files you've downloaded from the repository. First, let's define a path to where we can find the images. </li>
+</ol>
+<pre style="padding-left: 60px">captions = 'image_captions.token'<br/>features = 'features.npy'</pre>
+<p class="mce-root"/>
+<ol start="3">
+<li>Next, we can actually load in the images and the various captions. We'll call these captions and images. </li>
+</ol>
+<pre style="padding-left: 60px">annotations = pd.read_table(captions, sep='\t', header=None, names=['image', 'caption'])<br/>images = np.load(features,'r'), <br/>captions = annotations['caption'].values</pre>
+<ol start="4">
+<li>Next, we'll have to store the occurrence count for the number of times the words appear:</li>
+</ol>
+<pre style="padding-left: 60px">occuranceDict = {} ## This Dictionary will store the occurance count of our words <br/>wordCount = 0 ## wordCount is a value that we will use to keep track of the number of occurances of a word</pre>
+<ol start="5">
+<li>First, we'll have to construct a vocabulary to draw from; we'll need to do a bit of preprocessing for our captions beforehand. You can go through the following code:</li>
+</ol>
+<pre style="padding-left: 60px">def ConstructVocab(captions):<br/>    '''Function to Construct the Vocab that we will be generating from'''<br/>    <br/>    occuranceDict = {} ## This Dictionary will store the occurance count of our words <br/>    wordCount = 0 ## wordCount is a valuee that we will use to keep track of the number of occurances of a word<br/>    <br/>    ## Iterate over the captions to split them into individuals words to construct the vocab<br/>    for item in captions: <br/>        wordCount += 1<br/>        <br/>        for word in item.lower().split(' '):<br/>            occuranceDict[word] = occuranceDict.get(word, 0) + 1<br/>        <br/>    vocab = [word for word in occuranceDict if occuranceDict[word] &gt;= 20]<br/>    <br/>    ## Set a dictionary to set a word for each index<br/>    IndexesToWords = {} ## <br/>    ixtoword[0] = '.' <br/>    <br/>    ## Set a dictionary to the indexes of each word at each steps<br/>    WordsToIndexes = {}<br/>    WordsToIndexes['#START#'] = 0 <br/>    index = 1<br/>    <br/>    ## Iterate over the words in the vocab to store them and index their position. <br/>    for word in vocab:<br/>      WordstoIndexes[word] = index <br/>      IndexestoWords[index] = word<br/>      index += 1<br/><br/>    ## Set the wordcount for the occurance dictionary<br/>    occuranceDict['.'] = wordCount<br/>    <br/>    ## Initiative the word bias vectors<br/>    biasVector = np.array([1.0*occuranceDict[IndexestoWords[i]] for i in IndexestoWords])<br/>    biasVector = biasVector / np.sum(biasVector) <br/>    biasVector = np.log(biasVector)<br/>    biasVector = biasVector - np.max(biasVector) <br/>    <br/>    ## Return the dictionarties, as well as the bias vector<br/>    return WordstoIndexes, IndexestoWords,         biasVector.astype(np.float32)</pre>
+<ol start="6">
+<li>Now we can construct the model itself. Follow the comments below to understand what each section is doing:</li>
+</ol>
+<pre style="padding-left: 60px">def captionRNN():<br/>    ''' RNN for Image Captioning '''<br/>    <br/>    ## Define our Networks Parameters<br/>    dim_embed = 256<br/>    dim_hidden = 256<br/>    dim_in = 4096<br/>    batch_size = 128<br/>    momentum = 0.9<br/>    n_epochs = 150<br/>    <br/>    ## Initialize the embedding distribution and bias factor as a random uniform distribution. <br/>    captionEmbedding = tf.Variable(tf.random_uniform([n_words, dim_embed], -0.1, 0.1))<br/>    captionBias = tf.Variable(tf.zeros([dim_embed]))<br/><br/>    ## Initialize the embedding distribution and bias for the images <br/>    imgEmbedding = tf.Variable(tf.random_uniform([dim_in, dim_hidden], -0.1, 0.1))<br/>    imgBias = tf.Variable(tf.zeros([dim_hidden]))<br/><br/>    ## Initialize the encodings for the words<br/>    wordEncoding = tf.Variable(tf.random_uniform([dim_hidden, n_words], -0.1, 0.1))<br/>    wordBias = tf.Variable(init_b)<br/>    <br/>    ## Initialize the variables for our images <br/>    img = tf.placeholder(tf.float32, [batch_size, dim_in]) ## Placeholder for our image variables<br/>    capHolder = tf.placeholder(tf.int32, [batch_size, n_lstm_steps]) ## Placeholder for our image captions<br/>    mask = tf.placeholder(tf.float32, [batch_size, n_lstm_steps]) <br/>    <br/>    ## Compute an initial embedding for the LSTM<br/>    imgEmbedding = tf.matmul(img, imgEmbedding) + imgBias<br/>     <br/>    ## Initialize the LSTM and its starting state<br/>    lstm = tf.contrib.rnn.BasicLSTMCell(dim_hidden)<br/>    state = self.lstm.zero_state(batch_size, dtype=tf.float32)<br/><br/>    ## Define a starting loss<br/>    totalLoss = 0.0</pre>
+<ol start="7">
+<li class="mce-root">Now, we will train the cycle for the model:</li>
+</ol>
+<pre style="padding-left: 60px"> ## Training Cycle for the Model<br/>    with tf.variable_scope("RNN"):<br/>        for i in range(n_lstm_steps): <br/>            ## Tell the model to utilizing the embedding corresponding to the appropriate caption, <br/>            ## if not, utilize the image at the first embedding<br/>            if i &gt; 0:<br/>                current_embedding = tf.nn.embedding_lookup(captionEmbedding, capHolder[:,i-1]) + captionBias<br/>                tf.get_variable_scope().reuse_variables()<br/>            else:<br/>                current_embedding = imgEmbedding<br/>                <br/>            out, state = lstm(current_embedding, state) ## Output the current embedding and state from the LSTM<br/><br/>                <br/>            if i &gt; 0:<br/><br/>                labels = tf.expand_dims(capHolder[:, i], 1)<br/>                ix_range = tf.range(0, batch_size, 1) ## get the index range<br/>                indexes = tf.expand_dims(ix_range, 1) ## get the indexes<br/>                concat = tf.concat([indexes, labels],1) ## Concatonate the indexes with their labels<br/>                <br/>                ## Utilizng a "One Hot" encoding scheme for the labels<br/>                oneHot = tf.sparse_to_dense(concat, tf.stack([batch_size, n_words]), 1.0, 0.0) <br/><br/>                ## Run the results through a softmax function to generate the next word <br/>                logit = tf.matmul(out, wordEncoding) + wordBias<br/>                <br/>                ## Utilizing Cross Entropy as our Loss Function<br/>                crossEntropyLoss = tf.nn.softmax_cross_entropy_with_logits(logits=logit, labels=oneHot)<br/>                crossEntropyLoss = crossEntropyLoss * mask[:,i]<br/><br/>                ## Tell Tensorflow to reduce our loss<br/>                loss = tf.reduce_sum(crossEntropyLoss)<br/>                <br/>                ## Add the loss at each iteration to our total loss <br/>                totalLoss = totalLoss + loss<br/><br/>        totalLoss = totalLoss / tf.reduce_sum(mask[:,1:])<br/>        <br/>        return totalLoss, img, capHolder, mask</pre>
+<p>During training, we utilize a separate weight matrix to help model the image information, and utilize that weight matrix to ingest the image information at every RNN time step cycle.</p>
+<p>At each step, our RNN will compute a distribution over all scores in the network's vocabulary, sample the most likely word from that distribution, and utilize that word as the input for the next RNN time step. These models are typically trained end-to-end, meaning that backpropagation for both RNN and the CNN happens simultaneously. In this case, we only need to worry about our RNN:</p>
+<pre>def trainNeuralCaption(learning_rate=0.0001):<br/> '''Function to train the Neural Machine Translation Model '''<br/> <br/> ## Initialize a Tensorflow Session<br/> sess = tf.InteractiveSession()<br/> <br/> ## Load the images and construct the vocab using the functions we described above<br/> images, captions = load_images('path/to/captions', 'path/to/features')<br/> WordstoIndexes, IndexestoWords, init_b = constructVocab(captions)<br/><br/> ## Store the indexes<br/> index = (np.arange(len(images)).astype(int))<br/> np.random.shuffle(index) <br/> n_words = len(WordstoIndexes)<br/> maxlen = np.max( [x for x in map(lambda x: len(x.split(' ')), captions) ] )</pre>
+<p>Now, let's initialize the caption RNN model and start building the model. The code for that is as follows:</p>
+<pre> <br/> ## Initialize the Caption RNN model function and build the model <br/> nc = neuralCaption(dim_in, dim_hidden, dim_embed, batch_size, maxlen+2, n_words, init_b)<br/> loss, image, sentence, mask = nc.build_model()<br/><br/> ## Define our timestep and the overall learning rate<br/> global_step = tf.Variable(0,trainable=False)<br/> learning_rate = tf.train.exponential_decay(learning_rate, global_step, int(len(index)/batch_size), 0.95)<br/> <br/> ## Utilize Adam as our optimization function <br/> train_op = tf.train.AdamOptimizer(learning_rate).minimize(loss)<br/> <br/> ## Initialize all our variables<br/> tf.global_variables_initializer().run()<br/><br/> ## Run the training cucle<br/> for epoch in range(n_epochs):<br/> for start, end in zip( range(0, len(index), batch_size), range(batch_size, len(index), batch_size)):<br/><br/> ## Current Images and Captions<br/> currentImages = images[index[start:end]]<br/> currentCaptions = captions[index[start:end]]<br/> current_caption_ind = [x for x in map(lambda cap: [WordstoIndexes[word] for word in cap.lower().split(' ')[:-1] if word in WordstoIndezes], current_captions)]<br/><br/> ## Pad the incoming sequences<br/> current_caption_matrix = sequence.pad_sequences(current_caption_ind, padding='post', maxlen=maxlen+1)<br/> current_caption_matrix = np.hstack( [np.full( (len(current_caption_matrix),1), 0), current_caption_matrix] )<br/><br/> current_mask_matrix = np.zeros((current_caption_matrix.shape[0], current_caption_matrix.shape[1]))<br/> nonzeros = np.array([x for x in map(lambda x: (x != 0).sum()+2, current_caption_matrix )])<br/><br/> for ind, row in enumerate(current_mask_matrix):<br/> row[:nonzeros[ind]] = 1<br/><br/> ## Run the operations in a TensorFlow session <br/> _, currentLoss = sess.run([train_op, loss], feed_dict={<br/> image: current_feats.astype(np.float32),<br/> sentence : current_caption_matrix.astype(np.int32),<br/> mask : current_mask_matrix.astype(np.float32)<br/> })<br/><br/> print("Loss: ", currentLoss)</pre>
+<p>The last thing we need to do is train the model; we can do that by simply calling the <kbd>training</kbd> function:</p>
+<pre> trainNeuralCaption()</pre>
+<p>Often, you may see many variants of RNNs for text generation called the <strong>character</strong>-<strong>level RNN</strong>, or <strong>ChaRnn</strong>. It's advisable to stay away from character-level RNN models. </p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Extensions of RNNs</h1>
+                </header>
+            
+            <article>
+                
+<p>There have been many extensions of vanilla RNNs over the past several years. This is by no means an exhaustive list of all of the great advances in RNNs that are happening in the community, but we're going to review a couple of the most notable ones: Bidirectional RNNs, and NTM.</p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Bidirectional RNNs</h1>
+                </header>
+            
+            <article>
+                
+<p><span>In recent years, researchers have developed several improvements on the traditional RNN structure. </span><strong>Bidirectional RNNs </strong><span>were developed with the idea that they may not only depend on the information that came before in a sequence, but also the information that comes afterwards. Structurally, they are just two RNNs that are stacked on top of each other, and their output is a combination of the hidden states of each of the individual networks.</span></p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Neural turing machines</h1>
+                </header>
+            
+            <article>
+                
+<p><strong>Neural turing machines</strong> (<strong>NTM</strong>) are a form of RNN that were developed by Alex Graves of DeepMind in 2014. Instead of having an internal state such as an LSTM, NTMs have external memory, which increases their ability to handle complex computational tasks.</p>
+<p> NTMs consist of two main components: a <strong>controller</strong> and a <strong>memory bank</strong>.</p>
+<ul>
+<li><strong>NTM controller</strong>: The controller in an NTM is the neural network itself; it manages the flow of information between input and memory, and learns to manage its own memory throughout</li>
+<li><strong>NTM memory bank</strong>: The actual external memory, usually represented in tensor form</li>
+</ul>
+
+
+<p>Provided there's enough memory, an NTM can replicate any algorithm by simply updating its own memory to reflect that algorithm. The architecture ...</p></article></section></div>
+
+
+
+  
+<div id="sbo-rt-content"><section>
+
+                            <header>
+                    <h1 class="header-title">Summary</h1>
+                </header>
+            
+            <article>
+                
+<p>RNNs are the primary means by which we reason over textual inputs, and come in a variety of forms. In this chapter, we learned about the recurrent structure of RNNs, and special versions of RNNs that utilize memory cells. RNNs are used for any type of sequence prediction, generating music, text, image captions, and more. </p>
+<p>RNNs are different from feedforward networks in that they have recurrence; each step in the RNN is dependent on the network's memory at the last state, along with its own weights and bias factors. As a result, vanilla RNNs struggle with long-term dependencies; they find it difficult to remember sequences beyond a specific number of time steps back. GRU and LSTM utilize memory gating mechanisms to control what they remember and forget, and hence, overcome the problem of dealing with long-term dependencies that many RNNs run into. RNN/CNN hybrids with attention mechanisms actually provide state-of-the-art performance on classification tasks. We'll create one of these in the <a href="f1757dce-003c-4295-ac10-aea45860cbe2.xhtml" target="_blank">Chapter 9</a>, <em>Deep Learning for Intelligent Assistants</em> about creating a basic agent.</p>
+<p>In the next chapter, we'll move beyond RNNs into one of the most exciting classes of networks, <strong>generative networks</strong>, where we'll learn how to use unlabeled data, and how to generate images and paintings from scratch. </p>
+
+
+            </article>
+
+            
+        </section>
+    </div>
+
+
+
+  </body></html>

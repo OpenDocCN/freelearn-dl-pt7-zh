@@ -1,0 +1,491 @@
+<html><head></head><body>
+        <section>
+
+                            <header>
+                    <h1 class="header-title"><span class="koboSpan" id="kobo.1.1">Distributed AI for IoT</span></h1>
+                </header>
+            
+            <article>
+                
+<p class="mce-root"><span class="koboSpan" id="kobo.2.1">The advances in distributed computing environments and an easy availability of internet worldwide has resulted in the emergence of </span><strong><span class="koboSpan" id="kobo.3.1">Distributed Artificial Intelligence</span></strong><span class="koboSpan" id="kobo.4.1"> (</span><strong><span class="koboSpan" id="kobo.5.1">DAI</span></strong><span class="koboSpan" id="kobo.6.1">). </span><span class="koboSpan" id="kobo.6.2">In this chapter, we will learn about two frameworks, one by Apache the </span><strong><span class="koboSpan" id="kobo.7.1">machine learning library </span></strong><span class="koboSpan" id="kobo.8.1">(</span><strong><span class="koboSpan" id="kobo.9.1">MLlib</span></strong><span class="koboSpan" id="kobo.10.1">), and another H2O.ai, both provide distributed and scalable </span><strong><span class="koboSpan" id="kobo.11.1">machine learning</span></strong><span class="koboSpan" id="kobo.12.1"> (</span><strong><span class="koboSpan" id="kobo.13.1">ML</span></strong><span class="koboSpan" id="kobo.14.1">) for large, streaming data. </span><span class="koboSpan" id="kobo.14.2">The chapter will start with an introduction to Apache's Spark, the de facto distributed data processing system. </span><span class="koboSpan" id="kobo.14.3">This chapter will cover the following topics:</span></p>
+<ul>
+<li><span class="koboSpan" id="kobo.15.1">Spark and its importance in distributed data processing</span></li>
+<li><span class="koboSpan" id="kobo.16.1">Understanding the Spark architecture</span></li>
+<li><span class="koboSpan" id="kobo.17.1">Learning about MLlib</span></li>
+<li><span class="koboSpan" id="kobo.18.1">Using MLlib in your deep learning pipeline</span></li>
+<li><span class="koboSpan" id="kobo.19.1">Delving deep into the H2O.ai platform</span></li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title"><span class="koboSpan" id="kobo.1.1">Introduction</span></h1>
+                </header>
+            
+            <article>
+                
+<p><span class="koboSpan" id="kobo.2.1">IoT systems generate a lot of data; while in many cases it is possible to analyze the data at leisure, for certain tasks such as security, fraud detection, and so on, this latency is not acceptable. </span><span class="koboSpan" id="kobo.2.2">What we need in such a situation is a way to handle large data within a specified time—the solution—DAI, many machines in the cluster processing the big data (data parallelism) and/or training the deep learning models (model parallelism) in a distributed manner. </span><span class="koboSpan" id="kobo.2.3">There are many ways to perform DAI, and most of the approaches are built upon or around Apache Spark. Released in the year 2010 under the BSD licence, Apache Spark today is the largest open source project in big data. </span><span class="koboSpan" id="kobo.2.4">It helps the user to create a fast and general purpose cluster computing system. </span></p>
+<p><span class="koboSpan" id="kobo.3.1">Spark runs on a Java virtual machine, making it possible to run it on any machine with Java installed, be it a laptop or a cluster. </span><span class="koboSpan" id="kobo.3.2">It supports a variety of programming languages including Python, Scala, and R. </span><span class="koboSpan" id="kobo.3.3">A large number of deep learning frameworks and APIs are built around Spark and TensorFlow to make the task of DAI easier, for example, </span><strong><span class="koboSpan" id="kobo.4.1">TensorFlowOnSpark</span></strong><span class="koboSpan" id="kobo.5.1"> (</span><strong><span class="koboSpan" id="kobo.6.1">TFoS</span></strong><span class="koboSpan" id="kobo.7.1">), Spark MLlib, SparkDl, and Hydrogen Sparkling (a combination of H2O.ai and Spark). </span></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title"><span class="koboSpan" id="kobo.1.1">Spark components</span></h1>
+                </header>
+            
+            <article>
+                
+<p><span class="koboSpan" id="kobo.2.1">Spark uses master-slave architecture, with one central coordinator (called the </span><strong><span class="koboSpan" id="kobo.3.1">Spark driver</span></strong><span class="koboSpan" id="kobo.4.1">) and many distributed workers (called </span><strong><span class="koboSpan" id="kobo.5.1">Spark executors</span></strong><span class="koboSpan" id="kobo.6.1">). </span><span class="koboSpan" id="kobo.6.2">The driver process creates a </span><kbd><span class="koboSpan" id="kobo.7.1">SparkContext</span></kbd><span class="koboSpan" id="kobo.8.1"> object and divides the user application into smaller execution units (tasks). </span><span class="koboSpan" id="kobo.8.2">These tasks are executed by the workers. </span><span class="koboSpan" id="kobo.8.3">The resources among the workers are managed by a </span><strong><span class="koboSpan" id="kobo.9.1">Cluster</span></strong> <strong><span class="koboSpan" id="kobo.10.1">Manager</span></strong><span class="koboSpan" id="kobo.11.1">. </span><span class="koboSpan" id="kobo.11.2">The following diagram shows the workings of Spark:</span></p>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.12.1"><img class="aligncenter size-full wp-image-1000 image-border" src="assets/2b18990e-1d8c-4cb0-a01b-7e2c24272ba8.png" style="width:42.50em;height:20.50em;"/></span></p>
+<div class="CDPAlignCenter CDPAlign packt_figref"><span class="koboSpan" id="kobo.13.1"> Working of Spark</span></div>
+<p><span class="koboSpan" id="kobo.14.1">Let's now go through the different components of Spark. </span><span class="koboSpan" id="kobo.14.2">The following diagram shows the basic components that constitute Spark:</span></p>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.15.1"><img class="aligncenter size-full wp-image-1001 image-border" src="assets/ab3d925a-6e1b-426e-a3ba-9dbabe167138.png" style="width:30.33em;height:24.42em;"/></span></p>
+<div class="CDPAlignCenter CDPAlign packt_figref"><span class="koboSpan" id="kobo.16.1"> Components that constitute Spark </span></div>
+<p class="mce-root"><span class="koboSpan" id="kobo.17.1">Let's see, in brief, some of the components that we will be using in this chapter, as follows:</span></p>
+<ul>
+<li><strong><span class="koboSpan" id="kobo.18.1">Resilient Distributed Datasets</span></strong><span class="koboSpan" id="kobo.19.1">: </span><strong><span class="koboSpan" id="kobo.20.1">Resilient Distributed Datasets</span></strong><span class="koboSpan" id="kobo.21.1"> (</span><strong><span class="koboSpan" id="kobo.22.1">RDDs</span></strong><span class="koboSpan" id="kobo.23.1">) are the primary API in Spark. </span><span class="koboSpan" id="kobo.23.2">They represent an immutable, partitioned collection of data that can be operated in parallel. </span><span class="koboSpan" id="kobo.23.3">The higher APIs DataFrames and DataSets are built on top of RDDs. </span></li>
+<li><strong><span class="koboSpan" id="kobo.24.1">Distributed Variables</span></strong><span class="koboSpan" id="kobo.25.1">: Spark has two types of distributed variables: broadcast variables and accumulators. </span><span class="koboSpan" id="kobo.25.2">They are used by user-defined functions. </span><span class="koboSpan" id="kobo.25.3">Accumulators are used for aggregating the information from all the executors into a shared result. </span><span class="koboSpan" id="kobo.25.4">The broadcast variables, alternatively, are the variables that are shared throughout the cluster. </span></li>
+<li><strong><span class="koboSpan" id="kobo.26.1">DataFrames</span></strong><span class="koboSpan" id="kobo.27.1">: It is a distributed collection of data, very much like the pandas DataFrame. </span><span class="koboSpan" id="kobo.27.2">They can read from various file formats and perform the operation on the entire DataFrame using a single command. </span><span class="koboSpan" id="kobo.27.3">They are distributed across the cluster.</span></li>
+<li><strong><span class="koboSpan" id="kobo.28.1">Libraries</span></strong><span class="koboSpan" id="kobo.29.1">: Spark has built-in libraries for MLlib, and for working with graphs (GraphX). </span><span class="koboSpan" id="kobo.29.2">In this chapter, we will use MLlib and SparkDl that uses Spark framework. </span><span class="koboSpan" id="kobo.29.3">We will learn how to apply them to make ML predictions.</span></li>
+</ul>
+<div class="mce-root packt_infobox"><span class="koboSpan" id="kobo.30.1">Spark is a big topic, and it is beyond the scope of this book to give further details on Spark. </span><span class="koboSpan" id="kobo.30.2">We recommend the interested reader refer to the Spark documentation: </span><a href="http://spark.apache.org/docs/latest/index.html"><span class="koboSpan" id="kobo.31.1">http://spark.apache.org/docs/latest/index.html</span></a><span class="koboSpan" id="kobo.32.1">. </span></div>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title"><span class="koboSpan" id="kobo.1.1">Apache MLlib</span></h1>
+                </header>
+            
+            <article>
+                
+<p><span class="koboSpan" id="kobo.2.1">Apache Spark MLlib provides a powerful computational environment for ML. </span><span class="koboSpan" id="kobo.2.2">It provides a distributed architecture on a large-scale basis, allowing one to run ML models more quickly and efficiently. </span><span class="koboSpan" id="kobo.2.3">That's not all; it is open source with a growing and active community continuously working to improve and provide the latest features. </span><span class="koboSpan" id="kobo.2.4">It provides a scalable implementation of the popular ML algorithms. </span><span class="koboSpan" id="kobo.2.5">It includes algorithms for the following:</span></p>
+<ul>
+<li><strong><span class="koboSpan" id="kobo.3.1">Classification</span></strong><span class="koboSpan" id="kobo.4.1">: Logistic regression, linear support vector machine, Naive Bayes</span></li>
+<li><strong><span class="koboSpan" id="kobo.5.1">Regression</span></strong><span class="koboSpan" id="kobo.6.1">: Generalized linear regression</span></li>
+<li><strong><span class="koboSpan" id="kobo.7.1">Collaborative filtering</span></strong><span class="koboSpan" id="kobo.8.1">: Alternating least square</span></li>
+<li><strong><span class="koboSpan" id="kobo.9.1">Clustering</span></strong><span class="koboSpan" id="kobo.10.1">: K-means</span></li>
+<li><strong><span class="koboSpan" id="kobo.11.1">Decomposition</span></strong><span class="koboSpan" id="kobo.12.1">: Singular value decomposition and principal component analysis</span></li>
+</ul>
+<p><span class="koboSpan" id="kobo.13.1">It has proved to be faster than Hadoop MapReduce. </span><span class="koboSpan" id="kobo.13.2">We can write applications in Java, Scala, R, or Python. </span><span class="koboSpan" id="kobo.13.3">It can also be easily integrated with TensorFlow. </span></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title"><span class="koboSpan" id="kobo.1.1">Regression in MLlib</span></h1>
+                </header>
+            
+            <article>
+                
+<p><span class="koboSpan" id="kobo.2.1">Spark MLlib has built-in methods for regression. </span><span class="koboSpan" id="kobo.2.2">To be able to use the built-in methods of Spark, you will have to install </span><kbd><span class="koboSpan" id="kobo.3.1">pyspark</span></kbd><span class="koboSpan" id="kobo.4.1"> on your cluster (standalone or distributed cluster). </span><span class="koboSpan" id="kobo.4.2">The installation can be done using the following:</span></p>
+<pre><span class="koboSpan" id="kobo.5.1">pip install pyspark</span></pre>
+<p><span class="koboSpan" id="kobo.6.1">The MLlib library has the following regression methods:</span></p>
+<ul>
+<li><strong><span class="koboSpan" id="kobo.7.1">Linear regression</span></strong><span class="koboSpan" id="kobo.8.1">: We already learned about linear regression in earlier chapters; we can use this method using the </span><kbd><span class="koboSpan" id="kobo.9.1">LinearRegression</span></kbd> <span><span class="koboSpan" id="kobo.10.1"> class </span></span><span class="koboSpan" id="kobo.11.1">defined at </span><kbd><span class="koboSpan" id="kobo.12.1">pyspark.ml.regression</span></kbd><span class="koboSpan" id="kobo.13.1">. </span><span class="koboSpan" id="kobo.13.2">By default, it uses minimized squared error with regularization. </span><span class="koboSpan" id="kobo.13.3">It supports L1 and L2 regularization, and a combination of them. </span></li>
+<li><strong><span class="koboSpan" id="kobo.14.1">Generalized linear regression</span></strong><span class="koboSpan" id="kobo.15.1">: The Spark MLlib has a subset of exponential family distributions like Gaussian, Poissons, and so on. </span><span class="koboSpan" id="kobo.15.2">The regression is instantiated using the class </span><kbd><span class="koboSpan" id="kobo.16.1">GeneralizedLinearRegression</span></kbd><span class="koboSpan" id="kobo.17.1">. </span></li>
+<li><strong><span class="koboSpan" id="kobo.18.1">Decision tree regression</span></strong><span class="koboSpan" id="kobo.19.1">: The </span><kbd><span class="koboSpan" id="kobo.20.1">DecisionTreeRegressor</span></kbd><span class="koboSpan" id="kobo.21.1"> class can be used to make a prediction using decision tree regression. </span></li>
+<li><strong><span class="koboSpan" id="kobo.22.1">Random forest regression</span></strong><span class="koboSpan" id="kobo.23.1">: One of the popular ML methods, they are defined in the </span><kbd><span class="koboSpan" id="kobo.24.1">RandomForestRegressor</span></kbd><span class="koboSpan" id="kobo.25.1"> </span><span><span class="koboSpan" id="kobo.26.1">class.</span></span><span class="koboSpan" id="kobo.27.1"> </span></li>
+<li><strong><span class="koboSpan" id="kobo.28.1">Gradient boosted tree regression</span></strong><span class="koboSpan" id="kobo.29.1">: We can use an ensemble of decision trees using the </span><kbd><span class="koboSpan" id="kobo.30.1">GBTRegressor</span></kbd><span class="koboSpan" id="kobo.31.1"> </span><span><span class="koboSpan" id="kobo.32.1">class.</span></span><span class="koboSpan" id="kobo.33.1"> </span></li>
+</ul>
+<p><span class="koboSpan" id="kobo.34.1">Besides, the MLlib also has support for survival regression and isotonic regression using the </span><kbd><span class="koboSpan" id="kobo.35.1">AFTSurvivalRegression</span></kbd><span class="koboSpan" id="kobo.36.1"> and </span><kbd><span class="koboSpan" id="kobo.37.1">IsotonicRegression</span></kbd><span class="koboSpan" id="kobo.38.1"> </span><span><span class="koboSpan" id="kobo.39.1">classes.</span></span></p>
+<p><span class="koboSpan" id="kobo.40.1">With the help of these classes, we can build a ML model for regression (or classification as you will see in next section) in as little as 10 lines of code. </span><span class="koboSpan" id="kobo.40.2">The basic steps are outlined as follows:</span></p>
+<ol>
+<li><span class="koboSpan" id="kobo.41.1">Build a Spark session</span></li>
+<li><span class="koboSpan" id="kobo.42.1">Implement the data-loading pipeline: load the data file, specify the format, and read it into Spark DataFrames</span></li>
+<li><span class="koboSpan" id="kobo.43.1">Identify the features to be used as input and as the target (optionally split dataset in train/test)</span></li>
+<li><span class="koboSpan" id="kobo.44.1">Instantiate the desired class object</span></li>
+<li><span class="koboSpan" id="kobo.45.1">Use the </span><kbd><span class="koboSpan" id="kobo.46.1">fit()</span></kbd><span class="koboSpan" id="kobo.47.1"> method with training dataset as an argument</span></li>
+<li><span class="koboSpan" id="kobo.48.1">Depending upon the regressor chosen, you can see the learned parameters and evaluate the fitted model</span></li>
+</ol>
+<p><span class="koboSpan" id="kobo.49.1">Let's use linear regression for the Boston house price prediction dataset (</span><a href="https://www.cs.toronto.edu/~delve/data/boston/bostonDetail.html"><span class="koboSpan" id="kobo.50.1">https://www.cs.toronto.edu/~delve/data/boston/bostonDetail.html</span></a><span class="koboSpan" id="kobo.51.1">), where we have the dataset in </span><kbd><span class="koboSpan" id="kobo.52.1">csv</span></kbd><span class="koboSpan" id="kobo.53.1"> format: </span></p>
+<ol>
+<li><span class="koboSpan" id="kobo.54.1">Import the necessary modules. </span><span class="koboSpan" id="kobo.54.2">We will be using </span><kbd><span class="koboSpan" id="kobo.55.1">LinearRegressor</span></kbd><span class="koboSpan" id="kobo.56.1"> for defining the linear regression class, </span><kbd><span class="koboSpan" id="kobo.57.1">RegressionEvaluator</span></kbd><span class="koboSpan" id="kobo.58.1"> to evaluate the model after training, </span><kbd><span class="koboSpan" id="kobo.59.1">VectorAssembler</span></kbd><span class="koboSpan" id="kobo.60.1"> to combine features as one input vector, and </span><kbd><span class="koboSpan" id="kobo.61.1">SparkSession</span></kbd><span class="koboSpan" id="kobo.62.1"> to start the Spark session:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.63.1">from pyspark.ml.regression import LinearRegression as LR</span><br/><span class="koboSpan" id="kobo.64.1">from pyspark.ml.feature import VectorAssembler</span><br/><span class="koboSpan" id="kobo.65.1">from pyspark.ml.evaluation import RegressionEvaluator</span><br/><br/><span class="koboSpan" id="kobo.66.1">from pyspark.sql import SparkSession</span></pre>
+<p class="mce-root"/>
+<ol start="2">
+<li><span class="koboSpan" id="kobo.67.1">Next, start a Spark session using </span><kbd><span class="koboSpan" id="kobo.68.1">SparkSession</span></kbd><span class="koboSpan" id="kobo.69.1"> </span><span><span class="koboSpan" id="kobo.70.1">class </span></span><span class="koboSpan" id="kobo.71.1">as follows:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.72.1">spark = SparkSession.builder \</span><br/><span class="koboSpan" id="kobo.73.1"> .appName("Boston Price Prediction") \</span><br/><span class="koboSpan" id="kobo.74.1"> .config("spark.executor.memory", "70g") \</span><br/><span class="koboSpan" id="kobo.75.1"> .config("spark.driver.memory", "50g") \</span><br/><span class="koboSpan" id="kobo.76.1"> .config("spark.memory.offHeap.enabled",True) \</span><br/><span class="koboSpan" id="kobo.77.1"> .config("spark.memory.offHeap.size","16g") \</span><br/><span class="koboSpan" id="kobo.78.1"> .getOrCreate()</span></pre>
+<ol start="3">
+<li><span class="koboSpan" id="kobo.79.1">Let's now read the data; we first load the data from the given path, define the format we want to use, and finally, read it into Spark DataFrames, as follows:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.80.1">house_df = spark.read.format("csv"). </span><span class="koboSpan" id="kobo.80.2">\</span><br/><span class="koboSpan" id="kobo.81.1">    options(header="true", inferschema="true"). </span><span class="koboSpan" id="kobo.81.2">\</span><br/><span class="koboSpan" id="kobo.82.1">    load("boston/train.csv")</span></pre>
+<ol start="4">
+<li><span class="koboSpan" id="kobo.83.1">You can see the DataFrame now loaded in the memory, and its structure, shown in the following screenshot:</span></li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.84.1"><img class="aligncenter size-full wp-image-1002 image-border" src="assets/6ec3ba28-bb23-4336-a1fc-d38953ce1723.png" style="width:56.08em;height:37.50em;"/></span></p>
+<ol start="5">
+<li><span class="koboSpan" id="kobo.85.1">Like pandas DataFrames, Spark DataFrames can also be processed with a single command. </span><span class="koboSpan" id="kobo.85.2">Let's gain a little more insight into our dataset as seen in the following screenshot:</span></li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.86.1"><img src="assets/316109bd-4504-4877-b9b8-09d4c053b456.png" style="width:48.83em;height:31.75em;"/></span></p>
+<ol start="6">
+<li><span class="koboSpan" id="kobo.87.1">Next, we define the features we want to use for training; to do this, we make use of the </span><kbd><span class="koboSpan" id="kobo.88.1">VectorAssembler</span></kbd><span class="koboSpan" id="kobo.89.1"> class. </span><span class="koboSpan" id="kobo.89.2">We define the columns from the </span><kbd><span class="koboSpan" id="kobo.90.1">house_df</span></kbd><span class="koboSpan" id="kobo.91.1"> DataFrame to be combined together as an input feature vector and corresponding output prediction (similar to defining </span><kbd><span class="koboSpan" id="kobo.92.1">X_train</span></kbd><span class="koboSpan" id="kobo.93.1">, </span><kbd><span class="koboSpan" id="kobo.94.1">Y_train</span></kbd><span class="koboSpan" id="kobo.95.1">), and then perform the corresponding transformation, as follows:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.96.1">vectors = VectorAssembler(inputCols = ['crim', 'zn','indus','chas',</span><br/><span class="koboSpan" id="kobo.97.1">    'nox','rm','age','dis', 'rad', 'tax',</span><br/><span class="koboSpan" id="kobo.98.1">    'ptratio','black', 'lstat'],</span><br/><span class="koboSpan" id="kobo.99.1">    outputCol = 'features')</span><br/><span class="koboSpan" id="kobo.100.1">vhouse_df = vectors.transform(house_df)</span><br/><span class="koboSpan" id="kobo.101.1">vhouse_df = vhouse_df.select(['features', 'medv'])</span><br/><span class="koboSpan" id="kobo.102.1">vhouse_df.show(5)</span></pre>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.103.1"><img src="assets/0c1de199-e1b3-4e5f-9f54-4a3b79e57c5d.png" style="width:21.50em;height:13.83em;"/></span></p>
+<ol start="7">
+<li><span class="koboSpan" id="kobo.104.1">The dataset is then split into train/test datasets, shown in the following code:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.105.1">train_df, test_df = vhouse_df.randomSplit([0.7,0.3])</span></pre>
+<ol start="8">
+<li><span class="koboSpan" id="kobo.106.1">Now that we have our dataset ready, we instantiate the </span><kbd><span class="koboSpan" id="kobo.107.1">LinearRegression</span></kbd><span class="koboSpan" id="kobo.108.1"> class and fit it for the training dataset, as follows:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.109.1">regressor = LR(featuresCol = 'features', labelCol='medv',\</span><br/><span class="koboSpan" id="kobo.110.1">    maxIter=20, regParam=0.3, elasticNetParam=0.8)</span><br/><span class="koboSpan" id="kobo.111.1">model = regressor.fit(train_df)</span></pre>
+<ol start="9">
+<li><span class="koboSpan" id="kobo.112.1">We can obtain the result coefficients of linear regression, as follows:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.113.1">print("Coefficients:", model.coefficients)</span><br/><span class="koboSpan" id="kobo.114.1">print("Intercept:", model.intercept)</span></pre>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.115.1"><img src="assets/1446b664-709e-4413-883e-4337b7bf15f5.png"/></span></p>
+<p class="mce-root"/>
+<ol start="10">
+<li><span class="koboSpan" id="kobo.116.1">The model provides an RMSE value of </span><kbd><span class="koboSpan" id="kobo.117.1">4.73</span></kbd><span class="koboSpan" id="kobo.118.1"> and an </span><kbd><span class="koboSpan" id="kobo.119.1">r2</span></kbd><span class="koboSpan" id="kobo.120.1"> value of </span><kbd><span class="koboSpan" id="kobo.121.1">0.71</span></kbd><span class="koboSpan" id="kobo.122.1"> on the training dataset in </span><kbd><span class="koboSpan" id="kobo.123.1">21</span></kbd><span class="koboSpan" id="kobo.124.1"> iterations:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.125.1">modelSummary = model.summary</span><br/><span class="koboSpan" id="kobo.126.1">print("RMSE is {} and r2 is {}"\ </span><br/><span class="koboSpan" id="kobo.127.1">   .format(modelSummary.rootMeanSquaredError,\</span><br/><span class="koboSpan" id="kobo.128.1">    modelSummary.r2))</span><br/><span class="koboSpan" id="kobo.129.1">print("Number of Iterations is ",modelSummary.totalIterations)</span></pre>
+<ol start="11">
+<li><span class="koboSpan" id="kobo.130.1">Next, we evaluate our model on the test dataset; we obtain an RMSE of </span><kbd><span class="koboSpan" id="kobo.131.1">5.55</span></kbd><span class="koboSpan" id="kobo.132.1"> and R2 value of </span><kbd><span class="koboSpan" id="kobo.133.1">0.68</span></kbd><span class="koboSpan" id="kobo.134.1">:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.135.1">model_evaluator = RegressionEvaluator(predictionCol="prediction",\</span><br/><span class="koboSpan" id="kobo.136.1">    labelCol="medv", metricName="r2")</span><br/><span class="koboSpan" id="kobo.137.1">print("R2 value on test dataset is: ",\</span><br/><span class="koboSpan" id="kobo.138.1">    model_evaluator.evaluate(model_predictions))</span><br/><span class="koboSpan" id="kobo.139.1">print("RMSE value is", model.evaluate(test_df).rootMeanSquaredError)</span></pre>
+<p><span class="koboSpan" id="kobo.140.1">Once the work is done, you should stop the Spark session using the </span><kbd><span class="koboSpan" id="kobo.141.1">stop()</span></kbd><span class="koboSpan" id="kobo.142.1"> method. </span><span class="koboSpan" id="kobo.142.2">The complete code is available in </span><kbd><span class="koboSpan" id="kobo.143.1">Chapter08/Boston_Price_MLlib.ipynb</span></kbd><span class="koboSpan" id="kobo.144.1">. </span><span class="koboSpan" id="kobo.144.2">The reason for a low </span><kbd><span class="koboSpan" id="kobo.145.1">r2</span></kbd><span class="koboSpan" id="kobo.146.1"> value and high RMSE is that we have considered all the features in the training dataset as an input feature vector, and many of them play no significant role in determining the house price. Try reducing the features, keeping the ones that have a high correlation with the price.</span></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title"><span class="koboSpan" id="kobo.1.1">Classification in MLlib</span></h1>
+                </header>
+            
+            <article>
+                
+<p><span class="koboSpan" id="kobo.2.1">MLlib also offers a wide range of classifiers; it provides both binomial and multinomial logistic regressor. </span><span class="koboSpan" id="kobo.2.2">The decision tree classifier, random forest classifier, gradient-boosted tree classifier, multilayered perceptron classifier, linear support vector machine classifier, and Naive Bayes classifier are supported. </span><span class="koboSpan" id="kobo.2.3">Each of them is defined in its class; for details, refer to </span><a href="https://spark.apache.org/docs/2.2.0/ml-classification-regression.html#naive-bayes"><span class="koboSpan" id="kobo.3.1">https://spark.apache.org/docs/2.2.0/ml-classification-regression.html</span></a><span class="koboSpan" id="kobo.4.1">. </span><span class="koboSpan" id="kobo.4.2">The basic steps remain the same as we learned in the case of regression; the only difference is now, instead of RMSE or r2 metrics, the models are evaluated on accuracy. </span></p>
+<p class="mce-root"/>
+<p><span class="koboSpan" id="kobo.5.1">This section will treat you to the wine quality classification problem implemented using Spark MLlib logistic regression classifier:</span></p>
+<ol>
+<li><span class="koboSpan" id="kobo.6.1"> For this classification problem, we will use logistic regression available through the </span><kbd><span class="koboSpan" id="kobo.7.1">LogisticRegressor</span></kbd><span class="koboSpan" id="kobo.8.1"> </span><span><span class="koboSpan" id="kobo.9.1">class.</span></span><span class="koboSpan" id="kobo.10.1"> The </span><kbd><span class="koboSpan" id="kobo.11.1">VectorAssembler</span></kbd><span class="koboSpan" id="kobo.12.1">, like in the previous example, will be used to combine the input features as one vector. </span><span class="koboSpan" id="kobo.12.2">In the wine quality dataset we have seen (</span><a href="fa0444a6-ce5c-4bed-8d9d-ddab846fe571.xhtml"><span class="koboSpan" id="kobo.13.1">Chapter 1</span></a><span class="koboSpan" id="kobo.14.1">, </span><em><span class="koboSpan" id="kobo.15.1">Principles and Foundations of IoT and AI</span></em><span class="koboSpan" id="kobo.16.1">), the quality was an integer number given between 0–10, and we needed to process it. </span><span class="koboSpan" id="kobo.16.2">Here, we will process using </span><kbd><span class="koboSpan" id="kobo.17.1">StringIndexer</span></kbd><span class="koboSpan" id="kobo.18.1">.</span></li>
+</ol>
+<p style="padding-left: 60px"><span class="koboSpan" id="kobo.19.1">One of the great features of Spark is that we can define all the preprocessing steps as a pipeline. </span><span class="koboSpan" id="kobo.19.2">This becomes very useful when there are a large number of preprocessing steps. </span><span class="koboSpan" id="kobo.19.3">Here, we have only two preprocessing steps, but just to showcase how pipelines are formed, we will make use of the </span><kbd><span class="koboSpan" id="kobo.20.1">Pipeline</span></kbd><span class="koboSpan" id="kobo.21.1"> class. </span><span class="koboSpan" id="kobo.21.2">We import all these modules as our first step and create a Spark session, shown in the following code:</span></p>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.22.1">from pyspark.ml.classification import LogisticRegression as LR</span><br/><span class="koboSpan" id="kobo.23.1">from pyspark.ml.feature import VectorAssembler</span><br/><span class="koboSpan" id="kobo.24.1">from pyspark.ml.feature import StringIndexer</span><br/><span class="koboSpan" id="kobo.25.1">from pyspark.ml import Pipeline</span><br/><br/><span class="koboSpan" id="kobo.26.1">from pyspark.sql import SparkSession</span><br/><br/><span class="koboSpan" id="kobo.27.1">spark = SparkSession.builder \</span><br/><span class="koboSpan" id="kobo.28.1">    .appName("Wine Quality Classifier") \</span><br/><span class="koboSpan" id="kobo.29.1">    .config("spark.executor.memory", "70g") \</span><br/><span class="koboSpan" id="kobo.30.1">    .config("spark.driver.memory", "50g") \</span><br/><span class="koboSpan" id="kobo.31.1">    .config("spark.memory.offHeap.enabled",True) \</span><br/><span class="koboSpan" id="kobo.32.1">    .config("spark.memory.offHeap.size","16g") \</span><br/><span class="koboSpan" id="kobo.33.1">    .getOrCreate()</span></pre>
+<ol start="2">
+<li><span class="koboSpan" id="kobo.34.1">We will load and read the </span><kbd><span class="koboSpan" id="kobo.35.1">winequality-red.csv</span></kbd><span class="koboSpan" id="kobo.36.1"> data file, as follows:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.37.1">wine_df = spark.read.format("csv"). </span><span class="koboSpan" id="kobo.37.2">\</span><br/><span class="koboSpan" id="kobo.38.1">    options(header="true",\</span><br/><span class="koboSpan" id="kobo.39.1">    inferschema="true",sep=';'). </span><span class="koboSpan" id="kobo.39.2">\</span><br/><span class="koboSpan" id="kobo.40.1">    load("winequality-red.csv")</span></pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<ol start="3">
+<li><span class="koboSpan" id="kobo.41.1">We process the </span><kbd><span class="koboSpan" id="kobo.42.1">quality</span></kbd><span class="koboSpan" id="kobo.43.1"> label in the given dataset, and split it into three different classes, and add it to the existing Spark DataFrame as a new </span><span><kbd><span class="koboSpan" id="kobo.44.1">quality_new</span></kbd><span class="koboSpan" id="kobo.45.1"> </span></span><span class="koboSpan" id="kobo.46.1">column, shown in the following code: </span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.47.1">from pyspark.sql.functions import when</span><br/><span class="koboSpan" id="kobo.48.1">wine_df = wine_df.withColumn('quality_new',\</span><br/><span class="koboSpan" id="kobo.49.1">    when(wine_df['quality']&lt; 5, 0 ).\</span><br/><span class="koboSpan" id="kobo.50.1">    otherwise(when(wine_df['quality']&lt;8,1)\</span><br/><span class="koboSpan" id="kobo.51.1">    .otherwise(2)))</span></pre>
+<ol start="4">
+<li><span class="koboSpan" id="kobo.52.1">Though the modified quality, </span><kbd><span class="koboSpan" id="kobo.53.1">quality_new</span></kbd><span class="koboSpan" id="kobo.54.1"> is an integer already, and we can use it directly as our label. </span><span class="koboSpan" id="kobo.54.2">In this example, we have added </span><kbd><span class="koboSpan" id="kobo.55.1">StringIndexer</span></kbd><span class="koboSpan" id="kobo.56.1"> to convert it into numeric indices for the purpose of illustration. </span><span class="koboSpan" id="kobo.56.2">One can use </span><kbd><span class="koboSpan" id="kobo.57.1">StringIndexer</span></kbd><span class="koboSpan" id="kobo.58.1"> to convert string labels to numeric indices. </span><span class="koboSpan" id="kobo.58.2">We also use </span><kbd><span class="koboSpan" id="kobo.59.1">VectorAssembler</span></kbd><span class="koboSpan" id="kobo.60.1"> to combine the columns into one feature vector. </span><span class="koboSpan" id="kobo.60.2">The two stages are combined together using </span><kbd><span class="koboSpan" id="kobo.61.1">Pipeline</span></kbd><span class="koboSpan" id="kobo.62.1">, as follows: </span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.63.1">string_index = StringIndexer(inputCol='quality_new',\</span><br/><span class="koboSpan" id="kobo.64.1">    outputCol='quality'+'Index')</span><br/><span class="koboSpan" id="kobo.65.1">vectors = VectorAssembler(inputCols = \</span><br/><span class="koboSpan" id="kobo.66.1">    ['fixed acidity','volatile acidity',\</span><br/><span class="koboSpan" id="kobo.67.1">    'citric acid','residual sugar','chlorides',\</span><br/><span class="koboSpan" id="kobo.68.1">    'free sulfur dioxide', 'total sulfur dioxide', \</span><br/><span class="koboSpan" id="kobo.69.1">    'density','pH','sulphates', 'alcohol'],\</span><br/><span class="koboSpan" id="kobo.70.1">    outputCol = 'features')</span><br/><br/><span class="koboSpan" id="kobo.71.1">stages = [vectors, string_index]</span><br/><br/><span class="koboSpan" id="kobo.72.1">pipeline = Pipeline().setStages(stages)</span><br/><span class="koboSpan" id="kobo.73.1">pipelineModel = pipeline.fit(wine_df)</span><br/><span class="koboSpan" id="kobo.74.1">pl_data_df = pipelineModel.transform(wine_df)</span></pre>
+<ol start="5">
+<li><span class="koboSpan" id="kobo.75.1">The data obtained after the pipeline is then split into training and testing datasets, shown in the following code:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.76.1">train_df, test_df = pl_data_df.randomSplit([0.7,0.3])</span></pre>
+<ol start="6">
+<li><span class="koboSpan" id="kobo.77.1">Next, we instantiate the </span><kbd><span class="koboSpan" id="kobo.78.1">LogisticRegressor</span></kbd><span class="koboSpan" id="kobo.79.1"> class and train it on the training dataset using the </span><kbd><span class="koboSpan" id="kobo.80.1">fit</span></kbd><span class="koboSpan" id="kobo.81.1"> method, as follows:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.82.1">classifier= LR(featuresCol = 'features', \</span><br/><span class="koboSpan" id="kobo.83.1">    labelCol='qualityIndex',\</span><br/><span class="koboSpan" id="kobo.84.1">    maxIter=50)</span><br/><span class="koboSpan" id="kobo.85.1">model = classifier.fit(train_df)</span></pre>
+<ol start="7">
+<li><span class="koboSpan" id="kobo.86.1">In the following screenshot, we can see the model parameters learned:</span></li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.87.1"><img src="assets/7e2b0f57-da14-409a-ac9a-6eca299087e6.png"/></span></p>
+<ol start="8">
+<li><span class="koboSpan" id="kobo.88.1">The accuracy of the model is 94.75%. </span><span class="koboSpan" id="kobo.88.2">We can also see other evaluation metrics like </span><kbd><span class="koboSpan" id="kobo.89.1">precision</span></kbd><span class="koboSpan" id="kobo.90.1"> and </span><kbd><span class="koboSpan" id="kobo.91.1">recall</span></kbd><span class="koboSpan" id="kobo.92.1">, F measure, true positive rate, and false positive rate in the following code:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.93.1">modelSummary = model.summary</span><br/><br/><span class="koboSpan" id="kobo.94.1">accuracy = modelSummary.accuracy</span><br/><span class="koboSpan" id="kobo.95.1">fPR = modelSummary.weightedFalsePositiveRate</span><br/><span class="koboSpan" id="kobo.96.1">tPR = modelSummary.weightedTruePositiveRate</span><br/><span class="koboSpan" id="kobo.97.1">fMeasure = modelSummary.weightedFMeasure()</span><br/><span class="koboSpan" id="kobo.98.1">precision = modelSummary.weightedPrecision</span><br/><span class="koboSpan" id="kobo.99.1">recall = modelSummary.weightedRecall</span><br/><span class="koboSpan" id="kobo.100.1">print("Accuracy: {} False Positive Rate {} \</span><br/><span class="koboSpan" id="kobo.101.1">    True Positive Rate {} F {} Precision {} Recall {}"\</span><br/><span class="koboSpan" id="kobo.102.1">    .format(accuracy, fPR, tPR, fMeasure, precision, recall))</span></pre>
+<p><span class="koboSpan" id="kobo.103.1">We can see that the performance of the wine quality classifier using MLlib is comparable to our earlier approaches. </span><span class="koboSpan" id="kobo.103.2">The complete code is available in the GitHub repository under </span><kbd><span class="koboSpan" id="kobo.104.1">Chapter08/Wine_Classification_MLlib.pynb</span></kbd><span class="koboSpan" id="kobo.105.1">.</span></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title"><span class="koboSpan" id="kobo.1.1">Transfer learning using SparkDL</span></h1>
+                </header>
+            
+            <article>
+                
+<p><span class="koboSpan" id="kobo.2.1">The previous sections elaborated how you can use the Spark framework with its MLlib for ML problems. </span><span class="koboSpan" id="kobo.2.2">In most complex tasks, however, deep learning models provide better performance. </span><span class="koboSpan" id="kobo.2.3">Spark supports SparkDL, a higher-level API working over MLlib. </span><span class="koboSpan" id="kobo.2.4">It uses </span><span><span class="koboSpan" id="kobo.3.1">TensorFlow </span></span><span class="koboSpan" id="kobo.4.1">at its backend, and it also requires TensorFrames, Keras, and TFoS modules. </span></p>
+<p><span class="koboSpan" id="kobo.5.1">In this section, we will make use of SparkDL for classifying images. </span><span class="koboSpan" id="kobo.5.2">This will allow you to get acquainted with the Spark support for the images. </span><span class="koboSpan" id="kobo.5.3">For images, as we learned in </span><a href="cb9d27c5-e98d-44b6-a947-691b0bc64766.xhtml"><span class="koboSpan" id="kobo.6.1">Chapter 4</span></a><span class="koboSpan" id="kobo.7.1">, </span><em><span class="koboSpan" id="kobo.8.1">Deep Learning for IoT</span></em><span class="koboSpan" id="kobo.9.1">, </span><strong><span class="koboSpan" id="kobo.10.1">Convolutional Neural Networks</span></strong><span class="koboSpan" id="kobo.11.1"> (</span><strong><span><span class="koboSpan" id="kobo.12.1">CNNs</span></span></strong><span class="koboSpan" id="kobo.13.1">) are the de facto choice. </span><span class="koboSpan" id="kobo.13.2">In </span><a href="cb9d27c5-e98d-44b6-a947-691b0bc64766.xhtml"><span class="koboSpan" id="kobo.14.1">Chapter 4</span></a><span class="koboSpan" id="kobo.15.1">, </span><em><span class="koboSpan" id="kobo.16.1">Deep Learning for IoT</span></em><span class="koboSpan" id="kobo.17.1">,</span><em><span class="koboSpan" id="kobo.18.1"> </span></em><span class="koboSpan" id="kobo.19.1">we built CNNs from scratch, and also learned about some popular CNN architectures. </span><span class="koboSpan" id="kobo.19.2">A very interesting property of CNNs is that each convolutional layer learns to identify different features from the image, which is they act as feature extractors. </span><span class="koboSpan" id="kobo.19.3">The lower convolutional layers filter out basic shapes like lines and circles, while higher layers filter more abstract shapes. </span><span class="koboSpan" id="kobo.19.4">This property can be used to employ a CNN trained on one set of images to classify another set of similar domain images by just changing the top fully connected layers. </span><span class="koboSpan" id="kobo.19.5">This technique is called </span><strong><span class="koboSpan" id="kobo.20.1">transfer learning</span></strong><span class="koboSpan" id="kobo.21.1">. </span><span class="koboSpan" id="kobo.21.2">Depending upon the availability of new dataset images and similarity between the two domains, transfer learning can significantly help in reducing the training time and need for large datasets.</span></p>
+<div class="packt_infobox"><span class="koboSpan" id="kobo.22.1">In the NIPS 2016 tutorial, Andrew Ng, one of the key figures in the AI field, said that </span><em><span class="koboSpan" id="kobo.23.1">transfer learning will be the next driver for commercial success</span></em><span class="koboSpan" id="kobo.24.1">. </span><span class="koboSpan" id="kobo.24.2">In the image domain, great success in transfer learning has been achieved using CNNs trained in ImageNet data for classifying images on other domains. </span><span class="koboSpan" id="kobo.24.3">A lot of research is being carried out in applying transfer learning to other data domains. </span><span class="koboSpan" id="kobo.24.4">You can get a primer on </span><em><span class="koboSpan" id="kobo.25.1">Transfer Learning</span></em><span class="koboSpan" id="kobo.26.1"> from this blog post by Sebastian Ruder: </span><a href="http://ruder.io/transfer-learning/"><span class="koboSpan" id="kobo.27.1">http://ruder.io/transfer-learning/</span></a><span class="koboSpan" id="kobo.28.1">.</span></div>
+<p><span class="koboSpan" id="kobo.29.1">We will employ InceptionV3, a CNN architecture proposed by Google (</span><a href="https://arxiv.org/pdf/1409.4842.pdf"><span class="koboSpan" id="kobo.30.1">https://arxiv.org/pdf/1409.4842.pdf</span></a><span class="koboSpan" id="kobo.31.1">), </span><span><span class="koboSpan" id="kobo.32.1">trained on the ImageNet dataset (</span></span><a href="http://www.image-net.org"><span class="koboSpan" id="kobo.33.1">http://www.image-net.org</span></a><span><span class="koboSpan" id="kobo.34.1">) to identify vehicles on roads (at present we restrict ourselves to only buses and cars).</span></span><span class="koboSpan" id="kobo.35.1"> </span></p>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p><span class="koboSpan" id="kobo.36.1">Before we can start, ensure that the following modules are installed in your working environment:</span></p>
+<ul>
+<li><span class="koboSpan" id="kobo.37.1">PySpark</span></li>
+<li><span class="koboSpan" id="kobo.38.1">TensorFlow</span></li>
+<li><span class="koboSpan" id="kobo.39.1">Keras</span></li>
+<li><span class="koboSpan" id="kobo.40.1">TFoS</span></li>
+<li><span class="koboSpan" id="kobo.41.1">TensorFrames</span></li>
+<li><span class="koboSpan" id="kobo.42.1">Wrapt</span></li>
+<li><span class="koboSpan" id="kobo.43.1">Pillow</span></li>
+<li><span class="koboSpan" id="kobo.44.1">pandas</span></li>
+<li><span class="koboSpan" id="kobo.45.1">Py4J</span></li>
+<li><span class="koboSpan" id="kobo.46.1">SparkDL</span></li>
+<li><span class="koboSpan" id="kobo.47.1">Kafka</span></li>
+<li><span class="koboSpan" id="kobo.48.1">Jieba</span></li>
+</ul>
+<p><span class="koboSpan" id="kobo.49.1">These can be installed using the </span><kbd><span class="koboSpan" id="kobo.50.1">pip install</span></kbd><span class="koboSpan" id="kobo.51.1"> command on your standalone machine or machines in the cluster. </span></p>
+<p><span class="koboSpan" id="kobo.52.1">Next you will learn how to use Spark and SparkDL for image classification. </span><span class="koboSpan" id="kobo.52.2">We have taken screenshots of two different flowers, daisies and tulips, using Google image search; there are 42 images of daisies and 65 images of tulips. </span><span class="koboSpan" id="kobo.52.3">In the following screenshot, you can see the sample screenshots of the daisies:</span></p>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.53.1"><img class="aligncenter size-full wp-image-1103 image-border" src="assets/47e5e4e6-3443-4225-a3e7-823cc396503e.png" style="width:73.08em;height:24.92em;"/></span></p>
+<p><span class="koboSpan" id="kobo.54.1">The following screenshot shows the sample images of tulips:</span></p>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.55.1"><img class="aligncenter size-full wp-image-1104 image-border" src="assets/99141d8d-f0cd-46b7-9bf0-f20d83a22267.png" style="width:73.08em;height:24.42em;"/></span></p>
+<p><span class="koboSpan" id="kobo.56.1">Our dataset is too small, and hence if we make a CNN from scratch, it will not be able to give any useful performance. </span><span class="koboSpan" id="kobo.56.2">In cases like these, we can make use of transfer learning. </span><span class="koboSpan" id="kobo.56.3">The SparkDL module provides an easy and convenient way to use pre-trained models with the help of the class </span><kbd><span class="koboSpan" id="kobo.57.1">DeepImageFeaturizer</span></kbd><span class="koboSpan" id="kobo.58.1">. </span><span class="koboSpan" id="kobo.58.2">It supports the following CNN models (pre-trained on the ImageNet dataset (</span><a href="http://www.image-net.org"><span class="koboSpan" id="kobo.59.1">http://www.image-net.org</span></a><span class="koboSpan" id="kobo.60.1">):</span></p>
+<ul>
+<li><span class="koboSpan" id="kobo.61.1">InceptionV3</span></li>
+<li><span class="koboSpan" id="kobo.62.1">Xception</span></li>
+<li><span class="koboSpan" id="kobo.63.1">ResNet50</span></li>
+<li><span class="koboSpan" id="kobo.64.1">VGG16</span></li>
+<li><span class="koboSpan" id="kobo.65.1">VGG19</span></li>
+</ul>
+<p><span class="koboSpan" id="kobo.66.1">We will use Google's InceptionV3 as our base model. </span><span class="koboSpan" id="kobo.66.2">The complete code can be accessed from the GitHub repository under </span><kbd><span class="koboSpan" id="kobo.67.1">Chapter08/Transfer_Learning_Sparkdl.ipynb</span></kbd><span class="koboSpan" id="kobo.68.1">:</span></p>
+<ol>
+<li><span class="koboSpan" id="kobo.69.1">In the first step, we will need to specify the environment for the SparkDL library. </span><span class="koboSpan" id="kobo.69.2">It is an important step; without it, the kernel will not know from where the SparkDL packages are to be loaded:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.70.1">import os</span><br/><span class="koboSpan" id="kobo.71.1">SUBMIT_ARGS = "--packages databricks:spark-deep-learning:1.3.0-spark2.4-s_2.11 pyspark-shell"</span><br/><span class="koboSpan" id="kobo.72.1">os.environ["PYSPARK_SUBMIT_ARGS"] = SUBMIT_ARGS</span></pre>
+<div class="packt_tip"><span class="koboSpan" id="kobo.73.1">Even when you install SparkDL using </span><kbd><span class="koboSpan" id="kobo.74.1">pip</span></kbd><span class="koboSpan" id="kobo.75.1"> on some OSes, it is required that you specify the OS environment or SparkDL.</span></div>
+<ol start="2">
+<li><span class="koboSpan" id="kobo.76.1">Next, let's initiate a </span><kbd><span class="koboSpan" id="kobo.77.1">SparkSession</span></kbd><span class="koboSpan" id="kobo.78.1">, shown in the following code:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.79.1">from pyspark.sql import SparkSession</span><br/><span class="koboSpan" id="kobo.80.1">spark = SparkSession.builder \</span><br/><span class="koboSpan" id="kobo.81.1">    .appName("ImageClassification") \</span><br/><span class="koboSpan" id="kobo.82.1">    .config("spark.executor.memory", "70g") \</span><br/><span class="koboSpan" id="kobo.83.1">    .config("spark.driver.memory", "50g") \</span><br/><span class="koboSpan" id="kobo.84.1">    .config("spark.memory.offHeap.enabled",True) \</span><br/><span class="koboSpan" id="kobo.85.1">    .config("spark.memory.offHeap.size","16g") \</span><br/><span class="koboSpan" id="kobo.86.1">    .getOrCreate()</span></pre>
+<ol start="3">
+<li><span class="koboSpan" id="kobo.87.1"> We import the necessary modules and read the data images. </span><span class="koboSpan" id="kobo.87.2">Along with reading the image paths, we also assign the labels to each image in the Spark DataFrame, as follows:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.88.1">import pyspark.sql.functions as f</span><br/><span class="koboSpan" id="kobo.89.1">import sparkdl as dl</span><br/><span class="koboSpan" id="kobo.90.1">from pyspark.ml.image import ImageSchema</span><br/><span class="koboSpan" id="kobo.91.1">from sparkdl.image import imageIO</span><br/><span class="koboSpan" id="kobo.92.1">dftulips = ImageSchema.readImages('data/flower_photos/tulips').\</span><br/><span class="koboSpan" id="kobo.93.1">    withColumn('label', f.lit(0))</span><br/><span class="koboSpan" id="kobo.94.1">dfdaisy = ImageSchema.readImages('data/flower_photos/daisy').\</span><br/><span class="koboSpan" id="kobo.95.1">    withColumn('label', f.lit(1))</span></pre>
+<ol start="4">
+<li><span class="koboSpan" id="kobo.96.1">Next, you can see the top five rows of the two DataFrames. </span><span class="koboSpan" id="kobo.96.2">The first column contains the path of each image, and the column shows its label (whether it belongs to daisy (label 1) or it belongs to tulips (label 0)):</span></li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.97.1"><img src="assets/99b1dae8-6d59-4f48-92e9-e94b553da9a2.png" style="width:34.42em;height:32.92em;"/></span></p>
+<ol start="5">
+<li><span class="koboSpan" id="kobo.98.1">We split the two image dataset into training and testing set (it is always a good practice), using the </span><kbd><span class="koboSpan" id="kobo.99.1">randomSplit</span></kbd><span class="koboSpan" id="kobo.100.1"> function. </span><span class="koboSpan" id="kobo.100.2">Conventionally, people choose a test-train split of 60%—40%, 70%—30%, or 80%—20%. </span><span class="koboSpan" id="kobo.100.3">We have chosen a 70%—30% split here. </span><span class="koboSpan" id="kobo.100.4">For the purpose of training, we then combine the training images of both flowers in the </span><kbd><span class="koboSpan" id="kobo.101.1">trainDF</span></kbd><span class="koboSpan" id="kobo.102.1"> DataFrame and test dataset images in the </span><kbd><span class="koboSpan" id="kobo.103.1">testDF</span></kbd><span class="koboSpan" id="kobo.104.1"> DataFrame, as follows:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.105.1">trainDFdaisy, testDFdaisy = dfdaisy.randomSplit([0.70,0.30],\</span><br/><span class="koboSpan" id="kobo.106.1">        seed = 123)</span><br/><span class="koboSpan" id="kobo.107.1">trainDFtulips, testDFtulips = dftulips.randomSplit([0.70,0.30],\</span><br/><span class="koboSpan" id="kobo.108.1">        seed = 122)</span><br/><span class="koboSpan" id="kobo.109.1">trainDF = trainDFdaisy.unionAll(trainDFtulips)</span><br/><span class="koboSpan" id="kobo.110.1">testDF = testDFdaisy.unionAll(testDFtulips)</span></pre>
+<ol start="6">
+<li><span class="koboSpan" id="kobo.111.1">Next, we build the pipeline with </span><kbd><span class="koboSpan" id="kobo.112.1">InceptionV3</span></kbd><span class="koboSpan" id="kobo.113.1"> as the feature extractor followed by a logistic regressor classifier. </span><span class="koboSpan" id="kobo.113.2">We use the </span><kbd><span class="koboSpan" id="kobo.114.1">trainDF</span></kbd><span class="koboSpan" id="kobo.115.1"> DataFrame to train the model:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.116.1">from pyspark.ml.classification import LogisticRegression</span><br/><span class="koboSpan" id="kobo.117.1">from pyspark.ml import Pipeline</span><br/><br/><span class="koboSpan" id="kobo.118.1">vectorizer = dl.DeepImageFeaturizer(inputCol="image",\</span><br/><span class="koboSpan" id="kobo.119.1">        outputCol="features", modelName="InceptionV3")</span><br/><span class="koboSpan" id="kobo.120.1">logreg = LogisticRegression(maxIter=20, labelCol="label")</span><br/><span class="koboSpan" id="kobo.121.1">pipeline = Pipeline(stages=[vectorizer, logreg])</span><br/><span class="koboSpan" id="kobo.122.1">pipeline_model = pipeline.fit(trainDF)</span></pre>
+<ol start="7">
+<li><span class="koboSpan" id="kobo.123.1">Let's now evaluate our trained model on the test dataset. </span><span class="koboSpan" id="kobo.123.2">We can see that, on the test dataset, we get an accuracy of 90.32% using the following code:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.124.1">predictDF = pipeline_model.transform(testDF) #predict on test dataset</span><br/><br/><span class="koboSpan" id="kobo.125.1">from pyspark.ml.evaluation import MulticlassClassificationEvaluator as MCE</span><br/><span class="koboSpan" id="kobo.126.1">scoring = predictDF.select("prediction", "label")</span><br/><span class="koboSpan" id="kobo.127.1">accuracy_score = MCE(metricName="accuracy")</span><br/><span class="koboSpan" id="kobo.128.1">rate = accuracy_score.evaluate(scoring)*100</span><br/><span class="koboSpan" id="kobo.129.1">print("accuracy: {}%" .format(round(rate,2)))</span></pre>
+<ol start="8">
+<li><span class="koboSpan" id="kobo.130.1">Here is the confusion matrix for the two classes:</span></li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.131.1"><img src="assets/884fed21-8f17-44bc-8c0d-a1c3b39a3bcd.png" style="width:39.50em;height:10.75em;"/></span></p>
+<p><span class="koboSpan" id="kobo.132.1">In fewer than 20 lines of code, we were able to train the model and obtain a good 90.32% accuracy. </span><span class="koboSpan" id="kobo.132.2">Remember, here the dataset used is raw; by increasing the dataset images, and filtering out low-quality images, you can improve the performance of your model. </span><span class="koboSpan" id="kobo.132.3">You can learn more about the deep learning library SparkDL from the official GitHub repository: </span><a href="https://github.com/databricks/spark-deep-learning"><span class="koboSpan" id="kobo.133.1">https://github.com/databricks/spark-deep-learning</span></a><span class="koboSpan" id="kobo.134.1">. </span></p>
+<p class="mce-root"/>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title"><span class="koboSpan" id="kobo.1.1">Introducing H2O.ai</span></h1>
+                </header>
+            
+            <article>
+                
+<p><span class="koboSpan" id="kobo.2.1">H2O is a fast, scalable ML and deep learning framework developed by H2O.ai, released under the open source Apache license. </span><span class="koboSpan" id="kobo.2.2">According to the company-provided details, more than 9,000 organizations and 80,000+ data scientists use H2O for their ML/deep learning needs. </span><span class="koboSpan" id="kobo.2.3">It uses in-memory compression, which allows it to handle a large amount of data in memory, even with a small cluster of machines. </span><span class="koboSpan" id="kobo.2.4">It has an interface for R, Python, Java, Scala, and JavaScript, and even has a built-in web interface. </span><span class="koboSpan" id="kobo.2.5">H2O can run in standalone mode, and on Hadoop or Spark cluster. </span></p>
+<p><span class="koboSpan" id="kobo.3.1">H2O includes a large number of ML algorithms like generalized linear modeling, Naive Bayes, random forest, gradient boosting, and deep learning algorithms. </span><span class="koboSpan" id="kobo.3.2">The best part of H2O is that one can build thousands of models, compare the results, and even do hyperparameter tuning with a few lines of codes. </span><span class="koboSpan" id="kobo.3.3">H2O also has better data preprocessing tools.</span></p>
+<p><span class="koboSpan" id="kobo.4.1">H2O requires Java, so, ensure that Java is installed on your system. </span><span class="koboSpan" id="kobo.4.2">You can install H2O to work in Python using </span><kbd><span class="koboSpan" id="kobo.5.1">PyPi</span></kbd><span class="koboSpan" id="kobo.6.1">, shown in the following code:</span></p>
+<pre><span class="koboSpan" id="kobo.7.1">pip install h2o</span></pre>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title"><span class="koboSpan" id="kobo.1.1">H2O AutoML</span></h1>
+                </header>
+            
+            <article>
+                
+<p><span class="koboSpan" id="kobo.2.1">One of the most exciting features of H2O is </span><strong><span class="koboSpan" id="kobo.3.1">AutoML</span></strong><span class="koboSpan" id="kobo.4.1">, the automatic ML. </span><span class="koboSpan" id="kobo.4.2">It is an attempt to develop a user-friendly ML interface that can be used by non-experts. </span><span class="koboSpan" id="kobo.4.3">H2O AutoML automates the process of training and tuning a large selection of candidate models. </span><span class="koboSpan" id="kobo.4.4">Its interface is designed so that users just need to specify their dataset, input and output features, and any constraints they want on the number of total models trained, or time constraint. </span><span class="koboSpan" id="kobo.4.5">The rest of the work is done by AutoML itself; in the specified time constraint, it identifies the best performing models, and provides a leaderboard. </span><span class="koboSpan" id="kobo.4.6">It has been observed that, usually, the Stacked Ensemble model, the ensemble of all the previously trained models, occupies the top position on the leaderboard. </span><span class="koboSpan" id="kobo.4.7">There is a large number of options that advanced users can use; details of these options and their</span><span><span class="koboSpan" id="kobo.5.1"> various features are available at</span></span><a href="http://docs.h2o.ai/h2o/latest-stable/h2o-docs/automl.html"><span class="koboSpan" id="kobo.6.1"> http://docs.h2o.ai/h2o/latest-stable/h2o-docs/automl.html</span></a><span><span class="koboSpan" id="kobo.7.1">. </span></span></p>
+<p><span class="koboSpan" id="kobo.8.1">To know more about H2O you can visit their website: </span><a href="http://h2o.ai"><span class="koboSpan" id="kobo.9.1">http://h2o.ai</span></a><span class="koboSpan" id="kobo.10.1">. </span></p>
+<p class="mce-root"/>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title"><span class="koboSpan" id="kobo.1.1">Regression in H2O</span></h1>
+                </header>
+            
+            <article>
+                
+<p><span class="koboSpan" id="kobo.2.1">We will first show how regression can be done in H2O. </span><span class="koboSpan" id="kobo.2.2">We will use the same dataset as we used earlier with MLlib, the Boston house prices, and predict the cost of the houses. </span><span class="koboSpan" id="kobo.2.3">The complete code can be found at GitHub: </span><kbd><span class="koboSpan" id="kobo.3.1">Chapter08/boston_price_h2o.ipynb</span></kbd><span class="koboSpan" id="kobo.4.1">:</span></p>
+<ol>
+<li><span class="koboSpan" id="kobo.5.1">The necessary modules for the task are as follows:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.6.1">import h2o</span><br/><span class="koboSpan" id="kobo.7.1">import time</span><br/><span class="koboSpan" id="kobo.8.1">import seaborn</span><br/><span class="koboSpan" id="kobo.9.1">import itertools</span><br/><span class="koboSpan" id="kobo.10.1">import numpy as np</span><br/><span class="koboSpan" id="kobo.11.1">import pandas as pd</span><br/><span class="koboSpan" id="kobo.12.1">import seaborn as sns</span><br/><span class="koboSpan" id="kobo.13.1">import matplotlib.pyplot as plt</span><br/><span class="koboSpan" id="kobo.14.1">from h2o.estimators.glm import H2OGeneralizedLinearEstimator as GLM</span><br/><span class="koboSpan" id="kobo.15.1">from h2o.estimators.gbm import H2OGradientBoostingEstimator as GBM</span><br/><span class="koboSpan" id="kobo.16.1">from h2o.estimators.random_forest import H2ORandomForestEstimator as RF</span><br/><span class="koboSpan" id="kobo.17.1">%matplotlib inline</span></pre>
+<ol start="2">
+<li><span class="koboSpan" id="kobo.18.1">After importing the necessary modules, the first step is starting an </span><kbd><span class="koboSpan" id="kobo.19.1">h2o</span></kbd><span class="koboSpan" id="kobo.20.1"> server. </span><span class="koboSpan" id="kobo.20.2">We do this using the </span><span><kbd><span class="koboSpan" id="kobo.21.1">h2o.init()</span></kbd><span class="koboSpan" id="kobo.22.1"> </span></span><span class="koboSpan" id="kobo.23.1">command. </span><span class="koboSpan" id="kobo.23.2">It checks for any existing </span><kbd><span class="koboSpan" id="kobo.24.1">h20</span></kbd><span class="koboSpan" id="kobo.25.1"> instances first, and if none are available, it will start one. </span><span class="koboSpan" id="kobo.25.2">There is also the possibility of connecting to an existing cluster by specifying the IP address and the port number as arguments to the </span><kbd><span class="koboSpan" id="kobo.26.1">init()</span></kbd><span class="koboSpan" id="kobo.27.1"> function. </span><span class="koboSpan" id="kobo.27.2">In the following screenshot, you can see the result of </span><kbd><span class="koboSpan" id="kobo.28.1">init()</span></kbd><span class="koboSpan" id="kobo.29.1"> on the standalone system:</span></li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.30.1"><img src="assets/53f4cd2a-ca1f-4c61-b9f7-3b6252b263fd.png" style="width:49.25em;height:35.17em;"/></span></p>
+<ol start="3">
+<li><span class="koboSpan" id="kobo.31.1">Next, we read the data file using the </span><kbd><span class="koboSpan" id="kobo.32.1">h20</span></kbd> <kbd><span class="koboSpan" id="kobo.33.1">import_file</span></kbd><span class="koboSpan" id="kobo.34.1"> function. </span><span class="koboSpan" id="kobo.34.2">It loads it into an H2O DataFrame, which can be processed just as easily as the panda's DataFrame. </span><span class="koboSpan" id="kobo.34.3">We can find the correlation among the different input features in the </span><kbd><span class="koboSpan" id="kobo.35.1">h20</span></kbd><span class="koboSpan" id="kobo.36.1"> DataFrame very easily using the </span><kbd><span class="koboSpan" id="kobo.37.1">cor()</span></kbd><span class="koboSpan" id="kobo.38.1"> method:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.39.1">boston_df = h2o.import_file("../Chapter08/boston/train.csv", destination_frame="boston_df")</span><br/><br/><span class="koboSpan" id="kobo.40.1">plt.figure(figsize=(20,20))</span><br/><span class="koboSpan" id="kobo.41.1">corr = boston_df.cor()</span><br/><span class="koboSpan" id="kobo.42.1">corr = corr.as_data_frame()</span><br/><span class="koboSpan" id="kobo.43.1">corr.index = boston_df.columns</span><br/><span class="koboSpan" id="kobo.44.1">#print(corr)</span><br/><span class="koboSpan" id="kobo.45.1">sns.heatmap(corr, annot=True, cmap='YlGnBu',vmin=-1, vmax=1)</span><br/><span class="koboSpan" id="kobo.46.1">plt.title("Correlation Heatmap")</span></pre>
+<p style="padding-left: 60px" class="mce-root"><span><span class="koboSpan" id="kobo.47.1">The following is the output of correlation map among different features of the Boston house price dataset:</span></span></p>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.48.1"><img class="aligncenter size-full wp-image-1105 image-border" src="assets/4034fa0e-2e34-41ca-abd7-67bd6550ba9a.png" style="width:39.67em;height:42.25em;"/></span></p>
+<ol start="4">
+<li class="CDPAlignLeft CDPAlign"><span class="koboSpan" id="kobo.49.1">Now, as usual, we split the dataset into training, validation, and test datasets. </span><span class="koboSpan" id="kobo.49.2">Define the features to be used as input features (</span><kbd><span class="koboSpan" id="kobo.50.1">x</span></kbd><span class="koboSpan" id="kobo.51.1">):</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.52.1">train_df,valid_df,test_df = boston_df.split_frame(ratios=[0.6, 0.2],\</span><br/><span class="koboSpan" id="kobo.53.1">         seed=133)</span><br/><span class="koboSpan" id="kobo.54.1">features =  boston_df.columns[:-1]</span></pre>
+<p class="mce-root"/>
+<ol start="5">
+<li><span class="koboSpan" id="kobo.55.1">Once this work is done, the process is very simple. </span><span class="koboSpan" id="kobo.55.2">We just instantiate the regression model class available from the H2O library, and use </span><kbd><span class="koboSpan" id="kobo.56.1">train()</span></kbd><span class="koboSpan" id="kobo.57.1"> with the training and validation datasets as arguments. </span><span class="koboSpan" id="kobo.57.2">In the </span><kbd><span class="koboSpan" id="kobo.58.1">train</span></kbd><span class="koboSpan" id="kobo.59.1"> function, we also specify what are the input </span><span><span class="koboSpan" id="kobo.60.1">features (</span><kbd><span class="koboSpan" id="kobo.61.1">x</span></kbd><span class="koboSpan" id="kobo.62.1">) and the output features (</span><kbd><span class="koboSpan" id="kobo.63.1">y</span></kbd><span class="koboSpan" id="kobo.64.1">). </span><span class="koboSpan" id="kobo.64.2">In the present case, we are taking all the features available to us as input features and the house price </span><kbd><span class="koboSpan" id="kobo.65.1">medv</span></kbd><span class="koboSpan" id="kobo.66.1"> as the output feature. </span><span class="koboSpan" id="kobo.66.2">We can see the features of the trained model by just using a print statement. </span><span class="koboSpan" id="kobo.66.3">Next, you can see the model declaration for a generalized linear regression model, and its result after training on both training and validation datasets:</span></span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.67.1">model_glm = GLM(model_id='boston_glm')</span><br/><span class="koboSpan" id="kobo.68.1">model_glm.train(training_frame= train_df,\</span><br/><span class="koboSpan" id="kobo.69.1">         validation_frame=valid_df, \</span><br/><span class="koboSpan" id="kobo.70.1">         y = 'medv', x=features)</span><br/><span class="koboSpan" id="kobo.71.1">print(model_glm)</span></pre>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.72.1"><img class="aligncenter size-full wp-image-1004 image-border" src="assets/05ca2730-9046-4226-9f2a-0a3fde5fc9c4.png" style="width:40.42em;height:35.92em;"/></span></p>
+<ol start="6">
+<li><span class="koboSpan" id="kobo.73.1">After training, the next step is checking the performance on the test dataset, which can be easily done using the </span><kbd><span class="koboSpan" id="kobo.74.1">model_performance()</span></kbd><span class="koboSpan" id="kobo.75.1"> function. </span><span class="koboSpan" id="kobo.75.2">We can also pass it to any of the datasets: the train, validation, test, or some new similar dataset:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.76.1">test_glm = model_glm.model_performance(test_df)</span><br/><span class="koboSpan" id="kobo.77.1">print(test_glm)</span></pre>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.78.1"><img class="aligncenter size-full wp-image-1005 image-border" src="assets/37608bc5-7c4d-45e8-891e-00fbcf07a17d.png" style="width:25.33em;height:17.17em;"/></span></p>
+<ol start="7">
+<li><span class="koboSpan" id="kobo.79.1">If we want to use gradient boost estimator regression, or random forest regression, we will instantiate the respective class object; the following steps will remain the same. </span><span class="koboSpan" id="kobo.79.2">What will vary is the output parameters; in the case of gradient boost estimator and random forest, we will also learn the relative importance of the different input features: </span></li>
+</ol>
+<pre style="padding-left: 60px"><strong><span class="koboSpan" id="kobo.80.1">#Gradient Boost Estimator</span></strong><br/><span class="koboSpan" id="kobo.81.1">model_gbm = GBM(model_id='boston_gbm')</span><br/><span class="koboSpan" id="kobo.82.1">model_gbm.train(training_frame= train_df, \</span><br/><span class="koboSpan" id="kobo.83.1">        validation_frame=valid_df, \</span><br/><span class="koboSpan" id="kobo.84.1">        y = 'medv', x=features)</span><br/><br/><span class="koboSpan" id="kobo.85.1">test_gbm = model_gbm.model_performance(test_df)</span><br/><br/><strong><span class="koboSpan" id="kobo.86.1">#Random Forest</span></strong><br/><span class="koboSpan" id="kobo.87.1">model_rf = RF(model_id='boston_rf')</span><br/><span class="koboSpan" id="kobo.88.1">model_rf.train(training_frame= train_df,\</span><br/><span class="koboSpan" id="kobo.89.1">        validation_frame=valid_df, \</span><br/><span class="koboSpan" id="kobo.90.1">        y = 'medv', x=features)</span><br/><br/><span class="koboSpan" id="kobo.91.1">test_rf = model_rf.model_performance(test_df)</span></pre>
+<p class="mce-root"/>
+<ol start="8">
+<li><span class="koboSpan" id="kobo.92.1">The most difficult part of machine and deep learning is choosing the right hyperparameters. </span><span class="koboSpan" id="kobo.92.2">In H2O, the task becomes quite easy with the help of its </span><kbd><span class="koboSpan" id="kobo.93.1">H2OGridSearch</span></kbd><span class="koboSpan" id="kobo.94.1"> class. </span><span class="koboSpan" id="kobo.94.2">The following code snippet performs the grid search on the hyperparameter depth for the gradient boost estimator defined previously:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.95.1">from h2o.grid.grid_search import H2OGridSearch as Grid</span><br/><span class="koboSpan" id="kobo.96.1">hyper_params = {'max_depth':[2,4,6,8,10,12,14,16]}</span><br/><span class="koboSpan" id="kobo.97.1">grid = Grid(model_gbm, hyper_params, grid_id='depth_grid')</span><br/><span class="koboSpan" id="kobo.98.1">grid.train(training_frame= train_df,\</span><br/><span class="koboSpan" id="kobo.99.1">        validation_frame=valid_df,\</span><br/><span class="koboSpan" id="kobo.100.1">        y = 'medv', x=features)</span></pre>
+<ol start="9">
+<li><span class="koboSpan" id="kobo.101.1">The best part of H2O is using AutoML to find the best models automatically. </span><span class="koboSpan" id="kobo.101.2"> Let's ask it to search for us among the 10 models, with the constraint on time being 100 seconds. </span><span class="koboSpan" id="kobo.101.3">AutoML will, with these parameters, build 10 different models, excluding the Stacked Ensembles. </span><span class="koboSpan" id="kobo.101.4">It will run, at the most, for 100 seconds before training the final Stacked Ensemble models:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.102.1">from h2o.automl import H2OAutoML as AutoML</span><br/><span class="koboSpan" id="kobo.103.1">aml = AutoML(max_models = 10, max_runtime_secs=100, seed=2)</span><br/><span class="koboSpan" id="kobo.104.1">aml.train(training_frame= train_df, \</span><br/><span class="koboSpan" id="kobo.105.1">        validation_frame=valid_df, \</span><br/><span class="koboSpan" id="kobo.106.1">        y = 'medv', x=features)</span></pre>
+<ol start="10">
+<li><span class="koboSpan" id="kobo.107.1">The leaderboard for our regression task is as follows:</span></li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.108.1"><img class="aligncenter size-full wp-image-1106 image-border" src="assets/63da4e07-dad8-4b77-b3a0-a6935ec13e70.png" style="width:40.00em;height:15.83em;"/></span></p>
+<p><span class="koboSpan" id="kobo.109.1">Different models in the leaderboard can be accessed using their respective </span><kbd><span class="koboSpan" id="kobo.110.1">model_id</span></kbd><span class="koboSpan" id="kobo.111.1">. </span><span class="koboSpan" id="kobo.111.2">The best model is accessed with the leader parameter. </span><span class="koboSpan" id="kobo.111.3">In our case, </span><kbd><span class="koboSpan" id="kobo.112.1">aml.leader</span></kbd><span class="koboSpan" id="kobo.113.1"> represents the best model, the Stacked Ensemble of all the models. </span><span class="koboSpan" id="kobo.113.2">We can save the best model using the </span><kbd><span class="koboSpan" id="kobo.114.1">h2o.save_model</span></kbd><span class="koboSpan" id="kobo.115.1"> function in either binary or MOJO format. </span></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title"><span class="koboSpan" id="kobo.1.1">Classification in H20</span></h1>
+                </header>
+            
+            <article>
+                
+<p><span class="koboSpan" id="kobo.2.1">The same models can be used for classification in H2O, with only one change; we will need to change the output features from numeric values to categorical values using the </span><kbd><span class="koboSpan" id="kobo.3.1">asfactor()</span></kbd><span class="koboSpan" id="kobo.4.1"> function. </span><span class="koboSpan" id="kobo.4.2">We will perform the classification on the quality of red wine, and use our old red wine database (</span><a href="09538353-bf5b-4035-8b98-cc131bcfcf24.xhtml"/><a href="09538353-bf5b-4035-8b98-cc131bcfcf24.xhtml"><span class="koboSpan" id="kobo.5.1">Chapter 3</span></a><span class="koboSpan" id="kobo.6.1">, </span><em><span class="koboSpan" id="kobo.7.1">Machine Learning for IoT</span></em><span class="koboSpan" id="kobo.8.1">). </span><span class="koboSpan" id="kobo.8.2">We will need to import the same modules and initiate the H2O server. </span><span class="koboSpan" id="kobo.8.3">The full code is available at in the </span><kbd><span class="koboSpan" id="kobo.9.1">Chapter08/wine_classification_h2o.ipynb</span></kbd><span class="koboSpan" id="kobo.10.1"> file:</span></p>
+<ol>
+<li><span class="koboSpan" id="kobo.11.1">Here is the code to import the necessary modules and initiate the H2O server:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.12.1">import h2o</span><br/><span class="koboSpan" id="kobo.13.1">import time</span><br/><span class="koboSpan" id="kobo.14.1">import seaborn</span><br/><span class="koboSpan" id="kobo.15.1">import itertools</span><br/><span class="koboSpan" id="kobo.16.1">import numpy as np</span><br/><span class="koboSpan" id="kobo.17.1">import pandas as pd</span><br/><span class="koboSpan" id="kobo.18.1">import seaborn as sns</span><br/><span class="koboSpan" id="kobo.19.1">import matplotlib.pyplot as plt</span><br/><span class="koboSpan" id="kobo.20.1">from h2o.estimators.glm import H2OGeneralizedLinearEstimator as GLM</span><br/><span class="koboSpan" id="kobo.21.1">from h2o.estimators.gbm import H2OGradientBoostingEstimator as GBM</span><br/><span class="koboSpan" id="kobo.22.1">from h2o.estimators.random_forest import H2ORandomForestEstimator as RF</span><br/><br/><span class="koboSpan" id="kobo.23.1">%matplotlib inline</span><br/><br/><span class="koboSpan" id="kobo.24.1">h2o.init()</span></pre>
+<ol start="2">
+<li><span class="koboSpan" id="kobo.25.1">The next step is to read the data file. </span><span class="koboSpan" id="kobo.25.2">We modify the output feature first to account for two classes (good wine and bad wine) and then convert it to a categorical variable using the </span><kbd><span class="koboSpan" id="kobo.26.1">asfactor()</span></kbd><span class="koboSpan" id="kobo.27.1"> function. </span><span class="koboSpan" id="kobo.27.2">This is an important step in H2O; since we are using the same class objects for both regression and classification, they require the output label to be numeric in the case of regression, and categorical in the case of classification, as seen in the code block:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.28.1">wine_df = h2o.import_file("../Chapter08/winequality-red.csv",\</span><br/><span class="koboSpan" id="kobo.29.1">        destination_frame="wine_df")    </span><br/><span class="koboSpan" id="kobo.30.1">features = wine_df.columns[:-1]</span><br/><span class="koboSpan" id="kobo.31.1">print(features)</span><br/><span class="koboSpan" id="kobo.32.1">wine_df['quality'] = (wine_df['quality'] &gt; 7).ifelse(1,0)</span><br/><span class="koboSpan" id="kobo.33.1">wine_df['quality'] = wine_df['quality'].asfactor()</span></pre>
+<ol start="3">
+<li><span class="koboSpan" id="kobo.34.1">Next, split the data into training, validation, and testing datasets. </span><span class="koboSpan" id="kobo.34.2">We feed the training and validation datasets to the generalized linear estimator, with one change; we specify the </span><kbd><span class="koboSpan" id="kobo.35.1">family=binomial</span></kbd> <span><span class="koboSpan" id="kobo.36.1">argument </span></span><span class="koboSpan" id="kobo.37.1">because here, we have only two categorical classes, good wine or bad wine. </span><span class="koboSpan" id="kobo.37.2">If you have more than two classes use </span><kbd><span class="koboSpan" id="kobo.38.1">family=multinomial</span></kbd><span class="koboSpan" id="kobo.39.1">. </span><span class="koboSpan" id="kobo.39.2">Remember, specifying the argument is optional; H2O automatically detects the output feature:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.40.1">train_df,valid_df,test_df = wine_df.split_frame(ratios=[0.6, 0.2],\</span><br/><span class="koboSpan" id="kobo.41.1">        seed=133)    </span><br/><br/><span class="koboSpan" id="kobo.42.1">model_glm = GLM(model_id='wine_glm', family = 'binomial')</span><br/><span class="koboSpan" id="kobo.43.1">model_glm.train(training_frame= train_df, \</span><br/><span class="koboSpan" id="kobo.44.1">        validation_frame=valid_df,\</span><br/><span class="koboSpan" id="kobo.45.1">        y = 'quality', x=features)</span><br/><span class="koboSpan" id="kobo.46.1">print(model_glm)</span></pre>
+<ol start="4">
+<li><span class="koboSpan" id="kobo.47.1">After being trained, you can see the model performance on all the performance metrics: accuracy, precision, recall, F1 measure, and AUC, even the confusion metrics. </span><span class="koboSpan" id="kobo.47.2">You can get them for all the three datasets (training, validation, and testing). </span><span class="koboSpan" id="kobo.47.3">The following are the metrics obtained for the test dataset from the generalized linear estimator:</span></li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.48.1"><img src="assets/485b7663-f7da-4308-aacc-2c9eef924c7f.png" style="width:44.50em;height:27.17em;"/></span></p>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.49.1"><img src="assets/9c6bc796-6352-41ab-bf64-9259a084c731.png" style="width:44.50em;height:24.83em;"/></span></p>
+<ol start="5">
+<li><span class="koboSpan" id="kobo.50.1">Without changing anything else in the previous code, we can perform hyper tuning and use H2O's AutoML to get the better model:</span></li>
+</ol>
+<pre style="padding-left: 60px"><span class="koboSpan" id="kobo.51.1">from h2o.automl import H2OAutoML as AutoML</span><br/><span class="koboSpan" id="kobo.52.1">aml = AutoML(max_models = 10, max_runtime_secs=100, seed=2)</span><br/><span class="koboSpan" id="kobo.53.1">aml.train(training_frame= train_df, \</span><br/><span class="koboSpan" id="kobo.54.1">        validation_frame=valid_df, \</span><br/><span class="koboSpan" id="kobo.55.1">        y = 'quality', x=features)</span></pre>
+<p class="CDPAlignCenter CDPAlign"><span class="koboSpan" id="kobo.56.1"><img src="assets/62356947-6833-41e5-9c11-5a6a2947e263.png" style="width:43.83em;height:17.33em;"/></span></p>
+<p><span class="koboSpan" id="kobo.57.1">We see that, for wine quality classification, the best model is XGBoost. </span></p>
+<p class="mce-root"/>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title"><span class="koboSpan" id="kobo.1.1">Summary</span></h1>
+                </header>
+            
+            <article>
+                
+<p><span class="koboSpan" id="kobo.2.1">With the ubiquitous status of IoT, the data being generated is growing at an exponential rate. </span><span class="koboSpan" id="kobo.2.2">This data, mostly unstructured and available in vast quantities, is often referred to as big data. </span><span class="koboSpan" id="kobo.2.3">A large number of frameworks and solutions have been proposed to deal with the large set of data. </span><span class="koboSpan" id="kobo.2.4">One of the promising solutions is DAI, distributing the model or data among the cluster of machines. </span><span class="koboSpan" id="kobo.2.5">We can use distributed TensorFlow, or TFoS frameworks to perform distributed model training. </span><span class="koboSpan" id="kobo.2.6">In recent years, some easy-to-use open source solutions have been proposed. </span><span class="koboSpan" id="kobo.2.7">Two of the most popular and successful solutions are Apache Spark's MLlib and H2O.ai's H2O. </span><span class="koboSpan" id="kobo.2.8">In this chapter, we showed how to train ML models for both regression and classification in MLlib and H2O. </span><span class="koboSpan" id="kobo.2.9">The Apache Spark MLlib supports SparkDL, which provides excellent support for image classification and detection tasks. </span><span class="koboSpan" id="kobo.2.10">The chapter used SparkDL to classify flower images using the pre-trained InceptionV3. </span><span class="koboSpan" id="kobo.2.11">The H2O.ai's H2O, on the other hand, works well with numeric and tabular data. </span><span class="koboSpan" id="kobo.2.12">It provides an interesting and useful AutoML feature, which allows even non-experts to tune and search through a large number of ML/deep learning models, with very little details from the user. </span><span class="koboSpan" id="kobo.2.13">The chapter covered an example of how to use AutoML for both regression and classification tasks. </span></p>
+<p><span class="koboSpan" id="kobo.3.1">One can take the best advantage of these distributed platforms when working on a cluster of machines. </span><span class="koboSpan" id="kobo.3.2">With computing and data shifting to the cloud at affordable rates, it makes sense to shift the task of ML to the cloud. </span><span class="koboSpan" id="kobo.3.3">Thus follows the next chapter, where you will learn about different cloud platforms, and how you can use them to analyze the data generated by your IoT devices. </span></p>
+<p><span class="koboSpan" id="kobo.4.1"> </span></p>
+<p><span class="koboSpan" id="kobo.5.1"> </span></p>
+<p><span class="koboSpan" id="kobo.6.1"> </span></p>
+<p><span class="koboSpan" id="kobo.7.1"> </span></p>
+<p class="mce-root"><span class="koboSpan" id="kobo.8.1"> </span></p>
+
+
+            </article>
+
+            
+        </section>
+    </body></html>

@@ -1,0 +1,429 @@
+<html><head></head><body>
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Understanding the Heuristic Search Algorithm</h1>
+                </header>
+            
+            <article>
+                
+<p>Heuristic searching is an AI search technique that utilizes a heuristic for its functionality. A <strong>heuristic</strong> is a general guideline that most likely prompts an answer. Heuristics assume a noteworthy role in searching strategies, in view of the exponential nature of most problems. Heuristics help to decrease a high quantity of options from an exponential number to a polynomial number. In <strong>artificial intelligence</strong> (<strong>AI</strong>), heuristic searching is of general significance, and also has specific importance. In a general sense, the term heuristic is utilized for any exercise that is regularly successful, but isn't certain to work in every situation. In heuristic search design, the term heuristic often alludes to the extraordinary instance of a heuristic evaluation function.</p>
+<p>In this chapter, we will cover the following topics:</p>
+<ul>
+<li>Revisiting the navigation application</li>
+<li>The priority queue data structure</li>
+<li>Visualizing search trees</li>
+<li>Greedy <strong>Best-First Search</strong> (<strong>BFS</strong>) </li>
+<li>The A* Search</li>
+<li>Features of a good heuristic</li>
+</ul>
+<p class="mce-root"/>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Revisiting the navigation application</h1>
+                </header>
+            
+            <article>
+                
+<p>In <a href="31a5d361-a5f4-45f2-b6f3-e28c01f85971.xhtml">Chapter 2</a>, <em>Understanding the Breadth-First Search Algorithm</em>, we saw the university navigation application, with which we wanted to find our way from the Bus Stop to the AI Lab. In the BFS method, we assume that the distance between connected places is one (that is, the same). However, in reality, that is not the case. Now, let's assume that the university is designed as follows:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-414 image-border" src="assets/a26e2598-6f09-4e7d-b7ab-ba4655e0fdac.png" style="width:37.75em;height:26.75em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign">Figure 1</div>
+<p>The values in green are the actual distances between the connected places. Let's go ahead and create a dictionary, storing the locations of these places:</p>
+<pre>...<br/>#connections between places<br/>connections = {}<br/>connections["Bus Stop"] = {"Library"}<br/>connections["Library"] = {"Bus Stop", "Car Park", "Student Center"}<br/>connections["Car Park"] = {"Library", "Maths Building", "Store"}<br/>connections["Maths Building"] = {"Car Park", "Canteen"}<br/>connections["Student Center"] = {"Library", "Store" , "Theater"}<br/>connections["Store"] = {"Student Center", "Car Park", "Canteen", "Sports Center"}<br/>connections["Canteen"] = {"Maths Building", "Store", "AI Lab"}<br/>connections["AI Lab"] = {"Canteen"}<br/>connections["Theater"] = {"Student Center", "Sports Center"}<br/>connections["Sports Center"] = {"Theater", "Store"}<br/>...</pre>
+<p>In the Python <kbd>NavigationData.py</kbd> <span>module</span>, we have created a dictionary called <kbd>connections</kbd>; this dictionary stores the connections between places. They are similar to the connections between people that we saw in the LinkedIn connection feature application in <a href="31a5d361-a5f4-45f2-b6f3-e28c01f85971.xhtml">Chapter 2</a>, <em>Understanding the Breadth-First Search Algorithm</em>:</p>
+<pre>...<br/>#location of all the places<br/><br/>location = {}<br/>location["Bus Stop"] = [2, 8]<br/>location["Library"] = [4, 8]<br/>location["Car Park"] = [1, 4]<br/>location["Maths Building"] = [4, 1]<br/>location["Student Center"] = [6, 8]<br/>location["Store"] = [6, 4]<br/>location["Canteen"] = [6, 1]<br/>location["AI Lab"] = [6, 0]<br/>location["Theater"] = [7, 7]<br/>location["Sports Center"] = [7, 5]<br/>...</pre>
+<p>We also have the <kbd>location</kbd> dictionary for storing the locations of places. The keys of the <kbd>location</kbd> dictionary are the places, and the values are the <em>x</em> and <em>y</em> coordinates of those places.</p>
+<p>In DFS, preference was given to the child nodes while exploring the search tree; in BFS, preference was given to the sibling nodes. In heuristic searching, preference is given to nodes with lower heuristic values.</p>
+<p>Now, let's look at the term <em>heuristic</em>. A heuristic is a property of the class node. It is a guess, or estimate, of which node will lead to the goal state faster than others. This is a strategy used to reduce the nodes explored and reach the goal state quicker:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-354 image-border" src="assets/b339d2d2-5292-4573-ae7a-b29176fa319b.png" style="width:15.08em;height:13.75em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 2</span></div>
+<p>For example, suppose that we're at the red node in the preceding diagram, and it has two child nodes—the yellow node and the green node. The green node seems to be much closer to the goal state, so we would select that node for further exploration.</p>
+<p>We'll see the following two heuristic search algorithms as we proceed with this chapter:</p>
+<ul>
+<li>The greedy BFS algorithm</li>
+<li>The A* Search algorithm</li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">The priority queue data structure</h1>
+                </header>
+            
+            <article>
+                
+<p>A <strong>priority queue</strong> is a queue in which each element has a priority. For example, when passengers are waiting in a queue to board a flight, families with young children and business class passengers usually take priority and board first; then, the economy class passengers board. Let's look at another example. Suppose that three people are waiting in a queue to be attended to at a service counter, and an old man steps in at the end of the queue. Considering his age, the people in the queue might give him a higher priority and allow him to go first. Through these two examples, we can see that the elements in a priority queue have priorities, and they are processed in order of those priorities.</p>
+<p>Just like in queuing, we have operations to insert elements into a priority queue. The <strong>insert</strong> operation inserts an element with a specific priority. Consider the following diagram, illustrating the insert operation:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-415 image-border" src="assets/18952aac-49f7-4c9c-9436-4c913e245f46.png" style="width:28.33em;height:12.42em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 3</span></div>
+<p>In the preceding diagram, element <strong>A</strong> is inserted with priority <strong>5</strong>; since the priority queue is empty, the element is kept at the front. In Python, elements with low priorities are arranged toward the front of the queue, and elements with high priority values are arranged toward the end of the priority queue. This means that elements with low priority values are processed first, since they're at the front of the priority queue. Now, suppose that element <strong>B</strong> needs to be inserted with priority <strong>10</strong>. As <strong>10</strong> is greater than <strong>5</strong>, element <strong>B</strong> is kept after element <strong>A</strong>. Now, suppose that element <strong>C</strong> is to be inserted with priority <strong>1</strong>. Because <strong>1</strong> is less than <strong>5, </strong>it is arranged in front of element <strong>A</strong>. Next, element <strong>D</strong> is to be inserted with priority <strong>5</strong>; here, both elements <strong>A</strong> and <strong>D</strong> have priority <strong>5</strong>, but, since <strong>A</strong> was inserted first, it has a higher priority. This means that <strong>D</strong> is placed after <strong>A</strong> and before <strong>B</strong>.</p>
+<p>In a queue, we have an operation called <strong>dequeue</strong>, which removes an element from the front. Similarly, in a priority queue, we have an operation called <strong>get front element</strong>, which removes an element from the front of the priority queue. So, calling this operation four times should first remove <strong>C</strong>, then <strong>A</strong>, then <strong>D</strong>, and finally <strong>B</strong>.</p>
+<p>In Python, we have the <kbd>Queue</kbd> class for the priority queue data structure. It has the <kbd>PriorityQueue</kbd> method, which takes <kbd>maxsize</kbd> as an argument for creating a priority queue. If <kbd>maxsize</kbd> is less than <kbd>0</kbd> or equal to <kbd>0</kbd>, the queue size is infinite. In our case, we'll call this method with no arguments, because the default argument is <kbd>0</kbd>. In <kbd>PriorityQueue</kbd>, the elements of the tuple are <kbd>priority_number</kbd> and <kbd>data</kbd>. The <kbd>Queue</kbd> class has the <kbd>empty()</kbd> method, which returns <kbd>True</kbd> if it's empty and <kbd>False</kbd> otherwise. It has the <kbd>put()</kbd> method, used for inserting an item that is in the form of a tuple: <kbd>(priority_number, data)</kbd>. Finally, we have the <kbd>get()</kbd> method, which returns the front element. Let's go ahead and try out these methods, as follows:</p>
+<pre>...<br/>import Queue<br/><br/>pqueue = Queue.PriorityQueue()<br/>print pqueue.qsize()<br/><br/>pqueue.put((5, 'A'))<br/>pqueue.put((10, 'B'))<br/>pqueue.put((1, 'C'))<br/>pqueue.put((5, 'D'))<br/><br/>print pqueue.qsize()<br/><br/>while not pqueue.empty(): <br/>    print pqueue.get()<br/>    <br/>print pqueue.qsize()<br/>...</pre>
+<p>We have created a Python module called <kbd>PriorityQueue.py</kbd>, and we are importing the <kbd>Queue</kbd> class. We have also created a priority queue and, one by one, we are inserting elements with specific priorities.</p>
+<p>As can be seen in the preceding code, we are inserting a tuple where the priority number is <kbd>5</kbd> and the data is <kbd>A</kbd>; then, we are inserting element <kbd>B</kbd> with priority <kbd>10</kbd>, <kbd>C</kbd> with priority <kbd>1</kbd>, and <kbd>D</kbd> with priority <kbd>5</kbd>. We are also checking whether the priority queue is empty and when it is not empty, we are printing all of the elements one by one, as follows:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-356 image-border" src="assets/e754937d-60ce-4cd6-a732-cbad40d452ed.png" style="width:20.83em;height:10.58em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 4</span></div>
+<p>As you can see, in the preceding output, the priority queue is initially empty. After inserting the four elements, the length becomes <kbd>4</kbd>; when we get the front elements, the first element is <kbd>C</kbd>, the next is <kbd>A</kbd>, the next is <kbd>D</kbd>, and the last element is <kbd>B</kbd>.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Visualizing a search tree</h1>
+                </header>
+            
+            <article>
+                
+<p>In the previous chapter, you learned that a <strong>graph</strong> is a structure in which nodes are connected by edges. A <strong>tree</strong> is a special type of graph, in which there are no cycles and two nodes are connected by one path. For visualizing trees, we'll use the <kbd>pydot</kbd> Python library, which is a Python interface to Graphviz's DOT language. In <a href="50419d40-ab0f-4d63-9447-295dc802574c.xhtml" target="_blank">Chapter 1</a>, <em>Understanding the Depth-First Search Algorithm</em>, we learned that <strong>Graphviz</strong> is open source graph visualization software, and it provides the DOT language for creating layered drawings of directed graphs. In addition, we'll be using the <kbd>matplotlib</kbd> library for displaying the final rendered image. </p>
+<p><span>Now, let's use these libraries to visualize the following simple tree. It has a root node, and three children under the root node:</span></p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-416 image-border" src="assets/bf4c49d1-8891-41d5-80ec-cf3d0d38ebd5.png" style="width:28.67em;height:13.92em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 5</span></div>
+<p>Consider the following code:</p>
+<pre>...<br/>import pydot <br/>import matplotlib.image as mpimg<br/>import matplotlib.pyplot as plt<br/><br/>#create graph object<br/>graph = pydot.Dot(graph_type='graph', dpi = 300)<br/><br/><br/>#create and add root node<br/>rootNode = pydot.Node("0 Root", style="filled", fillcolor = "#00ee11", xlabel = "0")<br/>graph.add_node(rootNode)<br/>...</pre>
+<p>We have created a Python module called <kbd>TreePlotTest.py</kbd>, and have imported the <kbd>pydot</kbd> library and the required classes from <kbd>matplotlib</kbd>. Using the <kbd>Dot()</kbd> method of <kbd>pydot</kbd>, we can create a <kbd>graph</kbd> object that will hold the nodes and edges of the graph. We have also specified the <kbd>dpi</kbd> for the image as <kbd>300</kbd> in this case. We can use the <kbd>Node()</kbd> method of <kbd>pydot</kbd> to create a node. We are creating the <kbd>rootNode</kbd> by passing the label as <kbd>0 Root</kbd>, and using the <kbd>style</kbd> argument <kbd>filled</kbd> and the <kbd>fillcolor</kbd> argument <kbd>#00ee11</kbd>; the <kbd>xlabel</kbd> is <kbd>0</kbd>.</p>
+<p>The <kbd>fillcolor</kbd> argument is specified in hexadecimal format. Browse to <a href="https://www.w3schools.com/colors/colors_picker.asp">https://www.w3schools.com/colors/colors_picker.asp</a> to select a color and see its hexadecimal code; later, you'll understand why the <kbd>xlabel</kbd> is used:</p>
+<pre>...<br/>rootNode = pydot.Node("0 Root", style="filled", fillcolor = "#00ee11", xlabel = "0")<br/>graph.add_node(rootNode)<br/><br/>for i in range(3):<br/>    #create node and add node<br/>    childNode = pydot.Node("%d Child" % (i+1), style="filled", \<br/>        fillcolor = "#ee0011", xlabel = "1")<br/>    graph.add_node(childNode)<br/>    <br/>    #create edge between two nodes<br/>    edge = pydot.Edge(rootNode, childNode)    <br/>    #add the edge to graph<br/>    graph.add_edge(edge)<br/>...</pre>
+<p>After we have created this <kbd>rootNode</kbd>, it will be added to the <kbd>graph</kbd> object, and we will create the <kbd>childNode</kbd> three times with appropriate names. The <kbd>style</kbd> argument will be <kbd>filled</kbd> with another color, and the <kbd>xlabel</kbd> will be <kbd>1</kbd>. We will also add this node to the graph. Then, we will create an edge between the <kbd>rootNode</kbd> and the newly created <kbd>childNode</kbd>, and add this edge to the <kbd>graph</kbd> object. The snippet of code at the end of the following block is used to display the graph in full screen:</p>
+<pre>...<br/>#show the diagram<br/>graph.write_png('graph.png')<br/>img=mpimg.imread('graph.png')<br/>plt.imshow(img)<br/>plt.axis('off')<br/>mng = plt.get_current_fig_manager()<br/>mng.window.state('zoomed')<br/>plt.show()<br/>...</pre>
+<p><span>Let's run the preceding code, and see what happens:</span></p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-358 image-border" src="assets/1fab482f-6d53-4e51-a9a4-ff88ef87ac4f.png" style="width:23.17em;height:10.00em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 6</span></div>
+<p>Upon successful execution of the code, we will see the four nodes: the root node, and then the three child nodes beneath it. We can see the xlabel values <kbd>0</kbd> and <kbd>1</kbd>, which are extra annotations for the node.</p>
+<p>Now, let's try modifying the name of the <kbd>childNode</kbd>. We will remove the numerical value from the child node's name, so that all three of the nodes have the same name:</p>
+<pre>...<br/>for i in range(3):<br/>    #create node and add node<br/>    childNode = pydot.Node("%d Child", style="filled", \<br/>        fillcolor = "#ee0011", xlabel = "1")<br/>    graph.add_node(childNode)<br/>...</pre>
+<p>Having made these changes to the names of the <kbd>childNode</kbd>, we will see the following:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-359 image-border" src="assets/344f283c-e2c3-4067-a2cd-37fa12a2de95.png" style="width:9.33em;height:12.17em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 7</span></div>
+<p>Since the three nodes have the same name, <kbd>pydot</kbd> treats them as the same node. Hence, we should try to use unique names in the nodes for the search tree. The following diagram shows an example of a search tree:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-417 image-border" src="assets/ab3f5865-8444-4e9c-b5dd-dbfd88322ac8.png" style="width:63.58em;height:35.83em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 8</span></div>
+<p>In the preceding diagram, we want to visualize a heuristic search. Each node has a heuristic value. In this example, <strong>Bus Stop</strong> appears twice, so we use index values to differentiate multiple instances. Each node also has a color code. Green nodes have already been explored; in this case, <strong>Bus Stop</strong> and <strong>Library</strong> will be explored. The red node has been selected for exploration; in this case, <strong>Car Park</strong> has been selected for exploration. The blue nodes are unexplored, forming a fringe, and they are arranged in a priority queue in descending order of heuristic values. A <strong>fringe</strong> is a priority queue of unexplored nodes, ordered by heuristic value.</p>
+<p>In our case, the <strong>Maths Building</strong> comes first, because it has the lowest heuristic value (<strong>2.2</strong>), followed by <strong>Store,</strong> which has a heuristic value of <strong>4</strong>; <strong>Student Center,</strong> with a value of <strong>8</strong>; <strong>Library,</strong> with a value of <strong>8.2</strong>; and <strong>Bus Stop,</strong> with a value of <strong>8.9</strong>.</p>
+<p>In DFS, we use the stack data structure, giving preference to the child nodes. In BFS, we use the queue data structure, giving preference to siblings. In a heuristic search, we will use the priority queue; this will give preference to the unexplored node that is closest to the goal, which is the first node in the priority queue:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-418 image-border" src="assets/7c1c7267-fc3b-4a5f-a974-58d3cc9da800.png" style="width:21.33em;height:28.92em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 9</span></div>
+<p>A few changes need to be made to the <kbd>Node</kbd> class in order to accommodate the heuristic search and visualization process. A new property called <kbd>fringe</kbd> is introduced, to indicate whether the node is a part of the fringe. A new property called <kbd>heuristic</kbd> is introduced, the constructor has changed, and an additional argument, <kbd>parentNode</kbd>, is introduced. The <kbd>addChild</kbd> method is changed to the <kbd>setParent</kbd> method, and we have a new method, called <kbd>computeHeuristic</kbd>. Now, let's take a look at the code for the <kbd>Node</kbd> class, as follows:</p>
+<pre>...<br/> def __init__(self, state, parentNode):<br/>        """<br/>        Constructor<br/>        """<br/>        self.state = state<br/>        self.depth = 0<br/>        self.children = []<br/>        #self.parent = None<br/>        self.setParent(parentNode)<br/>        self.fringe = True<br/>        #self.heuristic<br/>        self.computeHeuristic()<br/>        <br/>        <br/>    def setParent(self, parentNode):<br/>        """<br/>        This method adds a node under another node<br/>        """<br/>        if parentNode != None:<br/>            parentNode.children.append(self)<br/>            self.parent = parentNode<br/>            self.depth = parentNode.depth + 1<br/>        else:<br/>            self.parent = None<br/>...</pre>
+<p>Here, we have commented out the code for setting the parent as <kbd>None</kbd>. Instead, we have the <kbd>setParent</kbd> method, which takes the parent node as an argument and sets the property. We have a property called <kbd>fringe</kbd>, which is set as <kbd>True</kbd> by default, and there is a new property, <kbd>heuristic</kbd>, which is set by the <kbd>computeHeuristic</kbd> <span>function </span>. As mentioned previously, <kbd>addChild</kbd> has been set to <kbd>setParent</kbd>, which takes <kbd>parentNode</kbd> as an argument. We check whether the parent node is not <kbd>None</kbd>; if it is not <kbd>None</kbd>, then the node is added to the <kbd>children</kbd> property of the parent node, and the <kbd>parent</kbd> property of the current node is set as <kbd>parentNode</kbd>; the current node depth is equal to <kbd>parentNode.depth + 1</kbd>. If <kbd>parentNode</kbd> is <kbd>None</kbd>, then the <kbd>parent</kbd> property is set to <kbd>None</kbd>:</p>
+<pre>...<br/>def computeHeuristic(self):<br/>        """<br/>        This function computes the heuristic value of node<br/>        """<br/>        #find the distance of this state to goal state<br/>        <br/>        #goal location<br/>        goalLocation = location["AI Lab"]<br/>        #current location<br/>        currentLocation = location[self.state.place]<br/>        #difference in x coordinates<br/>        dx = goalLocation[0] - currentLocation[0]<br/>        #difference in y coordinates<br/>        dy = goalLocation[1] - currentLocation[1]<br/>   ...</pre>
+<p>There is also a new method called <kbd>computeHeuristic</kbd>. This function sets the <kbd>heuristic</kbd> property to a value. We will see how this function actually works, and what it computes, in the <em>Greedy</em> <em>BFS</em> and <em>A* Search</em> sections:</p>
+<pre>...<br/>class TreePlot:<br/>    """<br/>    This class creates tree plot for search tree<br/>    """<br/>    <br/>    def __init__(self):<br/>        """<br/>        Constructor<br/>        """<br/>        # create graph object<br/>        self.graph = pydot.Dot(graph_type='graph', dpi = 500)<br/>        #index of node<br/>        self.index = 0<br/>        <br/>    <br/>    def createGraph(self, node, currentNode):<br/>        """<br/>        This method adds nodes and edges to graph object<br/>        Similar to printTree() of Node class<br/>        """<br/>        <br/>        # assign hex color<br/>        if node.state.place == currentNode.state.place:<br/>            color = "#ee0011"<br/>        elif node.fringe:<br/>            color = "#0011ee"<br/>        else:<br/>            color = "#00ee11"<br/>...</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mceNonEditable"/>
+<p>In the Python <kbd>TreePlot.py</kbd> module, we created a class called <kbd>TreePlot</kbd>, which is used to create a tree visualization of the <kbd>Node</kbd> class. This class has two properties: the first one is a <kbd>graph</kbd> object, and the other one is the <kbd>index</kbd> of the node. It has a method called <kbd>createGraph</kbd>, which adds nodes and edges to the <kbd>graph</kbd> object. The flow of this method is similar to <kbd>printTree</kbd>, as it is recursively called on its child nodes. This method takes the current node being processed and <kbd>currentNode</kbd> as an argument. <kbd>currentNode</kbd> is the node that is shown in red in <em>Figure 8,</em> <strong>Car Park</strong>. The <kbd>createGraph</kbd> method checks whether the node that we are processing has the same state as that of the <kbd>currentNode</kbd>, and, if it does, it assigns color red to it. If it is a part of the fringe, the color blue is assigned. If the node has been explored, the color green is assigned:</p>
+<pre>... <br/>#create node<br/>        parentGraphNode = pydot.Node(str(self.index) + " " + \<br/>            node.state.place, style="filled", \<br/>            fillcolor = color, xlabel = node.heuristic)<br/>        self.index += 1<br/>#add node<br/>        self.graph.add_node(parentGraphNode)<br/>...</pre>
+<p>After assigning the hexadecimal color of the node, we will create the node and call it <kbd>parentGraphNode</kbd>. The label of the node is a combination of the index value and the state of the node, and the <kbd>xlabel</kbd> is the heuristic value of the node. After we have created this node, the value of the index will be incremented, and the node will be added to the graph:</p>
+<pre>...<br/>#call this method for child nodes<br/>        for childNode in node.children:<br/>            childGraphNode = self.createGraph(childNode, currentNode)<br/>            <br/>            #create edge<br/>            edge = pydot.Edge(parentGraphNode, childGraphNode)<br/>            <br/>            #add edge<br/>            self.graph.add_edge(edge)<br/>            <br/>        return parentGraphNode<br/>...</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p>For each of the <kbd>childNode</kbd> objects, we call the <kbd>self.createGraph</kbd> method and pass <kbd>childNode</kbd> and <kbd>currentNode</kbd>. So, when we call this on <kbd>childNode</kbd>, it should return the corresponding <kbd>pydot</kbd> node. Then, we can create an edge between <kbd>parentGraphNode</kbd> and <kbd>childGraphNode</kbd>. After creating this edge, we can add it to our <kbd>graph</kbd> object:</p>
+<pre>... <br/>def generateDiagram(self, rootNode, currentNode):<br/>        """<br/>        This method generates diagram<br/>        """<br/>        #add nodes to edges to graph<br/>        self.createGraph(rootNode, currentNode)<br/>        <br/>        #show the diagram<br/>        self.graph.write_png('graph.png')<br/>        img=mpimg.imread('graph.png')<br/>        plt.imshow(img)<br/>        plt.axis('off')<br/>        mng = plt.get_current_fig_manager()<br/>        mng.window.state('zoomed')<br/>        plt.show()<br/>...</pre>
+<p>This class has another method, called <kbd>generateDiagram</kbd>, and it takes <kbd>rootNode</kbd> and <kbd>currentNode</kbd> as arguments. First, it generates the <kbd>graph</kbd> object containing all of the nodes and edges by calling the <kbd>createGraph</kbd> method, with <kbd>rootNode</kbd> as the first argument and <kbd>currentNode</kbd> as the second argument. Then, we have the same snippet that we earlier used to show the diagram. So, if you want to visualize a search tree, you have to instantiate an object of <kbd>TreePlot</kbd> and call the <kbd>generateDiagram</kbd> method:</p>
+<pre>...<br/>from Node import Node<br/>from State import State<br/>from TreePlot import TreePlot<br/><br/>initialState = State()<br/>root = Node(initialState)<br/><br/>childStates = initialState.successorFunction()<br/>for childState in childStates:<br/>    childNode = Node(State(childState))<br/>    root.addChild(childNode)<br/>    <br/><br/>treeplot = TreePlot()<br/>treeplot.generateDiagram(root, root)<br/>...</pre>
+<p>In the Python <kbd>TreePlotTest2.py</kbd> module, we imported the necessary classes—<kbd>Node</kbd>, <kbd>State</kbd>, and <kbd>TreePlot</kbd>, and we are creating a sample tree with the root node and child nodes of the first level. We also created a <kbd>TreePlot</kbd> object and called the <kbd>generateDiagram</kbd> method, with the arguments <kbd>root</kbd> and <kbd>root</kbd>:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-366 image-border" src="assets/804707a2-219a-445c-acad-6d494516b024.png" style="width:12.75em;height:10.33em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 10</span></div>
+<p>In the preceding diagram, we can see the root node and the first-level child node.</p>
+<p>Now that you have learned how to visualize a tree, in the next section you will learn about greedy best-first search.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Greedy BFS</h1>
+                </header>
+            
+            <article>
+                
+<p>In the <em>Revisiting the navigation application</em> section, you learned that a heuristic value is a property of the node, and it is a guess, or estimate, of which node will lead to the goal state quicker than others. It is a strategy used to reduce the nodes explored and reach the goal state quicker. In <strong>greedy BFS</strong>, the heuristic function computes an estimated cost to reach the goal state. For our application, the heuristic function can compute the straight-line distance to the goal state, as follows:</p>
+<p class="mce-root"/>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-419 image-border" src="assets/0585470f-f65a-413e-a10a-31d1e3744ee2.png" style="width:35.92em;height:26.00em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 11</span></div>
+<p>As you can see, in the preceding diagram the initial state is the <strong>Bus Stop</strong>. From the <strong>Bus Stop</strong> node, we have one channel, which is the <strong>Library</strong> node. Let's suppose that we're at the <strong>Library</strong> now; from the <strong>Library</strong> node, there are three child nodes: the <strong>Car Park</strong>, the <strong>Bus Stop</strong>, and the <strong>Student Center</strong>. In real life, we'd prefer to go to the <strong>Car Park</strong>, because it seems closer to the goal state, and the chances that we will reach the <strong>AI Lab</strong> faster are much higher:</p>
+<pre>...<br/>#connections between places<br/>connections = {}<br/>connections["Bus Stop"] = {"Library"}<br/>connections["Library"] = {"Bus Stop", "Car Park", "Student Center"}<br/>connections["Car Park"] = {"Library", "Maths Building", "Store"}<br/>connections["Maths Building"] = {"Car Park", "Canteen"}<br/>connections["Student Center"] = {"Library", "Store" , "Theater"}<br/>...</pre>
+<p>Let's use the location data of these four places (<kbd>Library</kbd>, <kbd>Car Park</kbd>, <kbd>Bus Stop</kbd>, and <kbd>Student Center</kbd>) to compute the heuristic functions for the three nodes. When you compute the heuristic functions for these three nodes, you will find that the value for <kbd>Car Park</kbd> is <kbd>6.4</kbd>, <kbd>Bus Stop</kbd> is <kbd>8.9</kbd>, and <kbd>Student Center</kbd> is <kbd>8.0</kbd>. According to these heuristic values, we will select the first value in the fringe, which is the node with the lowest heuristic value (<kbd>Car Park</kbd>):</p>
+<pre>...<br/>def computeHeuristic(self):<br/>        """<br/>        This function computes the heuristic value of node<br/>        """<br/>        #find the distance of this state to goal state<br/>        <br/>        #goal location<br/>        goalLocation = location["AI Lab"]<br/>        #current location<br/>        currentLocation = location[self.state.place]<br/>        #difference in x coordinates<br/>        dx = goalLocation[0] - currentLocation[0]<br/>        #difference in y coordinates<br/>        dy = goalLocation[1] - currentLocation[1]<br/>        #distance<br/>        distance = math.sqrt(dx ** 2 + dy ** 2)<br/>        print "heuristic for", self.state.place, "=", distance<br/>        self.heuristic = distance<br/>...</pre>
+<p>Let's take a look at the preceding <kbd>computeHeuristic</kbd> function. The <kbd>Node</kbd> class has a method called <kbd>computeHeuristic</kbd>. This function computes the heuristic value of the node by finding the distance from this state to the goal state. You can find the goal location by using the <kbd>location</kbd> dictionary of the navigation data and using the AI Lab as the key. You can find the current location by using the <kbd>location</kbd> dictionary, with the current place as the key. We find the difference in the <kbd>x</kbd> coordinates as follows: <kbd>dx = goalLocation[0] - currentLocation[0]</kbd>. We find the difference in the <kbd>y</kbd> coordinates as follows: <kbd>dy = goalLocation[1] - currentLocation[1]</kbd>. Finally, we compute the distance as the square root of <kbd>dx</kbd> square plus <kbd>dy</kbd> square, and we assign this distance to the <kbd>heuristic</kbd> property of the <kbd>Node</kbd> class:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-369 image-border" src="assets/57a8639d-f5b3-4c6f-a5cb-88bf3335dcb6.png" style="width:24.25em;height:22.75em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 12</span></div>
+<p>Now that you understand this heuristic function, let's look at the flow of the greedy BFS algorithm. The flow of this algorithm is similar to BFS. Instead of using a queue, we are going to use a priority queue, and we are going to compute the heuristic of the node and add the node, along with the heuristic value, to the priority queue:</p>
+<ol>
+<li>We initially create the root node and add it to the tree, and then add this node, along with its heuristic value, to the priority queue.</li>
+<li>We get the front node from the priority queue, and we check if it has goal state. If it does, we end our search here, and if it doesn't have the goal state, then we find its child nodes, add them to the tree, and then add them to the priority queue, along with a heuristic value.</li>
+</ol>
+<ol start="3">
+<li>We carry on with this process until we find the goal state or we've exhausted all of the nodes in our search stream.</li>
+</ol>
+<p class="mce-root"/>
+<p>Let's try to code the greedy BFS algorithm as follows:</p>
+<pre>...<br/>def performGreedySearch():<br/>    """<br/>    This method performs greedy best first search<br/>    """<br/>    <br/>    #create queue<br/>    pqueue = Queue.PriorityQueue()<br/>    <br/>    #create root node<br/>    initialState = State()<br/>    #parent node of root is None<br/>    root = Node(initialState, None)<br/>    <br/>    #show the search tree explored so far<br/>    treeplot = TreePlot()<br/>    treeplot.generateDiagram(root, root)<br/>    <br/>    #add to priority queue<br/>    pqueue.put((root.heuristic, root))<br/>        while not pqueue.empty(): <br/>        <br/>        #get front node from the priority queue<br/>        _, currentNode = pqueue.get()<br/>        <br/>        #remove from the fringe<br/>        #currently selected for exploration<br/>        currentNode.fringe = False<br/>        <br/>        print "-- current --", currentNode.state.place<br/>        <br/>...</pre>
+<p>In the Python <kbd>GreedySearch.py</kbd> module, we have created a <kbd>performGreedySearch()</kbd> method, which will perform the greedy BFS. In this method, we have created an empty priority queue for holding the nodes. With <kbd>initialState</kbd>, we are creating a root node, and, as mentioned earlier, the constructive node has changed; there is an additional argument in the parent node. For the root node, the parent node is <kbd>None</kbd>.</p>
+<p>We are creating a <kbd>TreePlot</kbd> object and calling its <kbd>generateDiagram()</kbd> method to visualize the current search tree. In this case, the search tree will only contain the root node. We're adding the root node, along with its heuristic value, to the priority queue. We check whether the priority queue is not empty; if it is not empty, we get the front element and call it <kbd>currentNode</kbd>. As mentioned earlier, the format of the priority queue is a tuple containing the heuristic value and the node. Since we only want the node, we'll ignore the heuristic value. We will set the <kbd>fringe</kbd> property of <kbd>currentNode</kbd> to <kbd>False</kbd>, because it's currently selected for exploration:</p>
+<pre>...<br/>#check if this is goal state<br/>        if currentNode.state.checkGoalState():<br/>            print "reached goal state"<br/>            #print the path<br/>            print "----------------------"<br/>            print "Path"<br/>            currentNode.printPath()<br/>            <br/>            #show the search tree explored so far<br/>            treeplot = TreePlot()<br/>            treeplot.generateDiagram(root, currentNode)<br/>            break<br/>#get the child nodes <br/>        childStates = currentNode.state.successorFunction()<br/>        for childState in childStates:<br/>            <br/>            #create node <br/>            #and add to tree<br/>            childNode = Node(State(childState), currentNode)<br/>            <br/>            #add to priority queue<br/>            pqueue.put((childNode.heuristic, childNode))<br/>            <br/>        #show the search tree explored so far<br/>        treeplot = TreePlot()<br/>        treeplot.generateDiagram(root, currentNode)<br/>...</pre>
+<p>We check whether the current node has the goal state; if it has the goal state, we print the path from the initial state to the goal state. We show the current search tree by calling the <kbd>treeplot.generateDiagram</kbd> method. If it doesn't have the goal state, we find the child states of the current node, and for each <kbd>childState</kbd>, we create the <kbd>childNode</kbd> by using the new constructor. In this new constructor, we pass the parent node as the <kbd>currentNode</kbd>, and we add the child node, along with its heuristic value, to the priority queue; we then display the current search tree.</p>
+<p>So, we actually display the search tree at each step, whenever one level of the search tree is added. In this case, the search tree contains the root node. When one level of the search tree is added, we display the search tree; finally, when we reach the goal state, we prepare and then display the search tree that has been explored:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-370 image-border" src="assets/c69db465-7111-4fed-b84a-0b7327faca8b.png" style="width:17.50em;height:6.00em;"/></p>
+<div class="mce-root packt_figref CDPAlignCenter CDPAlign"><span>Figure 13</span></div>
+<p>As you can see in the preceding output, we have a root node with the heuristic value <kbd>8.9</kbd> in our search tree. The <kbd>Bus Stop</kbd> node has been selected for exploration, and its child node library has been added to the search tree. The heuristic value of <kbd>Library</kbd> is <kbd>8.2</kbd>, which is lower than the heuristic value of <kbd>Bus Stop</kbd>, which is <kbd>8.9</kbd>. Since this is the only node in the fringe, it will be selected for exploration later:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-430 image-border" src="assets/451b7fe9-89f5-47bd-898f-06ec082cd05f.png" style="width:25.25em;height:16.42em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 14</span></div>
+<p>As shown in the preceding diagram, <kbd>Library</kbd> has been selected for exploration, and the child nodes of the <kbd>Library</kbd> node are added. We can see that for the three child nodes in the fringe, <kbd>Bus Stop</kbd> has a heuristic value of <kbd>8.9</kbd>, <kbd>Car Park</kbd> has a heuristic value of <kbd>6.4</kbd>, and <kbd>Student Center</kbd> has a heuristic value of <kbd>8.0</kbd>. Out of the three nodes, <kbd>Car Park</kbd> has the lowest heuristic value, so this will be selected for exploration:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-372 image-border" src="assets/c9ef7ed8-df5c-4c40-9bbc-34f81b4b6e17.png" style="width:29.08em;height:16.50em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 15</span></div>
+<p>Now, <kbd>Car Park</kbd> has been selected for exploration, and its child nodes are added to the priority queue. Here, we have five nodes in the fringe. <kbd>Bus Stop</kbd> has a heuristic value of <kbd>8.9</kbd>, the <kbd>Maths Building</kbd> has a heuristic value of <kbd>2.2</kbd>, <kbd>Library</kbd> has a value of <kbd>8.2</kbd>, <kbd>Store</kbd> has a value of <kbd>4</kbd>, and <kbd>Student Center</kbd> has a value of <kbd>8.0</kbd>. Of these five nodes, <kbd>Maths Building</kbd> has the lowest heuristic value (<kbd>2.2</kbd>), so it will be selected for exploration:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-373 image-border" src="assets/ba05d135-960f-4cdd-b4fa-f500362731ea.png" style="width:27.08em;height:18.17em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 16</span></div>
+<p>Now, <kbd>Maths Building</kbd> has been selected for exploration, and its child nodes are added to the search tree. Of the nodes in the fringe, <kbd>Canteen</kbd> has the lowest heuristic value (<kbd>1.0</kbd>), so it will be selected for exploration:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-374 image-border" src="assets/7ac994e1-0402-4919-9414-06bb3adb5e5b.png" style="width:28.67em;height:18.42em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 17</span></div>
+<p>Now, the <kbd>Canteen</kbd> node has been selected for exploration, and its child nodes are added to the search tree and to the fringe. Out of all of the blue nodes, <kbd>AI Lab</kbd> has the lowest heuristic value (<kbd>0.0</kbd>), so it will be selected for exploration:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-375 image-border" src="assets/8665302a-ad86-43f4-8b96-9542f4543467.png" style="font-size: 1em;width:38.25em;height:24.58em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 18</span></div>
+<p>Finally, the <kbd>AI Lab</kbd> is selected for processing, and we find that we've reached the goal state, so we end our search here. The optimal path is shown by the green nodes and by the red node. The optimal path is <kbd>Bus Stop</kbd>, <kbd>Library</kbd>, <kbd>Car Park</kbd>, <kbd>Maths Building</kbd>, <kbd>Canteen</kbd>, and <kbd>AI Lab</kbd>.</p>
+<p>As we go from the initial state to the goal state, we can observe that the heuristic values reduce. <kbd>Bus Stop</kbd> has the value <kbd>8.9</kbd>, <kbd>Library</kbd> has the value <kbd>8.2</kbd>, <kbd>Car Park</kbd> has the value <kbd>6.4</kbd>, <kbd>Maths Building</kbd> has the value <kbd>2.2</kbd>, <kbd>Canteen</kbd> has the value <kbd>1</kbd>, and <kbd>AI Lab</kbd> has the value <kbd>0</kbd>. This means that as we traverse the search tree, we are getting closer to the goal state. In the greedy BFS algorithm, the heuristic value reduces as we progress toward the goal state.</p>
+<p>Now that you have learned the heuristic function for the greedy BFS algorithm, in the next section you will learn the problems with the greedy BFS algorithm, and you will see how A* Search solves those problems.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">A* Search</h1>
+                </header>
+            
+            <article>
+                
+<p>In the preceding section, you learned that the path found by a greedy BFS is as follows:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-422 image-border" src="assets/0c1ae32b-611b-4bae-bed8-6eb9c62ac70e.png" style="width:26.08em;height:19.17em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 19</span></div>
+<p>The total distance covered is <strong>14.24</strong>. However, the actual optimal solution is shown in the following diagram:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-423 image-border" src="assets/03899d33-7b12-4e27-88ea-9915b9ee0b9c.png" style="width:26.00em;height:18.67em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 20</span></div>
+<p>The total distance covered is <strong>12</strong>. This means that the greedy BFS algorithm is not optimal. The problem is that the heuristic function doesn't consider the costs already incurred. A* Search proposes a new heuristic function, which computes the sum of the cost incurred and the estimated cost to reach the goal state.</p>
+<p>For our application, the heuristic function can compute the sum of the distance traveled from the root node to the current node, and the straight line distance to the goal state. Let's look at the example that we saw in the previous section and compute this new heuristic function for the three nodes <strong>Car Park</strong>, <strong>Bus Stop</strong>, and <strong>Student Center</strong>:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-424 image-border" src="assets/64fceb91-d333-4164-81b4-fd4a5ed47f0e.png" style="width:33.50em;height:24.17em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 21</span></div>
+<p>For the <strong>Car Park</strong>, the distance traveled is <strong>2</strong> + <strong>5</strong>, and the distance to the goal state is <strong>6</strong>, so the value of the new heuristic is <strong>13.4</strong>. For the <strong>Bus Stop</strong>, the distance traveled is <strong>2</strong> + <strong>2</strong>, which is <strong>4</strong>, and the distance to the goal state is <strong>8.9</strong>, so the value of the new heuristic function for the <strong>Bus Stop</strong> is <strong>4</strong> + <strong>8.9</strong>, which is <strong>12.9</strong>. For the <strong>Student Center</strong>, the distance traveled is <strong>2</strong> + <strong>2</strong>, which is <strong>4</strong>, and the distance to the goal state is <strong>8</strong>, so the value of the new heuristic function for the <strong>Student Center</strong> is <strong>4</strong> + <strong>8</strong>,<strong> </strong>which is <strong>12</strong>. Based on these new heuristic values, we will select <strong>Student Center</strong> for further exploration:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-425 image-border" src="assets/de48865f-8fb7-4173-85e2-31db9084d0d9.png" style="width:16.00em;height:22.00em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 22</span></div>
+<p>In addition to the changes to the <kbd>Node</kbd> class, which we saw in the <em>Visualizing a search tree</em> section, we will introduce a property called <kbd>costFromRoot</kbd> and a method called <kbd>computeCost</kbd>. The <kbd>costFromRoot</kbd> property is the distance incurred while traveling from the root node to the current node, and this value will be computed by the <kbd>computeCost</kbd> function:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-426 image-border" src="assets/678db639-178b-4aac-b2dd-c99a0ab34de3.png" style="width:26.75em;height:17.33em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 23</span></div>
+<p>Let's look at how the <kbd>computeCost</kbd> method works. As indicated by the preceding diagram, we have three nodes: <strong>Bus Stop</strong>, <strong>Library</strong>, and <strong>Car Park</strong>. The distance between <strong>Bus Stop</strong> and <strong>Library</strong> is <strong>2</strong>, and the distance between <strong>Library</strong> and <strong>Car Park</strong> is <strong>5</strong>. Since <strong>Bus Stop</strong> is the initial state, the cost for that node is <strong>0</strong>. For <strong>Library</strong>, the cost from the root is <strong>2</strong>, and for <strong>Car Park</strong>, the <kbd>costFromRoot</kbd> is <strong>2</strong> + <strong>5</strong>, which is <strong>7</strong>. This is also the cost of its parent node plus the distance between the parent node and the current node. So, we can write the formula as follows:</p>
+<p class="mce-root CDPAlignLeft CDPAlign"><em>costFromRoot = parent's costFromRoot + distance of parent node to current node</em></p>
+<p>Let's look at the code for this method. Before we look at the <kbd>computeCost</kbd> method, let's look at the <kbd>computeDistance</kbd> method:</p>
+<pre>...<br/>def computeDistance(self, location1, location2):<br/>        """<br/>        This method computes distance between two places<br/>        """<br/>        #difference in x coordinates<br/>        dx = location1[0] - location2[0]<br/>        #difference in y coordinates<br/>        dy = location1[1] - location2[1]<br/>        #distance<br/>        distance = math.sqrt(dx ** 2 + dy ** 2)<br/>        return distance<br/>...</pre>
+<p>This method computes the distance between two locations, and it takes <kbd>location1</kbd> and <kbd>location2</kbd> as arguments. It finds the difference in the <em>x</em> coordinates as <kbd>dx</kbd> is equal to <kbd>location1[0] - location2[0]</kbd>, and it finds the difference in the <em>y</em> coordinates as <kbd>dy</kbd> is equal to <kbd>location1[1] - location2[1]</kbd>. It finds the distance as the square root of <kbd>dx</kbd> square plus <kbd>dy</kbd> square, and it returns this distance:</p>
+<pre>...<br/>def computeCost(self):<br/>        """<br/>        This method computes distance of current node from root node<br/>        """<br/>        <br/>        if self.parent != None:<br/>            #find distance from current node to parent<br/>            distance = self.computeDistance(location[self.state.place], \<br/>                location[self.parent.state.place])<br/>            #cost = parent cost + distance<br/>            self.costFromRoot = self.parent.costFromRoot + distance<br/>        else:<br/>            self.costFromRoot = 0<br/>...</pre>
+<p>The <kbd>computeCost</kbd> method computes the distance of the current node from the root node. So, we check whether the <kbd>parent</kbd> property is <kbd>None</kbd>. Then, we find the distance from the current location to the parent location, and we compute the <kbd>costFromRoot</kbd> as the parent's <kbd>costFromRoot</kbd> plus the distance that we've just computed; if the parent is <kbd>None</kbd>, then <kbd>costFromRoot</kbd> is <kbd>0</kbd>, because this is the root node:</p>
+<pre>...<br/>def computeHeuristic(self):<br/>        """<br/>        This function computes the heuristic value of node<br/>        """<br/>        <br/>        #find the distance of this state from goal state<br/>        goalLocation = location["AI Lab"]<br/>        currentLocation = location[self.state.place]<br/>        distanceFromGoal = self.computeDistance(goalLocation,  <br/>        currentLocation)<br/>        <br/>        #add them up to form heuristic value<br/>        heuristic = self.costFromRoot + distanceFromGoal<br/>        <br/>        print "heuristic for", self.state.place, "=", <br/>        self.costFromRoot, distanceFromGoal, heuristic<br/>        self.heuristic = heuristic<br/>...</pre>
+<p>Now, let's look at the <kbd>computerHeuristic</kbd> method. Just like in a greedy BFS, we find the goal location as the location of the <kbd>AI Lab</kbd> and the current location, and we find the distance from the goal as the distance between the goal location and the current location. Then, we compute the heuristic as a sum of <kbd>costFromRoot</kbd> and <kbd>distanceFromGoal</kbd>, and we assign the <kbd>heuristic</kbd> property as this heuristic value:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-381 image-border" src="assets/7d797ac3-2a07-42f5-bd98-43483d590660.png" style="width:17.58em;height:16.42em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 24</span></div>
+<p>As shown in the preceding diagram, the flow of A* Search is actually the same as that of greedy BFS. So, let's look at the code for A* Search, as follows:</p>
+<pre>...<br/>def performAStarSearch():<br/>    """<br/>    This method performs A* Search<br/>    """<br/>    <br/>    #create queue<br/>    pqueue = Queue.PriorityQueue()<br/>    <br/>    #create root node<br/>    initialState = State()<br/>    root = Node(initialState, None)<br/>    <br/>    #show the search tree explored so far<br/>    treeplot = TreePlot()<br/>    treeplot.generateDiagram(root, root)<br/>    <br/>    #add to priority queue<br/>    pqueue.put((root.heuristic, root))<br/>...</pre>
+<p>In the Python <kbd>AStar.py</kbd> module, we have created a method called <kbd>performAStarSearch</kbd>, which has the code for A* Search; this code is exactly the same as that of greedy BFS:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-431 image-border" src="assets/b1c984d4-a44e-4ef2-86ca-4477f12a5ab4.png" style="width:16.17em;height:13.75em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 25</span></div>
+<p>Initially, we have our root node with a heuristic value of <kbd>8.9</kbd>, and the <kbd>Bus Stop</kbd> node is selected for expansion; its <kbd>Library</kbd> <span>child </span>is added, and that has a heuristic value of <kbd>10.2</kbd>. Since this is the only node in the fringe, it will be selected for exploration:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-432 image-border" src="assets/56bc4f05-5ff5-45ea-841e-c8d4e70be756.png" style="width:33.17em;height:19.33em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 26</span></div>
+<p>Now the <kbd>Library</kbd> node is selected for exploration, and its three child nodes are added. <kbd>Bus Stop</kbd> has a heuristic value of <kbd>12.9</kbd>, <kbd>Car Park</kbd> has a heuristic value of <kbd>13.4</kbd>, and <kbd>Student Center</kbd> has a heuristic value of <kbd>12</kbd>. Out of these three, <kbd>Student Center</kbd> has the lowest heuristic value, so it will be selected for exploration:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-384 image-border" src="assets/0d541455-a2cc-416d-a857-310c55ef0260.png" style="width:42.00em;height:19.33em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 27</span></div>
+<p>Now <kbd>Student Center</kbd> is selected for exploration, and its three child nodes are added to the fringe. Out of the five nodes in the fringe, <kbd>Store</kbd> has the lowest heuristic value, so it will be selected for exploration:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-385 image-border" src="assets/b6298ea6-736a-4242-82f4-4554dca2c633.png" style="width:49.00em;height:28.33em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 28</span></div>
+<p>Now <kbd>Store</kbd> is selected for exploration, and its four child nodes are added. Out of the eight nodes in the fringe, <kbd>Canteen</kbd> has the lowest heuristic value, so it will be selected for exploration: </p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-386 image-border" src="assets/d4cdfedd-0900-409e-980b-4f4747cb0fee.png" style="width:162.50em;height:88.75em;"/></p>
+<div class="mce-root packt_figref CDPAlignCenter CDPAlign"><span>Figure 29</span></div>
+<p class="mce-root"/>
+<p>Now <kbd>Canteen</kbd> has been selected for exploration, and its child nodes are added to the search tree and to the fringe. Out of all of the nodes in the fringe, <kbd>AI Lab</kbd> has the lowest heuristic value, so this node will be selected for exploration:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-387 image-border" src="assets/e88755c5-2299-4da6-a0e3-24a115425706.png" style="width:162.50em;height:88.75em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 30</span></div>
+<p>When <span><kbd>AI Lab</kbd> is select for exploration, we find that we've encountered the goal state, and we stop our search.</span></p>
+<p>The optimal path is indicated by the green nodes and the red node. The optimal path is from <kbd>Bus Stop</kbd> to <kbd>Library</kbd> to <kbd>Student Center</kbd> to <kbd>Store</kbd> to <kbd>Canteen</kbd>, and finally to <kbd>AI Lab</kbd>. As we traverse from the root node to the goal node, we find that the heuristic function value either remains the same or increases. So, <kbd>Bus Stop</kbd> has the value <kbd>9</kbd>, <kbd>Library</kbd> has the value <kbd>10.2</kbd>, <kbd>Student Center</kbd> has the value <kbd>12.0</kbd>, <kbd>Store</kbd> has the value <kbd>12.0</kbd>, <kbd>Canteen</kbd> has the value <kbd>12.0</kbd>, and finally <kbd>AI Lab</kbd> has the value <kbd>12.0</kbd>. So, in this example, we learned that the heuristic function increases or remains the same as we progress from the initial state to the goal state, and we also observed that A* Search is optimal. We saw that greedy BFS is not optimal, and we can now understand why. We saw a new heuristic function, which makes A* optimal. In the next section, we will look at what a good heuristic function entails.</p>
+<p class="mce-root"/>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">What is a good heuristic function?  </h1>
+                </header>
+            
+            <article>
+                
+<p>To answer the question, <em>why is a good heuristic function required?</em> We will compare the DFS and BFS <span>methods </span>to the heuristic search approach. In DFS and BFS, the costs of all of the edges are equal to <strong>1</strong>, and DFS explores all of the child nodes, whereas BFS explores all of the sibling nodes. In a heuristic search, the costs of the edges are different, and the heuristic search selects the nodes to explore based on heuristic functions.</p>
+<p>By using a heuristic function, we can reduce the memory that is used, and we can reach the solution in less time. The next question to be answered is, <em>why is a good heuristic function required?</em> The answer is in order to find the <strong>optimal solution</strong>. In our A* Search example, we illustrated that by using a better heuristic function, we can find the optimal solution; it is clear that A* explores the least number of nodes. Now, let's look at the properties of a good heuristic function.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Properties of a good heuristic function</h1>
+                </header>
+            
+            <article>
+                
+<p>The properties of a good heuristic functions are detailed in the following sections.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Admissible</h1>
+                </header>
+            
+            <article>
+                
+<p>A good heuristic function should be admissible, which means that the heuristic function should have a value that is less than (or equal to) the true cost to reach the goal:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-388 image-border" src="assets/3ab2b1e9-ea0b-4bc6-86e7-cae780e77d24.png" style="width:16.83em;height:16.83em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 31</span></div>
+<p>Let's suppose that node <strong>1</strong> is the root node and node <strong>5</strong> has the goal state, and we are currently computing the heuristic function for node <strong>2</strong>; the following applies:</p>
+<ul>
+<li><strong>d12</strong> is the cost of the path from <strong>1</strong> to <strong>2</strong></li>
+<li><strong>d24</strong> is the cost of the path from node <strong>2</strong> to <strong>4</strong></li>
+<li><strong>d45</strong> is the cost from node <strong>4</strong> to <strong>5</strong></li>
+<li><strong>d23</strong> is the cost from node <strong>2</strong> to <strong>3</strong></li>
+<li><strong>d35</strong> is the cost from node <strong>3</strong> to <strong>5</strong></li>
+</ul>
+<p>Then, in order for our function to be admissible, the following must be true:</p>
+<ul>
+<li>The heuristic function for node <strong>2</strong> should have a value less than or equal to <strong>d24</strong> + <strong>d45</strong></li>
+<li>The heuristic function for node <strong>2</strong> should have a value less than or equal to <strong>d23</strong> + <strong>d35</strong></li>
+</ul>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-389 image-border" src="assets/84009382-23c5-4abe-a45f-e1918b1f2f83.png" style="width:18.75em;height:16.67em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 32</span></div>
+<p>In the preceding example, node <strong>1</strong> is the root node and node <strong>5</strong> has the goal state. The red values are the estimated cost to the goal state, and the green values are the true cost of the edge:</p>
+<ol>
+<li>Let's suppose that we have explored node <strong>1</strong>, and have added nodes <strong>2</strong> and <strong>3</strong> to the fringe. So, we will compute the heuristic values for nodes <strong>2</strong> and <strong>3</strong>.</li>
+<li>The heuristic value for node <strong>2</strong> is <strong>3</strong> + <strong>9</strong><em>,</em> which is <strong>12</strong>, and the heuristic value for node <strong>3</strong> is <strong>10</strong> + <strong>1</strong><em>,</em> which is <strong>11</strong>; based on these values, we select node <strong>3</strong> for further exploration.</li>
+</ol>
+<p> </p>
+<ol start="3">
+<li>We add the child of node <strong>3</strong>, which is node <strong>5</strong>, to the fringe. The fringe contains nodes <strong>2</strong> and <strong>5</strong>. We had previously computed the heuristic function for node <strong>2</strong> as <strong>12</strong>, and the heuristic function for node <strong>5</strong> as <strong>10</strong> + <strong>10</strong> + <strong>0</strong>, which is <strong>20</strong>. So, based on these values, we will select node <strong>2</strong> for exploration.</li>
+<li>We add the child of node <strong>2</strong>, which is node <strong>4</strong>, to the fringe. Now, the fringe contains <strong>4</strong> and <strong>5</strong>. We had previously computed the heuristic function for node <strong>5</strong> as <strong>20</strong>, and we will compute the heuristic function for node <strong>4</strong> as <strong>3</strong> + <strong>3</strong> + <strong>1</strong>, which is <strong>7</strong>. Based on these values, we will select node <strong>4</strong> for further exploration.</li>
+<li>We add the child of node <strong>4</strong>, which is node <strong>5</strong>, to the fringe. The fringe contains node <strong>5</strong> through path [1-3-5], and node <strong>5</strong> through path [1-2-4-5]. We had previously computed the heuristic function for node <strong>5</strong> through path [1-3-5] as <strong>20</strong>. So, we compute the heuristic function of node <strong>5</strong> through path [1-2-4-5] as <strong>3</strong> + <strong>3</strong> + <strong>3</strong> + <strong>0</strong>, which is <strong>9</strong>. Based on these values, we select node <strong>5</strong> with path [1-2-4-5]; when we process this node, we see that we've reached the goal state and end our search here.</li>
+</ol>
+<p>In this example, you saw that during the search process, we side-tracked to node <strong>3</strong>. Later, we found the optimal solution to be [1-2-4-5]. So, an admissible heuristic guaranteed finding the optimal solution.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Consistent</h1>
+                </header>
+            
+            <article>
+                
+<p>The second property a good heuristic function should have is that it should be consistent, which means that it should be non-decreasing:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-390 image-border" src="assets/463fdd3f-c3f9-4bd7-a2ac-f4024fcf46d2.png" style="width:16.67em;height:16.67em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 33</span></div>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mceNonEditable"/>
+<p>For example, the heuristic function for node <strong>3</strong> should be greater than (or equal to) the heuristic function for node <strong>2</strong>, and the value of the heuristic function for node <strong>4 </strong>should be greater than (or equal to) the value of the heuristic function for node <strong>2</strong>. Let's look at why this is so, through the following diagram:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-391 image-border" src="assets/dd95ca51-d5da-41a4-9596-f5ba4a05a8e5.png" style="width:19.67em;height:14.33em;"/></p>
+<div class="packt_figref CDPAlignCenter CDPAlign"><span>Figure 34</span></div>
+<p>Let's suppose that nodes <strong>1</strong> and <strong>2</strong> are intermediate nodes, and node <strong>5</strong> has the goal state. First, <strong>x1</strong> is the estimated cost of node <strong>1</strong> to node <strong>5</strong>, and <strong>x2</strong> is the estimated cost of reaching the goal state from node <strong>2</strong>; <strong>d12</strong> is the cost of going from node <strong>1</strong> to node <strong>2</strong>.</p>
+<p>Let's suppose that node <strong>2</strong> is closer to the goal state than node <strong>1</strong>; this means that the following statement applies:</p>
+<pre>x2 &lt; x1 </pre>
+<p>Suppose that the following statement is true:</p>
+<pre>x2 =100 
+x1= 101 
+d12 &gt;= 1 </pre>
+<p>The preceding code means that <kbd>x1 &lt;= d12 + x2</kbd>.</p>
+<p>Suppose that <kbd>TC1</kbd> is the true cost of reaching node <strong>1</strong> from the root node; then, the heuristic function for node 1 will be as follows:</p>
+<pre>h(1) =TC1 + x1 </pre>
+<p>The heuristic function for node <strong>2</strong> will be as follows:</p>
+<pre>h(2) = TC1 + d12 + x2 </pre>
+<p>This is because <kbd>d12 + x2 &gt;= x1</kbd>; the heuristic value of <strong>2</strong> is greater than or equal to the value of the heuristic function for node <strong>1</strong> (that is, <kbd>h(2)&gt;=h(1)</kbd>).</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Summary</h1>
+                </header>
+            
+            <article>
+                
+<p>You should now understand what a heuristic function is, and also the priority queue data structure. In this chapter, you learned how to visualize search trees. You learned the heuristic function for a greedy best-first search and the steps involved in this algorithm. We also covered problems related to the greedy best-first algorithm, and how an A* Search solves them. Finally, you learned the properties required for a good heuristic function.</p>
+<div class="packt_infobox"><span>Please refer to the link <a href="https://www.packtpub.com/sites/default/files/downloads/HandsOnArtificialIntelligenceforSearch_ColorImages.pdf">https://www.packtpub.com/sites/default/files/downloads/HandsOnArtificialIntelligenceforSearch_ColorImages.pdf</a> </span><span>for the colored images of this chapter.</span></div>
+
+
+            </article>
+
+            
+        </section>
+    </body></html>

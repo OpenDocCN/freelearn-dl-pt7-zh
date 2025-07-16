@@ -1,0 +1,748 @@
+<html><head></head><body>
+		<div>
+			<div id="_idContainer658" class="Content">
+			</div>
+		</div>
+		<div id="_idContainer659" class="Content">
+			<h1 id="_idParaDest-248"><a id="_idTextAnchor288"/>9. What Is Deep Q-Learning?</h1>
+		</div>
+		<div id="_idContainer715" class="Content">
+			<p class="callout-heading">Overview</p>
+			<p class="callout">In this chapter, we will be learning about deep Q learning in detail along with all other possible variations. You will learn how to implement the Q function and use the Q learning algorithm along with deep learning to solve complex <strong class="bold">Reinforcement Learning</strong> (<strong class="bold">RL</strong>) problems. By the end of this chapter, you will be able to describe and implement the deep Q learning algorithm in PyTorch, and we will also do a hands-on implementation of some of the advanced variants of deep Q learning, such as double deep Q learning with PyTorch.</p>
+			<h1 id="_idParaDest-249"><a id="_idTextAnchor289"/>Introduction</h1>
+			<p>In the previous chapter, we learned about the <strong class="bold">Multi-Armed Bandit</strong> (<strong class="bold">MAB</strong>) problem – a popular sequential decision-making problem that aims to maximize your reward when playing on the slot machines in a casino. In this chapter, we will combine deep learning techniques with a popular <strong class="bold">Reinforcement Learning</strong> (<strong class="bold">RL</strong>) technique called Q learning. Put simply, Q learning is an RL algorithm that decides the best action to be taken by an agent for maximum rewards. The "Q" in Q learning represents the quality of the action that is used to gain future rewards. In many RL environments, we may not have state transition dynamics (that is, the probability of going from one state to another), or it is too complex to gather state transition dynamics. In these complex RL environments, we can use the Q learning approach to implement RL.</p>
+			<p>In this chapter, we will start by understanding the very basics of deep learning, such as what a perceptron and a gradient descent are and what steps need to be followed to build a deep learning model. Next, we will learn about PyTorch and how to build deep learning models using PyTorch. Once you have been introduced to Q learning, we will learn and implement a <strong class="bold">Deep Q Network</strong> (<strong class="bold">DQN</strong>) with the help of PyTorch. Then, we will improve the performance of DQNs with the help of experience replay and target networks. Finally, you will implement another variant of DQN called a <strong class="bold">Double Deep Q Network</strong> (<strong class="bold">DDQN</strong>).</p>
+			<h1 id="_idParaDest-250"><a id="_idTextAnchor290"/>Basics of Deep Learning</h1>
+			<p>We have already implemented deep learning algorithms in <em class="italic">Chapter 03</em>, <em class="italic">Deep Learning in Practice using TensorFlow 2</em>. Before we begin with deep Q learning, which is the focus of this chapter, it is essential that we quickly revise the basics of deep learning. </p>
+			<p>Let us first understand what a perceptron is before we look into neural networks. The following figure represents a general perceptron:</p>
+			<div>
+				<div id="_idContainer660" class="IMG---Figure">
+					<img src="image/B16182_09_01.jpg" alt="Figure 9.1: Perceptron&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.1: Perceptron</p>
+			<p>A perceptron is a binary linear classifier, where the inputs are first multiplied by the weights, and then we take a weighted sum of all these multiplied values. Then, we pass this weighted sum through an activation function or step function. The activation function is used to convert the input values into certain values, such as (0,1), as output for binary classification. This whole process can be visualized in the preceding figure.</p>
+			<p>Deep feedforward networks, which we also refer to as <strong class="bold">Multilayer Perceptrons</strong> (<strong class="bold">MLPs</strong>), have multiple perceptrons at multiple layers, as shown in <em class="italic">Figure 9.2</em>. The goal of MLPs is to approximate any function. For example, for a classifier, the function <img src="image/B16182_09_01a.png" alt="A drawing of a person&#10;&#10;Description automatically generated"/>, maps an input, <img src="image/B16182_09_01b.png" alt="A picture containing drawing&#10;&#10;Description automatically generated"/>, to a category of y (for binary classification, either to 0 or 1) by learning the value of parameter <img src="image/B16182_09_01c.png" alt="A picture containing furniture, table, stool, drawing&#10;&#10;Description automatically generated"/>or the weights. The following figure shows a general deep neural network:</p>
+			<div>
+				<div id="_idContainer664" class="IMG---Figure">
+					<img src="image/B16182_09_02.jpg" alt="Figure 9.2: A deep neural network&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.2: A deep neural network</p>
+			<p>A basic building block of MLPs consists of artificial neurons (also called nodes). They automatically learn the optimal weight coefficients that are then multiplied with the input's features in order to decide whether a neuron fires or not. The network consists of multiple layers where the first layer is called the input layer and the last layer is called the output layer. The intermediate layers are called hidden layers. The number of hidden layers can be of size "one" or more depending on how deep you want to make the network.</p>
+			<p>The following figure represents the general steps that are needed to train a deep learning model: </p>
+			<div>
+				<div id="_idContainer665" class="IMG---Figure">
+					<img src="image/B16182_09_03.jpg" alt="Figure 9.3: Deep learning model training flow &#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.3: Deep learning model training flow </p>
+			<p>The training process of a typical deep learning model can be explained as follows:</p>
+			<ol>
+				<li><strong class="bold">Decide on the network architecture</strong>:<p>To begin, we first need to decide on the network architecture, such as how many layers we will have in the network and how many nodes each of these layers will have. </p></li>
+				<li><strong class="bold">Initialize the weights and biases</strong>:<p>In the network, each neuron in a layer will be connected to all of the neurons in the previous layer. These connections between the neurons have a corresponding weight associated with them. During the training of the whole neural network, we first initialize the values of these weights. Each of the neurons will also have an associated bias component attached to it. This initialization is a one-time process.</p></li>
+				<li><strong class="bold">Perform forward propagation</strong>:<p>During forward propagation, the previous layer's input values are multiplied by the weights and summed up with the bias units in order to get a linear output for each of the neurons. These linear outputs are then passed through a non-linear activation function (for example, <strong class="source-inline">sigmoid</strong>, <strong class="source-inline">relu</strong>, or <strong class="source-inline">tanh</strong>) to produce a non-linear output. These values get propagated through each of the hidden layers and finally produce the output at the output layer. </p></li>
+				<li><strong class="bold">Calculate the loss</strong>:<p>The output of the network is then compared with the true/actual values or labels of the training dataset to calculate the loss of the network. The loss of the network is a measure of how well the network is performing. The lower the loss, the better the performance of the network. </p></li>
+				<li><strong class="bold">Update the weights (backpropagation)</strong>:<p>Once we have calculated the loss of the network, the aim is to then minimize the loss of the network. This is done by using the gradient descent algorithm to adjust the weights associated with each node. Gradient descent is an optimization algorithm used for minimizing the loss in various machine learning algorithms:</p><div id="_idContainer666" class="IMG---Figure"><img src="image/B16182_09_04.jpg" alt="Figure 9.4: Gradient descent&#13;&#10;"/></div><p class="figure-caption">Figure 9.4: Gradient descent</p><p>Loss minimization, in turn, pushes the predicted values closer to the actual values during the training process. The learning rate plays a crucial part in deciding the rate at which these weights are updated. Other examples of optimizers are Adam, RMSProp, and Momentum.</p></li>
+				<li>Continue the iteration:<p>The preceding steps (<em class="italic">steps 3 to 5</em>) will be continued until the loss is minimized to a certain threshold or we have completed a certain number of iterations to complete the training process. </p></li>
+			</ol>
+			<p>The following lists a few of the hyperparameters that should be tuned during the training process:</p>
+			<ul>
+				<li>The number of layers in the network</li>
+				<li>The number of neurons or nodes in each of the layers</li>
+				<li>The choice of activation functions in each of the layers </li>
+				<li>The choice of learning rate</li>
+				<li>The choice of variants of the gradient algorithm</li>
+				<li>The batch size if we are using the mini-batch gradient descent algorithm</li>
+				<li>The number of iterations to be done for weight optimization</li>
+			</ul>
+			<p>Now that we have a good recollection of the basic concepts of deep learning, let's move toward understanding PyTorch.</p>
+			<h1 id="_idParaDest-251"><a id="_idTextAnchor291"/>Basics of PyTorch</h1>
+			<p>In this chapter, we will use PyTorch to build deep learning solutions. The obvious question that comes to mind is, why PyTorch? The following describes a number of reasons as to why we should use PyTorch to build deep learning models:</p>
+			<ul>
+				<li><strong class="bold">Pythonic deep integration</strong>:<p>The learning curve of PyTorch is smooth due to the Pythonic approach of the coding style and the adoption of object-oriented methods. One example of this is deep integration with the NumPy Python library, where you can easily convert a NumPy array into a torch tensor and vice versa. Also, Python debuggers work smoothly with PyTorch, which makes code debugging easier when using PyTorch. </p></li>
+				<li><strong class="bold">Dynamic graph computation</strong>:<p>Many other deep learning frameworks come with a static computation graph; however, in PyTorch, dynamic graph computation is supported, which gives the developer a far more in-depth understanding of what is going on in each algorithm and allows them to change the network behavior programmatically at runtime. </p></li>
+				<li><strong class="bold">OpenAI adoption of PyTorch</strong>:<p>In general academics for RL, PyTorch gained a huge momentum due to its speed and ease of use. As you will have already noted, nowadays, OpenAI Gym is often the default environment for solving RL problems. Recently, OpenAI announced that it is adopting PyTorch as its primary framework for research and development work. </p></li>
+			</ul>
+			<p>The following are a few steps that should be followed in order to build a deep neural network in PyTorch:</p>
+			<ol>
+				<li value="1">Import the required libraries, prepare the data, and define the source and target data. Please note that you will need to convert your data into torch tensors when working with any PyTorch models. </li>
+				<li>Build the model architecture using a class.</li>
+				<li>Define the loss function and optimizer to be used.</li>
+				<li>Train the model.</li>
+				<li>Make predictions using the model.</li>
+			</ol>
+			<p>Let's do an exercise to build a simple PyTorch deep learning model.</p>
+			<h2 id="_idParaDest-252"><a id="_idTextAnchor292"/>Exercise 9.01: Building a Simple Deep Learning Model in PyTorch</h2>
+			<p>The aim of this exercise is to build a working end-to-end deep learning model in PyTorch. This exercise will take you through the steps of how to create a neural network model in PyTorch and how to train the same model in PyTorch using sample data. This will demonstrate the backbone process in PyTorch, which we will later use in the <em class="italic">Deep Q Learning</em> section:</p>
+			<ol>
+				<li value="1">Open a new Jupyter notebook. We will import the required libraries:<p class="source-code"># Importing the required libraries</p><p class="source-code">import numpy as np</p><p class="source-code">import torch</p><p class="source-code">from torch import nn, optim</p></li>
+				<li>Then, using a NumPy array, we will convert the source and target data into torch tensors. Please remember that for the PyTorch model to work, you should always convert the source and target data into torch tensors, as shown in the following code snippet:<p class="source-code">#input data and converting to torch tensors</p><p class="source-code">inputs = np.array([[73, 67, 43],\</p><p class="source-code">                   [91, 88, 64],\</p><p class="source-code">                   [87, 134, 58],\</p><p class="source-code">                   [102, 43, 37],\</p><p class="source-code">                   [69, 96, 70]], dtype = 'float32')</p><p class="source-code">inputs = torch.from_numpy(inputs)</p><p class="source-code">#target data and converting to torch tensors</p><p class="source-code">targets = np.array([[366], [486], [558],\</p><p class="source-code">                    [219], [470]], dtype = 'float32')</p><p class="source-code">targets = torch.from_numpy(targets)</p><p class="source-code">#Checking the shapes</p><p class="source-code">inputs.shape , targets.shape</p><p>The output will be as follows:</p><p class="source-code">(torch.Size([5, 3]), torch.Size([5, 1]))</p><p>It is very important to be aware of the input and target dataset shapes. This is because the deep learning model should be compatible with the shapes of the input and target data for the matrix multiplication operations.</p></li>
+				<li>Define the network architecture as follows:<p class="source-code">class Model(nn.Module):</p><p class="source-code">    def __init__(self):</p><p class="source-code">        super().__init__()</p><p class="source-code">        self.fc1 = nn.Linear(3, 10)</p><p class="source-code">        self.fc2 = nn.Linear(10, 1)</p><p class="source-code">    def forward(self, x): </p><p class="source-code">        x = torch.relu(self.fc1(x))</p><p class="source-code">        x = self.fc2(x)</p><p class="source-code">        return x</p><p class="source-code"># Instantiating the model</p><p class="source-code">model = Model()</p><p>Once we have the source and target data in tensor format, we should create a class for the neural network model architecture. This class inherits the properties from the <strong class="source-inline">nn</strong> base class using a package called <strong class="source-inline">Module</strong>. This new class, called <strong class="source-inline">Model</strong>, will have a forward function along with a regular constructor, called (<strong class="source-inline">__init__</strong>).</p><p>The <strong class="source-inline">__init__</strong> method, at first, will call the <strong class="source-inline">super</strong> method to gain access to the base class. Then, all the layer definitions will be written within this constructor method. The role of the forward method is to provide the steps that are required to do the forward propagation steps of the neural network.</p><p><strong class="source-inline">nn.Linear()</strong> has the syntax of (input size, output size) to define the linear layers of the model. We can use a non-linear function such as <strong class="source-inline">relu</strong> or <strong class="source-inline">tanh</strong> in combination with the linear layers in the forward function.</p><p>The neural network architecture represents the 3 nodes in the input layer, 10 in the hidden layer, and 1 in the output layer. Inside the forward function, we will use the <strong class="source-inline">relu</strong> activation function in the hidden layer. Once we define the model class, then we must instantiate the model.</p><p>Now you should have successfully created and initiated a model.</p></li>
+				<li>Now define the loss function and optimizer. The exercise we are working on is a regression problem; we generally use the mean squared error as the loss function in regression problems. In PyTorch, we use the <strong class="source-inline">MSELoss()</strong> function for a regression problem. Generally, the loss is assigned to <strong class="source-inline">criterion</strong>.<p>The <strong class="source-inline">Model</strong> parameter and learning rate must be passed as mandatory arguments to the optimizers for backpropagation. Model parameters can be accessed using the <strong class="source-inline">model.parameters()</strong> function. Now define the loss function and optimizer using the Adam optimizer. While creating the Adam optimizer, pass <strong class="source-inline">0.01</strong> as the learning rate along with the model parameter:</p><p class="source-code"># Loss function and optimizer</p><p class="source-code">criterion = nn.MSELoss()  </p><p class="source-code">optimizer = torch.optim.Adam(model.parameters(), lr=0.01)</p><p>At this point, you should have successfully defined the loss and optimization functions.</p><p class="callout-heading">Note</p><p class="callout"><strong class="bold">optim.Adam</strong>, <strong class="bold">optim.SGD</strong>, <strong class="bold">optim.RMSprop</strong>, and <strong class="bold">optim.Adagrad</strong> are the available optimizers in PyTorch. All of them are slightly different variants of gradient descent and are present in the <strong class="source-inline">torch.optim</strong> package. </p></li>
+				<li>Train the model for 20 epochs and monitor the loss. To form a training loop, create a variable called <strong class="source-inline">n_epochs</strong> and initialize the value as 20. Create a <strong class="source-inline">for</strong> loop to run the loop for <strong class="source-inline">n_epoch</strong> times. Inside the loop, complete these steps: zero out the parameter gradients using <strong class="source-inline">optimizer.zero_grad()</strong>. Pass the input through the model to get the output. Obtain the loss using <strong class="source-inline">criterion</strong> by passing the outputs and targets. Use <strong class="source-inline">loss.backward()</strong> and <strong class="source-inline">optimizer.step()</strong> to do the backpropagation step. Print the loss after every epoch:<p class="source-code"># Train the model</p><p class="source-code">n_epochs = 20</p><p class="source-code">for it in range(n_epochs):</p><p class="source-code">    # zero the parameter gradients</p><p class="source-code">    optimizer.zero_grad()</p><p class="source-code">    # Forward pass</p><p class="source-code">    outputs = model(inputs)</p><p class="source-code">    loss = criterion(outputs, targets)</p><p class="source-code">    # Backward and optimize</p><p class="source-code">    loss.backward()</p><p class="source-code">    optimizer.step()</p><p class="source-code">    print(f'Epoch {it+1}/{n_epochs}, Loss: {loss.item():.4f}')</p><p>PyTorch, by default, accumulates the gradients calculated at each step. We need to handle this during the training process so that the weights are updated with their proper gradients. <strong class="source-inline">optimizer.zero_grad()</strong> will zero out the gradients from the previous training step to stop the gradient accumulations. This step should be done before calculating the gradients at each epoch. To calculate the loss, we should pass the predicted and actual values to the loss function. The <strong class="source-inline">criterion(outputs, targets)</strong> step is used to calculate the loss. The <strong class="source-inline">loss.backward()</strong> step is used to calculate the weight gradients, and we will use these gradients to update the weights to get our optimum weights. Weight updates are done using the <strong class="source-inline">optimizer.step()</strong> function.</p><p>The output will be as follows:</p><p class="source-code">Epoch 1/20, Loss: 185159.9688</p><p class="source-code">Epoch 2/20, Loss: 181442.8125</p><p class="source-code">Epoch 3/20, Loss: 177829.2188</p><p class="source-code">Epoch 4/20, Loss: 174210.5938</p><p class="source-code">Epoch 5/20, Loss: 170534.4375</p><p class="source-code">Epoch 6/20, Loss: 166843.9531</p><p class="source-code">Epoch 7/20, Loss: 163183.2500</p><p class="source-code">Epoch 8/20, Loss: 159532.0625</p><p class="source-code">Epoch 9/20, Loss: 155861.8438</p><p class="source-code">Epoch 10/20, Loss: 152173.0000</p><p class="source-code">Epoch 11/20, Loss: 148414.5781</p><p class="source-code">Epoch 12/20, Loss: 144569.6875</p><p class="source-code">Epoch 13/20, Loss: 140625.1094</p><p class="source-code">Epoch 14/20, Loss: 136583.0625</p><p class="source-code">Epoch 15/20, Loss: 132446.6719</p><p class="source-code">Epoch 16/20, Loss: 128219.9688</p><p class="source-code">Epoch 17/20, Loss: 123907.7422</p><p class="source-code">Epoch 18/20, Loss: 119515.7266</p><p class="source-code">Epoch 19/20, Loss: 115050.4375</p><p class="source-code">Epoch 20/20, Loss: 110519.2969</p><p>As you can see, the output prints the loss after every epoch. You should closely monitor the training loss. From the preceding output, we can see that training loss decreases.  </p></li>
+				<li>Once the model is trained, we can use the trained model to make predictions. Pass the input data through the model to get the predictions and observe the output:<p class="source-code">#Prediction using the trained model</p><p class="source-code">preds = model(inputs)</p><p class="source-code">print(preds)</p><p>The output is as follows:</p><p class="source-code">tensor([[ 85.6779],</p><p class="source-code">        [115.3034],</p><p class="source-code">        [146.7106],</p><p class="source-code">        [ 69.4034],</p><p class="source-code">        [120.5457]], grad_fn=&lt;AddmmBackward&gt;)</p></li>
+			</ol>
+			<p>The preceding output shows the model prediction of the corresponding input data.</p>
+			<p class="callout-heading">Note</p>
+			<p class="callout">To access the source code for this specific section, please refer to <a href="https://packt.live/3e2DscY">https://packt.live/3e2DscY</a>.</p>
+			<p class="callout">You can also run this example online at <a href="https://packt.live/37q0J68">https://packt.live/37q0J68</a>.</p>
+			<p>We now know how a PyTorch model works. This example will be useful for you when training your deep Q neural network. However, in addition to this, there are few other important PyTorch utilities that you should be aware of, which you will study in the next section. Understanding these utilities is essential for the implementation of deep Q learning.</p>
+			<h2 id="_idParaDest-253"><a id="_idTextAnchor293"/>PyTorch Utilities</h2>
+			<p>To work with the utilities, first, we will create a torch tensor of size 10 with numbers starting from 1 to 9 using the <strong class="source-inline">arange</strong> function of PyTorch. A torch tensor is essentially a matrix of elements that belongs to a single data type, which can have multiple dimensions. Please note that, like Python, PyTorch also excludes the number given in the <strong class="source-inline">arange</strong> function:</p>
+			<p class="source-code">import torch</p>
+			<p class="source-code">t = torch.arange(10)</p>
+			<p class="source-code">print(t) </p>
+			<p class="source-code">print(t.shape)</p>
+			<p>The output will be as follows:</p>
+			<p class="source-code">tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])</p>
+			<p class="source-code">torch.Size([10])</p>
+			<p>Let's now begin exploring the various functions, one by one.</p>
+			<h3 id="_idParaDest-254"><a id="_idTextAnchor294"/>The view Function</h3>
+			<p>Use the <strong class="source-inline">view</strong> function to reshape your tensor as follows:</p>
+			<p class="source-code">t.view(2,5) # reshape the tensor to of size - (2,5)</p>
+			<p>The output will be as follows:</p>
+			<p class="source-code">tensor([[0, 1, 2, 3, 4],</p>
+			<p class="source-code">        [5, 6, 7, 8, 9]])</p>
+			<p>Let's try a new shape now:</p>
+			<p class="source-code">t.view(-1,5) </p>
+			<p class="source-code"># -1 will by default infer the first dimension </p>
+			<p class="source-code"># use when you are not sure about any dimension size</p>
+			<p>The output will be as follows:</p>
+			<p class="source-code">tensor([[0, 1, 2, 3, 4],</p>
+			<p class="source-code">        [5, 6, 7, 8, 9]])</p>
+			<h3 id="_idParaDest-255"><a id="_idTextAnchor295"/>The squeeze Function</h3>
+			<p>The <strong class="source-inline">squeeze</strong> function is used to remove any dimensions with a value of 1. The following is an example of a tensor with a shape of (5,1):</p>
+			<p class="source-code">x = torch.zeros(5, 1)</p>
+			<p class="source-code">print(x)</p>
+			<p class="source-code">print(x.shape)</p>
+			<p>The output will be as follows:</p>
+			<p class="source-code">tensor([[0.],</p>
+			<p class="source-code">        [0.],</p>
+			<p class="source-code">        [0.],</p>
+			<p class="source-code">        [0.],</p>
+			<p class="source-code">        [0.]])</p>
+			<p class="source-code">torch.Size([5, 1])</p>
+			<p>Apply the <strong class="source-inline">squeeze</strong> function to the tensor:</p>
+			<p class="source-code"># squeeze will remove any dimension with a value of 1</p>
+			<p class="source-code">y = x.squeeze(1)</p>
+			<p class="source-code"># turns a tensor of shape [5, 1] to [5]</p>
+			<p class="source-code">y.shape</p>
+			<p>The output will be as follows:</p>
+			<p class="source-code">torch.Size([5])</p>
+			<p>As you can see, after using <strong class="source-inline">squeeze</strong>, the dimension of 1 is removed.</p>
+			<h3 id="_idParaDest-256"><a id="_idTextAnchor296"/>The unsqueeze Function</h3>
+			<p>As the name suggests, the <strong class="source-inline">unsqueeze</strong> function does the reverse of <strong class="source-inline">squeeze</strong>. It adds a dimension of 1 to the input data.</p>
+			<p>Consider the following example. First, we create a tensor of shape <strong class="source-inline">5</strong>:</p>
+			<p class="source-code">x = torch.zeros(5)</p>
+			<p class="source-code">print(x)</p>
+			<p class="source-code">print(x.shape)</p>
+			<p>The output will be as follows:</p>
+			<p class="source-code">tensor([0., 0., 0., 0., 0.])</p>
+			<p class="source-code">torch.Size([5])</p>
+			<p>Apply the <strong class="source-inline">unsqueeze</strong> function to the tensor:</p>
+			<p class="source-code">y = x.unsqueeze(1) # unsqueeze will add a dimension of 1 </p>
+			<p class="source-code">print(y.shape) # turns a tensor of shape [5] to [5,1]</p>
+			<p>The output will be as follows:</p>
+			<p class="source-code">torch.Size([5, 1])</p>
+			<p>As you can see, a dimension of 1 has been added to the tensor.</p>
+			<h3 id="_idParaDest-257"><a id="_idTextAnchor297"/>The max Function</h3>
+			<p>If a multidimensional tensor is passed to the <strong class="source-inline">max</strong> function, the function returns the max values and corresponding index in the specified axis. Please refer to the code comments for more details.</p>
+			<p>First, we create a tensor of dimensions <strong class="source-inline">(4, 4)</strong>:</p>
+			<p class="source-code">a = torch.randn(4, 4)</p>
+			<p class="source-code">a</p>
+			<p>The output will be as follows:</p>
+			<p class="source-code">tensor([[-0.5462,  1.3808,  1.4759,  0.1665],</p>
+			<p class="source-code">        [-1.6576, -1.2805,  0.5480, -1.7803],</p>
+			<p class="source-code">        [ 0.0969, -1.7333,  1.0639, -0.4660],</p>
+			<p class="source-code">        [ 0.3135, -0.4781,  0.3603, -0.6883]])</p>
+			<p>Now, let's apply the <strong class="source-inline">max</strong> function to the tensor:</p>
+			<p class="source-code">"""</p>
+			<p class="source-code">returns max values in the specified dimension along with index</p>
+			<p class="source-code">specifying 1 as dimension means we want to do the operation row-wise</p>
+			<p class="source-code">"""</p>
+			<p class="source-code">torch.max(a , 1)</p>
+			<p>The output will be as follows:</p>
+			<p class="source-code">torch.return_types.max(values=tensor([1.4759, 0.5480, \</p>
+			<p class="source-code">                                      1.0639, 0.3603]),\</p>
+			<p class="source-code">                       indices=tensor([2, 2, 2, 2]))</p>
+			<p>Let's now try to find the max values from the tensor:</p>
+			<p class="source-code">torch.max(a , 1)[0] # to fetch the max values</p>
+			<p>The output will be as follows:</p>
+			<p class="source-code">tensor([1.4759, 0.5480, 1.0639, 0.3603])</p>
+			<p>To find the index of the max values, use the following code:</p>
+			<p class="source-code"># to fetch the index of the corresponding max values</p>
+			<p class="source-code">torch.max(a , 1)[1]</p>
+			<p>The output will be as follows:</p>
+			<p class="source-code">tensor([2, 2, 2, 2])</p>
+			<p>As you can see, the indices of the max values have been displayed.</p>
+			<h3 id="_idParaDest-258"><a id="_idTextAnchor298"/>The gather Function</h3>
+			<p>The <strong class="source-inline">gather</strong> function works by collecting values along an axis specified by <strong class="source-inline">dim</strong>. The general syntax of the <strong class="source-inline">gather</strong> function is as follows:</p>
+			<p class="source-code">torch.gather(input, dim, index)</p>
+			<p>The syntax can be explained as follows:</p>
+			<ul>
+				<li><strong class="source-inline">input</strong> (tensor): Specify the source tensor here.</li>
+				<li><strong class="source-inline">dim</strong> (python:int): Specify the axis along which to index.</li>
+				<li><strong class="source-inline">index</strong> (<strong class="source-inline">LongTensor</strong>): Specify the indices of elements to gather.</li>
+			</ul>
+			<p>In the following example, we have <strong class="source-inline">q_values</strong>, which is a torch tensor of shape (<strong class="source-inline">4,4</strong>), and the action is a <strong class="source-inline">LongTensor</strong> that has indexes that we want to extract from the <strong class="source-inline">q_values</strong> tensor: </p>
+			<p class="source-code">q_values = torch.randn(4, 4)</p>
+			<p class="source-code">print(q_values)</p>
+			<p>The output will be as follows:</p>
+			<p class="source-code">q_values = torch.randn(4, 4)</p>
+			<p class="source-code">print(q_values)</p>
+			<p class="source-code">tensor([[-0.2644, -0.2460, -1.7992, -1.8586],</p>
+			<p class="source-code">        [ 0.3272, -0.9674, -0.2881,  0.0738],</p>
+			<p class="source-code">        [ 0.0544,  0.5494, -1.7240, -0.8058],</p>
+			<p class="source-code">        [ 1.6687,  0.0767,  0.6696, -1.3802]])</p>
+			<p>Next, we will apply <strong class="source-inline">LongTensor</strong> to specify the indices of the elements of the tensor that are to be gathered:</p>
+			<p class="source-code"># index must be defined as LongTensor</p>
+			<p class="source-code">action =torch.LongTensor([0 , 1, 2, 3])</p>
+			<p>Then, find the shape of the <strong class="source-inline">q_values</strong> tensor:</p>
+			<p class="source-code">q_values.shape , action.shape </p>
+			<p class="source-code"># q_values -&gt; 2-dimensional tensor </p>
+			<p class="source-code"># action -&gt; 1-dimension tensor</p>
+			<p>The output will be as follows:</p>
+			<p class="source-code"> (torch.Size([4, 4]), torch.Size([4]))</p>
+			<p>Let's now apply the <strong class="source-inline">gather</strong> function:</p>
+			<p class="source-code">"""</p>
+			<p class="source-code">unsqueeze is used to take care of the error - Index tensor </p>
+			<p class="source-code">must have same dimensions as input tensor</p>
+			<p class="source-code">returns the values from q_values using the action as indexes</p>
+			<p class="source-code">"""</p>
+			<p class="source-code">torch.gather(q_values , 1, action.unsqueeze(1))</p>
+			<p>The output will be as follows:</p>
+			<p class="source-code">tensor([[-0.2644],</p>
+			<p class="source-code">        [-0.9674],</p>
+			<p class="source-code">        [-1.7240],</p>
+			<p class="source-code">        [-1.3802]])</p>
+			<p>Now you have a basic understanding of neural networks and how to implement a simple neural network in PyTorch. Aside from a vanilla neural network (the combination of linear layers with a non-linear activation function), there are two other variants called <strong class="bold">Convolutional Neural Networks</strong> (<strong class="bold">CNNs</strong>) and <strong class="bold">Recurrent Neural Networks</strong> (<strong class="bold">RNNs</strong>). A CNN is mainly used for image classification and image segmentation tasks, and an RNN is used for data with a sequential pattern, such as time series data, or for language translation tasks.</p>
+			<p>Now, as we have gained some knowledge of deep learning and how to build deep learning models in PyTorch, we will shift our focus to Q learning and how to use deep learning in RL with the help of PyTorch. First, we will start with the state-value function and the Bellman equation, and then we will move on to Q learning.</p>
+			<h2 id="_idParaDest-259"><a id="_idTextAnchor299"/>The State-Value Function and the Bellman Equation</h2>
+			<p>As we are slowly moving toward the Q function and Q learning process, let's revisit the Bellman equation, which is the backbone of the Q learning process. In the following section, we will first revise our definition of an "expected value" and how it is used in a Bellman equation.</p>
+			<h3 id="_idParaDest-260"><a id="_idTextAnchor300"/>Expected Value</h3>
+			<p>The following figure depicts the expected value in a state space:</p>
+			<div>
+				<div id="_idContainer667" class="IMG---Figure">
+					<img src="image/B16182_09_05.jpg" alt="Figure 9.5: Expected value&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.5: Expected value</p>
+			<p>Suppose that an agent is in state <strong class="source-inline">S</strong>, and it has two paths on which it can travel. The first path has a transition probability of 0.6 and an associated reward of 1, and the second path has a transition probability of 0.4 and an associated reward of 0. </p>
+			<p>Now, the expected value or reward of state <strong class="source-inline">S</strong> would be as follows:</p>
+			<p class="source-code">(0.6 * 1) + (0.4 * 1) = 0.6 </p>
+			<p>Mathematically, it can be expressed as follows:</p>
+			<div>
+				<div id="_idContainer668" class="IMG---Figure">
+					<img src="image/B16182_09_06.jpg" alt="Figure 9.6: Expression for the expected value&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.6: Expression for the expected value</p>
+			<h3 id="_idParaDest-261"><a id="_idTextAnchor301"/>The Value Function</h3>
+			<p>When an agent is in an environment, the value function provides the required information about the states. The value function provides a methodology through which an agent can know how good any given state is for the agent. So, if an agent has the option of going two states from the current state, the agent will always choose the state with the larger value function. </p>
+			<p>The value function can be expressed recursively using the value function of future states. When we are working in a stochastic environment, we will use the concept of expected values, as discussed in the previous section.</p>
+			<h3 id="_idParaDest-262"><a id="_idTextAnchor302"/>The Value Function for a Deterministic Environment</h3>
+			<p>For a deterministic world, the value of a state is just the sum of all future rewards.</p>
+			<p>The value function of state 1 can be expressed as follows:</p>
+			<div>
+				<div id="_idContainer669" class="IMG---Figure">
+					<img src="image/B16182_09_07.jpg" alt="Figure 9.7: Value function of state 1&#13;&#10;"/>
+				</div>
+			</div>
+			<p>	   </p>
+			<p class="figure-caption">Figure 9.7: Value function of state 1</p>
+			<p>The value function of state 1 can be expressed in terms of state 2, as follows:</p>
+			<div>
+				<div id="_idContainer670" class="IMG---Figure">
+					<img src="image/B16182_09_08.jpg" alt="Figure 9.8: Value function of state 2&#13;&#10;"/>
+				</div>
+			</div>
+			<p>	</p>
+			<p class="figure-caption">Figure 9.8: Value function of state 2</p>
+			<p>The simplified value function of state 1, using the value function of state 2, can be expressed as follows:</p>
+			<div>
+				<div id="_idContainer671" class="IMG---Figure">
+					<img src="image/B16182_09_09.jpg" alt="Figure 9.9: Simplified value function of state 1 using the value function of state 2&#13;&#10;"/>
+				</div>
+			</div>
+			<p>  </p>
+			<p class="figure-caption">Figure 9.9: Simplified value function of state 1 using the value function of state 2</p>
+			<p>The simplified value function of state 1 with the discount factor can be expressed as follows:</p>
+			<div>
+				<div id="_idContainer672" class="IMG---Figure">
+					<img src="image/B16182_09_10.jpg" alt="Figure 9.10: Simplified value function of state 1 with the discount factor &#13;&#10;"/>
+				</div>
+			</div>
+			<p>  </p>
+			<p class="figure-caption">Figure 9.10: Simplified value function of state 1 with the discount factor </p>
+			<p>In general, we can rewrite the value function as follows:  </p>
+			<div>
+				<div id="_idContainer673" class="IMG---Figure">
+					<img src="image/B16182_09_11.jpg" alt="Figure 9.11: Value function for a deterministic environment&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.11: Value function for a deterministic environment</p>
+			<h3 id="_idParaDest-263"><a id="_idTextAnchor303"/>The Value Function for a Stochastic Environment:</h3>
+			<p>For stochastic behavior, due to the randomness or uncertainty that is present in the environment, instead of taking the raw future rewards, we take the expected total reward from a state to come up with the value function. The new addition to the preceding equation is the expectation part. The equation is as follows: </p>
+			<div>
+				<div id="_idContainer674" class="IMG---Figure">
+					<img src="image/B16182_09_12.jpg" alt="Figure 9.12: Value function for a stochastic environment&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.12: Value function for a stochastic environment</p>
+			<p>Here, <strong class="source-inline">s</strong> is the current state, <img src="image/B16182_09_12a.png" alt="A picture containing table, drawing&#10;&#10;Description automatically generated"/>is the next state, and <strong class="source-inline">r</strong> is the reward of going from <strong class="source-inline">s</strong> to <img src="image/B16182_09_12b.png" alt="A picture containing table, drawing&#10;&#10;Description automatically generated"/>.</p>
+			<h1 id="_idParaDest-264"><a id="_idTextAnchor304"/>The Action-Value Function (Q Value Function) </h1>
+			<p>In the previous sections, we learned about the state-value function, which tells us how rewarding it is to be in a particular state for an agent. Now we will learn about another function where we can combine the state with actions. The action-value function will tell us how good it is for the agent to take any given action from a given state. We also call the action value the <strong class="bold">Q value</strong>. The equation can be written as follows: </p>
+			<div>
+				<div id="_idContainer677" class="IMG---Figure">
+					<img src="image/B16182_09_13.jpg" alt="Figure 9.13: Expression for the Q value function&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.13: Expression for the Q value function</p>
+			<p>The preceding equation can be written in an iterative fashion, as follows:</p>
+			<div>
+				<div id="_idContainer678" class="IMG---Figure">
+					<img src="image/B16182_09_14.jpg" alt="Figure 9.14: Expression for the Q value function with iterations&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.14: Expression for the Q value function with iterations</p>
+			<p>This equation is also known as the <strong class="bold">bellman equation</strong>. From the equation, we can express <img src="image/B16182_09_14a.png" alt="A drawing of a face&#10;&#10;Description automatically generated"/>recursively in terms of the Q value of the next state, <img src="image/B16182_09_14b.png" alt="c"/>. A Bellman equation can be described as follows:</p>
+			<p><em class="italic">"The total expected reward being in state s and taking action a is the sum of two components: the reward (which is r) that we can get from state 's' by taking action a, plus the maximum expected discounted return </em><em class="italic"><img src="image/B16182_09_14c.png" alt="c"/> that we can get from any possible next state-action pair (s′, a′). a′ is the next best possible action."</em></p>
+			<h2 id="_idParaDest-265"><a id="_idTextAnchor305"/>Implementing Q Learning to Find Optimal Actions</h2>
+			<p>The process of finding the optimal action from any state using the Q function is called Q learning. Q learning is also a tabular method, where state and action combinations are stored in a tabular format. In the following section, we will learn how to find the optimal action using the Q learning method in a stepwise fashion. Consider the following table:</p>
+			<div>
+				<div id="_idContainer682" class="IMG---Figure">
+					<img src="image/B16182_09_15.jpg" alt="Figure 9.15: Sample table for Q learning&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.15: Sample table for Q learning</p>
+			<p>As you can see in the preceding table, the Q values are stored in terms of a table, where the rows represent the states that are present in the environment, and the columns represent all of the possible actions for the agent. You can see that all of the states are represented as rows, and all the actions, such as going up, down, right, and left, are stored as columns. </p>
+			<p>The values present in the intersection of any row and column is the Q value for that particular state-action pair. </p>
+			<p>Initially, all values of state-action pairs are initialized with zero. The agent, being in a state, will choose the action with the highest Q value. For example, as shown in the preceding figure, being in state 001, the agent will choose to go right, which has the highest Q value (0.98).</p>
+			<p>During the initial phase, when most of the state-action pairs will have zero values, we will make use of the previously discussed epsilon-greedy strategy to tackle the exploration-exploitation dilemma as follows:</p>
+			<ul>
+				<li>Set the value of ε (a high value such as 0.90).</li>
+				<li>Choose a random number between 0 and 1:<p class="source-code">if random_number &gt; ε :</p><p class="source-code">    choose the best action(exploitation)</p><p class="source-code">else:</p><p class="source-code">    choose the random action (exploration)</p><p class="source-code">decay ε </p></li>
+			</ul>
+			<p>The state with a higher value of ε decays gradually. The idea then would be to initially explore and then exploit.</p>
+			<p>Using the <strong class="bold">Temporal Difference</strong> (<strong class="bold">TD</strong>) method described in the previous chapter, we iteratively update the Q values as follows:</p>
+			<div>
+				<div id="_idContainer683" class="IMG---Figure">
+					<img src="image/B16182_09_16.jpg" alt="Figure 9.16: Updating the Q values using iterations&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.16: Updating the Q values using iterations</p>
+			<p>The timestamp, <strong class="source-inline">t</strong>, is the current iteration, and timestamp <strong class="source-inline">(t-1)</strong> is the previous iteration. In this way, we are updating the previous timestamp's Q value with the <strong class="source-inline">TD</strong> method and pushing the Q value as close as we can to the optimal Q value, which is also called <img src="image/B16182_09_16a.png" alt="A picture containing drawing&#10;&#10;Description automatically generated"/>. </p>
+			<p>We can rewrite the preceding equation as follows: </p>
+			<div>
+				<div id="_idContainer685" class="IMG---Figure">
+					<img src="image/B16182_09_17.jpg" alt="Figure 9.17: Updated expression for updating Q values&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.17: Updated expression for updating Q values</p>
+			<p>Using simple math, we can further simplify the equation as follows: </p>
+			<div>
+				<div id="_idContainer686" class="IMG---Figure">
+					<img src="image/B16182_09_18.jpg" alt="Figure 9.18: Updated equation for Q values&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.18: Updated equation for Q values</p>
+			<p>The learning rate decides how big or small the steps we should take should be in order to update the Q values. This iteration and updating of Q values will continue until the Q values come closer to <img src="image/B16182_09_18a.png" alt="A picture containing table&#10;&#10;Description automatically generated"/> or if we reach a certain predefined number of iterations. The iteration can be visualized as follows:</p>
+			<div>
+				<div id="_idContainer688" class="IMG---Figure">
+					<img src="image/B16182_09_19.jpg" alt="Figure 9.19: The Q learning process&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.19: The Q learning process</p>
+			<p>As you can see, after multiple iterations, the Q table is finally ready.</p>
+			<h3 id="_idParaDest-266"><a id="_idTextAnchor306"/>Advantages of Q Learning</h3>
+			<p>The following describes the advantages of using Q learning in the RL domain:</p>
+			<ul>
+				<li>We don't need to know the full transition dynamic; this means that we don't have to know all of the state transition probabilities that may not be available for some environments.  </li>
+				<li>As we store the state-action combination in a tabular format, it is easy to understand and implement the Q learning algorithm by fetching the details from the tables. </li>
+				<li>We don't have to wait for the entire episode to finish to update the Q value for any state due to the continuous online update of the learning process, unlike in the Monte Carlo method where we have to wait for an episode to finish in order to update the action-value function. </li>
+				<li>It works well when the combination of states and action spaces is low.</li>
+			</ul>
+			<p>As we have now learned about the basics of Q learning, we can implement Q learning using an OpenAI Gym environment. So, before going ahead with the exercise, let's review the concept of OpenAI Gym. </p>
+			<h2 id="_idParaDest-267"><a id="_idTextAnchor307"/>OpenAI Gym Review</h2>
+			<p>Before we implement the Q learning tabular method, let's quickly review and revisit the Gym environment. OpenAI Gym is a toolkit for developing RL algorithms. It supports teaching agents everything from walking to playing games such as CartPole or FrozenLake-v0. Gym provides an environment, and it is up to the developer to write and implement any RL algorithms such as tabular methods or deep Q learning. We can also write algorithms using existing deep learning frameworks, such as PyTorch or TensorFlow. The following is a sample code example to work with an existing Gym environment:</p>
+			<div>
+				<div id="_idContainer689" class="IMG---Figure">
+					<img src="image/B16182_09_20.jpg" alt="Figure 9.20: Gym environment&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.20: Gym environment</p>
+			<p>Let's understand a few parts of the code as follows:</p>
+			<ul>
+				<li><strong class="source-inline">gym.make("CartPole-v1")</strong><p>This creates an existing Gym environment (<strong class="source-inline">CartPole-v1</strong>).</p></li>
+				<li><strong class="source-inline">env.reset()</strong><p>This resets the environment, so the environment will be at the starting state. </p></li>
+				<li><strong class="source-inline">env.action_space.sample()</strong><p>This selects a random action from the action space (a collection of available actions).</p></li>
+				<li><strong class="source-inline">env.step(action)</strong><p>This performs the action selected from the previous step. Once you take the actions, the environment will return the <strong class="source-inline">new_state</strong>, <strong class="source-inline">reward</strong>, and <strong class="source-inline">done</strong> flags (to indicate whether the game is over), and some extra information.</p></li>
+				<li><strong class="source-inline">env.render()</strong><p>This renders to see the agent performing the actions or playing the game.</p></li>
+			</ul>
+			<p>We now have a theoretical understanding of the Q learning process, and we have also reviewed the Gym environment. Now it's your turn to implement Q learning using a Gym environment. </p>
+			<h2 id="_idParaDest-268"><a id="_idTextAnchor308"/>Exercise 9.02: Implementing the Q Learning Tabular Method</h2>
+			<p>In this exercise, we will implement the tabular Q Learning method using the OpenAI Gym environment. We will use the <strong class="source-inline">FrozenLake-v0</strong> Gym environment to implement the tabular Q learning method. The goal is to play and collect maximum rewards with the help of the Q learning process. You should already be familiar with the FrozenLake-v0 environment from <em class="italic">Chapter 5</em>, <em class="italic">Dynamic Programming</em>. The following steps will help you to complete the exercise:</p>
+			<ol>
+				<li value="1">Open a new Jupyter notebook file.</li>
+				<li>Import the required libraries:<p class="source-code"># Importing the required libraries</p><p class="source-code">import gym</p><p class="source-code">import numpy as np</p><p class="source-code">import matplotlib.pyplot as plt</p></li>
+				<li>Create the Gym environment with <strong class="source-inline">'FrozenLake-v0'</strong> for a stochastic environment:<p class="source-code">env = gym.make('FrozenLake-v0')</p></li>
+				<li>Fetch the number of states and actions:<p class="source-code">number_of_states = env.observation_space.n</p><p class="source-code">number_of_actions = env.action_space.n</p><p class="source-code"># checking the total number of states and action</p><p class="source-code">print('Total number of States : {}'.format(number_of_states)) </p><p class="source-code">print('Total number of Actions : {}'.format(number_of_actions))</p><p>The output will be as follows:</p><p class="source-code">Total number of States : 16</p><p class="source-code">Total number of Actions : 4</p></li>
+				<li>Create the Q table with details fetched from the previous step:<p class="source-code"># Creation of Q table</p><p class="source-code">Q_TABLE = np.zeros([number_of_states, number_of_actions])</p><p class="source-code"># Looking at the initial values Q table</p><p class="source-code">print(Q_TABLE)</p><p class="source-code">print('shape of Q table : {}'.format(Q_TABLE.shape)</p><p>The output is as follows:</p><p class="source-code">[[0. 0. 0. 0.]</p><p class="source-code"> [0. 0. 0. 0.]</p><p class="source-code"> [0. 0. 0. 0.]</p><p class="source-code"> [0. 0. 0. 0.]</p><p class="source-code"> [0. 0. 0. 0.]</p><p class="source-code"> [0. 0. 0. 0.]</p><p class="source-code"> [0. 0. 0. 0.]</p><p class="source-code"> [0. 0. 0. 0.]</p><p class="source-code"> [0. 0. 0. 0.]</p><p class="source-code"> [0. 0. 0. 0.]</p><p class="source-code"> [0. 0. 0. 0.]</p><p class="source-code"> [0. 0. 0. 0.]</p><p class="source-code"> [0. 0. 0. 0.]</p><p class="source-code"> [0. 0. 0. 0.]</p><p class="source-code"> [0. 0. 0. 0.]</p><p class="source-code"> [0. 0. 0. 0.]]</p><p class="source-code">shape of Q table : (16, 4)</p><p>Now we know the shape of the Q table and that the initial values are all zero for every state-action pair.</p></li>
+				<li>Set all of the required hyperparameter values to be used for Q learning:<p class="source-code"># Setting the Hyper parameter Values for Q Learning</p><p class="source-code">NUMBER_OF_EPISODES = 10000</p><p class="source-code">MAX_STEPS = 100 </p><p class="source-code">LEARNING_RATE = 0.1</p><p class="source-code">DISCOUNT_FACTOR = 0.99</p><p class="source-code">EGREEDY = 1</p><p class="source-code">MAX_EGREEDY = 1</p><p class="source-code">MIN_EGREEDY = 0.01</p><p class="source-code">EGREEDY_DECAY_RATE = 0.001</p></li>
+				<li>Create empty lists to store the values of the rewards and the decayed egreedy values for visualization: <p class="source-code"># Creating empty lists to store rewards of all episodes</p><p class="source-code">rewards_all_episodes = []</p><p class="source-code"># Creating empty lists to store egreedy_values of all episodes</p><p class="source-code">egreedy_values = []</p></li>
+				<li>Implement the Q learning training process to play the episode for a fixed number of episodes. Use the previously learned Q learning process (from the <em class="italic">Implementing Q Learning to Find Optimal Actions</em> section) in order to find the optimal actions from any given state. <p>Create a <strong class="source-inline">for</strong> loop to iterate for <strong class="source-inline">NUMBER_OF_EPISODES</strong>. Reset the environment and set the <strong class="source-inline">done</strong> flag equal to <strong class="source-inline">False</strong> and <strong class="source-inline">current_episode_rewards</strong> as <strong class="source-inline">zero</strong>. Create another <strong class="source-inline">for</strong> loop to run a single episode for <strong class="source-inline">MAX_STEPS</strong>. Inside the <strong class="source-inline">for</strong> loop, choose the best action using the epsilon-greedy strategy. Perform the action and update the Q values using the equation shown in <em class="italic">Figure 9.18</em>. Collect the reward and assign <strong class="source-inline">new_state</strong> as the current state. If the episode is over, break out from the loop, else continue taking the steps. Decay the epsilon value to be able to continue for the next episode:</p><p class="source-code"># Training Process</p><p class="source-code">for episode in range(NUMBER_OF_EPISODES):</p><p class="source-code">    state = env.reset()</p><p class="source-code">    done = False</p><p class="source-code">    current_episode_rewards = 0</p><p class="source-code">    for step in range(MAX_STEPS):</p><p class="source-code">        random_for_egreedy = np.random.rand()</p><p class="source-code">        if random_for_egreedy &gt; EGREEDY:</p><p class="source-code">            action = np.argmax(Q_TABLE[state,:])</p><p class="source-code">        else:</p><p class="source-code">            action = env.action_space.sample()</p><p class="source-code">            </p><p class="source-code">        new_state, reward, done, info = env.step(action)</p><p class="source-code">        Q_TABLE[state, action] = (1 - LEARNING_RATE) \</p><p class="source-code">                                 * Q_TABLE[state, action] \</p><p class="source-code">                                 + LEARNING_RATE \</p><p class="source-code">                                 * (reward + DISCOUNT_FACTOR \</p><p class="source-code">                                    * np.max(Q_TABLE[new_state,:]))</p><p class="source-code">        state = new_state</p><p class="source-code">        current_episode_rewards += reward</p><p class="source-code">        if done:</p><p class="source-code">            break</p><p class="source-code">    egreedy_values.append(EGREEDY)</p><p class="source-code">    EGREEDY = MIN_EGREEDY + (MAX_EGREEDY - MIN_EGREEDY) \</p><p class="source-code">              * np.exp(-EGREEDY_DECAY_RATE*episode)</p><p class="source-code">    rewards_all_episodes.append(current_episode_rewards)</p></li>
+				<li>Implement a function called <strong class="source-inline">rewards_split</strong> that will split the 10,000 rewards into 1,000 individual lists of rewards, and calculate the average rewards for each of these 1,000 lists of rewards:  <p class="source-code">def rewards_split(rewards_all_episodes , total_episodes , split):</p><p class="source-code">    """</p><p class="source-code">    Objective:</p><p class="source-code">    To split and calculate average reward or percentage of </p><p class="source-code">    completed rewards per splits</p><p class="source-code">    inputs: </p><p class="source-code">    rewards_all_episodes - all the per episode rewards</p><p class="source-code">    total_episodes - total of episodes</p><p class="source-code">    split - number of splits on which we will check the reward</p><p class="source-code">    returns:</p><p class="source-code">    average reward of percentage of completed rewards per splits</p><p class="source-code">    """</p><p class="source-code">    splitted = np.split(np.array(rewards_all_episodes),\</p><p class="source-code">                                 total_episodes/split)</p><p class="source-code">    avg_reward_per_splits = []</p><p class="source-code">    for rewards in splitted:</p><p class="source-code">        avg_reward_per_splits.append(sum(rewards)/split)</p><p class="source-code">    return avg_reward_per_splits</p><p class="source-code">avg_reward_per_splits = rewards_split\</p><p class="source-code">                        (rewards_all_episodes , \</p><p class="source-code">                         NUMBER_OF_EPISODES , 1000)</p></li>
+				<li>Visualize the average rewards or percentage of completed episodes:<p class="source-code">plt.figure(figsize=(12,5))</p><p class="source-code">plt.title("% of Episodes completed")</p><p class="source-code">plt.plot(np.arange(len(avg_reward_per_splits)), \</p><p class="source-code">         avg_reward_per_splits, 'o-')</p><p class="source-code">plt.show()</p><p>The output is as follows:</p><div id="_idContainer690" class="IMG---Figure"><img src="image/B16182_09_21.jpg" alt="Figure 9.21: Visualizing the percentage of episodes completed&#13;&#10;"/></div><p class="figure-caption">Figure 9.21: Visualizing the percentage of episodes completed</p><p>As you can see from the preceding figure, the episodes are completed, and the percentage rises exponentially until it reaches a point where it becomes constant.</p></li>
+				<li>Now we will visualize the <strong class="source-inline">Egreedy</strong> value decay: <p class="source-code">plt.figure(figsize=(12,5))</p><p class="source-code">plt.title("Egreedy value")</p><p class="source-code">plt.bar(np.arange(len(egreedy_values)), egreedy_values, \</p><p class="source-code">        alpha=0.6, color='blue', width=5)</p><p class="source-code">plt.show()</p><p>The plot will be produced as follows:</p><div id="_idContainer691" class="IMG---Figure"><img src="image/B16182_09_22.jpg" alt="Figure 9.22: Egreedy value decay&#13;&#10;"/></div></li>
+			</ol>
+			<p class="figure-caption">Figure 9.22: Egreedy value decay</p>
+			<p>In <em class="italic">Figure 9.22</em>, we can see the <strong class="source-inline">Egreedy</strong> value has been gradually decayed with the increasing number of steps. This means that, as the value drops toward zero, the algorithm becomes more and more greedy, taking the action with maximum reward without exploring the less rewarding actions, which, with enough exploration, may turn out to be more rewarding in the long term, but we do not know enough about the model in the initial stages.</p>
+			<p>This highlights the need for a higher exploration of the environment when we are in the early stages of learning. This is achieved with higher epsilon values. The epsilon value is reduced as training progresses. This results in less exploration and more exploitation of knowledge gained from past runs.</p>
+			<p>Thus, we have successfully implemented the tabular method of Q learning.</p>
+			<p class="callout-heading">Note</p>
+			<p class="callout">To access the source code for this specific section, please refer to <a href="https://packt.live/2B3NziM">https://packt.live/2B3NziM</a>.</p>
+			<p class="callout">You can also run this example online at <a href="https://packt.live/2AjbACJ">https://packt.live/2AjbACJ</a>.</p>
+			<p>Now that we have a good understanding of the required entities, we will study another important concept of RL: deep Q learning.</p>
+			<h1 id="_idParaDest-269"><a id="_idTextAnchor309"/>Deep Q Learning</h1>
+			<p>Before diving into the details of the deep Q learning process, let's first discuss the disadvantages of the traditional tabular Q learning process, and then we will look at how combining deep learning with Q learning can help us to resolve these disadvantages of tabular methods.</p>
+			<p>The following describes several disadvantages of the tabular Q learning approach:</p>
+			<ul>
+				<li>Performance issues: When the state spaces are very large, the tabular iterative lookup operations will be much slower and more costly. </li>
+				<li>Storage issues: Along with the performance issues, storage will also be costly when it comes to storing the tabular data for large combinations of state and action spaces. </li>
+				<li>The tabular method will work well only when an agent comes across seen discrete states that are present in the Q table. For the unseen states that are not present in the Q table, the agent's performance may be the optimal performance. </li>
+				<li>For continuous state spaces for the previously mentioned issues, the tabular Q learning method won't be able to approximate the Q values in an efficient or proper manner.</li>
+			</ul>
+			<p>Keeping all of these issues in mind, we can consider using a function approximator that will work as a mapping between states and Q values. In machine learning terms, we can think of this problem as using a non-linear function approximator to solve regression problems. Since we are thinking of a function approximator, a neural network works best as a function approximator through which we can approximate the Q values for each state-action pair. This act of combining Q learning with a neural network is called deep Q learning or DQN. </p>
+			<p>Let's break down and explain each part of this puzzle: </p>
+			<ul>
+				<li><strong class="bold">Inputs to the DQN</strong>:<p>The neural network accepts the states of the environment as input. For example, in the case of the FrozenLake-v0 environment, a state can be a simple coordinate of the grid at any given point in time. For more complex games such as Atari, the input can be a few consecutive snapshots of the screen in the form of an image as state representation. The number of nodes in the input layer will be the same as the number of states present in the environment.</p></li>
+				<li><strong class="bold">Outputs from the DQN</strong>:<p>The output would be the Q values for each action. For example, for any given environment, if there are four possible actions, then the output would have four Q values for each action. To choose the optimal action, we will select the action with the maximum Q value.</p></li>
+				<li><strong class="bold">The loss function and learning process</strong>:<p>The DQN will accept states from the environment and, for each given input or state, the network will output an estimated Q value for each action. The objective of this is that it approximates the optimal Q value, which will satisfy the right-hand side of the Bellman equation, as shown in the following expression:</p><div id="_idContainer692" class="IMG---Figure"><img src="image/B16182_09_23.jpg" alt="Figure 9.23: Bellman equation&#13;&#10;"/></div></li>
+			</ul>
+			<p class="figure-caption">Figure 9.23: Bellman equation</p>
+			<p>To calculate the loss, we need the target Q value and the Q values coming from the network. From the preceding Bellman equation, the target Q values are calculated on the right-hand side of the equation. The loss from the DQN is calculated by comparing the output Q values from the DQN to the target Q values. Once we calculate the loss, we then update the weights of the DQN via backpropagation to minimize the loss and to push the DQN-output Q values closer to the optimal Q values. In this way, with the help of DQN, we treat the RL problem as a supervised learning problem with a source and a target. </p>
+			<p>The DQN implementation can be visualized as follows:</p>
+			<div>
+				<div id="_idContainer693" class="IMG---Figure">
+					<img src="image/B16182_09_24.jpg" alt="Figure 9.24: DQN&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.24: DQN</p>
+			<p>We can write the steps of the deep Q learning process as follows:</p>
+			<ol>
+				<li value="1">Initialize the weights to get an initial approximation of <strong class="source-inline">Q(s,a)</strong>:<p class="source-code">class DQN(nn.Module):</p><p class="source-code">    def __init__(self , hidden_layer_size):</p><p class="source-code">        super().__init__()</p><p class="source-code">        self.hidden_layer_size = hidden_layer_size</p><p class="source-code">        self.fc1 = nn.Linear\</p><p class="source-code">                   (number_of_states,self.hidden_layer_size)</p><p class="source-code">        self.fc2 = nn.Linear\</p><p class="source-code">                   (self.hidden_layer_size,number_of_actions)</p><p class="source-code">    def forward(self, x):</p><p class="source-code">        output = torch.tanh(self.fc1(x))</p><p class="source-code">        output = self.fc2(output)</p><p class="source-code">        return output</p><p>As you can see, we have initialized the DQN class with the weights. The two code lines in the <strong class="source-inline">__init__</strong> functions, where we create the neural network, are responsible for giving random weights to the network connections. We can also explicitly initialize the weights. A common practice nowadays is to let PyTorch or TensorFlow use their internal default initialization logic to create initial weight vectors, as you can see in the following sample code:</p><p class="source-code">self.fc1 = nn.Linear(number_of_states,self.hidden_layer_size)</p><p class="source-code">self.fc2 = nn.Linear(self.hidden_layer_size,number_of_actions)</p></li>
+				<li>Doing one forward pass through the network, obtain the flags (<strong class="source-inline">state</strong>, <strong class="source-inline">action</strong>, <strong class="source-inline">reward</strong>, and <strong class="source-inline">new_state</strong>). The action is selected by taking the argmax of the Q values (selecting the index of the max Q value) or by taking random actions during the exploration phase. We can achieve this using the following code sample:<p class="source-code">def select_action(self,state,EGREEDY):</p><p class="source-code">        random_for_egreedy = torch.rand(1)[0]</p><p class="source-code">        if random_for_egreedy &gt; EGREEDY:</p><p class="source-code">            with torch.no_grad():</p><p class="source-code">                state = torch.Tensor(state).to(device)</p><p class="source-code">                q_values = self.dqn(state)</p><p class="source-code">                action = torch.max(q_values,0)[1]</p><p class="source-code">                action = action.item()</p><p class="source-code">        else:</p><p class="source-code">            action = env.action_space.sample()</p><p class="source-code">        return action</p><p>As you can see in the preceding code snippet, the egreedy algorithm is being used to select the action. The <strong class="source-inline">select_action</strong> function passes the state through the DQN to obtain the Q values and selects the action with the highest Q value during exploitation. The <strong class="source-inline">if</strong> statement decides whether the exploration should be carried out or not.</p></li>
+				<li>If the episode is ended, the target Q value will be the reward obtained; otherwise, use the Bellman equation to estimate the target Q value. You can realize this in the following code sample:<p class="source-code">def optimize(self, state, action, new_state, reward, done):</p><p class="source-code">        state = torch.Tensor(state).to(device)</p><p class="source-code">        new_state = torch.Tensor(new_state).to(device)</p><p class="source-code">        reward = torch.Tensor([reward]).to(device)</p><p class="source-code">        if done:</p><p class="source-code">            target_value = reward</p><p class="source-code">        else:</p><p class="source-code">            new_state_values = self.dqn(new_state).detach()</p><p class="source-code">            max_new_state_values = torch.max(new_state_values)</p><p class="source-code">            target_value = reward + DISCOUNT_FACTOR \</p><p class="source-code">                           * max_new_state_values</p></li>
+				<li>The loss obtained is as follows.<p>If the episode ended, then the loss will be <img src="image/B16182_09_24a.png" alt="A drawing of a face&#10;&#10;Description automatically generated"/>.</p><p>Otherwise, the loss will be termed as <img src="image/B16182_09_24b.png" alt="A close up of a logo&#10;&#10;Description automatically generated"/> .</p><p>The following is sample code for <strong class="source-inline">loss</strong>:</p><p class="source-code">        loss = self.criterion(predicted_value, target_value)</p></li>
+				<li>Using backpropagation, we update the network weights (θ). This iteration will run for each state until we sufficiently minimize the loss and get an approximate optimal Q function. The following is the sample code:<p class="source-code">        self.optimizer.zero_grad()</p><p class="source-code">        loss.backward()</p><p class="source-code">        self.optimizer.step()</p></li>
+			</ol>
+			<p>Now that we have a fair understanding of the implementation of deep Q learning, let's test our understanding with an exercise.</p>
+			<h2 id="_idParaDest-270"><a id="_idTextAnchor310"/>Exercise 9.03: Implementing a Working DQN Network with PyTorch in a CartPole-v0 Environment</h2>
+			<p>In this exercise, we will implement the deep Q learning algorithm with the OpenAI Gym CartPole environment. The aim of this exercise is to build a PyTorch-based DQN model that will learn to balance the cart in the CartPole environment. Please refer to the PyTorch example for building neural networks, which was explained at the start of this chapter.</p>
+			<p>Our main aims are to apply a Q learning algorithm, keep the pole steady during each step, and collect the maximum reward during each episode. A reward of +1 is given for every step when the pole remains straight. The episode will end when the pole is more than 15 degrees away from the vertical position or when the cart moves more than 2.4 units away from the center position in the CartPole environment: </p>
+			<ol>
+				<li value="1">Open a new Jupyter notebook and import the required libraries:<p class="source-code">import gym</p><p class="source-code">import matplotlib.pyplot as plt</p><p class="source-code">import torch</p><p class="source-code">import torch.nn as nn</p><p class="source-code">from torch import optim</p><p class="source-code">import numpy as np</p><p class="source-code">import math</p></li>
+				<li>Create a device based on the availability of a <strong class="bold">Graphics Processing Unit</strong> (<strong class="bold">GPU</strong>) environment:<p class="source-code"># selecting the available device (cpu/gpu)</p><p class="source-code">use_cuda = torch.cuda.is_available()</p><p class="source-code">device = torch.device("cuda:0" if use_cuda else "cpu")</p><p class="source-code">print(device)</p></li>
+				<li>Create a Gym environment using the <strong class="source-inline">'CartPole-v0'</strong> environment:<p class="source-code">env = gym.make('CartPole-v0')</p></li>
+				<li>Set the <strong class="source-inline">seed</strong> for torch and the environment to guarantee reproducible results:<p class="source-code">seed = 100</p><p class="source-code">env.seed(seed)</p><p class="source-code">torch.manual_seed(seed) </p></li>
+				<li>Set all of the hyperparameter values required for the DQN process:<p class="source-code">NUMBER_OF_EPISODES = 700</p><p class="source-code">MAX_STEPS = 1000</p><p class="source-code">LEARNING_RATE = 0.01</p><p class="source-code">DISCOUNT_FACTOR = 0.99</p><p class="source-code">HIDDEN_LAYER_SIZE = 64</p><p class="source-code">EGREEDY = 0.9</p><p class="source-code">EGREEDY_FINAL = 0.02</p><p class="source-code">EGREEDY_DECAY = 500</p></li>
+				<li>Implement a function for decaying the epsilon values after every step. We will decay with the epsilon value exponentially. The epsilon value will start with the value of <strong class="source-inline">EGREEDY</strong> and will be decayed until it reaches the value of <strong class="source-inline">EGREEDY_FINAL</strong>. Use the following formula:<p class="source-code">EGREEDY_FINAL + (EGREEDY - EGREEDY_FINAL) \</p><p class="source-code">* math.exp(-1. * steps_done / EGREEDY_DECAY )</p><p>The code will be as follows:</p><p class="source-code">def calculate_epsilon(steps_done):</p><p class="source-code">    """</p><p class="source-code">    Decays epsilon with increasing steps</p><p class="source-code">    Parameter:</p><p class="source-code">    steps_done (int) : number of steps completed</p><p class="source-code">    Returns:</p><p class="source-code">    int - decayed epsilon</p><p class="source-code">    """</p><p class="source-code">    epsilon = EGREEDY_FINAL + (EGREEDY - EGREEDY_FINAL) \</p><p class="source-code">              * math.exp(-1. * steps_done / EGREEDY_DECAY )</p><p class="source-code">    return epsilon</p></li>
+				<li>Fetch the number of states and actions from the environment:<p class="source-code">number_of_states = env.observation_space.shape[0]</p><p class="source-code">number_of_actions = env.action_space.n</p><p class="source-code">print('Total number of States : {}'.format(number_of_states))</p><p class="source-code">print('Total number of Actions : {}'.format(number_of_actions))</p><p>The output will be as follows:</p><p class="source-code">Total number of States : 4</p><p class="source-code">Total number of Actions : 2</p></li>
+				<li>Create a class, called <strong class="source-inline">DQN</strong>, that accepts the number of states as inputs and outputs Q values for the number of actions present in the environment, and has a network with a hidden layer of size <strong class="source-inline">64</strong>:<p class="source-code">class DQN(nn.Module):</p><p class="source-code">    def __init__(self , hidden_layer_size):</p><p class="source-code">        super().__init__()</p><p class="source-code">        self.hidden_layer_size = hidden_layer_size</p><p class="source-code">        self.fc1 = nn.Linear\</p><p class="source-code">                   (number_of_states,self.hidden_layer_size)</p><p class="source-code">        self.fc2 = nn.Linear\</p><p class="source-code">                   (self.hidden_layer_size,number_of_actions)</p><p class="source-code">    def forward(self, x):</p><p class="source-code">        output = torch.tanh(self.fc1(x))</p><p class="source-code">        output = self.fc2(output)</p><p class="source-code">        return output</p></li>
+				<li>Create a <strong class="source-inline">DQN_Agent</strong> class and implement the constructor's <strong class="source-inline">_init_</strong> function. This function will create an instance of the DQN class within which the hidden layer size is passed. It will also define the <strong class="source-inline">MSE</strong> as a loss criterion. Next, define <strong class="source-inline">Adam</strong> as the optimizer with model parameters and a predefined learning rate:<p class="source-code">class DQN_Agent(object):</p><p class="source-code">    def __init__(self):</p><p class="source-code">        self.dqn = DQN(HIDDEN_LAYER_SIZE).to(device)</p><p class="source-code">        self.criterion = torch.nn.MSELoss()</p><p class="source-code">        self.optimizer = optim.Adam\</p><p class="source-code">                         (params=self.dqn.parameters() , \</p><p class="source-code">                          lr=LEARNING_RATE)</p></li>
+				<li>Next, define the <strong class="source-inline">select_action</strong> function that will accept <strong class="source-inline">state</strong> and egreedy values as input parameters. Use the <strong class="source-inline">egreedy</strong> algorithm to select the action. This function will pass the <strong class="source-inline">state</strong> through the DQN to get the Q value, and then select the action with the highest Q value using the <strong class="source-inline">torch.max</strong> operation during the exploitation phase. During this process, gradient computation is not required; that's why we use the <strong class="source-inline">torch.no_grad()</strong> function to turn off the gradient calculation:<p class="source-code">    def select_action(self,state,EGREEDY):</p><p class="source-code">        random_for_egreedy = torch.rand(1)[0]</p><p class="source-code">        if random_for_egreedy &gt; EGREEDY:</p><p class="source-code">            with torch.no_grad():</p><p class="source-code">                state = torch.Tensor(state).to(device)</p><p class="source-code">                q_values = self.dqn(state)</p><p class="source-code">                action = torch.max(q_values,0)[1]</p><p class="source-code">                action = action.item()</p><p class="source-code">        else:</p><p class="source-code">            action = env.action_space.sample()</p><p class="source-code">        return action</p></li>
+				<li>Define the <strong class="source-inline">optimize</strong> function that will accept <strong class="source-inline">state</strong>, <strong class="source-inline">action</strong>, <strong class="source-inline">new_state</strong>, <strong class="source-inline">reward</strong>, and <strong class="source-inline">done</strong> as inputs and convert them into tensors, keeping their compatibility with the device used. If the episode is over, then we make the reward the target value; otherwise, the new state is passed through the DQN (which is used to detach and turn off the gradient calculation) to calculate the max part present in the right-hand side of the Bellman equation. Using the reward obtained and the discount factor, we can calculate the target value:<div id="_idContainer696" class="IMG---Figure"><img src="image/B16182_09_25.jpg" alt="Figure 9.25: Target value equation&#13;&#10;"/></div><p class="figure-caption">Figure 9.25: Target value equation</p><p>Calculate the predicted value by passing the current state through the network. Calculate the loss, followed by clearing the previous gradients using the <strong class="source-inline">optimizer.zero_grad()</strong> function. Calculate the gradients and weight updates:</p><p class="source-code">    def optimize(self, state, action, new_state, reward, done):</p><p class="source-code">        state = torch.Tensor(state).to(device)</p><p class="source-code">        new_state = torch.Tensor(new_state).to(device)</p><p class="source-code">        reward = torch.Tensor([reward]).to(device)</p><p class="source-code">        if done:</p><p class="source-code">            target_value = reward</p><p class="source-code">        else:</p><p class="source-code">            new_state_values = self.dqn(new_state).detach()</p><p class="source-code">            max_new_state_values = torch.max(new_state_values)</p><p class="source-code">            target_value = reward + DISCOUNT_FACTOR \</p><p class="source-code">                           * max_new_state_values</p><p class="source-code">        predicted_value = self.dqn(state)[action].view(-1)</p><p class="source-code">        loss = self.criterion(predicted_value, target_value)</p><p class="source-code">        self.optimizer.zero_grad()</p><p class="source-code">        loss.backward()</p><p class="source-code">        self.optimizer.step()</p></li>
+				<li>Write a training process using a <strong class="source-inline">for</strong> loop. At first, instantiate the DQN agent using the class created earlier. Create a <strong class="source-inline">steps_total</strong> empty list to collect the total number of steps for each episode. Initialize <strong class="source-inline">steps_counter</strong> with zero and use it to calculate the decayed epsilon value for each step. Use two loops during the training process. The first one is to play the game for a certain number of steps. The second loop ensures that each episode goes on for a fixed number of steps. Inside the second <strong class="source-inline">for</strong> loop, the first step is to calculate the epsilon value for the current step. Using the present state and epsilon value, you select the action to perform. The next step is to take the action. Once you take the action, the environment returns the <strong class="source-inline">new_state</strong>, <strong class="source-inline">reward</strong>, and <strong class="source-inline">done</strong> flags. Using the <strong class="source-inline">optimize</strong> function, perform one step of gradient descent to optimize the DQN. Now make the new state the present state for the next iteration. Finally, check whether the episode is over or not. If the episode is over, you can collect and record the reward for the current episode:<p class="source-code"># Instantiating the DQN Agent</p><p class="source-code">dqn_agent = DQN_Agent()</p><p class="source-code">steps_total = []</p><p class="source-code">steps_counter = 0</p><p class="source-code">for episode in range(NUMBER_OF_EPISODES):</p><p class="source-code">    state = env.reset()</p><p class="source-code">    done = False</p><p class="source-code">    step = 0</p><p class="source-code">    for I in range(MAX_STEPS):</p><p class="source-code">        step += 1</p><p class="source-code">        steps_counter += 1</p><p class="source-code">        EGREEDY = calculate_epsilon(steps_counter)</p><p class="source-code">        action = dqn_agent.select_action(state, EGREEDY)</p><p class="source-code">        new_state, reward, done, info = env.step(action)</p><p class="source-code">        dqn_agent.optimize(state, action, new_state, reward, done)</p><p class="source-code">        state = new_state</p><p class="source-code">        if done:</p><p class="source-code">            steps_total.append(step)</p><p class="source-code">            break</p></li>
+				<li>Now observe the reward, as the reward is scalar feedback and gives you an indication of how well the agent is performing. You should look at the average reward and the average reward for the last 100 episodes: <p class="source-code">print("Average reward: %.2f" \</p><p class="source-code">      % (sum(steps_total)/NUMBER_OF_EPISODES))</p><p class="source-code">print("Average reward (last 100 episodes): %.2f" \</p><p class="source-code">      % (sum(steps_total[-100:])/100))</p><p>The output will be as follows:</p><p class="source-code">Average reward: 158.83</p><p class="source-code">Average reward (last 100 episodes): 176.28</p></li>
+				<li>Perform the graphical representation of rewards. Check how the agent is performing while playing more episodes, and check what the reward average is for the last 100 episodes:<p class="source-code">plt.figure(figsize=(12,5))</p><p class="source-code">plt.title("Rewards Collected")</p><p class="source-code">plt.bar(np.arange(len(steps_total)), steps_total, \</p><p class="source-code">        alpha=0.5, color='green', width=6)</p><p class="source-code">plt.show()</p><p>The output plot should be as follows:</p><div id="_idContainer697" class="IMG---Figure"><img src="image/B16182_09_26.jpg" alt="Figure 9.26: Rewards collected&#13;&#10;"/></div></li>
+			</ol>
+			<p class="figure-caption">Figure 9.26: Rewards collected</p>
+			<p><em class="italic">Figure 9.26</em> shows that the initial number of steps and rewards is low. However, with the increasing numbers of steps, we have collected a stable and higher value of rewards with the help of the DQN algorithm. </p>
+			<p class="callout-heading">Note</p>
+			<p class="callout">To access the source code for this specific section, please refer to <a href="https://packt.live/3cUE8Q9">https://packt.live/3cUE8Q9</a>.</p>
+			<p class="callout">You can also run this example online at <a href="https://packt.live/37zeUpz">https://packt.live/37zeUpz</a>.</p>
+			<p>Thus, we have successfully implemented a working DQN using PyTorch in a CartPole environment. Let's now look at a few challenging aspects of DQN.</p>
+			<h1 id="_idParaDest-271"><a id="_idTextAnchor311"/>Challenges in DQN</h1>
+			<p>Everything that was explained in the preceding sections looks good; however, there are a few challenges with DQNs. Here are a couple of the challenges of a DQN:</p>
+			<ul>
+				<li>The correlation between the steps causes a convergence issue during the training process</li>
+				<li>The challenge of having a non-stationary target. </li>
+			</ul>
+			<p>These challenges and their corresponding solutions are explained in the following sections. </p>
+			<h2 id="_idParaDest-272"><a id="_idTextAnchor312"/>Correlation between Steps and the Convergence Issue</h2>
+			<p>From the previous exercise, we have seen that, during Q learning, we treat the RL problem as a supervised machine learning problem, where we have predictions and target values, and, using gradient descent optimization, we try to reduce the loss to find the optimal Q function.</p>
+			<p>The gradient descent algorithm assumes that the training data points are independent and identically distributed (that is, <strong class="source-inline">i.i.d</strong>), which is generally true in the case of traditional machine learning data. However, in the case of RL, each data point is highly correlated and dependent on the other. Put simply, the next state depends on the action taken from the previous state. Due to the correlation present in the RL data, we have a convergence issue in the case of the gradient descent algorithm. </p>
+			<p>To solve this issue of convergence, we will now look at a possible solution, known as <strong class="bold">Experience Replay</strong>, in the following section.</p>
+			<h2 id="_idParaDest-273"><a id="_idTextAnchor313"/>Experience Replay</h2>
+			<p>To break the correlation between the data points in the case of RL, we can use a technique called experience replay. Here, at each timestep during training, we store the agent's experience in a <strong class="bold">Replay Buffer</strong> (which is just a Python list).</p>
+			<p>For example, during the training at time t, the following agent experience is stored as a tuple in the replay buffer <img src="image/B16182_09_26a.png" alt="A picture containing object, clock&#10;&#10;Description automatically generated"/>, where:</p>
+			<ul>
+				<li><img src="image/B16182_09_26b.png" alt="a"/>- current state</li>
+				<li><img src="image/B16182_09_26c.png" alt="b"/>- action taken</li>
+				<li><img src="image/B16182_09_26d.png" alt="c"/>- new state</li>
+				<li><img src="image/B16182_09_26e.png" alt="d"/>- reward</li>
+				<li><img src="image/B16182_09_26f.png" alt="d"/>- indicates whether the episode is complete or not</li>
+			</ul>
+			<p>We set a maximum size for the replay buffer; we will keep on adding new tuples of experience as we encounter them. So, when we reach the maximum size, we will throw out the oldest value. At any given point in time, the replay buffer will always store the latest experience of maximum size. </p>
+			<p>During training, to break the correlation, we will randomly sample these experiences from the replay buffer to train the DQN. This process of gaining experience and sampling from the replay buffer that stores these experiences is called experience replay.</p>
+			<p>During the Python implementation, we will use a push function to store the experiences in the replay buffer. An example function will be implemented to sample the experience from the buffer, the pointer, and the length method, which will help us to keep track of the replay buffer size. </p>
+			<p>The following is a detailed code implementation example of experience replay.</p>
+			<p>We will implement an <strong class="source-inline">ExperienceReplay</strong> class with all of the functionality explained earlier. In the class, the constructor will contain the following variables: <strong class="source-inline">capacity</strong>, which indicates the maximum size of the replay buffer; <strong class="source-inline">buffer</strong>, which is an empty Python list that acts as the memory buffer; and <strong class="source-inline">pointer</strong>, which points to the current location of the memory buffer while pushing the memory to the buffer.</p>
+			<p>The class will contain the <strong class="source-inline">push</strong> function, which checks whether there is any space in the buffer using the <strong class="source-inline">pointer</strong> variable. If there is an empty space, <strong class="source-inline">push</strong> adds an experience tuple at the end of the buffer, else the function will replace the memory from the starting point of the buffer. It also contains the <strong class="source-inline">sample</strong> function, which will return the experience tuple of the batch size, and the <strong class="source-inline">__len__</strong> function, which will return the length of the current buffer, as part of the implementation.</p>
+			<p>The following is an example of how the pointer, capacity, and modular division will work in experience replay.</p>
+			<p>We initialize the pointer with zero and capacity with three. After every operation, we increase the pointer value and, using modular division, we get the current value of the pointer. When the pointer exceeds the maximum capacity, the value will reset to zero:</p>
+			<div>
+				<div id="_idContainer704" class="IMG---Figure">
+					<img src="image/B16182_09_27.jpg" alt="Figure 9.27: Pointer, capacity, and modular division in the experience replay class&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.27: Pointer, capacity, and modular division in the experience replay class</p>
+			<p>Adding all of the previously mentioned functionality, we can implement the <strong class="source-inline">ExperienceReplay</strong> class as shown in the following code snippet:</p>
+			<p class="source-code">class ExperienceReplay(object):</p>
+			<p class="source-code">    def __init__(self , capacity):</p>
+			<p class="source-code">        self.capacity = capacity</p>
+			<p class="source-code">        self.buffer = []</p>
+			<p class="source-code">        self.pointer = 0</p>
+			<p class="source-code">    def push(self , state, action, new_state, reward, done):</p>
+			<p class="source-code">         experience = (state, action, new_state, reward, done)</p>
+			<p class="source-code">         if self.pointer &gt;= len(self.buffer):</p>
+			<p class="source-code">            self.buffer.append(experience)</p>
+			<p class="source-code">         else:</p>
+			<p class="source-code">            self.buffer[self.pointer] = experience</p>
+			<p class="source-code">         self.pointer = (self.pointer + 1) % self.capacity</p>
+			<p class="source-code">    def sample(self , batch_size):</p>
+			<p class="source-code">         return zip(*random.sample(self.buffer , batch_size))</p>
+			<p class="source-code">    def __len__(self):</p>
+			<p class="source-code">         return len(self.buffer)</p>
+			<p>As you can see, the experience class has been initiated.</p>
+			<h2 id="_idParaDest-274"><a id="_idTextAnchor314"/>The Challenge of a Non-Stationary Target</h2>
+			<p>Consider the following code snippet. If you look closely at the following <strong class="source-inline">optimize</strong> function, you will see that we have two passes through the DQN network: one pass to calculate the target Q value (using the Bellman equation) and the other pass to calculate the predicted Q value. After that, we have calculated the loss:</p>
+			<p class="source-code">def optimize(self, state, action, new_state, reward, done):</p>
+			<p class="source-code">        state = torch.Tensor(state).to(device)</p>
+			<p class="source-code">        new_state = torch.Tensor(new_state).to(device)</p>
+			<p class="source-code">        reward = torch.Tensor([reward]).to(device)</p>
+			<p class="source-code">    </p>
+			<p class="source-code">        if done:</p>
+			<p class="source-code">            target_value = reward</p>
+			<p class="source-code">        else:</p>
+			<p class="source-code">            # first pass</p>
+			<p class="source-code">            new_state_values = self.dqn(new_state).detach()</p>
+			<p class="source-code">            max_new_state_values = torch.max(new_state_values)</p>
+			<p class="source-code">            target_value = reward + DISCOUNT_FACTOR \</p>
+			<p class="source-code">                           * max_new_state_values</p>
+			<p class="source-code">        # second pass</p>
+			<p class="source-code">        predicted_value = self.dqn(state)[action].view(-1)</p>
+			<p class="source-code">        loss = self.criterion(predicted_value, target_value)</p>
+			<p class="source-code">        self.optimizer.zero_grad()</p>
+			<p class="source-code">        loss.backward()</p>
+			<p class="source-code">        self.optimizer.step() # weight optimization</p>
+			<p>The first pass is just an approximation of the optimal Q value using the Bellman equation; however, to calculate the target and predicted Q values, we use the same weights from the network. This process makes the whole deep Q learning process unstable. Consider the following equation during the loss calculation:</p>
+			<div>
+				<div id="_idContainer705" class="IMG---Figure">
+					<img src="image/B16182_09_28.jpg" alt="Figure 9.28: Expression for the loss calculation&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.28: Expression for the loss calculation</p>
+			<p>After the loss is calculated, we perform one step of gradient descent and optimize the weights to minimize the loss. Once the weights are updated, the predicted Q value will change. However, our target Q values will also change because, to calculate the target Q values, we are using the same weights. Due to the unavailability of the fixed target Q value, this whole process is unstable in the current architecture.</p>
+			<p>One solution to this problem would be to have a fixed target Q value during the whole training process. </p>
+			<h2 id="_idParaDest-275"><a id="_idTextAnchor315"/>The Concept of a Target Network</h2>
+			<p>To resolve the issue of the non-stationary target, we can fix the issue by introducing a target neural network architecture in the pipeline. We call this network the <strong class="bold">Target Network</strong>. The target network will have the same network architecture as the base neural network in the architecture. We can call this base neural network the predicted DQN. </p>
+			<p>As discussed previously, to calculate the loss, we must do two passes through the DQN: one pass is to calculate the target Q values, and the second one is to calculate the predicted Q values.</p>
+			<p>Due to the architectural change, target Q values will be calculated using the target network and the predicted Q values process will remain the same, as shown in the following figure:</p>
+			<div>
+				<div id="_idContainer706" class="IMG---Figure">
+					<img src="image/B16182_09_29.jpg" alt="Figure 9.29: Target network&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.29: Target network</p>
+			<p>As inferred from the preceding figure, the loss function can be written as follows:</p>
+			<div>
+				<div id="_idContainer707" class="IMG---Figure">
+					<img src="image/B16182_09_30.jpg" alt="Figure 9.30: Expression for the loss function&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.30: Expression for the loss function</p>
+			<p>The entire purpose of the target network is to calculate the max part in the Bellman equation using the new state-action pair.</p>
+			<p>At this point in time, the obvious question you may ask is, what about the weights or parameters of this target, and how can we get the target values in an optimum way from this target network? To ensure a balance between fixing the target value and the optimal target approximation using the target network, we will update the weights of the target network from the predicted values after every fixed iteration. But after how many iterations should we update the weights of the target network from the prediction network? Well, that's a hyperparameter that should be tuned during the training process of the DQN. This whole process makes the training process stable as the target Q values are fixed for a while. </p>
+			<p>We can summarize the steps of training a DQN with experience replay and a target network as follows:</p>
+			<ol>
+				<li value="1">Initialize the replay buffer.</li>
+				<li>Create and initialize the prediction network.</li>
+				<li>Create a copy of the prediction network as a target network.</li>
+				<li>Run through the fixed number of episodes.</li>
+			</ol>
+			<p>Within every episode, perform the following steps:</p>
+			<ol>
+				<li value="1">Use the egreedy algorithm to choose an action.</li>
+				<li>Perform the action and collect the reward and new state.</li>
+				<li>Store the whole experience in the replay buffer.</li>
+				<li>Select a random batch of experience from the replay buffer.</li>
+				<li>Pass the batch of states through the prediction network to get the predicted Q values.</li>
+				<li>Using a new state, pass through the target network to calculate the target Q value.</li>
+				<li>Perform gradient descent to optimize the weights of the prediction network.</li>
+				<li>After a fixed iteration, clone the weights of the prediction network to the target network.</li>
+			</ol>
+			<p>Now we understand the concept of DQN, the disadvantages of DQN, and how we can overcome these disadvantages of DQN using experience replay and a target network; we can combine all of these to build a robust DQN algorithm. Let's implement our learning in the following exercise.</p>
+			<h2 id="_idParaDest-276"><a id="_idTextAnchor316"/>Exercise 9.04: Implementing a Working DQN Network with Experience Replay and a Target Network in PyTorch </h2>
+			<p>In the previous exercise, you implemented a working DQN to work with the CartPole environment. Then, we looked at the disadvantages of a DQN. Now, in this exercise, let's implement the DQN network with experience replay and a target network using the same CartPole environment in PyTorch to build a more stable DQN learning process:  </p>
+			<ol>
+				<li value="1">Open a new Jupyter notebook and import the required libraries: <p class="source-code">import gym</p><p class="source-code">import matplotlib.pyplot as plt</p><p class="source-code">import torch</p><p class="source-code">import torch.nn as nn</p><p class="source-code">from torch import optim</p><p class="source-code">import numpy as np</p><p class="source-code">import random</p><p class="source-code">import math</p></li>
+				<li>Write code that will create a device based on the availability of a GPU environment:<p class="source-code">use_cuda = torch.cuda.is_available()</p><p class="source-code">device = torch.device("cuda:0" if use_cuda else "cpu")</p><p class="source-code">print(device)</p></li>
+				<li>Create a <strong class="source-inline">gym</strong> environment using the <strong class="source-inline">'CartPole-v0'</strong> environment:<p class="source-code">env = gym.make('CartPole-v0')</p></li>
+				<li>Set the seed for torch and the environment for reproducibility:<p class="source-code">seed = 100</p><p class="source-code">env.seed(seed)</p><p class="source-code">torch.manual_seed(seed)</p><p class="source-code">random.seed(seed)</p></li>
+				<li>Fetch the number of states and actions from the environment:<p class="source-code">number_of_states = env.observation_space.shape[0]</p><p class="source-code">number_of_actions = env.action_space.n</p><p class="source-code">print('Total number of States : {}'.format(number_of_states))</p><p class="source-code">print('Total number of Actions : {}'.format(number_of_actions))</p><p>The output is as follows:</p><p class="source-code">Total number of States : 4</p><p class="source-code">Total number of Actions : 2</p></li>
+				<li>Set all of the hyperparameter values required for the DQN process. Please add several new hyperparameters, as stated here, along with the usual parameters: <p><strong class="source-inline">REPLAY_BUFFER_SIZE</strong> – This sets the replay buffer's maximum length size.</p><p><strong class="source-inline">BATCH_SIZE</strong> – This indicates how many sets of experiences <img src="image/B16182_09_30a.png" alt="A picture containing object, clock&#10;&#10;Description automatically generated"/> are to be drawn to train the DQN. </p><p><strong class="source-inline">UPDATE_TARGET_FREQUENCY</strong> – This is the periodic frequency at which target network weights will be refreshed from the prediction network:</p><p class="source-code">NUMBER_OF_EPISODES = 500</p><p class="source-code">MAX_STEPS = 1000</p><p class="source-code">LEARNING_RATE = 0.01</p><p class="source-code">DISCOUNT_FACTOR = 0.99</p><p class="source-code">HIDDEN_LAYER_SIZE = 64</p><p class="source-code">EGREEDY = 0.9</p><p class="source-code">EGREEDY_FINAL = 0.02</p><p class="source-code">EGREEDY_DECAY = 500</p><p class="source-code">REPLAY_BUFFER_SIZE = 6000</p><p class="source-code">BATCH_SIZE = 32</p><p class="source-code">UPDATE_TARGET_FREQUENCY = 200</p></li>
+				<li>Use the previously implemented <strong class="source-inline">calculate_epsilon</strong> function to decay the epsilon value with increasing values of steps: <p class="source-code">def calculate_epsilon(steps_done):</p><p class="source-code">    """</p><p class="source-code">    Decays epsilon with increasing steps</p><p class="source-code">    Parameter:</p><p class="source-code">    steps_done (int) : number of steps completed</p><p class="source-code">    Returns:</p><p class="source-code">    int - decayed epsilon</p><p class="source-code">    """</p><p class="source-code">    epsilon = EGREEDY_FINAL + (EGREEDY - EGREEDY_FINAL) \</p><p class="source-code">              * math.exp(-1. * steps_done / EGREEDY_DECAY )</p><p class="source-code">    return epsilon</p></li>
+				<li>Create a class, called <strong class="source-inline">DQN</strong>, that accepts the number of states as inputs and outputs Q values for the number of actions present in the environment, with the network that has a hidden layer of size <strong class="source-inline">64</strong>:<p class="source-code">class DQN(nn.Module):</p><p class="source-code">    def __init__(self , hidden_layer_size):</p><p class="source-code">        super().__init__()</p><p class="source-code">        self.hidden_layer_size = hidden_layer_size</p><p class="source-code">        self.fc1 = nn.Linear\</p><p class="source-code">                   (number_of_states,self.hidden_layer_size)</p><p class="source-code">        self.fc2 = nn.Linear\</p><p class="source-code">                   (self.hidden_layer_size,number_of_actions)</p><p class="source-code">    def forward(self, x):</p><p class="source-code">        output = torch.tanh(self.fc1(x))</p><p class="source-code">        output = self.fc2(output)</p><p class="source-code">        return output</p></li>
+				<li>Implement the <strong class="source-inline">ExperienceReplay</strong> class:<p class="source-code">class ExperienceReplay(object):</p><p class="source-code">    def __init__(self , capacity):</p><p class="source-code">        self.capacity = capacity</p><p class="source-code">        self.buffer = []</p><p class="source-code">        self.pointer = 0</p><p class="source-code">    def push(self , state, action, new_state, reward, done):</p><p class="source-code">        experience = (state, action, new_state, reward, done)</p><p class="source-code">            if self.pointer &gt;= len(self.buffer):</p><p class="source-code">            self.buffer.append(experience)</p><p class="source-code">        else:</p><p class="source-code">            self.buffer[self.pointer] = experience</p><p class="source-code">        self.pointer = (self.pointer + 1) % self.capacity</p><p class="source-code">    def sample(self , batch_size):</p><p class="source-code">        return zip(*random.sample(self.buffer , batch_size))</p><p class="source-code">    def __len__(self):</p><p class="source-code">        return len(self.buffer)</p></li>
+				<li>Now instantiate the <strong class="source-inline">ExperienceReplay</strong> class by passing the buffer size as input:<p class="source-code">memory = ExperienceReplay(REPLAY_BUFFER_SIZE)</p></li>
+				<li>Implement the <strong class="source-inline">DQN_Agent</strong> class.<p>Please note, here are several changes in the <strong class="source-inline">DQN_Agent</strong> class (which we used in <em class="italic">Exercise 9.03</em>,<em class="italic"> Implementing a Working DQN Network with PyTorch in a CartPole-v0 Environment</em>) that need to be incorporated with the previously implemented <strong class="source-inline">DQN_Agent</strong> class.</p><p>Create a replica of the normal DQN network and name it <strong class="source-inline">target_dqn</strong>. Use <strong class="source-inline">target_dqn_update_counter</strong> to periodically update the weights of the target DQN from the DQN network. Add the following steps. <strong class="source-inline">memory.sample(BATCH_SIZE)</strong> will randomly pull the experiences from the replay buffer for training. Pass <strong class="source-inline">new_state</strong> in the target network to get the target Q values from the target network. Finally, update the weights of the target network from the normal or predicted DQN after a certain iteration is specified in <strong class="source-inline">UPDATE_TARGET_FREQUENCY</strong>. </p><p>Note that we have used the <strong class="source-inline">gather</strong>, <strong class="source-inline">squeeze</strong>, and <strong class="source-inline">unsqueeze</strong> functions, which we studied in the dedicated <em class="italic">PyTorch Utilities</em> section:</p><p class="source-code">class DQN_Agent(object):</p><p class="source-code">    def __init__(self):</p><p class="source-code">        self.dqn = DQN(HIDDEN_LAYER_SIZE).to(device)</p><p class="source-code">        self.target_dqn = DQN(HIDDEN_LAYER_SIZE).to(device)</p><p class="source-code">        self.criterion = torch.nn.MSELoss()</p><p class="source-code">        self.optimizer = optim.Adam(params=self.dqn.parameters(),\</p><p class="source-code">                                    lr=LEARNING_RATE)</p><p class="source-code">        self.target_dqn_update_counter = 0</p><p class="source-code">    def select_action(self,state,EGREEDY):</p><p class="source-code">        random_for_egreedy = torch.rand(1)[0]</p><p class="source-code">        if random_for_egreedy &gt; EGREEDY:</p><p class="source-code">            with torch.no_grad():</p><p class="source-code">                state = torch.Tensor(state).to(device)</p><p class="source-code">                q_values = self.dqn(state)</p><p class="source-code">                action = torch.max(q_values,0)[1]</p><p class="source-code">                action = action.item()</p><p class="source-code">        else:</p><p class="source-code">            action = env.action_space.sample()</p><p class="source-code">        return action</p><p class="source-code">    def optimize(self):</p><p class="source-code">        if (BATCH_SIZE &gt; len(memory)):</p><p class="source-code">            return</p><p class="source-code">        state, action, new_state, reward, done = memory.sample\</p><p class="source-code">                                                 (BATCH_SIZE)</p><p class="source-code">        state = torch.Tensor(state).to(device)</p><p class="source-code">        new_state = torch.Tensor(new_state).to(device)</p><p class="source-code">        reward = torch.Tensor(reward).to(device)</p><p class="source-code">        # to be used as index</p><p class="source-code">        action = torch.LongTensor(action).to(device)</p><p class="source-code">        done = torch.Tensor(done).to(device)</p><p class="source-code">        new_state_values = self.target_dqn(new_state).detach()</p><p class="source-code">        max_new_state_values = torch.max(new_state_values , 1)[0]</p><p class="source-code">        # when done = 1 then target = reward</p><p class="source-code">        target_value = reward + (1 - done) * DISCOUNT_FACTOR \</p><p class="source-code">                       * max_new_state_values </p><p class="source-code">        predicted_value = self.dqn(state)\</p><p class="source-code">                          .gather(1, action.unsqueeze(1))\</p><p class="source-code">                          .squeeze(1)</p><p class="source-code">        loss = self.criterion(predicted_value, target_value)</p><p class="source-code">        self.optimizer.zero_grad()</p><p class="source-code">        loss.backward()</p><p class="source-code">        self.optimizer.step()</p><p class="source-code">        </p><p class="source-code">        if self.target_dqn_update_counter \</p><p class="source-code">           % UPDATE_TARGET_FREQUENCY == 0:</p><p class="source-code">            self.target_dqn.load_state_dict(self.dqn.state_dict())</p><p class="source-code">        self.target_dqn_update_counter += 1</p></li>
+				<li>Write the training process of the DQN network. The training process with experience relay and target DQN simplifies the process with less code.<p>First, instantiate the DQN agent using the class created earlier. Create a <strong class="source-inline">steps_total</strong> empty list to collect the total number of steps for each episode. Initialize <strong class="source-inline">steps_counter</strong> with zero and use it to calculate the decayed epsilon value for each step. Use two loops during the training process: the first one to play the game for a certain number of episodes; the second loop ensures that each episode goes on for a fixed number of steps.</p><p>Inside the second <strong class="source-inline">for</strong> loop, the first step is to calculate the epsilon value for the current step. Using the present state and epsilon value, you select the action to perform.</p><p>The next step is to take the action. Once you take the action, the environment returns the <strong class="source-inline">new_state</strong>, <strong class="source-inline">reward</strong>, and <strong class="source-inline">done</strong> flags. Push <strong class="source-inline">new_state</strong>, <strong class="source-inline">reward</strong>, <strong class="source-inline">done</strong>, and <strong class="source-inline">info</strong> in the experience replay buffer. Using the <strong class="source-inline">optimize</strong> function, perform one step of gradient descent to optimize the DQN.</p><p>Now make the new state the present state for the next iteration. Finally, check whether the episode is over or not. If the episode is over, then you can collect and record the reward for the current episode:</p><p class="source-code">dqn_agent = DQN_Agent()</p><p class="source-code">steps_total = []</p><p class="source-code">steps_counter = 0</p><p class="source-code">for episode in range(NUMBER_OF_EPISODES):</p><p class="source-code">    state = env.reset()</p><p class="source-code">    done = False</p><p class="source-code">    step = 0</p><p class="source-code">    for i in range(MAX_STEPS):</p><p class="source-code">        step += 1</p><p class="source-code">        steps_counter += 1</p><p class="source-code">        EGREEDY = calculate_epsilon(steps_counter)</p><p class="source-code">        action = dqn_agent.select_action(state, EGREEDY)</p><p class="source-code">        new_state, reward, done, info = env.step(action)</p><p class="source-code">        memory.push(state, action, new_state, reward, done)</p><p class="source-code">        dqn_agent.optimize()</p><p class="source-code">        state = new_state</p><p class="source-code">        if done:</p><p class="source-code">            steps_total.append(step)</p><p class="source-code">            break</p></li>
+				<li>Now observe the reward. As the reward is scalar feedback and gives you an indication of how well the agent is performing, you should look at the average reward and the average reward for the last 100 episodes. Also, perform the graphical representation of rewards. Check how the agent is performing while playing more episodes and what the reward average is for the last 100 episodes:<p class="source-code">print("Average reward: %.2f" \</p><p class="source-code">      % (sum(steps_total)/NUMBER_OF_EPISODES))</p><p class="source-code">print("Average reward (last 100 episodes): %.2f" \</p><p class="source-code">      % (sum(steps_total[-100:])/100))</p><p>The output will be as follows:</p><p class="source-code">Average reward: 154.41</p><p class="source-code">Average reward (last 100 episodes): 183.28</p><p>Now we can see that the average reward for the last 100 episodes is higher for the DQN with experience replay, and the fixed target is higher than the vanilla DQN implemented in the previous exercise. This is because we have achieved stability during the DQN training process and because we have incorporated experience replay and a target network.</p></li>
+				<li>Plot the rewards in the y axis along with the number of steps in the x axis to see how the rewards have been collected with the increasing number of steps:<p class="source-code">plt.figure(figsize=(12,5))</p><p class="source-code">plt.title("Rewards Collected")</p><p class="source-code">plt.xlabel('Steps')</p><p class="source-code">plt.ylabel('Reward')</p><p class="source-code">plt.bar(np.arange(len(steps_total)), steps_total, alpha=0.5, \</p><p class="source-code">        color='green', width=6)</p><p class="source-code">plt.show()</p><div id="_idContainer709" class="IMG---Figure"><img src="image/B16182_09_31.jpg" alt="Figure 9.31: Rewards collected&#13;&#10;"/></div></li>
+			</ol>
+			<p class="figure-caption">Figure 9.31: Rewards collected</p>
+			<p>As you can see in the preceding plot, using experience replay with the target network, the rewards are initially a bit low compared to the previous version (refer to <em class="italic">Figure 9.26</em>); however, after certain episodes, the rewards are relatively stable and the average rewards are high in the last 100 episodes.</p>
+			<p class="callout-heading">Note</p>
+			<p class="callout">To access the source code for this specific section, please refer to <a href="https://packt.live/2C1KikL">https://packt.live/2C1KikL</a>.</p>
+			<p class="callout">You can also run this example online at <a href="https://packt.live/3dVwiqB">https://packt.live/3dVwiqB</a>.</p>
+			<p>In this exercise, we have added experience replay and a target network in the vanilla DQN network (which was explained in <em class="italic">Exercise 9.03</em>, <em class="italic">Implementing a Working DQN Network with PyTorch in a CartPole-v0 Environment</em>) to overcome the drawbacks of a vanilla DQN. This results in much better performance in terms of rewards, as we have seen a more stable performance in terms of the average reward for the last 100 episodes. A comparison of the outputs is shown here:</p>
+			<p><strong class="bold">Vanilla DQN Outputs</strong>:</p>
+			<p class="source-code">Average reward: 158.83</p>
+			<p class="source-code">Average reward (last 100 episodes): 176.28</p>
+			<p><strong class="bold">DQN with Experience Replay and Target Network Outputs</strong>:</p>
+			<p class="source-code">Average reward: 154.41</p>
+			<p class="source-code">Average reward (last 100 episodes): 183.28</p>
+			<p>Still, we have another issue with the DQN process, that is, overestimation in the DQN. We will learn more about this and how to tackle it in the next section.</p>
+			<h2 id="_idParaDest-277"><a id="_idTextAnchor317"/>The Challenge of Overestimation in a DQN</h2>
+			<p>In the previous section, we introduced a target network as a solution to fix the non-stationary target problem. Using this target network, we calculated the target Q value and calculated the loss. This whole process of introducing a new target network to calculate a fixed target value has somehow made the training process a bit more stable. However, in 2015, <em class="italic">Hado van Hasselt</em>, in his paper called <em class="italic">Deep Reinforcement Learning with Double Q-learning</em>, showed through multiple experiments that this process overestimates the target Q values and makes the whole training process unstable:</p>
+			<div>
+				<div id="_idContainer710" class="IMG---Figure">
+					<img src="image/B16182_09_32.jpg" alt="Figure 9.32: Q value estimation in DQN and DDQN&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.32: Q value estimation in DQN and DDQN</p>
+			<p class="callout-heading">Note</p>
+			<p class="callout">The preceding diagram has been sourced from the paper <em class="italic">Deep Reinforcement Learning with Double Q-learning</em> by <em class="italic">Hasselt et al., 2015</em>. Please refer to the following link for more in-depth reading on DDQN: <a href="https://arxiv.org/pdf/1509.06461.pdf">https://arxiv.org/pdf/1509.06461.pdf</a>.</p>
+			<p>After performing experiments on multiple Atari games, the authors of the paper showed that using a DQN network can lead to a high estimation of Q values (shown in orange), which indicates a high deviation from the true DQN values. In the paper, the authors proposed a new algorithm called <strong class="bold">Double DQN</strong>. We can see that, by using Double DQN, Q value estimations are much closer to true values and any overestimations are much lower. Now, let's discuss what Double DQN is and how it is different from a DQN with a target network.</p>
+			<h2 id="_idParaDest-278"><a id="_idTextAnchor318"/>Double Deep Q Network (DDQN)</h2>
+			<p>In comparison to a DQN with a target network, the minor differences of a DDQN are given as follows:</p>
+			<ul>
+				<li>A DDQN uses our prediction network to select the best action to take for the next state, by selecting the action with the highest Q values.</li>
+				<li>A DDQN uses the action from the prediction network to calculate the corresponding estimate of the target Q value (using the target network) at the next state.</li>
+			</ul>
+			<p>As described in the <em class="italic">Deep Q Learning</em> section, the loss function for a DQN is as follows: </p>
+			<div>
+				<div id="_idContainer711" class="IMG---Figure">
+					<img src="image/B16182_09_33.jpg" alt="Figure 9.33: Loss function for a DQN&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.33: Loss function for a DQN</p>
+			<p>The updated loss function for a DDQN will be as follows:</p>
+			<div>
+				<div id="_idContainer712" class="IMG---Figure">
+					<img src="image/B16182_09_34.jpg" alt="Figure 9.34: Updated loss function for a DDQN&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.34: Updated loss function for a DDQN</p>
+			<p>The following figure depicts the functioning of a typical DDQN:</p>
+			<div>
+				<div id="_idContainer713" class="IMG---Figure">
+					<img src="image/B16182_09_35.jpg" alt="Figure 9.35: DDQN&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 9.35: DDQN</p>
+			<p>The following outlines the required changes in the optimize function for a DDQN implementation:</p>
+			<ol>
+				<li value="1">Select an action using the prediction network.<p>We will pass the <strong class="source-inline">new_state</strong> through the prediction network to get the Q values for the <strong class="source-inline">new_state</strong>, as shown in the following code: </p><p class="source-code">    new_state_indxs = self.dqn(new_state).detach()</p><p>To select the action, we will select the max index value from the output Q values, as shown here:</p><p class="source-code">    max_new_state_indxs = torch.max(new_state_indxs, 1)[1]</p></li>
+				<li>Select the Q value for the best action using the target network.<p>We will pass the <strong class="source-inline">new_state</strong> through the target network to get the Q values for the <strong class="source-inline">new_state</strong>, as shown in the following code:</p><p class="source-code">            new_state_values = self.target_dqn(new_state).detach()</p><p>For the Q values associated with the best action in the <strong class="source-inline">new_state</strong>, we use the target network, as shown in the following code: </p><p class="source-code">              max_new_state_values = new_state_values.gather\</p><p class="source-code">                                     (1, max_new_state_indxs\</p><p class="source-code">                                         .unsqueeze(1))\</p><p class="source-code">                                     .squeeze(1)</p><p>The <strong class="source-inline">gather</strong> function is used to select the Q values using the indexes fetched from the prediction network.</p></li>
+			</ol>
+			<p>The following is a complete implementation of the DDQN with the required changes:</p>
+			<p class="source-code">def optimize(self):</p>
+			<p class="source-code">        if (BATCH_SIZE &gt; len(memory)):</p>
+			<p class="source-code">            return</p>
+			<p class="source-code">        state, action, new_state, reward, done = memory.sample\</p>
+			<p class="source-code">                                                 (BATCH_SIZE)</p>
+			<p class="source-code">        state = torch.Tensor(state).to(device)</p>
+			<p class="source-code">        new_state = torch.Tensor(new_state).to(device)</p>
+			<p class="source-code">        reward = torch.Tensor(reward).to(device)</p>
+			<p class="source-code">        action = torch.LongTensor(action).to(device)</p>
+			<p class="source-code">        done = torch.Tensor(done).to(device)</p>
+			<p class="source-code">        """</p>
+			<p class="source-code">        select action : get the index associated with max q value </p>
+			<p class="source-code">        from prediction network</p>
+			<p class="source-code">        """</p>
+			<p class="source-code">        new_state_indxs = self.dqn(new_state).detach()</p>
+			<p class="source-code">        # to get the max new state indexes</p>
+			<p class="source-code">        max_new_state_indxs = torch.max(new_state_indxs, 1)[1]</p>
+			<p class="source-code">        """</p>
+			<p class="source-code">        Using the best action from the prediction nn get the max new state </p>
+			<p class="source-code">        value in target dqn</p>
+			<p class="source-code">        """</p>
+			<p class="source-code">        new_state_values = self.target_dqn(new_state).detach()</p>
+			<p class="source-code">        max_new_state_values = new_state_values.gather\</p>
+			<p class="source-code">                               (1, max_new_state_indxs\</p>
+			<p class="source-code">                                   .unsqueeze(1))\</p>
+			<p class="source-code">                               .squeeze(1)</p>
+			<p class="source-code">        #when done = 1 then target = reward</p>
+			<p class="source-code">        target_value = reward + (1 - done) * DISCOUNT_FACTOR \</p>
+			<p class="source-code">                       * max_new_state_values</p>
+			<p class="source-code">        predicted_value = self.dqn(state).gather\</p>
+			<p class="source-code">                          (1, action.unsqueeze(1)).squeeze(1)</p>
+			<p class="source-code">        loss = self.criterion(predicted_value, target_value)</p>
+			<p class="source-code">        self.optimizer.zero_grad()</p>
+			<p class="source-code">        loss.backward()</p>
+			<p class="source-code">        self.optimizer.step()</p>
+			<p class="source-code">        if self.target_dqn_update_counter \</p>
+			<p class="source-code">           % UPDATE_TARGET_FREQUENCY == 0:</p>
+			<p class="source-code">            self.target_dqn.load_state_dict(self.dqn.state_dict())</p>
+			<p class="source-code">        self.target_dqn_update_counter += 1</p>
+			<p>Now that we have studied the various concepts of DQN and DDQN, let's now concretize our understanding with an activity.</p>
+			<h2 id="_idParaDest-279"><a id="_idTextAnchor319"/>Activity 9.01: Implementing a Double Deep Q Network in PyTorch for the CartPole Environment</h2>
+			<p>In this activity, you are tasked with implementing a DDQN in PyTorch for the CartPole environment to tackle the issue of overestimation in a DQN. We can summarize the steps of training a DQN with experience replay and the target network.</p>
+			<p>The following steps will help you to complete the activity:</p>
+			<ol>
+				<li value="1">Open a new Jupyter notebook and import the required libraries:<p class="source-code">import gym</p><p class="source-code">import matplotlib.pyplot as plt</p><p class="source-code">import torch</p><p class="source-code">import torch.nn as nn</p><p class="source-code">from torch import optim</p><p class="source-code">import numpy as np</p><p class="source-code">import random</p><p class="source-code">import math</p></li>
+				<li>Write code that will create a device based on the availability of a GPU environment.</li>
+				<li>Create a <strong class="source-inline">gym</strong> environment using the <strong class="source-inline">CartPole-v0</strong> environment.</li>
+				<li>Set the seed for torch and the environment for reproducibility.</li>
+				<li>Fetch the number of states and actions from the environment.</li>
+				<li>Set all of the hyperparameter values required for the DQN process.</li>
+				<li>Implement the <strong class="source-inline">calculate_epsilon</strong> function.</li>
+				<li>Create a class, called <strong class="source-inline">DQN</strong>, that accepts the number of states as inputs and outputs Q values for the number of actions present in the environment, with the network that has a hidden layer of size 64.</li>
+				<li>Initialize the replay buffer.</li>
+				<li>Create and initialize the prediction network in the <strong class="source-inline">DQN_Agent</strong> class, as shown in <em class="italic">Exercise 9.03</em>,<em class="italic"> Implementing a Working DQN Network with Experience Replay and a Target Network in PyTorch</em>. Create a copy of the prediction network as the target network.</li>
+				<li>Make changes to the <strong class="source-inline">optimize</strong> function of the <strong class="source-inline">DQN_Agent</strong> class according to the code example shown in the <em class="italic">Double Deep Q Network (DDQN)</em> section. </li>
+				<li>Run through a fixed number of episodes. Inside the episode, use the egreedy algorithm to choose an action.</li>
+				<li>Perform the action and collect the reward and new state. Store the whole experience in the replay buffer.</li>
+				<li>Select a random batch of experience from the replay buffer. Pass the batch of states through the prediction network to get the predicted Q values. </li>
+				<li>Use our prediction network to select the best action to take for the next state by selecting the action with the highest Q values. Use the action from the prediction network to calculate the corresponding estimate of the target Q value at the next state.</li>
+				<li>Perform gradient descent to optimize the weights of the prediction network. After a fixed iteration, clone the weights of the prediction network to the target network.</li>
+				<li>Check the average reward and the average reward for the last 100 episodes once you have trained the DDQN agent.</li>
+				<li>Plot the rewards collected in the y axis and the number of episodes in the x axis to visualize how the rewards have been collected with the increasing number of episodes. <p>The output for the average rewards should be similar to the following:</p><p class="source-code">Average reward: 174.09</p><p class="source-code">Average reward (last 100 episodes): 186.06</p><p>The plot for the rewards should be similar to the following:</p><div id="_idContainer714" class="IMG---Figure"><img src="image/B16182_09_36.jpg" alt="Figure 9.36: Plot for the rewards collected&#13;&#10;"/></div></li>
+			</ol>
+			<p class="figure-caption">Figure 9.36: Plot for the rewards collected</p>
+			<p class="callout-heading">Note</p>
+			<p class="callout">The solution to this activity can be found on page 743.</p>
+			<p>Before we end the chapter, we present the following comparison of the average rewards for different DQN techniques and DDQN:</p>
+			<p><strong class="bold">Vanilla DQN Outputs:</strong></p>
+			<p class="source-code">Average reward: 158.83</p>
+			<p class="source-code">Average reward (last 100 episodes): 176.28</p>
+			<p><strong class="bold">DQN with Experience Replay and Target Network Outputs:</strong></p>
+			<p class="source-code">Average reward: 154.41</p>
+			<p class="source-code">Average reward (last 100 episodes): 183.28</p>
+			<p><strong class="bold">DDQN Outputs:</strong></p>
+			<p class="source-code">Average reward: 174.09</p>
+			<p class="source-code">Average reward (last 100 episodes): 186.06</p>
+			<p>As you can see from the preceding figure, along with the comparison of the results shown earlier, DDQN has the highest average reward, compared to other DQN implementations, and the average reward for the last 100 episodes is also higher. We can say that DDQN improves performance significantly in comparison to the other two DQN techniques. After completing this whole activity, we have learned how to combine a DDQN network with experience replay to overcome the issues of a vanilla DQN and achieve more stable rewards.</p>
+			<h1 id="_idParaDest-280"><a id="_idTextAnchor320"/>Summary</h1>
+			<p>In this chapter, we started with an introduction to deep learning, and we looked at the different components of the deep learning process. Then, we learned how to build deep learning models using PyTorch.</p>
+			<p>Next, we slowly shifted our focus to RL, where we learned about value functions and Q learning. We demonstrated how Q learning can help us to build RL solutions without knowing the transition dynamics of the environment. We also investigated the problems associated with tabular Q learning and how to solve those performance and memory-related issues with deep Q learning. </p>
+			<p>Then, we looked into the issues related to a vanilla DQN implementation and how we can use a target network and experience replay mechanism to overcome issues such as correlated data and non-stationary targets during the training of a DQN. Finally, we learned how double deep Q learning helps us to overcome the issue of overestimation in a DQN. In the next chapter, you will learn how to use CNNs and RNNs in combination with a DQN to play the very popular Atari game Breakout.</p>
+		</div>
+		<div>
+			<div id="_idContainer716" class="Content">
+			</div>
+		</div>
+	</body></html>

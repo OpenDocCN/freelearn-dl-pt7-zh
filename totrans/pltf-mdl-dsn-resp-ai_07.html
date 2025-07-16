@@ -1,0 +1,1162 @@
+<html><head></head><body>
+		<div id="_idContainer147">
+			<h1 id="_idParaDest-131" class="chapter-nu ber"><a id="_idTextAnchor146"/>7</h1>
+			<h1 id="_idParaDest-132"><a id="_idTextAnchor147"/>Fairness Notions and Fair Data Generation</h1>
+			<p>In this chapter, we will first set an outline of how fairness has become important in the world of predictive modeling by providing examples of different challenges faced in society. We will then go deep into the taxonomies and types of fairness to present a detailed description of the terms involved. Here, we will understand the importance of the defined metrics by citing and substantiating open source tools that help evaluate the metrics. Then, we will further emphasize the importance of the quality of data as biased datasets can introduce hidden bias in ML models. In this context, this chapter discusses different synthetic data generation techniques that are available and how they can be effective in removing bias from ML models. In addition, the chapter also emphasizes some of the best practices that can not only generate synthetic private data but can also scale and fit different types of <span class="No-Break">problems well.</span></p>
+			<p>In this chapter, these topics will be covered in the <span class="No-Break">following sections:</span></p>
+			<ul>
+				<li>Understanding the impact of data <span class="No-Break">on fairness</span></li>
+				<li><span class="No-Break">Fairness definitions</span></li>
+				<li>The role of data audits and quality checks <span class="No-Break">in fairness</span></li>
+				<li>Fair <span class="No-Break">synthetic datasets</span></li>
+			</ul>
+			<h1 id="_idParaDest-133"><a id="_idTextAnchor148"/>Technical requirements</h1>
+			<p>This chapter requires you to have Python 3.8 along with some necessary <span class="No-Break">Python packages:</span></p>
+			<ul>
+				<li><strong class="source-inline">git clone https://github.com/yoshavit/fairml-farm.git</strong>  (works with TensorFlow-1.14.0 <span class="No-Break">or TensorFlow-1.15.0</span></li>
+				<li><strong class="source-inline">python </strong><span class="No-Break"><strong class="source-inline">setup.py install</strong></span></li>
+				<li><strong class="source-inline">%tensorboard --</strong><span class="No-Break"><strong class="source-inline">logdir logs/gradient_tape</strong></span></li>
+				<li><strong class="source-inline">pip install fat-forensics[all]</strong><span class="superscript">  </span>(<a href="https://github.com/fat-forensics/fat-forensics"><span class="No-Break">https://github.com/fat-forensics/fat-forensics</span></a><span class="No-Break">)</span></li>
+				<li><strong class="source-inline">pip </strong><span class="No-Break"><strong class="source-inline">install fairlens</strong></span></li>
+				<li><strong class="source-inline">git </strong><span class="No-Break"><strong class="source-inline">clone</strong></span><span class="No-Break"> </span><a href="https://github.com/amazon-research/minimax-fair.git"><span class="No-Break">https://github.com/amazon-research/minimax-fair.git</span></a></li>
+				<li><span class="No-Break"><strong class="source-inline">python3 main_driver.py</strong></span></li>
+			</ul>
+			<h1 id="_idParaDest-134"><a id="_idTextAnchor149"/>Understanding the impact of data on fairness</h1>
+			<p>In this first section, let's understand<a id="_idIndexMarker803"/> what fairness is and how data plays a part in making a dataset fair. <em class="italic">By fairness, we mean the absence of any prejudice or favoritism toward an individual or group based on their inherent or acquired characteristics</em> (A Survey on Bias and Fairness in Machine Learning, Ninareh Mehrabi, Fred Morstatter, Nripsuta Saxena, Kristina Lerman, and Aram Galstyan: <a href="https://arxiv.org/pdf/1908.09635.pdf">https://arxiv.org/pdf/1908.09635.pdf</a>). The stated definition emphasizes the presence of certain biases, allowing preferential, unfair treatment toward one individual/sub-group of a population section due to certain attributes, such as gender, age, sex, race, or ethnicity. The goal of the following sections is to avoid creating unfair algorithms that are biased toward a section or group <span class="No-Break">of people.</span></p>
+			<h2 id="_idParaDest-135"><a id="_idTextAnchor150"/>Real-world bias examples</h2>
+			<p>To study the impact of datasets, let's see<a id="_idIndexMarker804"/> some real-world examples<a id="_idIndexMarker805"/> of where and how bias exists and the role of data in creating<a id="_idIndexMarker806"/> such biases. One of the most prominent examples where bias is visible is the <strong class="bold">Correctional Offender Management Profiling for Alternative Sanctions</strong> (<strong class="bold">COMPAS</strong>) software. This tool has been used in many jurisdictions around the US to predict whether a convicted criminal is likely to re-offend. The software revealed bias against African-Americans, demonstrating a higher false positive rate for African-American offenders than Caucasian offenders: the former group (African-Americans) exhibits a higher risk of <em class="italic">falsely</em> being identified as offenders or repeat criminals than the latter. One obvious reason is the absence of adequate data representations for minority groups. The evidence of racial discrimination has been summarized by ProPublica <span class="No-Break">as follows:</span></p>
+			<p class="author-quote">Black defendants were often predicted to be at a higher risk of recidivism than they actually were. Our analysis found that black defendants who did not recidivate over a two-year period were nearly twice as likely to be misclassified as higher risk compared to their white counterparts (45 percent vs. 23 percent).</p>
+			<p class="author-quote">White defendants were often predicted to be less risky than they were. Our analysis found that white defendants who re-offended within the next two years were mistakenly labeled low risk almost twice as often as black re-offenders (48 percent vs. 28 percent).</p>
+			<p>The analysis also showed <a id="_idIndexMarker807"/>that even when controlling for prior crimes, future<a id="_idIndexMarker808"/> recidivism, age, and gender, black defendants were 45 percent more likely to be assigned higher risk scores than <span class="No-Break">white defendants.</span></p>
+			<p class="author-quote">Black defendants were also twice as likely as white defendants to be misclassified as being a higher risk of violent recidivism. And white violent recidivists were 63 percent more likely to have been misclassified as a low risk of violent recidivism, compared with black violent recidivists.</p>
+			<p class="author-quote">The violent recidivism analysis also showed that even when controlling for prior crimes, future recidivism, age, and gender, black defendants were 77 percent more likely to be assigned higher risk scores than white defendants.</p>
+			<p>(Quoted from <em class="italic">How We Analyzed the COMPAS Recidivism Algorithm</em> by Jeff Larson, Surya Mattu, Lauren Kirchner, and <span class="No-Break">Julia Angwin)</span></p>
+			<p>The reports published by ProPublica give us a clear idea of the impact of racial discrimination. As the tool<a id="_idIndexMarker809"/> is a clear demonstration of injustice against minorities, the dataset present in COMPAS (<a href="https://www.kaggle.com/code/danofer/compass-fairml-getting-started/data">https://www.kaggle.com/code/danofer/compass-fairml-getting-started/data</a>) is more often used for evaluating fairness in ML algorithms, to check the occurrence of bias, <span class="No-Break">if any.</span></p>
+			<p>This kind of bias is more evident in chatbots, employment matching, flight routing, automated legal aid for immigration algorithms, and search and advertising placement algorithms. We can also see such bias is present in AI and robotic systems, face recognition applications, voice recognition, and <span class="No-Break">search engines.</span></p>
+			<p>Bias has a detrimental impact on society when the outcomes of biased ML models extend or withhold opportunities, resources, or information (such as hiring, school admissions, and lending). Such issues are most<a id="_idIndexMarker810"/> visible in face recognition, document search, and product<a id="_idIndexMarker811"/> recommendation, where system accuracy is impacted. End user experiences are impacted when biased algorithmic outcomes generate a feedback loop (due to repeated user interactions with the top items on the list) between data, algorithms, and users, thereby increasing the number of sources yielding <span class="No-Break">further bias.</span></p>
+			<p class="callout-heading">Note</p>
+			<p class="callout">What is most important for us to know is that when algorithms are trained on biased data, the algorithm itself learns the bias during the training process and reflects that in <span class="No-Break">its predictions.</span></p>
+			<p>Now let's look at <em class="italic">Table 7.1</em> and understand<a id="_idIndexMarker812"/> the different sources<a id="_idIndexMarker813"/> of bias. Bias resulting<a id="_idIndexMarker814"/> from data may<a id="_idIndexMarker815"/> come in different forms: <strong class="bold">data-to-algorithm</strong> (<strong class="bold">DA</strong>) bias, <strong class="bold">algorithm-to-user</strong> (<strong class="bold">AU</strong>) bias, and <strong class="bold">user-to-data</strong> (<span class="No-Break"><strong class="bold">UD</strong></span><span class="No-Break">) bias.</span></p>
+			<table id="table001-5" class="No-Table-Style _idGenTablePara-1">
+				<colgroup>
+					<col/>
+					<col/>
+					<col/>
+				</colgroup>
+				<tbody>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="bold">Bias name</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><strong class="bold">Source of bias</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><strong class="bold">Type</strong></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>Measurement bias</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Data selection, utilization, transformation, and measurement of features.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>DA</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>Omitted variable bias</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Important variables excluded from the model.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>DA</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>Representation bias</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Sampling bias from a population during data collection.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>DA</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>Aggregation bias</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>False inferences drawn about individuals from the entire population. Examples include Simpson’s paradox – an association in aggregated source data disappears or changes when data gets disassembled into subgroups.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>DA</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>Sampling bias</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Sampling bias resembles representation bias, arising due to the non-random sampling of subgroups.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>DA</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>Longitudinal data fallacy</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Results from the aggregation of diverse cohorts at a single point. Prominent due to temporal cross-sectional data analysis and modeling.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>DA</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>Linking bias</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Misinterpretation of true user behavior due to user connections, activities, or interactions.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>DA</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>Algorithmic bias</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>The input data has no bias but it is added by the algorithm.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>AU</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>User interaction bias</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Triggered from two sources: the user interface and when the user imposes their self-selected biased behavior and interaction.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>AU</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>Popularity bias</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>More popular items are exposed more, which often get manipulated by fake reviews or social bots.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>AU</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>Emergent bias</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Results from interaction with real users due to changes in population, cultural values, or societal knowledge.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>AU</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>Evaluation bias</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Occurs during model evaluation, due to inappropriate evaluation techniques.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>AU</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>Historic bias</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Socio-technical issues in the world can largely impact the data generation process, even after the application of perfect sampling and feature selection techniques.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>UD</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>Population bias</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>When statistics, demographics, representatives, and user characteristics of the user population of the platform differ from the original target population.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>UD</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>Self-selection bias</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>A subtype of selection bias where subjects of research select themselves.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>UD</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>Social bias</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Social bias happens when others’ actions affect our judgment.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>UD</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>Behavioral bias</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Behavioral bias arises from different user behavior across platforms, contexts, or different datasets.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>UD</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>Temporal bias</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Results from differences in populations and behaviors over time.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>UD</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>Content production bias</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Results from structural, lexical, semantic, and syntactic differences in the content generated by users.</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>UD</p>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Table 7.1 – Different types of bias and its sources</p>
+			<p>Now, with our understanding<a id="_idIndexMarker816"/> of different types of bias, let's see in <span class="No-Break"><em class="italic">Figure 7</em></span><em class="italic">.1</em> how they<a id="_idIndexMarker817"/> are dependent on each other and circulate in a loop. For example, the involvement of user interaction, resulting in behavioral bias, sees its bias amplified when fed with data. The input data adds to aggregation or longitudinal bias. This in turn is processed by algorithms that add bias, termed ranking or <span class="No-Break">emergent bias.</span></p>
+			<div>
+				<div id="_idContainer128" class="IMG---Figure">
+					<img src="image/B18681_07_001.jpg" alt="Figure 7.1 – Flow of different types of bias based on sources"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.1 – Flow of different types of bias based on sources</p>
+			<h2 id="_idParaDest-136"><a id="_idTextAnchor151"/>Causes of bias</h2>
+			<p>In the following list, we will look at exactly what <span class="No-Break">causes bias:</span></p>
+			<ul>
+				<li><strong class="bold">Skewed dataset</strong>: The dataset may display skewness<a id="_idIndexMarker818"/> toward the least-occurring class. This kind of bias tends to increase at a compound rate with time. Crime datasets exhibit this kind of skewness, as we see a very limited number of criminals versus innocent people in any region. Once skewness is observed, detectives and police departments also tend to be biased and dispatch more police professionals to high-crime areas. This may tend to reveal high crime rates, having more police professionals deployed compared to <span class="No-Break">other regions.</span></li>
+				<li><strong class="bold">Insufficient training data</strong>: We observe that with only limited data<a id="_idIndexMarker819"/> for certain demographic groups or other groups, an ML model tends to produce biased outcomes. Such models fail to notice extraordinary characteristics that are available with a very limited population. We saw such examples in <a href="B18681_03.xhtml#_idTextAnchor066"><span class="No-Break"><em class="italic">Chapter 3</em></span></a>, with facial recognition technology having greater accuracy<a id="_idIndexMarker820"/> with images of white males compared to images of <span class="No-Break">black females.</span></li>
+				<li><strong class="bold">Human bias</strong>: Datasets often get corrupted due to<a id="_idIndexMarker821"/> human bias. One such example can be seen when we collect real-world data on US employment. Women hardly account for the CEOs in the data on the top 500 companies. This is due to the fact that there are fewer female CEOs and we have failed to collect data where women are CEOs. Models trained on such data would naturally predict that being female correlates poorly with being <span class="No-Break">a CEO.</span></li>
+				<li><strong class="bold">Data de-biasing</strong>: To remove bias from historical data, we have<a id="_idIndexMarker822"/> often seen approaches such as removing sensitive attributes, but that does not completely eliminate bias. Experimental studies reveal correlated attributes are often used as proxies, even after the removal of sensitive attributes that pave the way for the systematic discrimination of minorities. One example of this kind is when a particular locality is predominantly resided in by black people and the removal of the race column does not remove the bias due to the presence of the ZIP code of that location. Possible recommendations to avoid this are to keep the sensitive columns and directly monitor and remediate violations caused by the presence of proxy features during <span class="No-Break">model training.</span></li>
+				<li><strong class="bold">Side-effects from data debiasing</strong>: Techniques often applied to remove data skewness and model bias<a id="_idIndexMarker823"/> sometimes result in undesired side-effects in the model downstream. This has been observed when a speech recognition algorithm was fine-tuned for males and females, with the results significantly worse for female speakers compared to male ones. Researchers further observed that testing models for bias with holdout samples did not solve this, as the test dataset was <span class="No-Break">also biased.</span></li>
+				<li><strong class="bold">Availability of limited features</strong>: When features are less informative or reliable for minority groups than the counterparts<a id="_idIndexMarker824"/> of a majority group, models demonstrate much lower accuracy for the minority section compared to the majority section of <span class="No-Break">the population.</span></li>
+				<li><strong class="bold">Diversity among data and AI professionals</strong>: It has been found that the absence of diversity<a id="_idIndexMarker825"/> has been one of the main causes of bias. Diversity in teams can help to mitigate bias. One study put forward by Joy Buolamwini, founder of the Algorithmic Justice League and past member of MIT Media Lab, demonstrates that certain discoveries were made by her team when a Ghanaian-American computer scientist joined her research group. The team together found out that facial recognition tools exhibited bias and showcased poor performance on her darker skin tone – and only worked if she wore a <span class="No-Break">white mask.</span></li>
+				<li><strong class="bold">Costs incurred in driving fairness algorithms</strong>: Organizations that have not invested in fairness<a id="_idIndexMarker826"/> have more biased ML models. Organizations need to invest in human resource experts and in educating people to opt for fair ML model designs. This may come at the cost of achieving the right trade-off between model accuracy and fairness metrics, which can impact profit margins, revenue, or the number of customers. Hence, it is necessary to balance the two objectives before <span class="No-Break">enforcing regulations.</span></li>
+				<li><strong class="bold">External audits</strong>: Bias can also arise from<a id="_idIndexMarker827"/> the absence of proper external audits. External audits, when put in place, can detect biased datasets or algorithmic bias that’s in place. However, organizing such audits may violate GDPR, CCPA, and other privacy regulations that strictly enforce the privacy of customers’ sensitive data. A workaround is to leverage the use of synthetic data tools that allow you to generate fully anonymous, completely realistic, and representative datasets. An organization can rely on synthetic datasets to train ML models without violating privacy laws, as sharing the data does not disrespect<a id="_idIndexMarker828"/> <span class="No-Break">individual privacy.</span></li>
+				<li><strong class="bold">Fair models become biased</strong>: It often happens in the absence of the constant monitoring of incoming data and model metrics<a id="_idIndexMarker829"/> that fair models become biased. One such<a id="_idIndexMarker830"/> example is the AI chatbot <strong class="bold">Tay</strong>, developed by Microsoft. Microsoft had to withdraw Tay from the web as it become misogynistic and racist while learning from the conversations of Twitter users. Continuous monitoring and evaluation of model metrics can help to prevent bias from arising <span class="No-Break">over time.</span></li>
+				<li><strong class="bold">Biased AI and its vicious cycle</strong>: If we fail to measure and assess bias<a id="_idIndexMarker831"/> from AI algorithms, it will percolate deep within our society and will potentially be more harmful. One such example was seen with Google’s search algorithm, which displayed<a id="_idIndexMarker832"/> racist images on applying searches for terms such as <strong class="bold">black hands</strong>. The searches, instead of perpetuating bias and displaying derogatory depictions, could have showcased more neutral images if the initial search results and the clicks on the search results were not pointed at <span class="No-Break">biased images.</span></li>
+			</ul>
+			<p>Now, we understand how we can introduce bias while training ML models. We should also be aware of discrimination processes that also yield <span class="No-Break">biased models.</span></p>
+			<p><strong class="bold">Discrimination</strong> is another source of unfairness<a id="_idIndexMarker833"/> originating due to human prejudice and stereotyping based on sensitive attributes present in the dataset. Discrimination<a id="_idIndexMarker834"/> primarily originates from systems or statistics. <strong class="bold">Systemic discrimination</strong> refers to existing policies, customs, or behaviors within an organization that enhance discrimination against certain subgroups of the population. <strong class="bold">Statistical discrimination</strong>, however, occurs when decision-makers use average<a id="_idIndexMarker835"/> group statistics to judge an individual belonging to <span class="No-Break">that group.</span></p>
+			<p>Hence, we can say in generating biased ML models that the dataset plays an important role, as it provides the statistics, features, and patterns of data that are learned during the model <span class="No-Break">training phase.</span></p>
+			<p>In this section, we studied different types of bias that exist and creep into systems. To avoid bias, we need to incorporate fair treatment for everyone, and in order to do that we need to define what it means to offer fair treatment. Let's look at that in the <span class="No-Break">next section.</span></p>
+			<h1 id="_idParaDest-137"><a id="_idTextAnchor152"/>Defining fairness</h1>
+			<p>In this section, let's try to understand<a id="_idIndexMarker836"/> the different types of fairness that researchers have described to avoid <strong class="bold">discrimination</strong> or the unfavorable treatment of people. ML algorithms<a id="_idIndexMarker837"/> and practitioners are increasingly coming under scrutiny on this subject to mitigate the risk of unfair treatment in areas such as credit, employment, education, and criminal justice. The goal is to design ML algorithms and pipelines that are not impacted by protected attributes (such as gender, race, and ethnicity) but are still able to offer fair predictions. We’ll look at some different fairness definitions <span class="No-Break">with examples.</span></p>
+			<p>Numerical and binary attributes are most often used to state and test fairness criteria. Categorical features can be converted to a set of binary features. Most often, we use the terms protected and unprotected groups, advantaged and disadvantaged groups, and majority and minority groups interchangeably to differentiate between the demographic sections of the population and evaluate fairness for different sections of the population. In the definitions discussed in this section, we will primarily use married/divorced female entrants and married/divorced male entrants to demonstrate how preferential treatment or mistreatment can be avoided, to ensure fair and equitable model predictions. Here, <em class="italic">entrants</em> mean initial-stage <span class="No-Break">job applicants.</span></p>
+			<h2 id="_idParaDest-138"><a id="_idTextAnchor153"/>Types of fairness based on statistical metrics</h2>
+			<p>The statistical measures of fairness<a id="_idIndexMarker838"/> are dependent on metrics, which can be best explained by means of a confusion matrix – a table that is generated by running predicted outcomes against ground truth data with an actual representation of the different accuracy metrics of a classification model. The rows and columns represent the predicted and the actual classes respectively. For a binary classifier, both predicted and actual classes have two values: positive and negative, as shown in the following figure. The following definitions further illustrate the metrics that are situated in the four different quadrants of the matrix shown in <span class="No-Break"><em class="italic">Figure 7</em></span><span class="No-Break"><em class="italic">.2</em></span><span class="No-Break">:</span></p>
+			<div>
+				<div id="_idContainer129" class="IMG---Figure">
+					<img src="image/B18681_07_002.jpg" alt="Figure 7.2 – Model classification metrics"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.2 – Model classification metrics</p>
+			<h3>True positive (TP)</h3>
+			<p>The model’s predicted outcome<a id="_idIndexMarker839"/> and ground truth data<a id="_idIndexMarker840"/> are both in the positive class (true, in <span class="No-Break">binary classification).</span></p>
+			<p>False <span class="No-Break">positive (FP)</span></p>
+			<p>The model’s predicted outcome<a id="_idIndexMarker841"/> is true, while<a id="_idIndexMarker842"/> the ground truth data is false and belongs to the <span class="No-Break">negative class.</span></p>
+			<h3>False negative (FN)</h3>
+			<p>The model’s predicted outcome is false<a id="_idIndexMarker843"/> and lies in the negative<a id="_idIndexMarker844"/> class, while the actual ground truth data is true, belonging to the <span class="No-Break">positive class.</span></p>
+			<h3>True negative (TN)</h3>
+			<p>The model’s predicted and ground<a id="_idIndexMarker845"/> truth data<a id="_idIndexMarker846"/> are both false and they lie in the <span class="No-Break">negative class.</span></p>
+			<h3>Positive predictive value (PPV)/precision</h3>
+			<p>This is the rate of positive<a id="_idIndexMarker847"/> cases accurately predicted<a id="_idIndexMarker848"/> to be true or lying in the positive class out of all predicted positive cases. It represents the probability of a subject with true as the predicted outcome truly belonging to the same class (having true as the ground truth data), <em class="italic">P</em>(<em class="italic">Y = </em>1<em class="italic">|d = </em>1), where an entrant with a good predicted qualifying score actually has a ground truth where the qualifying score is <span class="No-Break">also good.</span></p>
+			<h3>False discovery rate (FDR)</h3>
+			<p>This is the rate of negative cases<a id="_idIndexMarker849"/> that were inaccurately <a id="_idIndexMarker850"/>predicted to be true. The FDR represents the probability of false acceptance, <em class="italic">P</em>(<em class="italic">Y = </em>0<em class="italic">|d = </em>1), where we observe that a job candidate with a good predicted qualifying score has a ground truth where the person’s qualifying score is actually reported <span class="No-Break">as low.</span></p>
+			<h3>False omission rate (FOR)</h3>
+			<p>This is the rate of positive<a id="_idIndexMarker851"/> cases that were wrongly<a id="_idIndexMarker852"/> classified and predicted to belong to the negative class. The FOR represents the probability of samples having a true value being inaccurately rejected, <em class="italic">P</em>(<em class="italic">Y = </em>1<em class="italic">|d = </em>0). We observe this most often when a job entrant has been evaluated to have a low predicted qualifying score, but the same candidate in reality has a <span class="No-Break">good score.</span></p>
+			<h3>Negative predictive value (NPV)</h3>
+			<p>This is the rate of negative samples<a id="_idIndexMarker853"/> that are accurately predicted<a id="_idIndexMarker854"/> to be in the negative class out of all predicted negative cases. The NPV represents the probability of a subject (or an entrant) with a negative prediction truly belonging to the negative class, <em class="italic">P</em>(<em class="italic">Y = </em>0<em class="italic">|d = </em><span class="No-Break">0).</span></p>
+			<h3>True positive rate (TPR)</h3>
+			<p>This is the rate of positive<a id="_idIndexMarker855"/> samples that are accurately predicted<a id="_idIndexMarker856"/> to be in the positive class out of all actual positive cases. The TPR is often referred to as sensitivity or recall; it represents the probability of a truly positive subject being identified in the class it belongs to, <em class="italic">P</em>(<em class="italic">d = </em>1<em class="italic">|Y = </em>1). In our example, it is the probability that a job entrant with ground truth data representing a good qualifying score is accurately predicted by <span class="No-Break">the model.</span></p>
+			<h3>False positive rate (FPR)</h3>
+			<p>This is the rate of negative samples<a id="_idIndexMarker857"/> inaccurately predicted<a id="_idIndexMarker858"/> by the model to be true, out of all actual negative cases. The FPR represents the probability of false alerts, <em class="italic">P</em>(<em class="italic">d = </em>1<em class="italic">|Y = </em>0). An example is when an entrant exhibiting a low qualifying score in reality has been misclassified by the model and inaccurately given a good <span class="No-Break">qualifying score.</span></p>
+			<h3>False negative rate (FNR)</h3>
+			<p>This is the rate of samples <a id="_idIndexMarker859"/>with true values<a id="_idIndexMarker860"/> that are mistakenly predicted to be false, out of all actual positive cases. The FNR represents the probability of a negative result given an <span class="No-Break">actual outcome,</span>
+<em class="italic">P</em>(<em class="italic">d = </em>0<em class="italic">|Y = </em>1). An example is when the probability of an entrant having a good qualifying score happens to be <span class="No-Break">wrongly classified.</span></p>
+			<h3>True negative rate (TNR)</h3>
+			<p>This is the rate of samples<a id="_idIndexMarker861"/> with a value of false that are accurately<a id="_idIndexMarker862"/> predicted to be in the negative class, out of all actual negative cases. The TNR represents the probability of an outcome being given a false value and actually belonging to the negative class, <em class="italic">P</em>(<em class="italic">d = </em>0<em class="italic">|Y = </em>0). We observe this when the probability of an entrant with a low qualifying score happens to be <span class="No-Break">accurately classified.</span></p>
+			<p>Let’s calculate these scores on the <span class="No-Break">COMPAS dataset:</span></p>
+			<ol>
+				<li>Let's first import the necessary <span class="No-Break">Python libraries:</span><pre class="console">
+%matplotlib inline
+from IPython.core.interactiveshell import InteractiveShell
+InteractiveShell.ast_node_interactivity = "all"
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix</pre></li>
+				<li>Next, we load<a id="_idIndexMarker863"/> <span class="No-Break">the</span><span class="No-Break"><a id="_idIndexMarker864"/></span><span class="No-Break"> data:</span><pre class="console">
+url = 'https://raw.githubusercontent.com/propublica/compas-analysis/master/compas-scores-two-years.csv'
+df = pd.read_csv(url)</pre></li>
+				<li>We translate the dataset into a binary classification problem to evaluate whether an individual has a high/medium/low risk <span class="No-Break">of recidivism:</span><pre class="console">
+df['is_med_or_high_risk'] = (df['decile_score']&gt;=5).astype(int)</pre></li>
+				<li>Next, we plot the model’s performance after normalizing by each row – we want to see the PPV, FDR, FOR, <span class="No-Break">and NPV:</span><pre class="console">
+cm = pd.crosstab(df[‘is_med_or_high_risk’], df[‘two_year_recid’], rownames=[‘Predicted’], colnames=[‘Actual’], normalize=’index’)
+p = plt.figure(figsize=(5,5));
+p = sns.heatmap(cm, annot=True, fmt=".2f", cbar=False</pre></li>
+			</ol>
+			<p>This yields the following output:</p>
+			<div>
+				<div id="_idContainer130" class="IMG---Figure">
+					<img src="image/B18681_07_003.jpg" alt="Figure 7.3 – A confusion matrix using the COMPAS dataset"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.3 – A confusion matrix using the COMPAS dataset</p>
+			<ol>
+				<li value="5">We can also print<a id="_idIndexMarker865"/> the values<a id="_idIndexMarker866"/> using an <strong class="source-inline">sklearn</strong> <span class="No-Break">confusion matrix:</span><pre class="console">
+[[tn , fp],[fn , tp]]  = confusion_matrix(df['two_year_recid'], df['is_med_or_high_risk'])
+print("True negatives:  ", tn)
+print("False positives: ", fp)
+print("False negatives: ", fn)
+print("True positives:  ", tp)</pre></li>
+				<li>Then we concentrate on African-American or Caucasian defendants, since they are the subject of the <span class="No-Break">ProPublica claim:</span><pre class="console">
+df = df[df.race.isin(["African-American","Caucasian"])]
+(df['two_year_recid']==df['is_med_or_high_risk']).astype(int).groupby(df['race']).mean()</pre></li>
+			</ol>
+			<p>This yields the following output:</p>
+			<div>
+				<div id="_idContainer131" class="IMG---Figure">
+					<img src="image/B18681_07_004.jpg" alt="Figure 7.4 – Fairness accuracy metrics for African-American and Caucasian"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.4 – Fairness accuracy metrics for African-American and Caucasian</p>
+			<p>Here, we see that the fairness<a id="_idIndexMarker867"/> metric is not the same<a id="_idIndexMarker868"/> across <span class="No-Break">both groups.</span></p>
+			<h2 id="_idParaDest-139"><a id="_idTextAnchor154"/>Types of fairness based on the metrics of predicted outcomes</h2>
+			<p>The types of fairness listed <a id="_idIndexMarker869"/>in this section primarily focus on a predicted outcome for various demographic segments of subjects involved in the problem <span class="No-Break">under consideration.</span></p>
+			<h3>Group fairness/demographic parity</h3>
+			<p>This is also commonly<a id="_idIndexMarker870"/> known as statistical parity or the equal acceptance rate. This concerns<a id="_idIndexMarker871"/> whether subjects<a id="_idIndexMarker872"/> in both<a id="_idIndexMarker873"/> protected (race, gender, ethnicity, and so on) and unprotected groups<a id="_idIndexMarker874"/> exhibit an equal probability of being represented in the predicted class classified as true. For example, this condition will be satisfied when there is an equal probability of male and female applicants achieving an equally good predicted qualifying score: <em class="italic">P </em>(<em class="italic">d =</em>1<em class="italic">|G = m</em>)<em class="italic"> = P </em>(<em class="italic">d = </em>1<em class="italic">|G = </em><span class="No-Break"><em class="italic">f</em></span><span class="No-Break">).</span></p>
+			<p>To illustrate this further, let's assume an ML model predicts that married/divorced male and female entrants have scores of 0.81 and 0.75, respectively. Here, the classifier can be said to have failed as it fails to satisfy the objective of equal scores for both males <span class="No-Break">and females.</span></p>
+			<h3>Conditional statistical parity</h3>
+			<p>This definition<a id="_idIndexMarker875"/> goes beyond the previous<a id="_idIndexMarker876"/> definition by allowing a set of attributes that can influence the model’s predictions. To explain this further, this metric can be satisfied only when both protected and unprotected groups have an equal probability of being designated with the true class. This can be controlled by a set of allowable factors, <em class="italic">L</em> (including the entrant’s credit history, employment, and age). Hence, to explain mathematically that both female and male entrants demonstrate an equal probability of achieving a good qualifying score, we state it <span class="No-Break">as follows:</span></p>
+			<p><em class="italic">P </em>(<em class="italic">d = </em>1<em class="italic">|L = l, G = m</em>)<em class="italic"> = P </em>(<em class="italic">d = </em>1<em class="italic">|L = l, G = </em><span class="No-Break"><em class="italic">f</em></span><span class="No-Break">)</span></p>
+			<p>However, scores for married/divorced male<a id="_idIndexMarker877"/> and female entrants can be found to be very close; for example, they are 0.46 and 0.49, respectively. When we see such a minor difference existing between<a id="_idIndexMarker878"/> two groups, we can allow a threshold factor to permit this <span class="No-Break">allowable difference.</span></p>
+			<h3>Types of fairness based on the metrics of predicted and actual outcomes</h3>
+			<p>The fairness concepts<a id="_idIndexMarker879"/> listed here go beyond consideration of what the model predicts as its outcomes,<em class="italic"> d</em>, for different demographic sections of subjects involved in the process of classification. They go on to compute evaluation metrics that are compared to the actual outcome, <em class="italic">Y</em> (as evident in the ground truth data), and recorded in <span class="No-Break">the dataset.</span></p>
+			<h3>Predictive parity</h3>
+			<p>This concept is very<a id="_idIndexMarker880"/> important, and it ensures<a id="_idIndexMarker881"/> that a classifier can satisfy that both protected and unprotected groups demonstrate a measure of equal PPV – ensuring that the probability of a subject exhibiting a true or positive predictive value is actually included in the positive class. As an example, we would need to have both male and female entrants demonstrate the same probability score. This can be <span class="No-Break">formulated as:</span></p>
+			<p><em class="italic">P (Y = </em><span class="No-Break">1</span><em class="italic">|d = </em>1<em class="italic">, G = m</em>)<em class="italic"> = P </em>(<em class="italic">Y = </em>1<em class="italic">|d = </em>1<em class="italic">, G = </em><span class="No-Break"><em class="italic">f</em></span><span class="No-Break">)</span></p>
+			<p>Furthermore, a classifier with an equal PPV will also have an equal FDR, <span class="No-Break">which means:</span></p>
+			<p><em class="italic">P (Y = </em>0<em class="italic">|d = </em>1<em class="italic">, G = m) = P (Y = </em>0<em class="italic">|d = </em>1<em class="italic">, G = </em><span class="No-Break"><em class="italic">f)</em></span></p>
+			<p>The measures may not be fully equal and a threshold margin between the groups is permitted. For example, a classifier may record the PPV for married/divorced male and female entrants as 0.73 and 0.74, respectively, and the FDR for male and female entrants as 0.27 and <span class="No-Break">0.26, respectively.</span></p>
+			<p>In real-world ML algorithms, most often, we find that any trained classifier understands an advantaged group better and predicts them in the positive prediction class. The disadvantaged or minority group’s predicted outcome sees a greater number of challenges in correct<a id="_idIndexMarker882"/> evaluation, mostly due<a id="_idIndexMarker883"/> to there being limited data for <span class="No-Break">that group.</span></p>
+			<h3>False positive error rate balance/predictive equality</h3>
+			<p>This metric ensures that the classifier<a id="_idIndexMarker884"/> satisfies that both protected and unprotected groups<a id="_idIndexMarker885"/> demonstrate similar behavior by exhibiting measures that represent an equal FPR (a metric used for the misclassification rate) – where a subject with a false value and that is included in the negative class possesses a true positive predictive value. For example, this concept implies that both male and female entrants show the same probability measure, which causes entrants with a low qualifying score to be designated a good predicted qualifying score. Mathematically, it can be <span class="No-Break">formulated as:</span></p>
+			<p><em class="italic">P </em>(<em class="italic">d = </em>1<em class="italic">|Y = </em>0<em class="italic">, G = m) = P (d = </em>1<em class="italic">|Y = </em>0<em class="italic">, G = </em><span class="No-Break"><em class="italic">f</em></span><span class="No-Break">)</span></p>
+			<p>Here, a classifier with an equal FPR will also exhibit an equal <span class="No-Break">TNR. Hence:</span></p>
+			<p><em class="italic">P </em>(<em class="italic">d = </em>0<em class="italic">|Y = </em>0<em class="italic">, G = m) = P (d = </em>0<em class="italic">|Y = </em>0<em class="italic">, G = </em><span class="No-Break"><em class="italic">f</em></span><span class="No-Break">)</span></p>
+			<p>In terms of actual values, the FPR for married/divorced male and female entrants is 0.70 and 0.55, respectively, while the TNR is 0.30 and 0.45, respectively. Any tendency of the classifier to assign good qualifying scores to males who previously had low credit would cause the classifier to break the definitions stated and would result in <span class="No-Break">its failure.</span></p>
+			<h3>False negative error rate balance/equal opportunity</h3>
+			<p>This concept ensures that a classifier<a id="_idIndexMarker886"/> satisfies the condition that both protected and unprotected groups<a id="_idIndexMarker887"/> have an equal FNR – where a subject containing a true value and that is included in the positive class actually possesses a negative predictive value. This occurs on account of misclassification. Mathematically, it can be <span class="No-Break">formulated as:</span></p>
+			<p><em class="italic">P </em>(<em class="italic">d = </em>0<em class="italic">|Y = </em>1<em class="italic">, G = m</em>)<em class="italic"> = P </em>(<em class="italic">d = </em>0<em class="italic">|Y = </em>1<em class="italic">, G = </em><span class="No-Break"><em class="italic">f</em></span><span class="No-Break">)</span></p>
+			<p>This implies the condition that in both the male and female groups, any entrant possessing a good predicted score has been misclassified and predicted as possessing a low score. A classifier with an equal FNR will also have an equal TPR. Now in terms of equation, the following condition holds, where we see TPR should be same for both males <span class="No-Break">and females:</span></p>
+			<p><em class="italic">P </em>(<em class="italic">d = </em>1<em class="italic">|Y = </em>1<em class="italic">, G = m</em>)<em class="italic"> = P </em>(<em class="italic">d = </em>1<em class="italic">|Y = </em>1<em class="italic">, G = </em><span class="No-Break"><em class="italic">f</em></span><span class="No-Break">)</span></p>
+			<p>For example, the FPR and TPR for married/divorced male and female entrants are 0.13 and 0.87, respectively. As the classifier exhibits equal measures of good qualifying scores among males and females, this would lead to equal treatment of the two groups. If the classifier can also satisfy the low scores<a id="_idIndexMarker888"/> among the two groups, it will be said to satisfy the condition<a id="_idIndexMarker889"/> of <span class="No-Break">group fairness.</span></p>
+			<h3>Equalized odds/disparate mistreatment</h3>
+			<p>This type of fairness, also commonly known as <strong class="bold">conditional procedure accuracy equality</strong>, enforces a condition of fairness <a id="_idIndexMarker890"/>by combining the previous two definitions. It standardizes<a id="_idIndexMarker891"/> the error rates for both<a id="_idIndexMarker892"/> male and female populations, where a classifier is satisfactory if protected and unprotected groups have an equal TPR and an equal FPR. Hence, this acts as a combination function that ensures equality among both male and female groups, when an entrant with a good qualifying score is also correctly designated a good predicted qualifying score by the model. The probability of an entrant having a low qualifying score in reality has been seen to be inaccurately classified by the model and designated a good predicted qualifying score. Mathematically, it can be <span class="No-Break">formulated as:</span></p>
+			<p><em class="italic">P </em>(<em class="italic">d = </em>1<em class="italic">|Y = i, G = m</em>)<em class="italic"> = P </em>(<em class="italic">d =</em> 1<em class="italic">|Y = i, G = f</em>)<em class="italic">, i </em><em class="italic">∈</em><em class="italic"> </em><span class="No-Break">0, 1</span></p>
+			<p>For example, a classifier exhibiting an FPR for married/divorced male and female entrants as 0.70 can only satisfy disparate mistreatment when it also records a TPR of 0.86 for both males and females. But on the other hand, it shows preferential treatment toward the male group by recording an FPR of 0.80, in contrast to an FPR of 0.70 for the female group. This preferential or biased treatment will cause the classifier to fail to satisfy the condition of equalized odds. Hence, classifiers are often found to satisfy predictive parity but not to satisfy the condition of <span class="No-Break">equalized odds.</span></p>
+			<div>
+				<div id="_idContainer132" class="IMG---Figure">
+					<img src="image/B18681_07_005.jpg" alt="Figure 7.5 – Two fairness trees that represent different types of fairness on group/individual/overall levels"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.5 – Two fairness trees that represent different types of fairness on group/individual/overall levels</p>
+			<p><span class="No-Break"><em class="italic">Figure 7</em></span><em class="italic">.5</em> gives a condensed representation<a id="_idIndexMarker893"/> of these fairness definitions. The preceding figure depicts<a id="_idIndexMarker894"/> two fairness trees – the first one is for when we deal with group fairness and the second one is for when we deal with fairness for either individuals <span class="No-Break">or everyone.</span></p>
+			<p>The overall fairness metric called the <strong class="bold">Theil Index</strong> is an economic inequality metric<a id="_idIndexMarker895"/> used to quantify the divergence of the current distribution of resources (for example, income) within and among diverse demographic groups. Thus, it helps to measure the inequality of income spread (by giving a weighted average of inequality within subgroups) across individuals and groups/sub-groups in <span class="No-Break">a population.</span></p>
+			<p>To compute the individual<a id="_idIndexMarker896"/> fairness metric, we can either use <strong class="bold">Manhattan distance</strong> (a metric that computes the average Manhattan distance between the samples from two datasets) or <strong class="bold">Euclidean distance</strong> (a metric that computes the average Euclidean distance<a id="_idIndexMarker897"/> between the samples from two datasets). For individual fairness, we follow a similar method for similar individuals irrespective of their relationship with <span class="No-Break">any group.</span></p>
+			<p>A group fairness tree is generated based on disparate representations or disparate errors. It is based on the two <span class="No-Break">following factors.</span></p>
+			<h3><strong class="bold">Fairness based on disparate representations – equal parity/proportional parity</strong></h3>
+			<p>A fairness tree splits to either equal parity, when we are interested in selecting an equal number of people from each group, or proportional parity, when we are interested in selecting a number of people that is proportional to their percentage in the <span class="No-Break">entire population.</span></p>
+			<h3><strong class="bold">Fairness based on disparate errors in the system – punitive/assistive error metrics</strong></h3>
+			<p>A fairness tree splits to either punitive or assistive error metrics, depending on whether we are interested in making interventions that could either hurt or <span class="No-Break">help individuals.</span></p>
+			<p>We further illustrate in <span class="No-Break"><em class="italic">Figure 7</em></span><em class="italic">.6</em> the<a id="_idIndexMarker898"/> computation<a id="_idIndexMarker899"/> of group fairness metrics using the Adult <span class="No-Break">dataset (</span><a href="https://archive.ics.uci.edu/ml/datasets/adult"><span class="No-Break">https://archive.ics.uci.edu/ml/datasets/adult</span></a><span class="No-Break">).</span></p>
+			<div>
+				<div id="_idContainer133" class="IMG---Figure">
+					<img src="image/B18681_07_006.jpg" alt="Figure 7.6 – An evaluation of group fairness metrics on the Adult dataset"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.6 – An evaluation of group fairness metrics on the Adult dataset</p>
+			<h3>Conditional-use accuracy equality</h3>
+			<p>This type of fairness<a id="_idIndexMarker900"/> is built on the founding principle of joining two equal <a id="_idIndexMarker901"/>t” conditions, PPV and NPV. Here, the probability of subjects under consideration having true predictive values in reality is included in the positive class (PPV). We will also observe that the probability of subjects having a false predictive value in reality is included in the negative class (NPV). Mathematically, this can be <span class="No-Break">formulated as:</span></p>
+			<p>(<em class="italic">P </em>(<em class="italic">Y = </em>1<em class="italic">|d = </em>1<em class="italic">, G = m</em>)<em class="italic"> = P </em>(<em class="italic">Y = </em>1<em class="italic">|d = </em>1<em class="italic">, G = f </em>))<em class="italic"> </em><em class="italic">∧</em><em class="italic"> </em>(<em class="italic">P </em>(<em class="italic">Y = </em>0<em class="italic">|d = </em>0<em class="italic">, G = m</em>)<em class="italic"> = P</em>(<em class="italic">Y = </em>0<em class="italic">|d = </em>0<em class="italic">,G = </em><span class="No-Break"><em class="italic">f </em></span><span class="No-Break">))</span></p>
+			<p>Equivalent accuracy is obtained for both male and female entrants. This means that male and female entrants exhibit an equal probability of demonstrating equivalent accuracy values. To explain further, a good predicted qualifying score signals a good qualifying score for an entrant, while a low predicted qualifying score for an entrant signifies a low qualifying score. As with the previous metrics, this one is also not satisfied when the likelihood of a male entrant with a low predicted score diminishes (due to gender bias), causing the male entrant to be given a good qualifying score when he actually should not. A demonstration of this equivalent accuracy metric is that male and female entrants have a PPV of 0.73 and 0.74, respectively, and an NPV of 0.49 and <span class="No-Break">0.63, respectively.</span></p>
+			<h3>Overall accuracy equality</h3>
+			<p>This forces a classifier to satisfy<a id="_idIndexMarker902"/> the condition that both protected and unprotected groups demonstrate<a id="_idIndexMarker903"/> equal prediction accuracy. Here, in the ground truth data, the probability of a subject with values of true or false is classed as either positive or negative. The same class labels are also used in the model’s predictions. This definition implies that true negatives are as desirable as true positives. Mathematically, it can be <span class="No-Break">formulated as:</span></p>
+			<p><em class="italic">P </em>(<em class="italic">d = Y, G = m</em>)<em class="italic"> = P </em>(<em class="italic">d = Y, G = </em><span class="No-Break"><em class="italic">f</em></span><span class="No-Break">)</span></p>
+			<p>This metric allows minor differences between males and females, where the two groups exhibit an overall accuracy rate of 0.68 and 0.71, respectively. However, in this example, we consider overall accuracy and not the individual accuracy of <span class="No-Break">predicted classes.</span></p>
+			<h3>Treatment equality</h3>
+			<p>This metric determines<a id="_idIndexMarker904"/> the ratio of errors of the classifier<a id="_idIndexMarker905"/> instead of considering its accuracy. As such, the classifier ensures that both the protected and unprotec<a id="_idTextAnchor155"/>ted groups demonstrate an equal ratio of false negatives and false positives (<em class="italic">FN/FP</em>), such as 0.56 and 0.62 for male<a id="_idIndexMarker906"/> and female entrants, respectively. This idea has been formulated to ensure an equal ratio of <strong class="bold">false negatives</strong> (<strong class="bold">FN</strong>) to <strong class="bold">false positives</strong> (<strong class="bold">FP</strong>) of the different classes of the population<a id="_idIndexMarker907"/> for which the ML classifier is being evailuated <span class="No-Break">for fairness.</span></p>
+			<h2 id="_idParaDest-140"><a id="_idTextAnchor156"/>Types of fairness based on similarity-based measures</h2>
+			<p>Types of fairness built using statistical metrics<a id="_idIndexMarker908"/> often suffer from the limitation of ignoring all attributes other than sensitive attributes. This leads to the unfair treatment of one group, even when the same ratio of male and female entrants exhibits the same skillsets or criteria. Such situations arise when selection happens randomly for one group, whereas selection for another group (such as females) is based on certain other attributes (for example, having higher savings). This results in a discrepancy even though statistical parity will mark the classifier as fair. The following<a id="_idIndexMarker909"/> types of fairness are put forward to address such issues that may arise due to selection bias by removing the marginalization of insensitive attributes,<em class="italic"> X</em>, of the classified groups <span class="No-Break">under study.</span></p>
+			<h3>Causal discrimination</h3>
+			<p>A classifier is said to fulfill the condition<a id="_idIndexMarker910"/> of causal discrimination<a id="_idIndexMarker911"/> when it produces the same classification for any two subjects with exactly the same features (or attributes), <em class="italic">X</em>. To satisfy this criterion, both males and females with identical attributes should either be designated a good qualifying score or a low qualifying scor<a id="_idTextAnchor157"/>e, and this should be the same for both groups. Mathematically, this can be <span class="No-Break">expressed as:</span></p>
+			<p class="IMG---Figure">(X<span class="subscript">f</span> = X<span class="subscript">m</span> ∧ G<span class="subscript">f</span><strong class="source-inline"> ! </strong>= G<span class="subscript">m</span>) → d<span class="subscript">f</span> = d<span class="subscript">m</span></p>
+			<p>To test this fairness measure, for each entrant in the test set, we need to generate identical entrants of the opposite gender and compare the predicted classification probabilities for those entrants. The classifier will fail if we fail to achieve the same probabilities<a id="_idIndexMarker912"/> for the <span class="No-Break">two groups.</span></p>
+			<h3>Fairness through unawareness</h3>
+			<p>A classifier is said to fulfill<a id="_idIndexMarker913"/> this condition of fairness when no sensitive attributes are explicitly used to predict the final model outcome. Training such models requires that no gender-, race-, or ethnicity-related features are used while training the model. Mathematically, the classification outcome of two sim<a id="_idTextAnchor158"/>ilar entrants <em class="italic">i</em> and <em class="italic">j</em> (of the opposite gender) with identical attributes can be expressed as (X : X<span class="subscript">i</span> = X<span class="subscript">j</span> → d<span class="subscript">i</span> = d<span class="subscript">j</span>). To test this condition, for each entrant in the test set, we need to generate identical entrants of the opposite gender and compare the predicted classification probabilities for those two entrants. The classifier is then trained with any classification algorithm (such as logistic regression or a random forest classifier) without using any sensitive attributes and is validated as succeeding if and only if it generates the same probabilities for both groups. However, we also need to ensure that no proxy features of the direct sensitive attributes<a id="_idIndexMarker914"/> are used to train the model, which may again result in creating unfair results in the <span class="No-Break">model outcome.</span></p>
+			<h3>Fairness through awareness</h3>
+			<p>This measure of fairness <a id="_idIndexMarker915"/>combines the previous two types to illustrate the fact that similar individuals should exhibit similar classifications. We can evaluate the similarity of individuals based on a distance metric, where the distributions of predicted outcomes for individuals should lie within  the computed distance between the individuals. The fairness criterion is said to be satisfied when <em class="italic">D</em>(<em class="italic">M</em>(<em class="italic">x</em>)<em class="italic">, M</em>(<em class="italic">y</em>)) ≤ <em class="italic">k </em>(<em class="italic">x, y</em>), where <em class="italic">V</em> represents the set of entrants, <em class="italic">k</em> serves as the distance metric between the two entrants, <em class="italic">D</em> (distance) represents the metric between the distribution of predicted outputs, and<em class="italic"> V × V </em><em class="italic">→</em><em class="italic"> R </em>creates an alignment from a set of entrants to probability distributions over outcomes<em class="italic"> M: V </em><em class="italic">→ </em><span class="No-Break"><em class="italic">δ</em></span><span class="No-Break"><em class="italic">A</em></span><span class="No-Break">.</span></p>
+			<p>Now let's illustrate this further with an example. As <em class="italic">k</em> represents the distance between two entrants <em class="italic">i</em> and <em class="italic">j,</em> it can hold the value <em class="italic">0</em> if the features in <em class="italic">X</em> (all features/attributes other than gender) are identical, or <em class="italic">1</em> if some features in <em class="italic">X</em> vary. <em class="italic">D</em> could be defined as <em class="italic">0</em> if the classifier resulted in a prediction in the same class, or <em class="italic">1</em> otherwise. The metric of consideration here is the distance, which has been computed by normalizing the difference between attributes such as age, income, and others. The reduction to a simpler version ensures the easy<a id="_idIndexMarker916"/> representation of distance, which is the statistical difference between the model’s predicted probabilities for two entrants:<em class="italic"> D</em>(<em class="italic">i, j</em>)<em class="italic"> = S</em>(<em class="italic">i</em>)<em class="italic"> − </em><span class="No-Break"><em class="italic">S</em></span><span class="No-Break">(</span><span class="No-Break"><em class="italic">j</em></span><span class="No-Break">).</span></p>
+			<h2 id="_idParaDest-141"><a id="_idTextAnchor159"/>Types of fairness based on causal reasoning</h2>
+			<p>The types of fairness that we’ve covered<a id="_idIndexMarker917"/> have been designed based on a directed acyclic graph, where nodes represent the attributes of an entrant and edges represent associations between the attributes. Such graphs aid in building fair classifiers and other ML algorithms, as they are driven by the relationships between the attributes and their impact on the model outcomes. The relationships can be further expressed by a different set of equations, to ascertain the impact of sensitive attributes and allow only a tolerance threshold to permit discrimination among different groups present in <span class="No-Break">the population.</span></p>
+			<div>
+				<div id="_idContainer134" class="IMG---Figure">
+					<img src="image/B18681_07_007.jpg" alt="Figure 7.7 – A causal graph with a proxy attribute and a resolving attribute"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.7 – A causal graph with a proxy attribute and a resolving attribute</p>
+			<p><span class="No-Break"><em class="italic">Figure 7</em></span><em class="italic">.7</em> shows a causal graph comprising<a id="_idIndexMarker918"/> the attributes credit amount, employment length, credit history, <strong class="bold">protected attribute</strong> <strong class="bold">G</strong> (or gender), and predicted outcome <strong class="bold">d</strong>. <span class="No-Break"><em class="italic">Figure 7</em></span><em class="italic">.7</em> depicts how a <strong class="bold">proxy attribute</strong> (like <strong class="bold">G</strong>) can be derived from another<a id="_idIndexMarker919"/> attribute, which in our case is employment length. As the causal graph demonstrates, we can easily derive the entrant’s gender from their employment duration. Similarly, we use the term <strong class="bold">resolving attribute</strong> in a causal graph to describe<a id="_idIndexMarker920"/> an attribute that is determined by a protected attribute, in an unbiased fashion without any discrimination. Credit amount serves as a resolving attribute for <strong class="bold">G</strong>, where the variations observed in credit amount for different<a id="_idIndexMarker921"/> values of <strong class="bold">G</strong> are not considered biased and do not hold <span class="No-Break">any discrimination.</span></p>
+			<p>Now, let's look at different types of fairness based on <span class="No-Break">causal reasoning:</span></p>
+			<ul>
+				<li><strong class="bold">Counterfactual fairness</strong>: This type of fairness is applicable<a id="_idIndexMarker922"/> to a causal graph when the predicted<a id="_idIndexMarker923"/> outcome <strong class="bold">d</strong> in the graph has no dependence on a descendant of the protected attribute <strong class="bold">G</strong>. We see in the example shown in <span class="No-Break"><em class="italic">Figure 7</em></span><em class="italic">.7</em> that <strong class="bold">d</strong> is dependent on credit history, credit amount, and employment length. Even the presence of a single direct descendant of <strong class="bold">G</strong>, employment length<a id="_idIndexMarker924"/> in this case, can cause the model to break the condition of being<a id="_idIndexMarker925"/> <span class="No-Break">counterfactually fair.</span></li>
+				<li><strong class="bold">No unresolved discrimination</strong>: This property exists in a causal graph when there is an absence <a id="_idIndexMarker926"/>of any path from the protected<a id="_idIndexMarker927"/> attribute <strong class="bold">G</strong> to the predicted outcome <strong class="bold">d</strong>. The presence of a resolving variable can be treated as an exception and is not a violation of anything. In <span class="No-Break"><em class="italic">Figure 7</em></span><em class="italic">.7</em>, there exists a path from <strong class="bold">G</strong> to <strong class="bold">d</strong> via credit amount, which is non-discriminatory. The presence of credit amount enables the establishment of a resolving attribute. It further aids in creating a discriminatory graph by generating a path via employment length. Hence, this graph demonstrates an example of unresolved discrimination and cannot satisfy this type <span class="No-Break">of fairness.</span></li>
+				<li><strong class="bold">No proxy discrimination</strong>: This property of a causal graph implies that it is devoid of any proxy<a id="_idIndexMarker928"/> discrimination. In other words, it means<a id="_idIndexMarker929"/> there exist zero paths from the protected attribute <strong class="bold">G</strong> to the predicted outcome<em class="italic"> </em><strong class="bold">d</strong>. In the absence of any blockage caused by a proxy variable, the causal graph can be said to have no proxy discrimination, thereby confirming an unbiased representation of the data. However, in our example, there is an indirect path from <strong class="bold">G</strong> to <strong class="bold">d</strong><em class="italic"> </em>via the employment length proxy attribute, which means the graph has <span class="No-Break">proxy discrimination.</span></li>
+				<li><strong class="bold">Fair inference</strong>: This type of fairness in a causal graph helps the path classification<a id="_idIndexMarker930"/> process by labeling the paths in a causal graph as legitimate or illegitimate. A causal graph guarantees the satisfaction of the fair inference condition, where illegitimate paths from <strong class="bold">G</strong> to <strong class="bold">d</strong><em class="italic"> </em>are absent. However, as <span class="No-Break"><em class="italic">Figure 7</em></span><em class="italic">.7</em> shows, the existence of another illegitimate path, via credit amount, means it cannot satisfy the condition of fair inference. Employment length is an important factor for consideration in credit-related decisions, so even though it behaves<a id="_idIndexMarker931"/> as a proxy candidate for <strong class="bold">G</strong>, the path can be referred to as a <span class="No-Break">legitimate path.</span></li>
+			</ul>
+			<p>We have studied different statistical measures of fairness, but they alone are insufficient to conclude that the predictions are fair, and they assume the availability of actual, verified outcomes. Despite using statistical metrics, we cannot be certain that outcomes present in training data will always be present in the classified model and that predictions will also conform to the same distribution. More advanced definitions of fairness using distance-based similarity metrics and causal reasoning have also been proposed to support fairness in model predictions, but they require expert intervention to <span class="No-Break">confirm results.</span></p>
+			<p>A problem in seeking expert<a id="_idIndexMarker932"/> judgments is that they can involve bias. Modern research techniques explore ways to reduce the search space without compromising accuracy. Furthermore, when we try to meet all fairness conditions in a solution, the complexity of the solution increases, as doing so requires the exploration of a larger search space. Fair prediction also requires the consideration of social issues such as unequal access to resources and social conditioning. Teams involved in data processing and ML model development should try to analyze social issues’ impact and incorporate it when designing <span class="No-Break">fair solutions.</span></p>
+			<p>With these types of fairness in mind, let's now try to master some of the open source tools and techniques available to run data audits and <span class="No-Break">quality checks.</span></p>
+			<h1 id="_idParaDest-142"><a id="_idTextAnchor160"/>The role of data audits and quality checks in fairness</h1>
+			<p>Even before digging deep<a id="_idIndexMarker933"/> into predictive<a id="_idIndexMarker934"/> algorithms<a id="_idIndexMarker935"/> and evaluating<a id="_idIndexMarker936"/> fairness metrics, we must try to see whether the training data used in the process is skewed and biased toward a majority of the population. This is mainly because most bias results from not having enough data for a disadvantaged or minority sector of a population. Additionally, bias also emerges when we do not apply any of the techniques to deal with data imbalance. In such scenarios, it is essential for us to integrate explainability tools to justify the variability and skewness of <span class="No-Break">the data.</span></p>
+			<p>Let's now investigate how to measure data imbalance and explain variability with the use of certain<a id="_idIndexMarker937"/> tools. One of the tools we are going to use first is <strong class="bold">Fairlens</strong>, which aids in fairness assessment and improvement (such as evaluating fairness metrics, mitigation algorithms, plotting, and so on). Some examples are given here with code snippets (on the COMPAS dataset), which will help us to understand the data distributions and evaluate the <span class="No-Break">fairness criteria.</span></p>
+			<p>The necessary<a id="_idIndexMarker938"/> imports<a id="_idIndexMarker939"/> for running <a id="_idIndexMarker940"/>all the tests<a id="_idIndexMarker941"/> are <span class="No-Break">as follows:</span></p>
+			<pre class="source-code">
+import pandas as pd
+import fairlens as fl
+df = pd.read_csv""../datasets/compas.cs"")</pre>
+			<h2 id="_idParaDest-143"><a id="_idTextAnchor161"/>Assessing fairness</h2>
+			<p>Let’s try<a id="_idIndexMarker942"/> <span class="No-Break">out Fairlens:</span></p>
+			<ol>
+				<li>The <strong class="source-inline">fairlens.FairnessScorer</strong> class can be used to automatically generate a fairness report on a dataset, if you provide it with a target column. Here, the target column stays independent of the sensitive attributes. We can analyze the inherent bias in a dataset used for supervised learning by passing in the name of a desired output column. Now, let's generate the demographic report of <span class="No-Break">the dataset:</span><pre class="console">
+fscorer = fl.FairnessScorer(df,""RawScor"", ""Ethnicit"",""Se""])
+fscorer.plot_distributions()
+print""Demo Re"", fscorer.demographic_report())</pre></li>
+			</ol>
+			<p>This will generate the following output, which shows that there is a complete representation of distributional scores of all the major demographic sections of the population.</p>
+			<div>
+				<div id="_idContainer135" class="IMG---Figure">
+					<img src="image/B18681_07_008.jpg" alt="Figure 7.8 – Distribution statistics of the different demographic groups of the population"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.8 – Distribution statistics of the different demographic groups of the population</p>
+			<ol>
+				<li value="2">We also plot the distributions<a id="_idIndexMarker943"/> of decile scores in subgroups made of African-Americans and Caucasians as <span class="No-Break">shown here:</span><pre class="console">
+group1 = ""rac"": ""African-America""]}
+group2 = ""rac"": ""Caucasia""]}
+fl.plot.distr_plot(df,""decile_scor"", [group1, group2])
+plt.legend(""African-America"",""Caucasia""])
+plt.show()</pre></li>
+			</ol>
+			<p>This gives us the following output:</p>
+			<div>
+				<div id="_idContainer136" class="IMG---Figure">
+					<img src="image/B18681_07_009.jpg" alt="Figure 7.9 – Proportion of two groups – majority and minority"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.9 – Proportion of two groups – majority and minority</p>
+			<h3>Statistical distance</h3>
+			<p>This is another important distance<a id="_idIndexMarker944"/> parameter that we want to consider if we want to evaluate how the distributions between two sensitive demographic groups/sub-groups vary. The metric is used for evaluating the statistical distance between two probability distributions, <strong class="source-inline">group1</strong> and <strong class="source-inline">group2</strong>, with respect to the <span class="No-Break">target attribute.</span></p>
+			<p>This can be done using the following code to yield (<strong class="source-inline">0.26075238442125354, 0.9817864673203285</strong>). It returns the distance and the p-value, as <strong class="source-inline">p_value</strong> is set <span class="No-Break">to </span><span class="No-Break"><strong class="source-inline">True</strong></span><span class="No-Break">:</span></p>
+			<pre class="source-code">
+group1 = ""Ethnicity"": ""African-America""]}
+group2 = df""Ethnicity""] ==""Caucasia""
+print (fl. metrics. stat_distance(df, target_attr, group1, group2, mode""aut"", p_value=True))</pre>
+			<h3>Proxy detection</h3>
+			<p>This metric helps us to evaluate<a id="_idIndexMarker945"/> proxy features in some datasets. Some insensitive attributes may become highly/partially correlated with sensitive columns, which can effectively become proxies for them. This in turn makes the model biased when the same dataset is used for training. Here, for the four different data points, we can try to evaluate the hidden insensitive <span class="No-Break">proxy features:</span></p>
+			<pre class="source-code">
+col_names = ""gende"",""nationalit"",""rando"",""corr"",""corr""]
+data = [
+    ""woma"",""spanis"", 715, 10, 20],
+    ""ma"",""spanis"", 1008, 20, 20],
+    ""ma"",""frenc"", 932, 20, 10],
+    ""woma"",""frenc"", 1300, 10, 10],
+]
+df = pd.DataFrame(data, columns=col_names)
+print(fl.sensitive.find_sensitive_correlations(df))</pre>
+			<h2 id="_idParaDest-144"><a id="_idTextAnchor162"/>Linear regression</h2>
+			<p>Linear regression<a id="_idIndexMarker946"/> can help us to identify proxy features, by evaluating the correlation between the dependent and <span class="No-Break">independent variables.</span></p>
+			<h3>Cosine similarity/distance method</h3>
+			<p>Cosine similarity<a id="_idIndexMarker947"/> is one of the mechanisms used to detect<a id="_idIndexMarker948"/> proxy features, where the similarity factor evaluates similar items in multidimensional space. Any two features in a dataset (say, for example, for a loan application dataset) would become proxy features when the cosine similarity between any two vectors falls in the same direction. Such cases seem obvious when we see monthly income and expenditure behaving as proxy features, particularly in a loan application with the applicant’s gender and number of dependents <span class="No-Break">taken together.</span></p>
+			<h3>The linear association method using variance</h3>
+			<p>This metric was discussed<a id="_idIndexMarker949"/> in the paper <em class="italic">Hunting for Discriminatory Proxies in Linear Regression Models</em> by Yeom, Datta, and Fredrikson (<a href="https://arxiv.org/pdf/1810.07155.pdf">https://arxiv.or<span id="_idTextAnchor163"/>g/<span id="_idTextAnchor164"/>pdf/1810.07155.pdf</a>) and aims<a id="_idIndexMarker950"/> to measure the association between two attributes. To compute this metric, we need to compute <em class="italic">cov</em> (<em class="italic">X</em><span class="subscript">1</span>, <em class="italic">X</em><span class="subscript">2</span>)<span class="superscript">2</span> / <em class="italic">Var </em>(<em class="italic">X</em>1) <em class="italic">Var</em> (<em class="italic">X</em>2), which can be done <span class="No-Break">as follows:</span></p>
+			<ol>
+				<li>First, we need to compute the covariance factor between the two <span class="No-Break">feature attributes:</span><pre class="console">
+covar_sex_dur = data.Sex.cov(data.Duration)</pre></li>
+				<li>The next step is to compute the individual variances of the <span class="No-Break">feature attributes:</span><pre class="console">
+variance_sex = data.Sex.var()
+variance_dur= data.Duration.var()</pre></li>
+				<li>Then we try to evaluate the degree of linear association between the <span class="No-Break">feature attributes:</span><pre class="console">
+association = covar_sex_dur/(variance_sex*variance_dur)
+print ""Association between Sex and Duratio"", association)</pre></li>
+			</ol>
+			<p>We get <a id="_idIndexMarker951"/>the following<a id="_idIndexMarker952"/> output:</p>
+			<pre class="console">
+<strong class="bold">Association between Sex and Duration -0.014593816319825929</strong></pre>
+			<p>Now, let's look at how we determine the correlations between protected features and <span class="No-Break">other features.</span></p>
+			<h2 id="_idParaDest-145"><a id="_idTextAnchor165"/>The variance inflation factor</h2>
+			<p>The <strong class="bold">variance inflation factor</strong> (<strong class="bold">VIF</strong>) metric aims to measure<a id="_idIndexMarker953"/> multicollinearity by evaluating the coefficient of determination (R2) for each variable. As this method determines proxy features, it can aid in removing collinear or multicollinear features, which act as proxies for sensitive/protected attributes in the dataset. Further feature removal can be done by leveraging multiple <span class="No-Break">regression trees.</span></p>
+			<p>A high value for VIF in a regression model between protected features and other features would be interpreted<a id="_idIndexMarker954"/> as a sign of collinearity between multiple colinear features. Furthermore, it would also indicate the strong presence of another feature that is collinear and thus is a proxy for the feature <span class="No-Break">under study:</span></p>
+			<ol>
+				<li>The first step is to have the necessary library imports for the VIF and load the <span class="No-Break"><strong class="source-inline">german_credit</strong></span><span class="No-Break"> dataset:</span><pre class="console">
+import pandas as pd
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+df = pd.read_csv""../datasets/german_credit_data.cs"")
+data = df[''Ag'',''Se'',''Jo'',''Duratio'',''Credit amoun'']]
+data = data.dropna()</pre></li>
+				<li>The next step is to create a mapping for the sensitive feature attributes and segregate the independent features for which we want to compute <span class="No-Break">the VIF:</span><pre class="console">
+data''Se''] = data''Se''].map(''mal'': 0,''femal'': 1})
+X = data[''Ag'',''Se'',''Jo'',''Credit amoun'',''Duratio'']]</pre></li>
+				<li>The final step is to run the VIF on the data, evaluate the VIF for each feature attribute, and discover the potential <span class="No-Break">proxy features:</span><pre class="console">
+vif_data = pd.DataFrame()
+vif_data""featur""] = X.columns
+vif_data""VI""] = [variance_inflation_factor(X.values, i)
+                   for i in range(len(X.columns))]
+print(vif_data)</pre></li>
+				<li>We get the following<a id="_idIndexMarker955"/> output, which clearly shows that <strong class="source-inline">Job</strong> and <strong class="source-inline">Duration</strong> have high VIF values. Using them together leads to a model with high multicollinearity. They serve as potential candidates for <span class="No-Break">proxy features:</span><pre class="console">
+<strong class="bold">           feature    VIF</strong>
+<strong class="bold">            Age  5.704637</strong>
+<strong class="bold">            Sex  1.365161</strong>
+<strong class="bold">            Job  7.180779</strong>
+<strong class="bold">   Credit amount 3.970147</strong>
+<strong class="bold">        Duration 6.022894</strong></pre></li>
+			</ol>
+			<h2 id="_idParaDest-146"><a id="_idTextAnchor166"/>Mutual information</h2>
+			<p>This metric signifies the amount<a id="_idIndexMarker956"/> of information available for a random feature attribute given another feature attribute is existing. It works in non-linear tree-based algorithms by computing <em class="italic">I(X1, X2)</em>, which is a weighted sum of joint probabilities, in contrast to <em class="italic">COV(X1, X2)</em>, which is a weighted sum of the product of the <span class="No-Break">two features:</span></p>
+			<ol>
+				<li>We can compute the mutual information score for the <strong class="source-inline">german_credit</strong> dataset <span class="No-Break">as follows:</span><pre class="console">
+mi_1 = mutual_info_score(data''Ag''], data''Se''])
+mi_2 = mutual_info_score(data''Jo''], data''Se''])
+mi_3 = mutual_info_score(data''Duratio''], data''Se''])
+mi_4 = mutual_info_score(data''Credit amoun''], data''Se''])
+print""Mutual Inf"", mi_1, mi_2, mi_3, mi_4, mi_5)</pre></li>
+				<li>We get the following output, which again confirms the fact that the relationship between credit amount and sex is high, followed by the relationship between the sex and credit <span class="No-Break">duration</span><span class="No-Break"><a id="_idIndexMarker957"/></span><span class="No-Break"> attributes:</span><pre class="console">
+<strong class="bold">Mutual Info 0.06543499129250782 0.003960052834578523 0.019041038432321293 0.5717832060773372</strong></pre></li>
+			</ol>
+			<h2 id="_idParaDest-147"><a id="_idTextAnchor167"/>Significance tests</h2>
+			<p>When we assess fairness scores and evaluate<a id="_idIndexMarker958"/> statistical distances, we may also want to test the null hypothesis and see whether the null or alternate hypothesis is true. This can be done using bootstrapping or permutation tests to resample the data multiple times. These iterations compute the statistic multiple times and provide an estimate of its distribution, by computing the p-value or the confidence interval for <span class="No-Break">the metric:</span></p>
+			<ol>
+				<li>Let's see with the following example how we can compute the confidence interval as well as the p-value between male and <span class="No-Break">female distributions:</span><pre class="console">
+group1 = df[df""Se""] ==""Male"] ""RawScor""]
+group2 = df[df""Se""] ==""Female"] ""RawScor""]</pre></li>
+				<li>The test statistic can be configured with the following code. <strong class="source-inline">t_distribution</strong><em class="italic"> </em>can be set up using either the permutation or bootstap method between the two groups <span class="No-Break">previously created:</span><pre class="console">
+test_statistic = lambda x, y: x.mean()–- y.mean()
+t_distribution = fl.metrics.permutation_statistic(group1, group2, test_statistic, n_perm=100)</pre></li>
+			</ol>
+			<p>Or, you can use this code:</p>
+			<pre class="console">
+t_distribution = fl.metrics.bootstrap_statistic(group1, group2, test_statistic, n_samples=100)</pre>
+			<ol>
+				<li value="3">Now, let's compute the confidence interval and p-value as <span class="No-Break">shown here:</span><pre class="console">
+t_observed = test_statistic(group1, group2)
+print("Resampling Interval", fl.metrics.resampling_interval(t_observed, t_distribution, cl=0.95))
+print("Resampling Pval", fl.metrics.resampling_p_value(t_observed, t_distribution, alternative="two-sided"))</pre></li>
+				<li>Now we get the output<a id="_idIndexMarker959"/> that follows. For the first case, we get the confidence interval as a tuple, while for the second case, we receive <span class="No-Break">the p-value:</span><pre class="console">
+<strong class="bold">Resampling Interval (0.24478083502138195, 0.31558333333333327)</strong>
+<strong class="bold">Resampling Pval 0.37</strong></pre></li>
+			</ol>
+			<h2 id="_idParaDest-148"><a id="_idTextAnchor168"/>Evaluating group fairness</h2>
+			<p>We have seen how group fairness<a id="_idIndexMarker960"/> is important for fulfilling fairness generally. Natalia Martinez, Martin Bertran, and Guillermo Sapiro are the inventors of the concept of the minimax fairness criteria, which aims to improve group fairness metrics. Let's now study the important concept of minimax fairness (<a href="https://github.com/amazon-research/minimax-fair">https://github.com/amazon-research/minimax-fair</a>), which strives to achieve fairness when protected group labels are not available. Equality of error rates is one of the most intuitive and well-studied forms of fairness. But using them poses a major challenge when we try to equalize error rates by raising the threshold of error rates, which is undesirable for social welfare causes. Hence, increasing the error margins to establish equal error rates across equally accurate racial groups, income levels, and geographic locations is not a good choice. To further increase group fairness, we can use the minimax group error, proposed by Martinez in 2020. The concept of group fairness does not seek to equalize error rates (as stated earlier in the fairness definitions). Instead, this metric tries to minimize the largest group error rate, to ensure that the worst group demonstrates the same values in terms of fairness metrics. This relaxed concept of fairness tries to achieve the right trade-off between minimax fairness and overall accuracy. The metric has a <span class="No-Break">two-fold objective:</span></p>
+			<ul>
+				<li>First, it tries to find a minimax group fair model from a given <span class="No-Break">statistical class</span></li>
+				<li>Then it evaluates a model that minimizes the overall error subject, where the constraint has been set to bind all group errors below a specified (<span class="No-Break">pre-determined) threshold</span></li>
+			</ul>
+			<p>The objective of the preceding<a id="_idIndexMarker961"/> two steps is to reduce the process to unconstrained (non-fair) learning over the same class, where they converge. The minimax fairness metric can be further extended to handle different types of error rates, such as FP and FN rates, as well as overlapping groups having intersectional characteristics. Such groups with intersectional attributes are not just limited to race or gender alone, but can also comprise combinations of race <span class="No-Break">and gender:</span></p>
+			<ol>
+				<li>Using a dataset, we generate <strong class="source-inline">X</strong>, <strong class="source-inline">y</strong>, <strong class="source-inline">grouplabels</strong>, <span class="No-Break">and </span><span class="No-Break"><strong class="source-inline">groupnames</strong></span><span class="No-Break">:</span><pre class="console">
+X, y, grouplabels, group_names, group_types, is_categorical = \
+    setup_matrices(path, label, groups, usable_features=usable_features,
+                   drop_group_as_feature=drop_group_as_feature,
+                   categorical_columns=categorical_columns, groups_to_drop=groups_to_drop,
+                   verbose=verbose,
+                   save_data=save_data, file_dir=file_dir, file_name=file_name)</pre></li>
+				<li>Here<em class="italic"> </em><strong class="source-inline">X</strong><em class="italic"> and </em><strong class="source-inline">y</strong> are the features and labels for each type of group. Furthermore, <strong class="source-inline">X</strong> is divided into a number of different groups, where each of which has a shared linear function. This function is used to sample the labels with noise. In the absence of a dataset, to build and evaluate a fair minimax of a model, we can employ a synthetic data generation mechanism, as in the following <span class="No-Break">code snippet:</span><pre class="console">
+generate_synthetic_data(numdims, noise, numsamples=1000, num_group_types=1, min_subgroups=2, max_subgroups=10, min_subgroup_size=20, mean_range=0, variability=1, num_uniform_features=0, intercept_scale=2, binary=False, drop_group_as_feature=False, save_data=False, file_dir='', file_name='', random_seed=0)</pre></li>
+				<li>Now the learning process can be kicked off as in the following code snippet, with the parameters necessary<a id="_idIndexMarker962"/> for learning given in the table <span class="No-Break">that follows:</span><pre class="console">
+minimax_err, max_err, initial_pop_err, agg_grouperrs, agg_poperrs, _, pop_err_type, total_steps, _, _, _, \
+_, _, _ = \
+    do_learning(X, y, numsteps, grouplabels, a, b, equal_error=False,
+                scale_eta_by_label_range=scale_eta_by_label_range, model_type=model_type,
+                gamma=0.0, relaxed=False, random_split_seed=random_split_seed,
+                group_names=group_names, group_types=group_types, data_name=data_name,
+                verbose=verbose, use_input_commands=use_input_commands,
+                error_type=error_type, extra_error_types=extra_error_types, pop_error_type=pop_error_type,
+                convergence_threshold=convergence_threshold,
+                show_legend=show_legend, save_models=False,
+                display_plots=display_intermediate_plots,
+                test_size=test_size, fit_intercept=fit_intercept, logistic_solver=logistic_solver,
+                max_logi_iters=max_logi_iters, tol=tol, penalty=penalty, C=C,
+                n_epochs=n_epochs, lr=lr, momentum=momentum, weight_decay=weight_decay,
+                hidden_sizes=hidden_sizes,
+                save_plots=save_intermediate_plots, dirname=dirname)</pre></li>
+			</ol>
+			<p>Let's now see the different<a id="_idIndexMarker963"/> parameters and their functionalities involved in fair synthetic<a id="_idIndexMarker964"/> <span class="No-Break">data generation:</span></p>
+			<table id="table002-1" class="No-Table-Style _idGenTablePara-1">
+				<colgroup>
+					<col/>
+					<col/>
+				</colgroup>
+				<tbody>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="bold">Parameter name</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><strong class="bold">Purpose</strong></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">X</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>A NumPy matrix of features with dimensions equal to <strong class="source-inline">numsamples</strong>.</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">y</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>A NumPy array of labels with length <strong class="source-inline">numsamples</strong>. Should be numeric (0/1 label binary classification).</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">a, b</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Parameters for <em class="italic">eta = a * t ^ (-b</em>).</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">scale_eta_by_label_range</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Whether or not the input value should be scaled by the max absolute label value squared.</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">rescale_features</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Whether or not the feature values should be rescaled for numerical stability.</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">gamma</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>The maximum allowed max groups errors by convergence.</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">relaxed</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Denotes whether we are solving the relaxed version of the problem.</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">model_type</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>The <strong class="source-inline">sklearn</strong> model type, such as <strong class="source-inline">LinearRegression</strong>, <strong class="source-inline">LogisticRegression</strong>, and so on.</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">error_type</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>For classification only: total, FP, FN, and so on.</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">extra_error_types</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>The set of error types that we want to plot.</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">pop_error_type</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>The error type to use on the population: example error metric is sum of  FP/FN over the entire population.</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">convergence_threshold</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Converges (early) when the max change in sample weights &lt; <strong class="source-inline">convergence_threshold</strong>.</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">Penalty</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>The regularization penalty for logistic regression.</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">C</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>The inverse of the regularization strength.</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">logistic_solver</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Which underlying solver to use for logistic regression.</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">fit_intercept</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Whether or not we should fit an additional intercept.</p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">max_logi_iters</strong></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>The max number of logistic regression iterations.</p>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Table 7.2 – Different parameters for training the minimax model</p>
+			<p><span class="No-Break"><em class="italic">Figure 7</em></span><em class="italic">.10</em> shows the variation of individual group errors, group weights, and the average population error with synthetic data using minimax group fairness with logistic regression. We can see that both the individual sub-groups (log-loss errors) and average population error (log loss) roughly follow the same trend and remain confined between <strong class="source-inline">0.63</strong> <span class="No-Break">and </span><span class="No-Break"><strong class="source-inline">0.65</strong></span><span class="No-Break">.</span></p>
+			<div>
+				<div id="_idContainer137" class="IMG---Figure">
+					<img src="image/B18681_07_010.jpg" alt="Figure 7.10 – A diagram showing different parameters for training the minimax model"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.10 – A diagram showing different parameters for training the minimax model</p>
+			<h2 id="_idParaDest-149"><a id="_idTextAnchor169"/>Evaluating counterfactual fairness</h2>
+			<p>Let's use the open source <strong class="bold">FAT Forensics</strong> (<strong class="bold">fatf</strong>) library, which is a <a id="_idIndexMarker965"/>Python toolbox that can be used for evaluating the fairness, accountability, and transparency of <span class="No-Break">predictive systems:</span></p>
+			<ol>
+				<li>Let’s first set up the <span class="No-Break">necessary imports:</span><pre class="console">
+import numpy as np
+import fatf.utils.data.datasets as fatf_datasets
+import fatf.utils.models as fatf_models
+import fatf.fairness.predictions.measures as fatf_pfm
+import fatf.transparency.predictions.counterfactuals as fatf_cf</pre></li>
+				<li>Let’s load a synthetic <span class="No-Break">healthcare dataset:</span><pre class="console">
+hr_data_dict = fatf_datasets.load_health_records()
+hr_X = hr_data_dict['data']
+hr_y = hr_data_dict['target']
+hr_feature_names = hr_data_dict['feature_names']
+hr_class_names = hr_data_dict['target_names']</pre></li>
+				<li>With the dataset loaded, let’s map the target indices to target names, dropping unnecessary columns, before starting the <span class="No-Break">training process:</span><pre class="console">
+hr_y = np.array([hr_class_names[i] for i in hr_y])
+unique_identifiers = ['name', 'email', 'zipcode', 'dob']
+columns_to_keep = [i for i in hr_X.dtype.names if i not in unique_identifiers]
+hr_X = hr_X[columns_to_keep]
+hr_feature_names = [i for i in hr_feature_names if i not in unique_identifiers]</pre></li>
+				<li>Next, we start the model training and select instances for <span class="No-Break">counterfactual fairness:</span><pre class="console">
+clf = fatf_models.KNN()
+clf.fit(hr_X, hr_y)</pre></li>
+				<li>After training the model, let’s select the data instances (its protected features) for which we would like to test the <span class="No-Break">counterfactual fairness:</span><pre class="console">
+data_point_index = 4 + 2
+data_point = hr_X[data_point_index]
+data_point_y = hr_y[data_point_index]
+protected_features = ['gender', 'age']</pre></li>
+				<li>Print out the protected features <span class="No-Break">and instances:</span><pre class="console">
+assert protected_features, 'The protected features list cannot be empty.'
+person = ' is' if len(protected_features) == 1 else 's are'
+print('The following fautre{} considered protected:'.format(person))
+for feature_name in protected_features:
+    print('     "{}".'.format(feature_name))
+print('\nEvaluating counterfactual fairness of a data point (index {}) of '
+      'class *{}* with the following features:'.format(data_point_index,
+data_point_y))
+for feature_name in data_point.dtype.names:
+    print('     The feature *{}* has value: {}.'.format(
+        feature_name, data_point[feature_name]))</pre></li>
+			</ol>
+			<p>This results in the following output:</p>
+			<pre class="console">
+<strong class="bold">The following features are considered protected:</strong>
+<strong class="bold">    </strong><strong class="bold"> "gender".</strong>
+<strong class="bold">     "age".</strong>
+<strong class="bold">Evaluating counterfactual fairness of a data point (index 6) of class *fail* with the following features:</strong>
+<strong class="bold">     The feature *age* has value: 41.</strong>
+<strong class="bold">     The feature *weight* has value: 73.</strong>
+<strong class="bold">     The feature *gender* has value: female.</strong>
+<strong class="bold">     The feature *diagnosis* has value: heart.</strong></pre>
+			<ol>
+				<li value="7">The next step is to compute the counterfactually <span class="No-Break">unfair samples:</span><pre class="console">
+cfs, cfs_distances, cfs_classes = fatf_pfm.counterfactual_fairness(
+    instance=data_point,
+    protected_feature_indices=protected_features,
+    model=clf,
+    default_numerical_step_size=1,
+    dataset=hr_X)</pre></li>
+				<li>The final step is to print the counterfactually unfair <span class="No-Break">data points:</span><pre class="console">
+cfs_text = fatf_cf.textualise_counterfactuals(
+    data_point,
+    cfs,
+    instance_class=data_point_y,
+    counterfactuals_distances=cfs_distances,
+    counterfactuals_predictions=cfs_classes)
+print('\n{}'.format(cfs_text))</pre></li>
+				<li>This generates the <span class="No-Break">following output:</span><pre class="console">
+<strong class="bold">Counterfactual instance (of class *success*):</strong>
+<strong class="bold">Distance: 19</strong>
+<strong class="bold">    feature *age*: *41* -&gt; *22*</strong>
+<strong class="bold">Counterfactual instance (of class *success*):</strong>
+<strong class="bold">Distance: 20</strong>
+<strong class="bold">    </strong><strong class="bold">feature *age*: *41* -&gt; *22*</strong>
+<strong class="bold">    feature *gender*: *female* -&gt; *male*</strong></pre></li>
+			</ol>
+			<p>We have already studied what <strong class="bold">disparate</strong> <strong class="bold">impact</strong> is when looking at <a id="_idIndexMarker966"/>fairness. Now let's see with code examples how we can measure the three most common disparate impact measures.</p>
+			<ol>
+				<li value="10">To evaluate the <strong class="bold">equal accuracy</strong> metric, we can use the <a id="_idIndexMarker967"/>following <span class="No-Break">code snippet:</span><pre class="console">
+equal_accuracy_matrix = fatf_mfm.equal_accuracy(confusion_matrix_per_bin)
+print_fairness('Equal Accuracy', equal_accuracy_matrix)</pre></li>
+				<li>To evaluate the <strong class="bold">equal opportunity</strong> metric, we run <a id="_idIndexMarker968"/><span class="No-Break">the following:</span><pre class="console">
+equal_opportunity_matrix = fatf_mfm.equal_opportunity(confusion_matrix_per_bin)
+print_fairness('Equal Opportunity', equal_opportunity_matrix)</pre></li>
+				<li>To evaluate the <strong class="bold">demographic parity</strong> metric, we <a id="_idIndexMarker969"/><span class="No-Break">run this:</span><pre class="console">
+demographic_parity_matrix = fatf_mfm.demographic_parity(
+    confusion_matrix_per_bin)
+print_fairness('Demographic Parity', demographic_parity_matrix)</pre></li>
+				<li>Here is the output we receive on running an evaluation of equal accuracy, equal opportunity, and <span class="No-Break">demographic parity:</span><pre class="console">
+<strong class="bold">The *Equal Accuracy* group-based fairness metric for *gender* feature split is:</strong>
+<strong class="bold">     The fairness metric is satisfied for "('female',)" and "('male',)" sub-populations.</strong>
+<strong class="bold">The *Equal Opportunity* group-based fairness metric for *gender* feature split are:</strong>
+<strong class="bold">     The fairness metric is satisfied for "('female',)" and "('male',)" sub-populations.</strong>
+<strong class="bold">The *Demographic Parity* group-based fairness metric for *gender* feature split is:</strong>
+<strong class="bold">     The fairness metric is &gt;not&lt; satisfied for "('female',)" and "('male',)" sub-populations.</strong></pre></li>
+			</ol>
+			<p>As we have learned about the basics of fairness with examples, we should also find out how to apply these concepts to follow <span class="No-Break">best practices.</span></p>
+			<h2 id="_idParaDest-150"><a id="_idTextAnchor170"/>Best practices</h2>
+			<p>We have explored with different examples and code snippets the process by which we can evaluate different fairness metrics. However, before evaluation, we need to ensure that the data used for training our models proportionally represents all different <a id="_idIndexMarker970"/>demographic groups of the population. Furthermore, to address the issue of fairness, another important criterion is to ensure that your predictions are calibrated for each group (<a href="https://towardsdatascience.com/understanding-bias-and-fairness-in-ai-systems-6f7fbfe267f3">https://towardsdatascience.com/understanding-bias-and-fairness-in-ai-systems-6f7fbfe267f3</a>). When model scores are not calibrated for each group, we may end up overestimating or underestimating the probability of outcomes for different groups. We may need to redesign thresholds and create separate models and decision boundaries for each group. This process will alleviate bias and enable fairer predictions for each of the groups than a <span class="No-Break">single threshold.</span></p>
+			<p>Most of the time, we are not able to get data where all groups of the population are equally represented. In such situations, the best practice is to generate synthetic datasets by applying artificial methods, so that we not only train the model with equal representations of the different groups but are also able to validate the predicted outcomes against different thresholds customized for each group. This will eliminate representation bias and account for geographic diversity while creating <span class="No-Break">such datasets.</span></p>
+			<p>We also have certain tools, mentioned next, for <span class="No-Break">evaluating fairness.</span></p>
+			<h3>Bias mitigation toolkits</h3>
+			<p>Here is a list of <span class="No-Break">some tools:</span></p>
+			<ul>
+				<li><strong class="bold">Aequitas</strong>: An open source <a id="_idIndexMarker971"/>bias and fairness audit toolkit that evaluates models for different types of bias and fairness metrics on multiple <span class="No-Break">population sub-groups.</span></li>
+				<li><strong class="bold">Microsoft Fairlearn</strong>: This toolkit takes <a id="_idIndexMarker972"/>the reduction approach to fair classification (e.g. binary classification) by leveraging constraints. The constraint-based approach reduces fair classification problems to a sequence of cost-sensitive classification problems. Under applied constraints, this yields a randomized classifier, with the lowest (<span class="No-Break">empirical) error.</span></li>
+				<li><strong class="bold">The What-If Tool</strong>: This open source <a id="_idIndexMarker973"/>TensorBoard web application is a toolkit provided by Google that allows you to view the counterfactuals to analyze an ML model. Users are then able to compare a given data point to the nearest data point that resembles it, yet for which the model predicts a different result. This tool also comes with the flexibility of adjusting the effects of different classification thresholds, along with the ability to tweak different numerical <span class="No-Break">fairness criteria.</span></li>
+				<li><strong class="bold">AI Fairness 360</strong>: This toolkit, developed by <a id="_idIndexMarker974"/>IBM, contains an exhaustive set of fairness metrics for datasets and ML models. It comes with explainability for these metrics, and different algorithms to mitigate bias in datasets at the preprocessing and model <span class="No-Break">training stages.</span></li>
+			</ul>
+			<p>We discuss some of these toolkits in <span class="No-Break">later chapters.</span></p>
+			<p>Now that we know about the different bias mitigation toolkits that are available, and how important auditing data and running frequent quality checks is, let's study synthetic datasets and how they can help in modeling fair <span class="No-Break">ML problems.</span></p>
+			<h1 id="_idParaDest-151"><a id="_idTextAnchor171"/>Fair synthetic datasets</h1>
+			<p>By <strong class="bold">synthetic data</strong>, we mean data generated <a id="_idIndexMarker975"/>artificially from scratch, with statistical properties matching the original or base dataset that is ingested into the system. A synthetically generated dataset bears no relationship to the real subjects present in the <span class="No-Break">original dataset.</span></p>
+			<p>Modern research in <strong class="bold">artificial intelligence</strong> (<strong class="bold">AI</strong>) has led to innovations and the publication of advanced tools that can generate synthetic data in data-intensive environments. With the availability of better tools and techniques, fair, privacy-preserving synthetic data generation (with tabular data) has been widely adopted <span class="No-Break">by organizations.</span></p>
+			<p>Synthetic data-generating algorithms are capable of ingesting real-time data and learning its features, different feature correlations, and patterns. They can then generate large quantities of artificial data that closely resembles the original data in terms of statistical properties and distributions. By and large, these newly generated datasets are also scalable, privacy-compliant, and can display all valuable insights, without violating data confidentiality rules. AI-generated synthetic data is widely used by financial and healthcare providers for scaling their AI solutions. Synthetic data has also been successful in generating robust replacements for missing and <span class="No-Break">hard-to-acquire data.</span></p>
+			<p>Sensitive data has often been kept confined to teams and departments. But with the implementation of synthetic-data-generation tools, it has become easier to establish collaboration with teams and third parties in a privacy-compliant manner using private synthetic copies of data. Synthetic data is great for improving ML algorithms that are impacted by bias or imbalances due to new, rare incoming data, which has a greater influence than historic data. This type of synthetic data finds application in determining fraudulent transactions, whose volume is &lt; 5% of the overall transactions. Up-sampled synthetic datasets are not only capable of detecting bias in transactional data but can also comply with ethics and help ML models to yield better, fairer results for minority or disadvantaged groups. Hence, synthetic data serves as a very important component in the design of ethical ML pipelines. Fair synthetic data can remove societal and historical bias from the predictions of <span class="No-Break">ML models.</span></p>
+			<p>Now, let's study, with an example, a framework that generates private synthetic data by using realistic training samples, without disclosing the PII <span class="No-Break">of individuals.</span></p>
+			<h2 id="_idParaDest-152"><a id="_idTextAnchor172"/>MOSTLY AI’s self-supervised fair synthetic data generator</h2>
+			<p>This framework takes into consideration fairness constraints, in a self-supervised learning process, to simulate and <a id="_idIndexMarker976"/>generate large quantities of fair synthetic data. The framework is made following a generative model architecture that feeds in a dataset (in our example, the UCI Adult Census dataset) to get a better dataset that has a higher degree of fairness than the original dataset. </p>
+			<p>Furthermore, the resultant dataset preserves all the original relationships between the attributes but only controls the gender and racial biases present in the original data. The propensity scores of the predicted model outcomes demonstrate the fact of how fair synthetic data can alleviate bias when compared with the <span class="No-Break">original dataset.</span></p>
+			<p>In ML, we often use<a id="_idIndexMarker977"/> generative deep neural networks that use new, synthetic samples (that are representations of the actual data) to optimize the accuracy loss of an ML model being trained. The loss can represent the similarity of the fitted function to the observed distributions of the real data. The process of generating fair, representative data involves an additional loss to the original loss function that can penalize any violation of the <span class="No-Break">statistical parity.</span></p>
+			<div>
+				<div id="_idContainer138" class="IMG---Figure">
+					<img src="image/B18681_07_011.jpg" alt="  Figure 7.11 – Different parameters for training the minimax model"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">  Figure 7.11 – Different parameters for training the minimax model</p>
+			<p>Hence, the algorithm for fair synthetic data generation involves optimizing a combined loss, which contains <span class="No-Break">the following:</span></p>
+			<ul>
+				<li>A weighted sum of the <span class="No-Break">accuracy loss</span></li>
+				<li>A fairness loss that is proportional to the deviation from the empirically estimated <span class="No-Break">statistical parity</span></li>
+				<li>The right trade-off between accuracy and fairness, where weights are shifted from one loss component to <span class="No-Break">the other</span></li>
+			</ul>
+			<p><span class="No-Break"><em class="italic">Figure 7</em></span><em class="italic">.11</em> illustrates the step-by-step sequences of generating synthetic data and comparing model performance when models are trained on original datasets versus <span class="No-Break">synthetic datasets.</span></p>
+			<p>We have seen how ML-based synthetic data generation is possible. Now, let's see how protected attributes such as gender and income in fair synthetic data help to satisfy some of the fairness definitions we <span class="No-Break">studied before.</span></p>
+			<h3>Influence on fairness statistics</h3>
+			<p>We will leverage a generative deep neural network as a data synthesizer for tabular data to generate synthetic data samples from the <strong class="source-inline">adult_income</strong> dataset. The generative model synthesizer runs end to end 50 times with a parity fairness constraint and takes gender as a protected attribute. <span class="No-Break"><em class="italic">Figure 7</em></span><em class="italic">.12</em> shows that the gender imbalance present in the original data within the high-income class is successfully mitigated by the synthetic data. The disparate impact (derived by comparing the difference and the high-income-male-to-high-income-female ratio) is observed to be roughly 10/30 = 0.33 in the original dataset, while it is recorded as 22/25 =0.88 in the bias-corrected synthetic dataset. We see that this metric with synthetic data is considerably higher than 0.80, which is the industry benchmark. We can safely conclude that data synthesis helps in <span class="No-Break">mitigating bias.</span></p>
+			<p>We further observe that the additional parity constraint during model training did not reduce the data quality, as shown in <span class="No-Break"><em class="italic">Figure 7</em></span><span class="No-Break"><em class="italic">.12</em></span><span class="No-Break">.</span></p>
+			<div>
+				<div id="_idContainer139" class="IMG---Figure">
+					<img src="image/B18681_07_012.jpg" alt="Figure 7.12 – Synthetic data mitigating the income gap"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.12 – Synthetic data mitigating the income gap</p>
+			<p>Both the univariate and bivariate distributions demonstrate that the dataset is able to preserve both the population-wide male-to-female and high-earner-to-low-earner ratios. Only the statistical parity constraint signifying the dependence of income and sex has been allowed to be violated to make them un-correlated. With representative and synthetic data, this correlation is reduced to the noise level evident in the following figure (see the red circle on the light <span class="No-Break">green figure).</span></p>
+			<div>
+				<div id="_idContainer140" class="IMG---Figure">
+					<img src="image/B18681_07_013.jpg" alt="Figure 7.13 – Univariate versus bivariate statistics for original and synthetic data"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.13 – Univariate versus bivariate statistics for original and synthetic data</p>
+			<p>Studying proxy attributes further shows that they do not introduce unfairness through a backdoor. Even the addition of a strongly correlated artificial feature (correlated with gender) named “proxy” is found to exhibit a constant correlation with “sex” in the original dataset, which is considerably reduced with the introduction of parity constraints due to induced fairness. The female section shows that “proxy” equals 1 in 90% of cases and equals 0 for the remaining 10%. <span class="No-Break"><em class="italic">Figure 7</em></span><em class="italic">.14</em> further <span class="No-Break">illustrates this:</span></p>
+			<div>
+				<div id="_idContainer141" class="IMG---Figure">
+					<img src="image/B18681_07_014.jpg" alt="Figure 7.14 – The parity fairness constraint holds good for proxy attributes such as gender"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.14 – The parity fairness constraint holds good for proxy attributes such as gender</p>
+			<p>For the Adult dataset, the generative model is trained by applying fairness constraints on “gender” and “race.” Furthermore, it is evident from <span class="No-Break"><em class="italic">Figure 7</em></span><em class="italic">.15</em> that the synthetic data exhibits highly balanced high-income ratios across all four groups by race and gender. Even though the solution<a id="_idIndexMarker978"/> is not able to guarantee complete parity, it can be obtained (when the difference further diminishes) by assigning a higher weight to the fairness loss in comparison to the <span class="No-Break">accuracy loss.</span></p>
+			<div>
+				<div id="_idContainer142" class="IMG---Figure">
+					<img src="image/B18681_07_015.jpg" alt="Figure 7.15 – Constraint-based bias mitigation by accounting for gender and race, respectively"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.15 – Constraint-based bias mitigation by accounting for gender and race, respectively</p>
+			<p>In <span class="No-Break"><em class="italic">Figure 7</em></span><em class="italic">.16</em>, we see the propensity scores of the corresponding predictive models, on both the original dataset and the <span class="No-Break">synthetic dataset.</span></p>
+			<div>
+				<div id="_idContainer143" class="IMG---Figure">
+					<img src="image/B18681_07_016.jpg" alt="Figure 7.16 – Prediction of high income for both the original and synthetic datasets"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.16 – Prediction of high income for both the original and synthetic datasets</p>
+			<p>Using the same ML model, we find<a id="_idIndexMarker979"/> that the model fitted on the original dataset exhibits a much lower probability score for women being in the high-income class when compared with the opposite gender – men. Hence, the discrepancy with synthetic data is reduced and both distributions driven by the gender attribute are found to align. As the training process of the predictive model does not include any model optimization through fairness, it is obvious that the predicted outcome is largely due to using bias-corrected synthetic data. A fairness-constrained synthetic data solution ensures group fairness. The dataset maintains the relationship between other attributes and at the same time removes dependencies between sensitive and target attributes. Furthermore, the parity constraint also ensures fairness for hidden <span class="No-Break">proxy attributes.</span></p>
+			<p>The following steps illustrate step by step how to generate fair synthetic data to equally represent males <span class="No-Break">and females:</span></p>
+			<ol>
+				<li>We will set up a specified set of hyperparameters (including input training data size, layer sizes, and classifier types) that we will train using <span class="No-Break">synthetic data:</span><pre class="console">
+inputsize = train_dataset["data"]. shape[1]
+layersizes = [100]
+classifier_type = "paritynn"
+hparams = {
+    "classifier_type": classifier_type,
+    "layersizes": layersizes,
+    "inputsize": inputsize,
+}</pre></li>
+				<li>Our next task is to set<a id="_idIndexMarker980"/> up a classifier that will train the network using the hyperparameters used in the previous state. While training the dataset, we use the validation dataset to validate the <span class="No-Break">training process:</span><pre class="console">
+classifier = construct_classifier(hparams, loaddir=loaddir)
+classifier.train(train_dataset, logdir, epochs=args.epochs,]
+validation_dataset=validation_dataset)
+savepath = classifier.save_model(logdir)
+n = validation_dataset["label"].shape[0]</pre></li>
+				<li>The <strong class="source-inline">construct_classifier</strong> function is set inside the <strong class="source-inline">fariml-farm</strong> library to construct the classifier, as given in the following <span class="No-Break">code snippet:</span><pre class="console">
+classifier_types = [SimpleNN, ParityNN, AdversariallyCensoredNN]
+def construct_classifier(hparams, sess=None, loaddir=None):
+    for c_type in classifier_types:
+        if c_type.name == hparams["classifier_type"]:
+            classifier = c_type(sess=sess)
+            classifier.build(hparams=hparams)
+            if loaddir is not None:
+                classifier.load_model(loaddir)
+            return classifier</pre></li>
+				<li>Our next job is to enable<a id="_idIndexMarker981"/> an equivalent representation of male (<strong class="source-inline">1</strong>) and female (<strong class="source-inline">0</strong>) points through the synthetic data <span class="No-Break">generation process:</span><pre class="console">
+n_males = sum(validation_dataset["label"])
+limiting_gender = n_males &gt; n - n_males
+n_limiting_gender = sum(validation_dataset["label"] == limiting_gender)
+max_points_per_gender = 500
+n_per_gender = min(max_points_per_gender, n_limiting_gender)
+inds = np.concatenate([
+    np.where(validation_dataset["label"] == limiting_gender)[0][:n_per_gender],
+    np.where(validation_dataset["label"] != limiting_gender)[0][:n_per_gender]],
+    axis=0)
+vis_dataset = {k:v[inds, ...] for k, v in validation_dataset.items()}
+val_embeddings = classifier.compute_embedding(vis_dataset["data"]</pre></li>
+				<li>The classifier is optimized using a loss function, given by <span class="No-Break">the following:</span><pre class="console">
+overall_loss = crossentropy +\
+        self.hparams["dpe_scalar"]*dpe +\
+        self.hparams["fnpe_scalar"]*fnpe +\
+        self.hparams["fppe_scalar"]*fppe +\
+        self.hparams["cpe_scalar"]*cpe +\
+        self.hparams["l2_weight_penalty"]*l2_penalty</pre></li>
+			</ol>
+			<p>The overall<a id="_idIndexMarker982"/> loss is the sum<a id="_idIndexMarker983"/> of losses, computed by <strong class="bold">demographic parity discrimination</strong> (<strong class="source-inline">dpe</strong>), <strong class="bold">false negative parity</strong> (<strong class="source-inline">fnpe</strong>), <strong class="bold">false positive parity</strong> (<strong class="source-inline">fppe</strong>), and <strong class="bold">calibration parity loss</strong> (<strong class="source-inline">cpe</strong>). The loss function evaluated<a id="_idIndexMarker984"/> for<a id="_idIndexMarker985"/> <strong class="source-inline">dpe</strong> represents the loss due to <strong class="source-inline">demographic_parity_discrimination</strong>, while <strong class="source-inline">fnpe</strong> and <strong class="source-inline">fppe</strong> represent the loss due to <strong class="source-inline">equalized_odds_discrimination</strong>.</p>
+			<ol>
+				<li value="6">Now if we try to plot<a id="_idIndexMarker986"/> the embeddings, we can use the following code snippet, which generates an almost equivalent representation of embeddings between male and female with an annual income &gt;= 50K or &lt; <span class="No-Break">50K:</span><pre class="console">
+plot_embeddings(val_embeddings,
+                vis_dataset["label"],
+                vis_dataset["protected"],
+                plot3d=True,
+                subsample=False,
+                label_names=["income&lt;=50k", "income&gt;50k"],protected_names=["female", "male"])</pre></li>
+			</ol>
+			<p>This produces the following output:</p>
+			<div>
+				<div id="_idContainer144" class="IMG---Figure">
+					<img src="image/B18681_07_017.jpg" alt="Figure 7.17 – An equivalent representation of embeddings between the male and female populations with an annual income &gt;= 50K or &lt; 50K"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.17 – An equivalent representation of embeddings between the male and female populations with an annual income &gt;= 50K or &lt; 50K</p>
+			<p>We learned how MOSTLY AI’s fairness GANs<a id="_idIndexMarker987"/> are capable of generating synthetic datasets that have a positive impact on fairness statistics. Let's<a id="_idIndexMarker988"/> explore a GAN-based approach that uses a <strong class="bold">directed acyclic graph</strong> (<strong class="bold">DAG</strong>) to generate fair <span class="No-Break">synthetic data.</span></p>
+			<h2 id="_idParaDest-153"><a id="_idTextAnchor173"/>A GAN-based fair synthetic data generator</h2>
+			<p>Now let's see with<a id="_idIndexMarker989"/> an example how we can use <strong class="bold">causally aware generative networks</strong> to generate fair, unbiased synthetic data. The objective<a id="_idIndexMarker990"/> is to generate an unbiased dataset with no loss of the representation of the data distribution. The data-generation process can be further modeled by a DAG. Here, the ML model (a single model or a cascade of models) being trained on synthetic data not only gives unbiased predictions (satisfying the fairness criteria) on synthetic data but is also capable of yielding unbiased predictions on real-life <span class="No-Break">available datasets.</span></p>
+			<p>The <strong class="bold">Debiasing Causal Fairness </strong>(<strong class="bold">DECAF</strong>) framework, based on GAN, explores the principle of causal structure<a id="_idIndexMarker991"/> for data synthesis by employing <strong class="bold">d</strong> generators (each generator being assigned to each variable) to learn about the causal conditionals present in the data. The <strong class="bold">data-generation process </strong>(<strong class="bold">DGP</strong>) embedded within DECAF allows variables<a id="_idIndexMarker992"/> to be re-engineered and regenerated based on their origin, which is the causal parents, through the input layers of the generator. A framework like this can remove bias from biased real-world datasets (datasets that under-represent minority groups) with inherent bias and real-world datasets where bias has been synthetically introduced. Furthermore, DECAF promises to offer protection for confidential information through private synthetic data generation processes by swapping out the standard discriminator for a differentially <span class="No-Break">private discriminator.</span></p>
+			<p>The discriminator and generator<a id="_idIndexMarker993"/> run the optimization process in successive iterations by adding a regularization loss to both networks. The optimization process uses gradient descent and guarantees the same convergence criteria as standard GANs. The framework involves <span class="No-Break">the following:</span></p>
+			<ul>
+				<li>A data-generating distribution function that satisfies Markov compatibility. For a known DAG (<em class="italic">G</em>), if we find that each node represents a variable in a probability distribution (<em class="italic">P</em>), it is said to be Markov-compatible if each variable <em class="italic">X</em> present in the DAG is independent of all <span class="No-Break">its non-descendants.</span></li>
+				<li>Enough capacity for both the generator <em class="italic">G</em> and <span class="No-Break">discriminator </span><span class="No-Break"><em class="italic">D</em></span><span class="No-Break">.</span></li>
+				<li>Every training iteration successfully optimizes a given DAG <em class="italic">G</em> and correspondingly <span class="No-Break">updates it.</span></li>
+				<li>Maximized <span class="No-Break">discriminator loss.</span></li>
+				<li>A distribution function generated by the generator that gets optimized to converge it on the true <span class="No-Break">data distribution.</span></li>
+			</ul>
+			<p>During the training stage, DECAF learns about the causal conditionals that are present in the data with a GAN. The GAN is equipped to learn about causal conditions in the DAG between the source and destination<a id="_idIndexMarker994"/> nodes. At the generation<a id="_idIndexMarker995"/> (inference) stage, the framework<a id="_idIndexMarker996"/> functions by applying three fundamental principles, <strong class="bold">CF debiasing</strong>, <strong class="bold">FTU debiasing</strong>, and <strong class="bold">DP debiasing</strong>, which help the generator to create fair data. However, it is also assumed that the DGP’s graph <em class="italic">G</em> is known <span class="No-Break">from before.</span></p>
+			<p>During inference, the variable synthesis process originates from the root nodes, then propagates down to their children (from the generated causal parents in the causal graph). The topological process of data synthesis is dependent on the sequential data generation technique, which terminates at the leaf nodes. This enables the DECAF algorithm to remove bias strategically at inference time by enforcing targeted/biased edge removal and further<a id="_idIndexMarker997"/> increases the probability of meeting the user-defined fairness requirements. DECAF is also found to satisfy the fairness/discrimination definitions we discussed earlier and at the same time maintains the high utility of generated data so that it can be effectively used by ML models without creating <span class="No-Break">algorithmic bias.</span></p>
+			<p><strong class="bold">Fairness through unawareness </strong>(<strong class="bold">FTU</strong>) is measured by keeping all other features constant and computing<a id="_idIndexMarker998"/> the distinctions between the predictions of a downstream classifier, when the classifier’s predictions are either 1 and 0, respectively, such that <em class="italic">| PA = </em>0 (<em class="italic">Y</em>ˆ<em class="italic">|X</em>)–– <em class="italic">PA = </em>1(<em class="italic">Y</em>ˆ<em class="italic">|X</em>) |. This metric helps to evaluate the direct impact of <em class="italic">A</em> on the predicted outcomes. This metric aims to eliminate disparate treatment, which is legally related to direct discrimination, and strives to provide the same opportunity to any two equally qualified people, independent of their race, gender, or other <span class="No-Break">protected attributes.</span></p>
+			<p><strong class="bold">Demographic parity </strong>(<strong class="bold">DP</strong>) is measured in terms of the total variation, which signifies and explains<a id="_idIndexMarker999"/> the differences between the predictions of a downstream classifier. This helps to compute the positive-to-negative ratio between varying categories (African, American, Asian, and Hispanic, for instance) of a protected <span class="No-Break">variable </span><span class="No-Break"><em class="italic">A</em></span><span class="No-Break">:</span></p>
+			<p><em class="italic">| P </em>(<em class="italic">Y</em>ˆ<em class="italic"> |A = 0</em>)<em class="italic">–− P </em>(<em class="italic">Yˆ |A = </em><span class="No-Break"><em class="italic">1</em></span><span class="No-Break">)</span><span class="No-Break"><em class="italic"> |</em></span></p>
+			<p>This metric does not allow any indirect discrimination unless otherwise provided by <span class="No-Break">explainability factors.</span></p>
+			<p><strong class="bold">Conditional fairness </strong>(<strong class="bold">CF</strong>) aims to generalize both FTU<a id="_idIndexMarker1000"/> <span class="No-Break">and DP.</span></p>
+			<p>All DECAF methods yield good data quality metrics: precision, recall, and AUROC. One good fair data generation mechanism that deserves special mention is DECAF-DP, which performs best across all five of the evaluation metrics (precision, recall, AUROC, DP, and FTU) and has better DP performance results, even when the dataset exhibits <span class="No-Break">high bias.</span></p>
+			<div>
+				<div id="_idContainer145" class="IMG---Figure">
+					<img src="image/B18681_07_018.jpg" alt="Figure 7.18 – Training phase in DECAF"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.18 – Training phase in DECAF</p>
+			<p>The training phase from the preceding <a id="_idIndexMarker1001"/>figure directly follows the inference phase in the <span class="No-Break">following diagram.</span></p>
+			<div>
+				<div id="_idContainer146" class="IMG---Figure">
+					<img src="image/B18681_07_019.jpg" alt="Figure 7.19 – Fairness inference phase enabling fair data synthesis in DECAF"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.19 – Fairness inference phase enabling fair data synthesis in DECAF</p>
+			<p>Now let's see how we can generate synthetic data with DECAF using the following <span class="No-Break">code snippets:</span></p>
+			<ol>
+				<li>The following code is for all <span class="No-Break">necessary imports:</span><pre class="console">
+import networkx as nx
+import pytorch_lightning as pl
+from utils import gen_data_nonlinear
+import sys
+from decaf import DECAF
+from decaf.data import DataModule</pre></li>
+				<li>Now, after setting up the necessary imports, let's set up the DAG structure using <strong class="source-inline">dag_seed</strong>. The causal structure of the graph is stored <span class="No-Break">in </span><span class="No-Break"><strong class="source-inline">dag_seed</strong></span><span class="No-Break">:</span><pre class="console">
+dag_seed = [[1, 2], [1, 3], [1, 4], [2, 5], [2, 0], [3, 0], [3, 6], [3, 7], [6, 9], [0, 8], [0, 9], ]</pre></li>
+				<li>The next step is to have <strong class="source-inline">DiGraph</strong> invoked with <strong class="source-inline">dag_seed</strong>, using the following code snippet. The <strong class="source-inline">dag</strong> structure <a id="_idIndexMarker1002"/>is stored in the <strong class="source-inline">dag_seed</strong> variable. The edge removal is stored in the <strong class="source-inline">bias_dict</strong> variable. Here, we have removed the edge between 3 and 6. Furthermore, <strong class="source-inline">gen_data_nonlinear</strong> is used to apply a perturbation at <span class="No-Break">each node:</span><pre class="console">
+bias_dict = {6: [3]}
+G = nx.DiGraph(dag_seed)
+data = gen_data_nonlinear(G, SIZE=2000)
+dm = DataModule(data.values)
+data_tensor = dm.dataset.x</pre></li>
+				<li>In the next stage, we set up the different hyperparameters required to facilitate the <span class="No-Break">training process:</span><pre class="console">
+x_dim = dm.dims[0]
+z_dim = x_dim
+lambda_privacy = 0
+lambda_gp = 10
+l1_g = 0</pre></li>
+				<li>The weight decay is initialized, which<a id="_idIndexMarker1003"/> is used by AdamW, an optimizer that is an improved version of <strong class="bold">Adam (Adaptive Moment Estimation</strong>) and is capable of yielding better models with a faster training speed using stochastic gradient descent. AdamW has a weight<a id="_idIndexMarker1004"/> decay functionality that can be used to regularize all <span class="No-Break">network weights:</span><pre class="console">
+weight_decay = 1e-2</pre></li>
+				<li>The next step is to set up the proportion of points to generate, which is negative for <span class="No-Break">sequential sampling:</span><pre class="console">
+p_gen = (-1)
+use_mask = True
+grad_dag_loss = False
+number_of_gpus = 0</pre></li>
+			</ol>
+			<p class="callout-heading">WGAN-GP</p>
+			<p class="callout">You can read more about<a id="_idIndexMarker1005"/> the Wasserstein GAN with gradient penalty (<strong class="bold">WGAN-GP</strong>) <span class="No-Break">here: </span><a href="https://jonathan-hui.medium.com/gan-wasserstein-gan-wgan-gp-6a1a2aa1b490"><span class="No-Break">https://jonathan-hui.medium.com/gan-wasserstein-gan-wgan-gp-6a1a2aa1b490</span></a><span class="No-Break">.</span></p>
+			<ol>
+				<li value="7">Now let's initialize and train the DECAF model by setting the different hyperparameters, the generator, and the <span class="No-Break">regularization parameters:</span><pre class="console">
+model = DECAF(
+    dm.dims[0],
+    dag_seed=dag_seed,
+    h_dim=args.h_dim,
+    lr=args.lr,
+    batch_size=args.batch_size,
+    lambda_privacy=lambda_privacy,
+    lambda_gp=lambda_gp,
+    d_updates=args.d_updates,
+    alpha=args.alpha,
+    rho=args.rho,
+    weight_decay=weight_decay,
+    grad_dag_loss=grad_dag_loss,
+    l1_g=l1_g,
+    l1_W=args.l1_W,
+    p_gen=p_gen,
+    use_mask=use_mask,
+)
+trainer = pl.Trainer(
+    gpus=number_of_gpus,
+    max_epochs=args.epochs,
+    progress_bar_refresh_rate=1,
+    profiler=False,
+    callbacks=[],
+)
+trainer.fit(model, dm)
+synth_data = (
+    model.gen_synthetic(
+        data_tensor, gen_order=model.get_gen_order(), biased_edges=bias_dict
+    ).detach()
+    .numpy()
+)</pre></li>
+			</ol>
+			<p>We have now generated synthetic<a id="_idIndexMarker1006"/> unbiased data that can be fed to any <span class="No-Break">ML model.</span></p>
+			<h1 id="_idParaDest-154"><a id="_idTextAnchor174"/>Summary</h1>
+			<p>In this chapter, we have learned about the importance of fairness algorithms in resolving societal bias, as different types of bias hinder the ability of an ML model to yield a fair outcome. We had a deep dive to learn about all the different types of fairness and how they can be practically applied to perform data quality checks, discover conditional dependencies and attribute relationships, and generate audit reports. In the process, we looked at how bias may appear in the data itself and/or in the outcome of predictive models. Furthermore, we took the first step in learning about fair synthetic data generation processes that can help in <span class="No-Break">removing bias.</span></p>
+			<p>In later chapters, we will learn more about the mechanisms of applying fairness-aware models on diverse datasets, or diverse groups within a population. In addition, we will also look at the proper selection of protected attributes (such as gender, race, and others) based on the domain space of the problem and the dataset under study. In our next chapter, <a href="B18681_08.xhtml#_idTextAnchor176"><span class="No-Break"><em class="italic">Chapter 8</em></span></a>, <em class="italic">Fairness in Model Training and Optimization</em>, we will learn more about creating constrained optimization functions that can help in building fair <span class="No-Break">ML models.</span></p>
+			<h1 id="_idParaDest-155"><a id="_idTextAnchor175"/>Further reading</h1>
+			<ul>
+				<li><em class="italic">Fairness Definitions Explained</em> in <em class="italic">Proceedings of the International Workshop on Software Fairness (FairWare ‘18), Association for Computing Machinery</em>, Verma Sahil and Julia Rubin (2018), <a href=" https://fairware.cs.umass.edu/papers/Verma.pdf "> <span class="No-Break">https://fairware.cs.umass.edu/papers/Verma.pdf</span></a></li>
+				<li><em class="italic">A survey on datasets for fairnessaware-machine learning. Wiley Interdisciplinary Reviews: Data Mining and Knowledge Discovery. </em><span class="No-Break"><em class="italic">10.1002/widm.1452, </em></span><a href="https://www.researchgate.net/publication/355061634_A_survey_on_datasets_for_fairness-aware_machine_learning "><span class="No-Break">https://www.researchgate.net/publication/355061634_A_survey_on_datasets_for_fairness-aware_machine_learning</span></a></li>
+				<li><em class="italic">Representative &amp; Fair Synthetic Data</em>, Tiwald, Paul &amp; Ebert, Alexandra &amp; Soukup, Daniel. (<span class="No-Break">2021), </span><a href="https://arxiv.org/pdf/2104.03007.pdf "><span class="No-Break">https://arxiv.org/pdf/2104.03007.pdf</span></a></li>
+				<li><em class="italic">Minimax Group Fairness: Algorithms and Experiments. Proceedings of the 2021 AAAI/ACM Conference on AI, Ethics, and Society. Association for Computing Machinery, New York</em>. Emily Diana, Wesley Gill, Michael Kearns, Krishnaram Kenthapadi, and Aaron Roth. <span class="No-Break">2021. </span><a href="https://assets.amazon.science/9d/a9/e085008e45b2b32b213786ac0149/minimax-group-fairness-algorithms-and-experiments.pdf "><span class="No-Break">https://assets.amazon.science/9d/a9/e085008e45b2b32b213786ac0149/minimax-group-fairness-algorithms-and-experiments.pdf</span></a></li>
+				<li><em class="italic">A Survey on Bias and Fairness in Machine Learning. ACM Comput. Surv. 54, 6, Article 115 (July 2022)</em>, Mehrabi Ninareh, Fred Morstatter, Nripsuta Saxena, Kristina Lerman, and Aram Galstyan. (2021).  <a href="https://arxiv.org/pdf/1908.09635.pdf "><span class="No-Break">https://arxiv.org/pdf/1908.09635.pdf</span></a></li>
+				<li><em class="italic">FAT Forensics: A Python Toolbox for Algorithmic Fairness, Accountability and Transparency</em>, Sokol, K., Santos-Rodríguez, R., &amp; Flach, P.A. (2019).  <a href="https://arxiv.org/pdf/1909.05167.pdf "><span class="No-Break">https://arxiv.org/pdf/1909.05167.pdf</span></a></li>
+				<li><em class="italic">Minimax Pareto Fairness: A Multi Objective Perspective</em>, Martinez Natalia, Martin Bertran, Guillermo <span class="No-Break">Sapiro, </span><a href="http://proceedings.mlr.press/v119/martinez20a/martinez20a.pdf"><span class="No-Break">http://proceedings.mlr.press/v119/martinez20a/martinez20a.pdf</span></a></li>
+			</ul>
+		</div>
+	</body></html>

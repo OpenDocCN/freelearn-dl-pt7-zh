@@ -1,0 +1,503 @@
+<html><head></head><body>
+		<div id="_idContainer122">
+			<h1 id="_idParaDest-114" class="chapter-nu ber"><a id="_idTextAnchor126"/>6</h1>
+			<h1 id="_idParaDest-115"><a id="_idTextAnchor127"/>Hyperparameter Tuning, MLOps, and AutoML</h1>
+			<p>Developing a <strong class="bold">Machine Learning</strong> (<strong class="bold">ML</strong>) model is an iterative process; the presence of so many models, each with a large number of hyperparameters, complicates things for beginners. This chapter continues from the previous chapter and explains the need for continuous training in ML pipelines. It will provide a glimpse of the AutoML options currently available for your ML workflow, expand on the situations in which no-code/low-code solutions are useful, and explore the solutions provided by major cloud providers in terms of their ease of use, features, and model explainability. This chapter will also explore orchestration tools such as Kubeflow and Vertex AI, which you can use to manage the continuous training and deployment of your <span class="No-Break">ML models.</span></p>
+			<p>After completing this chapter, you will be familiar with the concept of hyperparameter tuning and popular off-the-shelf AutoML and ML <span class="No-Break">orchestration tools.</span></p>
+			<p>In this chapter, these topics will be covered in the <span class="No-Break">following sections:</span></p>
+			<ul>
+				<li><span class="No-Break">Introducing AutoML</span></li>
+				<li>Introducing <span class="No-Break">H2O AutoML</span></li>
+				<li>Working with <span class="No-Break">Azure AutoML</span></li>
+				<li>Understanding AWS <span class="No-Break">SageMaker Autopilot</span></li>
+				<li>The need <span class="No-Break">for MLOps</span></li>
+				<li>TFX – a scalable end-to-end platform for <span class="No-Break">AI/ML workflows</span></li>
+				<li><span class="No-Break">Understanding Kubeflow</span></li>
+				<li>Katib for <span class="No-Break">hyperparameter tuning</span></li>
+				<li><span class="No-Break">Vertex AI</span></li>
+			</ul>
+			<h1 id="_idParaDest-116"><a id="_idTextAnchor128"/>Technical requirements</h1>
+			<p>This chapter requires you to have Python 3.8 installed, as well as certain Python packages, <span class="No-Break">listed here:</span></p>
+			<ul>
+				<li><span class="No-Break">TensorFlow (&gt;=2.7.0)</span></li>
+				<li><span class="No-Break">NumPy</span></li>
+				<li><span class="No-Break">Matplotlib</span></li>
+				<li>You need to install H2O <span class="No-Break">as follows:</span><pre class="console">
+<strong class="bold">pip install -f http://h2o-release.s3.amazonaws.com/h2o/latest_stable_Py.html h2o</strong></pre></li>
+			</ul>
+			<p>Alternatively, you can install it this way:</p>
+			<pre class="console">
+<strong class="bold">conda install -c h2oai h2o</strong></pre>
+			<ul>
+				<li>Install the Azure ML <span class="No-Break">client library:</span><pre class="console">
+<strong class="bold">pip install azure-ai-ml</strong></pre></li>
+			</ul>
+			<h1 id="_idParaDest-117"><a id="_idTextAnchor129"/>Introduction to AutoML</h1>
+			<p>Anyone who has worked<a id="_idIndexMarker704"/> in the domain of ML can tell you that building ML models is a complex and iterative process. You start with a dataset and a set of features, and then train a model on that data. As you get more data, you add more features, and you retrain your model. This process continues until you have a model that generalizes well to new data. The task is complicated by the fact that there is a multitude of hyperparameters and that they have a kind of non-linear relationship to model performance. Choosing the right model and selecting the optimum hyperparameters is still considered alchemy <span class="No-Break">by many.</span></p>
+			<p class="callout-heading">Note</p>
+			<p class="callout">You can refer to <em class="italic">Has artificial intelligence become alchemy? Matthew Hutson, Science, Vol 360, Issue 6388</em> for <span class="No-Break">more information.</span></p>
+			<p>Whether AI is alchemy or not is a hot debate. While many who start experimenting with AI feel that it is alchemy, there are experts, including us authors, who believe it is not so. AI, like any other experimental science, is based on technological foundations. Initially, the focus of AI was on the development of AI models and architectures, but now the focus is slowly shifting toward responsible and explainable AI. As more and more work happens in this area, we will be able to understand AI just like any <span class="No-Break">other technology.</span></p>
+			<p>Finding the right model, the perfect<a id="_idIndexMarker705"/> features, and the best set of hyperparameters can be a time-consuming and frustrating task. <strong class="bold">Automated ML</strong> (<strong class="bold">AutoML</strong>) helps you select a model <span class="No-Break">and hyperparameters.</span></p>
+			<p>It allows start-ups and low-budget organizations to benefit from the power of AI without investing in expensive and difficult-to-find AI talent. Therefore, to reduce the barriers to ML and help experts from other domains to use ML in their tasks, the automatic generation of ML models has been investigated by most major players working in the <span class="No-Break">ML domain.</span></p>
+			<p>Broadly, we can divide building AI models into the following three iterative processes. This is illustrated in <span class="No-Break"><em class="italic">Figure 6</em></span><span class="No-Break"><em class="italic">.1</em></span><span class="No-Break">:</span></p>
+			<div>
+				<div id="_idContainer099" class="IMG---Figure">
+					<img src="image/Figure_6.1_B18681.jpg" alt="Figure 6.1 – The iterative processes in the ML pipeline"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.1 – The iterative processes in the ML pipeline</p>
+			<p>Let’s discuss <span class="No-Break">each one:</span></p>
+			<ul>
+				<li><strong class="bold">Feature engineering</strong>: Feature engineering is an essential part<a id="_idIndexMarker706"/> of the ML process. Simply put, it is the process of creating and selecting (new) features from existing data that can help with model training. This can be done in several ways, but the most common methods involve either transformation or aggregation. Transformation involves transforming existing data into a new form, such as converting text into numerical values. Aggregation involves combining multiple data points into a single value, such as taking the average of a group of numbers. Feature engineering can be time-consuming, but it is often essential for building accurate models. With careful planning and execution, it is possible to create powerful features that can make all the difference to your <span class="No-Break">ML results.</span></li>
+				<li><strong class="bold">Hyperparameter tuning</strong>: This is the process of optimizing an ML algorithm<a id="_idIndexMarker707"/> by fine-tuning the hyperparameters to obtain better performance. The hyperparameters are a set of variables that control the model training process. They differ from the parameters of the ML models (for example, weights and biases in neural networks), which are learned during the training process. Hyperparameter tuning is crucial in any ML project, as it can significantly impact a model’s performance. However, it can be a time-consuming and expensive process, especially for large and complex datasets. There are various methods for hyperparameter tuning, including manual tuning, grid search, and random search. Each method has its advantages and disadvantages, and it is essential<a id="_idIndexMarker708"/> to select the right method for the specific problem <span class="No-Break">at hand.</span></li>
+				<li><strong class="bold">Model selection</strong>: Model selection is the process of choosing<a id="_idIndexMarker709"/> the ML algorithm that is best suited to a specific task. There are many factors to consider when selecting a deep learning model, such as the type of data, the desired output, and the computational resources available. The model selection process can be daunting. In the last few years, deep learning models have developed near-human performance in specific tasks. Many of these models were carefully crafted by AI experts, and the process of finding the model and its optimum architecture was not straightforward. Instead, it involved much human intuition and many trials <span class="No-Break">and failures.</span></li>
+			</ul>
+			<p>Domain experts unfamiliar with deep learning technologies can easily use AutoML to create ML solutions. AutoML is designed to simplify the process of creating ML models and reduce the expenses of building ML solutions by hand, which it does by automating the complete ML pipeline, including data preparation, feature engineering, and automatic model generation. Ultimately, the goal of AutoML is to make deep learning more accessible to everyone so that we can all benefit from <span class="No-Break">its power.</span></p>
+			<p>Automating the creation and tuning of ML end-to-end pipelines offers simpler solutions. It helps reduce the time to produce them and ultimately might produce architectures that could outperform models crafted by hand. It is an active and open research area, with the first research paper on AutoML published at the end <span class="No-Break">of 2016.</span></p>
+			<p>Most commercially available AutoML platforms take structured data and assume that data preparation and feature engineering have already been done, but they still offer model generation. Model generation can be divided into two parts – the search space and optimization methods. The search space identifies the different model structures (such as support vector machines, <em class="italic">k</em>-nearest neighbors, and deep neural networks) that can be designed, and optimization methods refine the chosen model by adjusting its parameters<a id="_idIndexMarker710"/> to improve its performance. Automated <strong class="bold">Neural Architecture Search</strong> (<strong class="bold">NAS</strong>) is gaining much attention nowadays. In their survey paper, Elsken et al. divide NAS into the following three <span class="No-Break">major components:</span></p>
+			<ul>
+				<li><strong class="bold">Search space</strong>: This consists of a set of operations<a id="_idIndexMarker711"/> and how these can be connected to make a valid <span class="No-Break">network architecture.</span></li>
+				<li><strong class="bold">Search algorithms</strong>: This involves algorithms that are used<a id="_idIndexMarker712"/> to find a model architecture with high performance in the <span class="No-Break">search space.</span></li>
+				<li><strong class="bold">Model evaluation</strong>: This involves predicting the performance<a id="_idIndexMarker713"/> of the <span class="No-Break">proposed models.</span></li>
+			</ul>
+			<p><span class="No-Break"><em class="italic">Figure 6</em></span><em class="italic">.2</em> provides an overview of the NAS pipeline, listing various methods, algorithms, and strategies employed in <span class="No-Break">the process:</span></p>
+			<div>
+				<div id="_idContainer100" class="IMG---Figure">
+					<img src="image/Figure_6.2_B18681.jpg" alt="Figure 6.2 – An overview of ﻿the NAS pipeline (adapted from Figure 5 of AutoML: ﻿A survey of the state of the art, Xin He et al﻿., Knowledge-Based Systems 212 (2021): 106622)"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.2 – An overview of the NAS pipeline (adapted from Figure 5 of AutoML: A survey of the state of the art, Xin He et al., Knowledge-Based Systems 212 (2021): 106622)</p>
+			<p>Let’s now explore some of the platforms offering <span class="No-Break">AutoML ser<a id="_idTextAnchor130"/>vices.</span></p>
+			<h1 id="_idParaDest-118"><a id="_idTextAnchor131"/>Introducing H2O AutoML</h1>
+			<p>H2O is a fast, scalable ML<a id="_idIndexMarker714"/> and deep learning framework developed by <strong class="bold">H2O.ai</strong>, released under the open source Apache<a id="_idIndexMarker715"/> license. According to the company website, at the time of writing, more than 20,000 organizations currently use H2O for their ML/deep learning needs. The company offers many products, such as H2O AI Cloud, H2O Driverless AI, H2O Wave, and H2O Sparkling Water. In this section, we will explore its open source product <span class="No-Break">H2O AutoML.</span></p>
+			<p><strong class="bold">H2O AutoML</strong> is an effort to create a user-friendly ML interface that beginners and non-experts can utilize. It automates the process of training and tuning a wide range of candidate models. The interface is designed in a way that users only need to specify their dataset, the input and output features, and any limitations on the number of total models trained or time constraints. The rest of the work is done by AutoML; it recognizes the best-performing models within the specified time period and provides a <em class="italic">leaderboard</em>. It is often observed that the stacked ensemble model, an ensemble of all the previously trained models, typically holds the top position on the leaderboard. Advanced users have countless options to choose from; details of these options and their various features are available <span class="No-Break">at </span><a href="http://docs.h2o.ai/h2o/latest-stable/h2o-docs/automl.html"><span class="No-Break">http://docs.h2o.ai/h2o/latest-stable/h2o-docs/auto<span id="_idTextAnchor132"/>ml.html</span></a><span class="No-Break">.</span></p>
+			<p>You can learn more about H2O on their <span class="No-Break">website: </span><a href="http://h2o.ai"><span class="No-Break">http://h2o.ai</span></a><span class="No-Break">.</span></p>
+			<p>Let’s try H2O AutoML on synthetically created data. Before you start, make sure you have <span class="No-Break">H2O installed:</span></p>
+			<ol>
+				<li>Using scikit-learn’s <strong class="source-inline">make_circles</strong> method, we first create a synthetic dataset and save it as a <span class="No-Break">CSV file:</span><pre class="console">
+from sklearn.datasets import make_circles
+import pandas as pd
+X, y = make_circles(n_samples=1000, noise=0.2, factor=0.5, random_state=9)
+df = pd.DataFrame(X, columns=['x1','x2'])
+df['y'] = y
+df.head()
+df.to_csv('circle.csv', index=False, header=True)</pre></li>
+				<li>Next, we initiate<a id="_idIndexMarker716"/> the H2O server – before we can use H2O, this is an essential step. This can be done using the <span class="No-Break"><strong class="source-inline">init()</strong></span><span class="No-Break"> function:</span><pre class="console">
+import h2o
+h2o.init()</pre></li>
+			</ol>
+			<p>Once the H2O server has been initialized, it will show details about the H2O cluster, as shown in <em class="italic">Figure 6.3</em>:</p>
+			<div>
+				<div id="_idContainer101" class="IMG---Figure">
+					<img src="image/Figure_6.3_B18681.jpg" alt="Figure 6.3 – Output of the H2O init command"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.3 – Output of the H2O init command</p>
+			<ol>
+				<li value="3">Next, we read the file containing the synthetic data we created earlier. Since we want to regard the problem as a classification one, whether the points lie in a circle or not, we redefine our label of <strong class="source-inline">y</strong> as <strong class="source-inline">asfactor()</strong> – this will tell the H2O AutoML module to treat the <strong class="source-inline">y</strong> variable as categorical and, thus, the problem as a classification one. The dataset<a id="_idIndexMarker717"/> is split into training, validation, and test datasets in a ratio <span class="No-Break">of 60:20:20:</span><pre class="console">
+class_df = h2o.import_file("circle.csv",\
+                    destination_frame="circle_df")
+class_df['y'] = class_df['y'].asfactor()
+train_df,valid_df,test_df = class_df.split_frame(ratios=[0.6, 0.2],\
+                   seed=133)</pre></li>
+				<li>Now, we invoke the AutoML module from H2O and train it on our training dataset. AutoML will search a maximum of 10 models – you can change the <strong class="source-inline">max_models</strong> parameter to increase or decrease the number of models <span class="No-Break">to test:</span><pre class="console">
+from h2o.automl import H2OAutoML as AML
+automl = AML(max_models = 13, max_runtime_secs=75, seed=27)
+automl.train(training_frame= train_df, \
+        validation_frame=valid_df, \
+        y = 'y', x=['x1','x2'])</pre></li>
+			</ol>
+			<p>For each of the models, H2O provides a performance summary. For example, in <em class="italic">Figure 6.4</em>, you can refer to the evaluation summary for <strong class="source-inline">BinomialGLM</strong>:</p>
+			<div>
+				<div id="_idContainer102" class="IMG---Figure">
+					<img src="image/Figure_6.4_B18681.jpg" alt="Figure 6.4 – The performance summary of one of the models by H2O AutoML"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.4 – The performance summary of one of the models by H2O AutoML</p>
+			<ol>
+				<li value="5">You can check the performance<a id="_idIndexMarker718"/> of all the models evaluated by H2O AutoML on <span class="No-Break">the leaderboard:</span><pre class="console">
+lb = automl.leaderboard
+lb.head()</pre></li>
+			</ol>
+			<p><span class="No-Break"><em class="italic">Figure 6</em></span><em class="italic">.5</em> shows a snippet of <span class="No-Break">the leaderboard:</span></p>
+			<div>
+				<div id="_idContainer103" class="IMG---Figure">
+					<img src="image/Figure_6.5_B18681.jpg" alt="Figure 6.5 – Leaderboard summary – H2O AutoML"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.5 – Leaderboard summary – H2O AutoML</p>
+			<p>Besides AutoML, H2O also provides methods for explaining a model. Please refer to <a href="B18681_09.xhtml#_idTextAnchor198"><span class="No-Break"><em class="italic">Chapter 9</em></span></a> and the Jupyter notebook on H2O in the book’s GitHub repository to learn more about the model explainability<a id="_idIndexMarker719"/> features provided <span class="No-Break">by H2O.</span></p>
+			<p>Next, we will explore the Microsoft AutoML tool, <span class="No-Break">Azu<a id="_idTextAnchor133"/>re AutoML.</span></p>
+			<p>Working with <span class="No-Break">Azure AutoML</span></p>
+			<p>Azure provides AutoML solutions<a id="_idIndexMarker720"/> for tabular, text, and image data. Azure uses Bayesian optimization to find the optimal model architecture, along with collaborative filtering to search for the optimum pipeline for data transformation. To be able to use Azure AutoML, you will need to have an Azure subscription account, create an Azure Machine Learning workspace, and create a <span class="No-Break">computer cluster.</span></p>
+			<p>Azure AutoML is a cloud-based service that supports classification, regression, and time-series forecasting tasks. Not only does it perform hyperparameter tuning and model searching, but it can also perform feature <span class="No-Break">engineering tasks.</span></p>
+			<p>You can interact with Azure AutoML either using ML Studio (which provides a no-code interface) or via the <span class="No-Break">Python SDK.</span></p>
+			<p>The basic steps involved in building an AutoML pipeline using the Python SDK are <span class="No-Break">as follows:</span></p>
+			<ol>
+				<li>Connect to the Azure Machine Learning workspace using the <span class="No-Break">following code:</span><pre class="console">
+credential = DefaultAzureCredential()
+ml_client = None
+try:
+    ml_client = MLClient.from_config(credential)
+except Exception as ex:
+    print(ex)
+    # Enter details of your AML workspace
+    subscription_id = ""
+    resource_group = ""
+    workspace = ""
+    ml_client = MLClient(credential, subscription_id, resource_group, workspace)</pre></li>
+				<li>Get the data and convert it into an ML <span class="No-Break">table format.</span></li>
+				<li>Configure the AutoML job using the <span class="No-Break"><strong class="source-inline">automl</strong></span><span class="No-Break"> module.</span></li>
+				<li>Submit the job <span class="No-Break">for training.</span></li>
+				<li>Get the <span class="No-Break">best model.</span></li>
+			</ol>
+			<p>Each of these steps has various configuration settings based on your needs. For example, you can choose the type of cross-validation strategy, the evaluation metrics, and the maximum amount of training time. You can also choose whether you want to use automated feature engineering or not. If you want to run the model on different platforms and devices, you can also configure<a id="_idIndexMarker721"/> Azure AutoML to only look into the models that can be converted to the <strong class="bold">Open Neural Network Exchange</strong> (<strong class="bold">ONNX</strong>) standard, an open source format for storing deep learning models. Microsoft provides<a id="_idIndexMarker722"/> $200 for a free trial – once it is over, you can opt for the pay-as-you-go model or buy <span class="No-Break">a subscription.</span></p>
+			<h1 id="_idParaDest-119"><a id="_idTextAnchor134"/>Understanding Amazon SageMaker Autopilot</h1>
+			<p>When you use Amazon SageMaker<a id="_idIndexMarker723"/> with the Autopilot features enabled, many of the most time-consuming parts of the AutoML process are handled automatically. It investigates your data, chooses algorithms suited to your type of problem, and cleans up the data to make model training and tuning easier. When necessary, Autopilot will automatically subject all potential algorithms to a cross-validation resampling procedure to gauge how well they can predict data, other than what they were taught to expect. Additionally, it generates metrics to evaluate the potential predictive quality of its ML model candidates. By automating these fundamental steps of the AutoML process, your ML experience will be greatly streamlined. It ranks all of the fine-tuned models that were evaluated in the order of their performance. It quickly determines the highest-performing model that can be used with <span class="No-Break">minimal effort.</span></p>
+			<p>You can use Autopilot in a number of ways, either with full automation (hence the name) or with varying degrees of human guidance, code-free via Amazon SageMaker Studio, and code-based via one of the AWS SDKs. Autopilot currently works with the following problem types – regression, binary classification, and multiclass classification. It works with tabular data in the form of CSV or Parquet files, where each column represents a feature of a particular data type, and each row represents an observation. Columns can store numeric, categorical, textual, or time-series data in the form of comma-separated strings. Autopilot allows you to construct ML models on datasets that are hundreds of gigabytes <span class="No-Break">in size.</span></p>
+			<p>The following diagram outlines the tasks managed by Azure <span class="No-Break">AutoML AutoPilot:</span></p>
+			<div>
+				<div id="_idContainer104" class="IMG---Figure">
+					<img src="image/Figure_6.6_B18681.jpg" alt="Figure 6.6 – The Azure AutoML Autopilot pipeline"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.6 – The Azure AutoML Autopilot pipeline</p>
+			<p>In this section, we introduced AutoML and briefly touched on various AutoML platforms. While each service has its own unique workflow and user experience, they all begin with the same two steps – activating an API and transferring data into a storage repository, or <em class="italic">bucket</em>. Following the launch of an experiment run, models can be exported locally or <span class="No-Break">deployed immediately.</span></p>
+			<p>The primary distinction between<a id="_idIndexMarker724"/> the frameworks lies in the method of entry – web-based, via the command line, or using an SDK. Now that we have covered AutoML, we will move on to the next step, MLOps, the automation process of building models and then deploying and <span class="No-Break">managing them.</span></p>
+			<h1 id="_idParaDest-120"><a id="_idTextAnchor135"/>The need for MLOps</h1>
+			<p>The journey from AI research<a id="_idIndexMarker725"/> to production is long and full of hurdles. The complete AI/ML workload, whether building models, deploying models, or allocating web resources, is cumbersome, as any change in one step leads to changes in another. Even with advancements in deep learning, the process of taking an idea to production can be <span class="No-Break">pretty lengthy.</span></p>
+			<p><span class="No-Break"><em class="italic">Figure 6</em></span><em class="italic">.7</em> shows the different components of an ML system. We can see that only a small fraction of an ML system is involved in the actual learning and prediction; however, it requires the support<a id="_idIndexMarker726"/> of a vast and complex infrastructure. The problem is aggravated by the fact that <strong class="bold">Changing Anything Changes Everything</strong> (<strong class="bold">CACE</strong>), such that minorly tweaking the hyperparameters, changing the learning settings, or modifying the data selection methods can mean that the whole system needs <span class="No-Break">to change:</span></p>
+			<div>
+				<div id="_idContainer105" class="IMG---Figure">
+					<img src="image/Figure_6.7_B18681.jpg" alt="Figure 6.7 – The different components of an ML system"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.7 – The different components of an ML system</p>
+			<p>In the IT sector, speed, reliability, and access to information are the main ingredients of success and, hence, provide a competitive advantage. IT agility is required regardless of the remit of an organization. This becomes indispensable when AI/ML-based solutions and products are considered. Currently, most industries play out ML tasks manually, with huge delays between building an ML model and its deployment. This is shown in <span class="No-Break"><em class="italic">Figure 6</em></span><span class="No-Break"><em class="italic">.8</em></span><span class="No-Break">:</span></p>
+			<div>
+				<div id="_idContainer106" class="IMG---Figure">
+					<img src="image/Figure_6.8_B18681.jpg" alt="Figure 6.8 – An ML product life cycle (image source: Figure 2: https://cloud.google.com/architecture/mlops-continuous-delivery-and-automation-pipelines-in-machine-learning)"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.8 – An ML product life cycle (image source: Figure 2: https://cloud.google.com/architecture/mlops-continuous-delivery-and-automation-pipelines-in-machine-learning)</p>
+			<p>The data collected is prepared<a id="_idIndexMarker727"/> and processed (with normalization, feature engineering, and so on) to provide input to the ML model. Model training followed by model evaluation over numerous metrics and techniques is sent to the model registry, where it is containerized to <span class="No-Break">be served.</span></p>
+			<p>From data analysis to model serving, each task is conducted manually. Moreover, the transition from one task to another is also manual. The data scientist works independently of the Ops team; the trained model is handed to the development team, who then deploy the model within their API infrastructure. This can bring about training-serving skew – that is, a discrepancy between the model’s performance during training and its performance when it is <span class="No-Break">deployed (served).</span></p>
+			<p>As model development is separate from its final deployment, there are infrequent release iterations. Moreover, an immense setback is the scarcity of active performance monitoring. The prediction service does not track or maintain a log of the model predictions necessary to detect any degradation or drift in the behavior of the model and its performance. Theoretically, this manual<a id="_idIndexMarker728"/> process could be sufficient if the model were rarely changed or trained. However, in practice, models often fail when they are deployed in the real world. The failure <span class="No-Break">is manifold:</span></p>
+			<ul>
+				<li><strong class="bold">Model degradation</strong>: The model’s accuracy drops with<a id="_idIndexMarker729"/> time. In the traditional ML pipeline, no continuous monitoring is done to recognize a drop in the model’s performance to redress it. The end user bears the brunt of this. Imagine you provide services to a fashion house that recommends new apparel designs based on the past purchases of customers and fashion trends. However, style changes emphatically with time; the “in” colors in autumn no longer work in winter. If your model does not ingest recent fashion data and utilize it to give customers recommendations, they will complain, and eventually, the site’s user base will shrink. Eventually, the business team will notice, and much later, upon distinguishing the issue, you will be approached to update the model as per the latest data. This situation can be avoided if there is an option to monitor the model’s performance continuously, and the systems in place to implement continuous training for newly acquired data. This is shown in <span class="No-Break"><em class="italic">Figure 6</em></span><span class="No-Break"><em class="italic">.9</em></span><span class="No-Break">:</span></li>
+			</ul>
+			<div>
+				<div id="_idContainer107" class="IMG---Figure">
+					<img src="image/Figure_6.9_B18681.jpg" alt="Figure 6.9 – Continuous training"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.9 – Continuous training</p>
+			<ul>
+				<li><strong class="bold">Data drift</strong>: The difference between the joint distribution<a id="_idIndexMarker730"/> of the input features and the output for training and test datasets can cause dataset drift. When a model is initially deployed, the real-world data has a similar distribution to the training dataset, but this distribution tends to change with time. For instance, you build a model to detect network intrusion based on the data available at that time. After six months, do you think it will work as proficiently as it did at the time of deployment? It may, but chances are it will be fast drifting away – in the rapidly changing internet world, six months is almost six generations! This problem can be resolved<a id="_idIndexMarker731"/> if there are options to slice metrics on <span class="No-Break">recent data.</span></li>
+				<li><strong class="bold">Feedback loops</strong>: Unintentional feedback can manipulate<a id="_idIndexMarker732"/> a model's prediction and sway its training data. Suppose somebody works for a music streaming company in which a recommendation system is utilized to suggest new music albums based on a user’s listening history and profile. The system recommends albums with, let’s say, more than a 70% confidence level. Now, the company has decided to add a like or dislike feature. Initially, the company will be excited, as the recommended albums will receive increasing likes. However, over time, the user’s viewing history will impact the model’s predictions. As a result, the system will start recommending music similar to what the user has previously listened to, potentially missing out on new music that the user may enjoy discovering. Continuous system metric monitoring is a potential solution to issues such <span class="No-Break">as this.</span></li>
+			</ul>
+			<p>To learn more about the technical debt incurred by ML models, I suggest you read the paper titled <em class="italic">Machine Learning: The High-Interest Credit Card of Technical Debt</em> by Sculley et al. In this paper, a detailed discussion of the technical debt in ML is carried out, and the maintenance costs associated with systems using AI/ML solutions are <span class="No-Break">also covered.</span></p>
+			<p>Although it is impossible<a id="_idIndexMarker733"/> and unnecessary to obliterate technical debt completely, a holistic approach can reduce it. What is needed is a system that permits us to integrate standard DevOps pipelines into our ML workflows – ML pipeline automation, <span class="No-Break">or MLOps.</span></p>
+			<p>MLOps, or DevOps for ML, is a bunch<a id="_idIndexMarker734"/> of best practices<a id="_idIndexMarker735"/> that consolidate software <strong class="bold">development</strong> (<strong class="bold">Dev</strong>) and <strong class="bold">operations</strong> (<strong class="bold">Ops</strong>) to speed up the delivery of ML models and prediction-as-a-service apps. The primary objective of MLOps is to improve the quality and speed of model development, deployment, and management while mitigating the perils associated with deployment, making it a salient tool to gain a competitive edge in <span class="No-Break">the market.</span></p>
+			<p>Close collaboration between data scientists and engineers is mandatory when it comes to deploying ML models to production. MLOps thus helps automate an ML workflow and caters to end-to-end tracing, from data preparation to model training and from prediction to serving. It also makes ML models reproducible and auditable, which is essential for compliance with regulatory requirements such as the GDPR. MLOps can be difficult to implement, but there<a id="_idIndexMarker736"/> are plenty of tools and frameworks that can help, such as Jenkins for <strong class="bold">Continuous Integration</strong> (<strong class="bold">CI</strong>), Spinnaker for <strong class="bold">Continuous Delivery</strong> (<strong class="bold">CD</strong>), and Kubeflow for ML model management. Many<a id="_idIndexMarker737"/> open source tools that can be leveraged to create an MLOps pipeline are also up for grabs. Beyond choosing the right tools, culture and collaboration are equally important for implementing MLOps. A successful, cross-functional MLOps team is required. A clear comprehension of the business goals and how ML can assist in accomplishing them should also be considered. Ultimately, MLOps is about moving faster while maintaining high quality and compliance. When done correctly, it can assist businesses in acquiring the upper hand by speeding up ML models and <span class="No-Break">application delivery.</span></p>
+			<p>Let’s consider the different ML<a id="_idIndexMarker738"/> model life cycle steps (refer to <span class="No-Break"><em class="italic">Figure 6</em></span><em class="italic">.8</em>). Each of these steps can be completed manually or via an automatic pipeline. The level of automation of these steps determines the time gap between training new models and their deployment and, thus, can help solve the problems discussed in the previous section. The automated ML pipeline<a id="_idIndexMarker739"/> should be able to do <span class="No-Break">the following:</span></p>
+			<ul>
+				<li><strong class="bold">Allow different teams involved in product development to work independently</strong>: Ideally, many teams are involved in an AI/ML workflow, moving from data collection, data ingestion, and model development to model deployment. As discussed in the <em class="italic">The need for MLOps</em> section, any change one of the teams makes affects everything else (CACE). An ideal ML pipeline automation should allow teams to work independently on various components without any interference <span class="No-Break">from others.</span></li>
+				<li><strong class="bold">Actively monitor the model in production</strong>: Building the model is not the real challenge. The real challenge resides in maintaining the model’s accuracy in production. This is possible if the model in production is actively monitored, with logs maintained and triggers generated if the model’s performance falls below a certain threshold. This allows you to detect any degradation in performance. This can be done by carrying out online <span class="No-Break">model validation.</span></li>
+				<li><strong class="bold">Accommodating data drift</strong>: The model should evolve with new data patterns that emerge when new data comes in. This can be accomplished by adding an automated data validation step to the production pipeline. Any skew in data schema (missing features or unexpected values for features) should trigger the investigation of the data science team. Any substantial change in the data’s statistical properties should trigger retraining <span class="No-Break">the model.</span></li>
+				<li><strong class="bold">Continuous Training (CT)</strong>: In the field of AI/ML, new model architectures appear every week, and<a id="_idIndexMarker740"/> you may be keen to experiment with the latest model or tweak your hyperparameters. The automated pipeline should allow for CT. It also becomes necessary when a production model falls below its performance threshold, or a substantial data drift <span class="No-Break">is noticed.</span></li>
+				<li><strong class="bold">Reproducibility</strong>: Additionally, reproducibility is a major issue in AI, to such an extent that NeurIPS, the premier AI conference, has established a reproducibility chair. The aim for researchers is to submit a reproducibility checklist, empowering others to reproduce the results. Modularized components allow teams to work independently and make changes without impacting other teams. This allows teams to narrow down issues to a given component and, thus, helps <span class="No-Break">with reproducibility.</span></li>
+				<li><strong class="bold">CI/CD</strong>: For an expeditious and dependable<a id="_idIndexMarker741"/> update at the production level, there should be a <strong class="bold">robust CI/CD system</strong>. Delivering AI/ML solutions rapidly, reliably, and securely<a id="_idIndexMarker742"/> can improve your <span class="No-Break">organization’s performance.</span></li>
+				<li><strong class="bold">Testing</strong>: Finally, you may want<a id="_idIndexMarker743"/> to perform A/B testing before applying a model to live traffic; this can be accomplished by configuring the new model to serve 10–20% of live traffic. If the new model performs better, he engineer/developer can serve all the traffic; otherwise, roll back to the <span class="No-Break">old model.</span></li>
+			</ul>
+			<p>In essence, we need MLOps as an integrated engineering solution that unifies ML system development and ML system operation. This will allow data scientists to explore various model architectures, experiment with feature engineering techniques and hyperparameters, and push changes automatically to deployment. <span class="No-Break"><em class="italic">Figure 6</em></span><em class="italic">.10</em> shows the different<a id="_idIndexMarker744"/> stages of the ML CI/CD <span class="No-Break">automation pipeline:</span></p>
+			<div>
+				<div id="_idContainer108" class="IMG---Figure">
+					<img src="image/Figure_6.10_B18681.jpg" alt="Figure 6.10 – The stages of the automated ML pipeline with CI/CD"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.10 – The stages of the automated ML pipeline with CI/CD</p>
+			<p>The complete automation pipeline<a id="_idIndexMarker745"/> comprises <span class="No-Break">six stages:</span></p>
+			<ol>
+				<li><strong class="bold">Development/experimentation</strong>: At this stage, the data scientist iteratively tries various ML algorithms and architectures. Once satisfied, they push the model’s source code to the source <span class="No-Break">code repository.</span></li>
+				<li><strong class="bold">CI of the pipeline</strong>: This stage involves building the source code and identifying and outputting the packages, executables, and artifacts that need to be <span class="No-Break">deployed later.</span></li>
+				<li><strong class="bold">CD of the pipeline</strong>: The artifacts produced in <em class="italic">stage 2</em> are deployed to the <span class="No-Break">target environment.</span></li>
+				<li><strong class="bold">CT</strong>: Depending upon the triggers set, a trained model is pushed to the model registry at <span class="No-Break">this stage.</span></li>
+				<li><strong class="bold">CD of the model</strong>: Here, a model prediction service <span class="No-Break">is deployed.</span></li>
+				<li><strong class="bold">Monitoring</strong>: At this stage, the model<a id="_idIndexMarker746"/> performance statistics are collected and used to set triggers to execute the pipeline or a new <span class="No-Break">experiment cycle.</span></li>
+			</ol>
+			<p>In the upcoming<a id="_idIndexMarker747"/> sections, we will cover some <strong class="bold">GCP</strong> (short for <strong class="bold">Google Cloud Platform</strong>) tools you can<a id="_idIndexMarker748"/> use to implement MLOps. We will talk about Cloud Run, TensorFlow Extended, and Kubeflow, the latter of which is the focus of the chapter (along with <span class="No-Break">Vertex AI).</span></p>
+			<h1 id="_idParaDest-121"><a id="_idTextAnchor136"/>TFX – a scalable end-to-end platform for AI/ML workflows</h1>
+			<p><strong class="bold">TensorFlow Extended</strong> (<strong class="bold">TFX</strong>) is a scalable end-to-end platform<a id="_idIndexMarker749"/> for creating<a id="_idIndexMarker750"/> and deploying <a id="_idIndexMarker751"/>TensorFlow AI/ML workflows. TFX comprises<a id="_idIndexMarker752"/> libraries for data validation, data pre-processing, feature engineering, AI/ML model creation and training, model performance evaluation, and finally, providing models as REST and gRPC APIs. You can measure the worth of TFX by the fact that it powers several Google products, such as Chrome, Google Search, and Gmail. Google, Airbnb, PayPal, and Twitter all use TFX. As a platform, TFX employs a number of libraries for creating an end-to-end <span class="No-Break">ML process.</span></p>
+			<p>Let’s see these libraries and what they <span class="No-Break">can do:</span></p>
+			<ul>
+				<li><strong class="bold">TensorFlow Data Validation</strong> (<strong class="bold">TFDV</strong>): This library includes modules for exploring and validating<a id="_idIndexMarker753"/> your data. It lets you see the data used to train and/or test a model. The statistical summary provided by it can be utilized to discover any anomalies in the data. It includes an automatic schema creation tool describing the expected data range. It can also be used to detect data drift when comparing<a id="_idIndexMarker754"/> various experiments <span class="No-Break">and runs.</span></li>
+				<li><strong class="bold">TensorFlow Transform</strong> (<strong class="bold">TFT</strong>): You can pre-process your data at scale using TFT. The TFT library’s functions<a id="_idIndexMarker755"/> can be used to evaluate data, transform data, and conduct advanced feature engineering activities. The use of TFT has the advantage of modularizing the pre-processing procedure. A combination of TensorFlow and Apache Beam allows you to process the full dataset – such as getting the maximum and minimum values or all the available categories – and convert the data batch into tensors. It takes advantage of Google Dataflow, a <span class="No-Break">cloud service.</span></li>
+				<li><strong class="bold">TensorFlow Estimator and Keras</strong>: This is the standard TensorFlow framework you <a id="_idIndexMarker756"/>can use to design and train your models. It also gives you access to a large number of <span class="No-Break">pre-trained models.</span></li>
+				<li><strong class="bold">TensorFlow Model Analysis</strong> (<strong class="bold">TFMA</strong>): This enables you to evaluate your trained model, in a distributed<a id="_idIndexMarker757"/> manner, on massive volumes of data, using the same model evaluation metrics you established while training. It allows you to analyze and comprehend <span class="No-Break">trained models.</span></li>
+				<li><strong class="bold">TensorFlow Serving</strong> (<strong class="bold">TFServing</strong>): Finally, after you’re happy with your trained<a id="_idIndexMarker758"/> model, you can deliver it via REST and gRPC APIs for <span class="No-Break">online production.</span></li>
+			</ul>
+			<p>The figure here shows how the different libraries are integrated to form a TFX-based <span class="No-Break">AI/ML pipeline:</span></p>
+			<div>
+				<div id="_idContainer109" class="IMG---Figure">
+					<img src="image/Figure_6.11_B18681.jpg" alt="Figure 6.11 – A TFX-based AI/ML pipeline (image source: Figure 4: https://cloud.google.com/architecture/mlops-continuous-delivery-and-automation-pipelines-in-machine-learning)"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.11 – A TFX-based AI/ML pipeline (image source: Figure 4: https://cloud.google.com/architecture/mlops-continuous-delivery-and-automation-pipelines-in-machine-learning)</p>
+			<p>Each of these stages<a id="_idIndexMarker759"/> can be performed manually; however, as mentioned in the preceding section on MLOps, it is preferable for these procedures to be performed automatically. To accomplish this, we require an orchestration tool that connects the various blocks (components) of the ML workflow – this is where Kubeflow comes into play, which will be the topic of the <span class="No-Break">next section.</span></p>
+			<h1 id="_idParaDest-122"><a id="_idTextAnchor137"/>Understanding Kubeflow</h1>
+			<p>You can manage the full AI/ML life cycle<a id="_idIndexMarker760"/> with Kubeflow. It is a native Kubernetes <strong class="bold">Operations Support System</strong> (<strong class="bold">OSS</strong>) platform for developing, deploying, and managing<a id="_idIndexMarker761"/> scalable, end-to-end ML workloads in hybrid and multi-cloud settings. Kubeflow Pipelines, a Kubeflow service, aids in the automation of a complete AI/ML life cycle, allowing you to compose, orchestrate, and automate your <span class="No-Break">AI/ML workloads.</span></p>
+			<p>It is an open source project, and the following diagram of the commits shows that it is an active and growing project. One of Kubeflow’s key goals is to make it simple for anybody to design, implement, and manage portable, scalable ML. At the time of writing, the Kubeflow GitHub project had 121,000 stars and over 2,000 <span class="No-Break">forks (</span><a href="https://github.com/kubeflow/kubeflow/graphs/contributors"><span class="No-Break">https://github.com/kubeflow/kubeflow/graphs/contributors</span></a><span class="No-Break">):</span></p>
+			<div>
+				<div id="_idContainer110" class="IMG---Figure">
+					<img src="image/Figure_6.12_B18681.jpg" alt="Figure 6.12 – Contributions to the Kubeflow GitHub repo"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.12 – Contributions to the Kubeflow GitHub repo</p>
+			<p>The best thing is that you can use the Kubeflow API to design your AI/ML workflow even if you don’t know much about Kubernetes. Kubeflow can be used on your local PC and any cloud (such as GCP or Azure AWS) with a single node or cluster specified; it is designed to work reliably across different settings. Google released Kubeflow 1.2 in November 2022, allowing organizations to operate their ML process across environments. Kubeflow is based on the following three <span class="No-Break">fundamental principles:</span></p>
+			<ul>
+				<li><strong class="bold">Composability</strong>: Kubeflow expands Kubernetes’ capacity<a id="_idIndexMarker762"/> to perform separate and adjustable tasks by utilizing ML-specific frameworks (such as TensorFlow, PyTorch, and others) and libraries (scikit-learn and pandas). This gives you distinct libraries for different tasks in an AI/ML workflow. Different TensorFlow versions, for example, may be necessary for data preparation and testing. Each job in an AI/ML process may, therefore, be independently containerized and <span class="No-Break">worked upon.</span></li>
+				<li><strong class="bold">Portability</strong>: You can execute all of your AI/ML workflow components from anywhere you want – in the cloud, on-premises, or on your laptop while on vacation – as long as they are all running <span class="No-Break">on Kubeflow.</span></li>
+				<li><strong class="bold">Scalability</strong>: You can use more resources when you wish to and then release them when they are no longer required. Kubeflow increases Kubernetes’ ability to maximize resource availability and scale resources with minimal <span class="No-Break">manual effort.</span></li>
+			</ul>
+			<p> Some advantages of using Kubeflow<a id="_idIndexMarker763"/> are <span class="No-Break">as follows:</span></p>
+			<ul>
+				<li>It is standardized on a <span class="No-Break">common infrastructure.</span></li>
+				<li>It uses open source, cloud-native ecosystems to create, orchestrate, deploy, and run scalable and portable AI/ML workloads across an AI/ML <span class="No-Break">life cycle.</span></li>
+				<li>It runs AI/ML workflows in hybrid and <span class="No-Break">multi-cloud environments.</span></li>
+				<li>In addition, when running on <strong class="bold">GKE</strong> (short for <strong class="bold">Google Kubernetes Engine</strong>), you can take advantage of GKE’s enterprise-grade<a id="_idIndexMarker764"/> security, logging, autoscaling, and <span class="No-Break">identifying features.</span></li>
+			</ul>
+			<p>Kubeflow populates clusters with <strong class="bold">Custom Resource Definitions</strong> (<strong class="bold">CRDs</strong>). It makes use of containers<a id="_idIndexMarker765"/> and Kubernetes. Therefore, it can be used everywhere Kubernetes is already <span class="No-Break">in use.</span></p>
+			<p>The Kubeflow applications and components listed here can be used to organize your AI/ML workflow on top <span class="No-Break">of Kubernetes:</span></p>
+			<ul>
+				<li><strong class="bold">Jupyter notebooks</strong>: Jupyter notebooks are the de facto tool for quick<a id="_idIndexMarker766"/> data analysis for AI/ML practitioners. The majority of data science projects begin with a Jupyter notebook. They serve as the foundation for the contemporary, cloud-native ML pipeline. Kubeflow notebooks allow you to execute your experiments locally, or you can take the data, train the model, and serve it all within a notebook. Notebooks work nicely with the rest of the architecture to provide access to other services in the Kubeflow cluster through the cluster IP addresses. They are also compatible with access control and authentication. Kubeflow allows you to set up several notebook servers, each of which can run multiple notebooks. Depending on a server’s project or team, each notebook server belongs to a specific namespace. Kubeflow supports many users through namespaces, making cooperating and controlling access easier. Using a notebook on Kubeflow allows you to scale resources dynamically. The best part is that it includes all of the plugins/dependencies you’ll need to train a model in Jupyter, including TensorBoard visualizations and customizable compute resources. Kubeflow Notebooks offers the same experience as Jupyter notebooks locally but with the<a id="_idIndexMarker767"/> added benefits of scalability, access control, collaboration, and direct job submission to the <span class="No-Break">Kubernetes cluster.</span></li>
+				<li><strong class="bold">Kubeflow User Interface (UI)</strong>: A UI for running pipelines, creating<a id="_idIndexMarker768"/> and starting experiments, exploring your pipeline’s graph, configuration, and output, and even <span class="No-Break">scheduling runs.</span></li>
+				<li><strong class="bold">Katib</strong>: The tuning of hyperparameters<a id="_idIndexMarker769"/> is an important step in the AI/ML workflow. Finding the correct hyperparameter space can be time-consuming. Katib facilitates hyperparameter tuning, early halting, and NAS. It aids in determining the best configuration for production based on the metrics <span class="No-Break">of choice.</span></li>
+				<li><strong class="bold">Kubeflow Pipelines</strong>: Kubeflow Pipelines enables you to create<a id="_idIndexMarker770"/> a series of stages that include everything from data collection to providing a trained model. Because they are based on containers, each phase is portable and scalable. Kubeflow Pipelines can be used to orchestrate end-to-end ML workflows. Kubeflow Pipelines takes advantage of the fact that ML operations can be broken down into a series of standard stages that can be placed in the form of a directed graph. Each Kubeflow pipeline job is a self-contained piece of code packaged as a Docker image, complete with inputs (arguments) and outputs. This job containerization enables portability, since the pipelines are self-contained programs that can be run anywhere. Furthermore, the same code can be utilized in another AI/ML pipeline – tasks can <span class="No-Break">be reused.</span></li>
+				<li><strong class="bold">Metadata</strong>: It is helpful to keep track of and manage<a id="_idIndexMarker771"/> the metadata that is produced in AI/ML workflows. Tracking metadata can be utilized to perform real-time model evaluation. It can aid in the detection of data drift or training-serving skews. It can also be used for auditing and compliance, allowing you to see which models are in production and how they perform. The metadata component is installed with Kubeflow by default. Many Kubeflow components write to the metadata server. In addition, you can write to the metadata server using your code. The Kubeflow UI can be used to view the metadata – through the <span class="No-Break">artifact</span><span class="No-Break"><a id="_idIndexMarker772"/></span><span class="No-Break"> store.</span></li>
+				<li><strong class="bold">KFServing</strong>: This allows you to serve AI/ML models<a id="_idIndexMarker773"/> on arbitrary frameworks. It includes features such as auto-scaling, networking, and canary rollouts. It has an easy-to-use interface to serve models to production. Using a YAML file, you can provision the resources to serve and compute a model and its prediction. Canary rollouts enable you to test and update models without impacting the <span class="No-Break">user experience.</span></li>
+				<li><strong class="bold">Fairing</strong>: This is a Python package that allows<a id="_idIndexMarker774"/> you to build, train, and deploy your AI/ML models in hybrid <span class="No-Break">cloud environments.</span></li>
+			</ul>
+			<p>To summarize, <em class="italic">Kubeflow provides a curated set of compatible tools and artifacts that lie at the heart of running production-enabled AI/ML apps</em>. This helps organizations to standardize a uniform modeling infrastructure across an ML life cycle. Another important step in an AI/ML workflow is hyperparameter tuning, so next, we will explore Katib, which Kubernetes cluster and provides options for both hyperparameter tuning <span class="No-Break">and NAS.</span></p>
+			<h1 id="_idParaDest-123"><a id="_idTextAnchor138"/>Katib for hyperparameter tuning</h1>
+			<p>Katib is a scalable, Kubernetes-native<a id="_idIndexMarker775"/> AutoML platform<a id="_idIndexMarker776"/> that facilitates both hyperparameter tuning and NAS. <span class="No-Break"><em class="italic">Figure 6</em></span><em class="italic">.13</em> shows the design of Katib. To learn more about how it works, readers should refer to <em class="italic">Katib: A Distributed General AutoML Platform </em><span class="No-Break"><em class="italic">on Kubernetes:</em></span></p>
+			<div>
+				<div id="_idContainer111" class="IMG---Figure">
+					<img src="image/Figure_6.13_B18681.jpg" alt="Figure 6.13 – The design of Katib as a general AutoML system (Figure 2﻿ from the paper: https://www.usenix.org/system/files/opml19papers-zhou.pdf)"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.13 – The design of Katib as a general AutoML system (Figure 2 from the paper: https://www.usenix.org/system/files/opml19papers-zhou.pdf)</p>
+			<p>Katib supports hyperparameter<a id="_idIndexMarker777"/> adjustment through the command line<a id="_idIndexMarker778"/> via a YAML file specification, as well as the Jupyter Notebook and the Python SDK. It also has a graphical UI for specifying tuning settings and visualizing the results, as <span class="No-Break">shown here:</span></p>
+			<div>
+				<div id="_idContainer112" class="IMG---Figure">
+					<img src="image/Figure_6.14_B18681.jpg" alt="Figure 6.14 – The graphical interface of Katib"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.14 – The graphical interface of Katib</p>
+			<p>Katib allows you to choose a measure and whether to reduce or increase it. You can choose the hyperparameters you want to tweak and see the results of the entire experiment and <span class="No-Break">individual runs.</span></p>
+			<p><span class="No-Break"><em class="italic">Figure 6</em></span><em class="italic">.15</em> depicts the outcome of a Katib run, with validation accuracy as the metric and the learning rate, layer count, and optimizer as the hyperparameters to <span class="No-Break">be tuned:</span></p>
+			<div>
+				<div id="_idContainer113" class="IMG---Figure">
+					<img src="image/Figure_6.15_B18681.jpg" alt="Figure 6.15 – The results of hyperparameter tuning generated by Katib"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.15 – The results of hyperparameter tuning generated by Katib</p>
+			<p>Another interesting platform<a id="_idIndexMarker779"/> for both MLOps and AutoML is Vertex AI, offered<a id="_idIndexMarker780"/> by Google, which we will <span class="No-Break">cover next.</span></p>
+			<h1 id="_idParaDest-124"><a id="_idTextAnchor139"/>Vertex AI</h1>
+			<p>Kubeflow allows you to orchestrate the MLOPs<a id="_idIndexMarker781"/> workflow. However, you still need to deal with the Kubernetes cluster. A far better solution would be to not need to worry about the management of clusters at all – enter Vertex AI pipelines. You can use Kubeflow Pipelines or TFX pipelines in Vertex AI. Vertex AI provides tools for every step of the ML workflow, from managing datasets to different ways of training the model, evaluating and deploying it, and making predictions. In short, Vertex AI provides a soup-to-nuts solution for your AI needs. Whether you are a beginner with no code experience but have a great idea that could utilize AI, or you are a seasoned AI engineer, Vertex AI brings something to the table for you. Vertex AI’s AutoML feature makes it easy for beginners to get started with ML; all you have to do is load your data, use the data exploration tools that Vertex AI provides, and start training <span class="No-Break">a model.</span></p>
+			<p>Expert AI engineers can create their own training loops, cloud-train their models, and use endpoints to put them into production. Additionally, Vertex AI<a id="_idIndexMarker782"/> allows you to do local model training, deployment, and monitoring. Vertex AI is an all-in-one AI/ML platform that features a streamlined UI, as shown in <span class="No-Break"><em class="italic">Figure 6</em></span><span class="No-Break"><em class="italic">.16</em></span><span class="No-Break">:</span></p>
+			<div>
+				<div id="_idContainer114" class="IMG---Figure">
+					<img src="image/Figure_6.16_B18681.jpg" alt="Figure 6.16 – Vertex AI’s unified interface for the complete AI/ML workflow"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.16 – Vertex AI’s unified interface for the complete AI/ML workflow</p>
+			<p>The Vertex AI dashboard is depicted in <span class="No-Break"><em class="italic">Figure 6</em></span><em class="italic">.17</em>; in the following sections, we will examine its many <span class="No-Break">useful features:</span></p>
+			<div>
+				<div id="_idContainer115" class="IMG---Figure">
+					<img src="image/Figure_6.17_B18681.jpg" alt="Figure 6.17 – Vertex AI dashboard"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.17 – Vertex AI dashboard</p>
+			<p>Next, we will explore what type of data is supported by Vertex AI and how to <span class="No-Break">handle it.</span></p>
+			<h2 id="_idParaDest-125"><a id="_idTextAnchor140"/>Datasets</h2>
+			<p>Images, videos, text, and tables<a id="_idIndexMarker783"/> are all supported by Vertex AI. You can see a breakdown of the AI/ML tasks that can be completed with Vertex AI-managed datasets in the <span class="No-Break">following table:</span></p>
+			<table id="table001-4" class="No-Table-Style _idGenTablePara-1">
+				<colgroup>
+					<col/>
+					<col/>
+				</colgroup>
+				<tbody>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="bold">Type </strong><span class="No-Break"><strong class="bold">of data</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><span class="No-Break"><strong class="bold">Tasks supported</strong></span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break">Image</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<ul>
+								<li>Image <span class="No-Break">classification (single-label)</span></li>
+								<li>Image <span class="No-Break">classification (multi-label)</span></li>
+								<li>Image <span class="No-Break">object detection</span></li>
+								<li><span class="No-Break">Image segmentation</span></li>
+							</ul>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break">Video</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<ul>
+								<li>Video <span class="No-Break">action recognition</span></li>
+								<li><span class="No-Break">Video classification</span></li>
+								<li>Video <span class="No-Break">object tracking</span></li>
+							</ul>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break">Text</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<ul>
+								<li>Text <span class="No-Break">classification (single-label)</span></li>
+								<li>Text <span class="No-Break">classification (multi-label)</span></li>
+								<li>Text <span class="No-Break">entity extraction</span></li>
+								<li>Text <span class="No-Break">sentiment analysis</span></li>
+							</ul>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break">Tabular</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<ul>
+								<li><span class="No-Break">Regression</span></li>
+								<li><span class="No-Break">Classification</span></li>
+								<li><span class="No-Break">Forecasting</span></li>
+							</ul>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Table 6.1 – The types of data and types of AI tasks supported on each in Vertex AI</p>
+			<p>For image, video, and text<a id="_idIndexMarker784"/> datasets, if you do not have labels, you can use the annotation service provided by Google. Files containing image URIs and labels can also be imported from your computer. Moreover, you can import data from Google Cloud Storage. It is important to remember that uploaded data will use Google Cloud Storage<a id="_idIndexMarker785"/> to store the files you upload from your computer. Only <strong class="bold">comma-separated values</strong> (<strong class="source-inline">.csv</strong>) files are supported by Vertex AI for tabular data. You can upload them from your local machine, a cloud service, or an import <span class="No-Break">from BigQuery.</span></p>
+			<p>Vertex AI allows you to browse and analyze data once it has been specified. If the data is not labeled, you can simply browse it in the browser and assign labels. In addition, Vertex AI provides the option of automating or manually performing the test-training validation split. <span class="No-Break"><em class="italic">Figure 6</em></span><em class="italic">.18</em> depicts an analysis performed on the HR analytics data (<a href="https://www.kaggle.com/arashnic/hr-analytics-job-change-of-data-scientists?select=aug_train.csv">https://www.kaggle.com/arashnic/hr-analytics-job-change-of-data-scientists?select=aug_train.csv</a>) using the Vertex AI managed <span class="No-Break">datasets service.</span></p>
+			<div>
+				<div id="_idContainer116" class="IMG---Figure">
+					<img src="image/Figure_6.18_B18681.jpg" alt="Figure 6.18 – AutoML configurations for tabular data – choosing the training parameters and transformations"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.18 – AutoML configurations for tabular data – choosing the training parameters and transformations</p>
+			<p>Vertex AI also provides a <strong class="bold">Feature Store</strong> option, which can be used to analyze the features of your data. Using the same feature data distribution for training and serving can help reduce training-serving skews. Additionally, <strong class="bold">Feature Store</strong> can help identify model or data<a id="_idIndexMarker786"/> drift. In addition, Vertex AI offers a data annotation service for those who <span class="No-Break">need it.</span></p>
+			<h2 id="_idParaDest-126"><a id="_idTextAnchor141"/>Training and experiments in Vertex AI</h2>
+			<p>The training<a id="_idIndexMarker787"/> tasks you have completed<a id="_idIndexMarker788"/> and are currently working on are displayed in the <strong class="bold">Training</strong> tab of the Vertex AI dashboard. This can also be the starting point for an entirely new training sequence. Simply select <strong class="bold">Create</strong> and then <strong class="bold">Create</strong> again, and then follow the onscreen prompts to finish the process. You can specify the transformations applied to the tabular data and pick and choose which features to use for training if you choose the AutoML route. The objective function can also be customized. After making your selections, all you have to do is set aside how much time you can afford to train for (the bare minimum is an hour). If the model’s performance isn’t improving during training, it’s best to stop it early, as depicted in <span class="No-Break"><em class="italic">Figure 6</em></span><span class="No-Break"><em class="italic">.19</em></span><span class="No-Break">.</span></p>
+			<p>The <strong class="bold">Experiments</strong> tab lets you track, visualize, and compare ML experiments and share them <span class="No-Break">with others:</span></p>
+			<div>
+				<div id="_idContainer117" class="IMG---Figure">
+					<img src="image/Figure_6.19_B18681.jpg" alt="Figure 6.19 – AutoML configurations for tabular data – selecting a budget and early stopping"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.19 – AutoML configurations for tabular data – selecting a budget and early stopping</p>
+			<p>We have demonstrated Vertex AI AutoML using HR analytics data (<a href="https://www.kaggle.com/arashnic/hr-analytics-job-change-of-data-scientists?select=aug_train.csv">https://www.kaggle.com/arashnic/hr-analytics-job-change-of-data-scientists?select=aug_train.csv</a>) to foresee a data scientist’s intention to switch jobs. When training the model, we used everything we had available except the enrolled ID. There is a column in the data files <a id="_idIndexMarker789"/>that indicates whether the data scientist is actively seeking <a id="_idIndexMarker790"/>employment, and we use this as the <span class="No-Break">target column.</span></p>
+			<p>Models and endpoints in <span class="No-Break">Vertex AI</span></p>
+			<p>The <strong class="bold">Models</strong> tab contains comprehensive<a id="_idIndexMarker791"/> information<a id="_idIndexMarker792"/> regarding trained models. These models are complete with a test dataset evaluation (when trained using managed datasets). Additionally, feature importance for all features can be accessed in the case of tabular data. The data can be viewed visually or read as text directly on <span class="No-Break">the dashboard.</span></p>
+			<p>The training of models was allotted a 1-node-per-hour budget. The total duration of the training was about 1 hour and 35 minutes. The AutoML-trained model’s test-dataset evaluation is displayed in <span class="No-Break"><em class="italic">Figure 6</em></span><span class="No-Break"><em class="italic">.20</em></span><span class="No-Break">:</span></p>
+			<div>
+				<div id="_idContainer118" class="IMG---Figure">
+					<img src="image/Figure_6.20_B18681.jpg" alt="Figure 6.20 – The model evaluation for the test dataset"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.20 – The model evaluation for the test dataset</p>
+			<p>Now refer to the following<a id="_idIndexMarker793"/> figure, which shows<a id="_idIndexMarker794"/> the matrix and <span class="No-Break">feature importance:</span></p>
+			<div>
+				<div id="_idContainer119" class="IMG---Figure">
+					<img src="image/Figure_6.21_B18681.jpg" alt="Figure 6.21 – The confusion matrix and feature importance"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.21 – The confusion matrix and feature importance</p>
+			<p>The dashboard makes it easy<a id="_idIndexMarker795"/> to examine a model’s forecast. For testing purposes, the model <a id="_idIndexMarker796"/>must be deployed to an endpoint. Vertex AI also provides the option to save the model in a container (in the TensorFlow <strong class="bold">SavedModel</strong> format), which can then be used to launch the model in any other on-premises or cloud service. Let’s go ahead and select <strong class="bold">Deploy to Endpoint</strong> to send the model somewhere. The following choices are available <span class="No-Break">for deployment:</span></p>
+			<ul>
+				<li>Give a name to <span class="No-Break">the endpoint.</span></li>
+				<li>Choose the traffic split – for a single model, it is 100%, but if you have more than one model, you can split <span class="No-Break">the traffic.</span></li>
+				<li>Choose the minimum number of <span class="No-Break">compute nodes.</span></li>
+				<li>Select the <span class="No-Break">machine type.</span></li>
+				<li>Vertex AI provides a sampled Shapley explainability method for tabular data if you choose the model <span class="No-Break">explainability option.</span></li>
+				<li>Select which aspects of the model you wish to keep an eye on (feature drift or training-serving skews) and adjust your alert <span class="No-Break">settings accordingly.</span></li>
+			</ul>
+			<p>Deployment is quick and easy after the initial setup is complete. Let’s now put the prediction to the test (both individual and batch predictions are available). It is clear from <span class="No-Break"><em class="italic">Figure 6</em></span><em class="italic">.22</em> that the data scientist is not actively seeking employment at a confidence level of approximately 0.67, given the inputs that were chosen. We can use either a REST API or a Python client to send a test request to the model. The Vertex AI endpoint provides the relevant code to accommodate both <span class="No-Break">sample requests.</span></p>
+			<div>
+				<div id="_idContainer120" class="IMG---Figure">
+					<img src="image/Figure_6.22_B18681.jpg" alt="Figure 6.22 – The model prediction"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.22 – The model prediction</p>
+			<p>All the models<a id="_idIndexMarker797"/> and endpoints<a id="_idIndexMarker798"/> deployed in the project are listed in the <strong class="bold">Models</strong> and <strong class="bold">Endpoints</strong> tabs on the <span class="No-Break">dashboard respectively.</span></p>
+			<h2 id="_idParaDest-127"><a id="_idTextAnchor142"/>Vertex AI Workbench</h2>
+			<p>Vertex AI Workbench is compatible<a id="_idIndexMarker799"/> with JupyterLab and the Jupyter Notebook. A user can choose between pre-made notebooks and managed notebooks. All the popular deep learning frameworks and modules are included in managed notebooks, and you can even add your own Jupyter kernels using Docker images. The user-managed<a id="_idIndexMarker800"/> notebooks provide a number of useful starting points. Users can configure their notebooks with a choice of <strong class="bold">virtual central processing units</strong> (<strong class="bold">vCPUs</strong>) and <strong class="bold">graphics processing units</strong> (<strong class="bold">GPUs</strong>). If you’re new to Vertex AI and want<a id="_idIndexMarker801"/> to get started right away, we recommend starting with the managed notebooks. However, if you’re looking for more administrative power, user-managed notebooks are the way <span class="No-Break">to go.</span></p>
+			<p>In order to enter your JupyterLab environment after a notebook has been made, click on the <strong class="bold">OPEN </strong><span class="No-Break"><strong class="bold">JUPYTERLAB</strong></span><span class="No-Break"> link.</span></p>
+			<div>
+				<div id="_idContainer121" class="IMG---Figure">
+					<img src="image/Figure_6.23_B18681.jpg" alt="Figure 6.23 – A list of Jupyter notebooks in ﻿Vertex AI Workbench"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 6.23 – A list of Jupyter notebooks in Vertex AI Workbench</p>
+			<p>Vertex AI Workbench can be used in conjunction with TFX or Kubeflow to perform data exploration, model construction, and training and <span class="No-Break">execute code.</span></p>
+			<p>Vertex AI provides a unified interface for all the AI/ML process components. You can set up pipelines for model training and experimentation. The interface provides a simple method to tweak hyperparameters. Custom training can be selected, allowing a user to choose from containers and load their code straight away to train on their chosen machine. Vertex AI also features AutoML integration to accelerate the ML workflow. Using AutoML, you can obtain an efficient ML model for controlled datasets with minimal ML skills. Using feature attribution, Vertex AI also provides explainability for its models. When your model is complete, you can select endpoints for batch or single predictions and deploy your model<a id="_idIndexMarker802"/> to them. The most important aspect of deployment is the ability to deploy on edge devices and place your model where the <span class="No-Break">data is.</span></p>
+			<h1 id="_idParaDest-128"><a id="_idTextAnchor143"/>Summary</h1>
+			<p>This chapter provided a comprehensive overview of AutoML and MLOps. It began by introducing the concept of AutoML and explained how it is used to automate the process of training and tuning a large selection of candidate models. The chapter also included a hands-on example of using H2O AutoML and discussed the AutoML features provided by Microsoft Azure and Amazon SageMaker Autopilot. Following that, the chapter introduced the concept of MLOps and the importance of incorporating it into <span class="No-Break">AI/ML workflows.</span></p>
+			<p>The chapter covered the features of TFX briefly, which is a TensorFlow-based toolkit to build a full-fledged ML pipeline. It provides a set of libraries and pre-built components that can be used to build and deploy ML <span class="No-Break">models easily.</span></p>
+			<p>Kubeflow, an open source project that aims to make running ML workloads on Kubernetes simple, portable, and scalable, was also covered. We also showed how to perform hyperparameter tuning using Katib, which is a Kubernetes-based system for <span class="No-Break">hyperparameter tuning.</span></p>
+			<p>Finally, Google’s Vertex AI was explored. This platform provides a simple and easy-to-use interface to build, deploy, and manage ML models. Using Vertex AI, we trained and deployed a model trained on HR <span class="No-Break">analytics data.</span></p>
+			<p>Now that you are familiar with the ML pipeline and the various tools used to automate it, in the next chapter, we will move on to the concept of fairness in <span class="No-Break">data collection.</span></p>
+			<h1 id="_idParaDest-129"><a id="_idTextAnchor144"/>Further reading</h1>
+			<ul>
+				<li><em class="italic">Large-Scale Evolution of Image Classifiers</em>. In <em class="italic">International Conference on Machine Learning</em>, pp. 2902–2911. PMLR, 2017, Real, Esteban, Moore, Sherry, Selle, Andrew, Saxena, Saurabh, Suematsu, Yutaka Leon, Tan, Jie, Le, Quoc V., and Kurakin, <span class="No-Break">Alexey: </span><a href="http://proceedings.mlr.press/v70/real17a/real17a.pdf"><span class="No-Break">http://proceedings.mlr.press/v70/real17a/real17a.pdf</span></a><span class="No-Break">.</span></li>
+				<li><em class="italic">Neural Architecture Search with Reinforcement Learning</em>. <em class="italic">arXiv preprint arXiv:1611.01578</em> (2016), Zoph, Barret, and Le, Quoc <span class="No-Break">V: </span><a href="https://arxiv.org/pdf/1611.01578.pdf"><span class="No-Break">https://arxiv.org/pdf/1611.01578.pdf</span></a><span class="No-Break">.</span></li>
+				<li><em class="italic">Neural Architecture Search: A Survey</em>. <em class="italic">The Journal of Machine Learning Research</em>, 20, no. 1 (2019): 1997–2017, Elsken, Thomas, Metzen, Jan Hendrik, and Hutter, <span class="No-Break">Frank</span><span class="No-Break">: </span><a href="https://www.jmlr.org/papers/volume20/18-598/18-598.pdf?ref=https://githubhelp.com"><span class="No-Break">https://www.jmlr.org/papers/volume20/18-598/18-598.pdf?ref=https://githubhelp.com</span></a><span class="No-Break">.</span></li>
+				<li><em class="italic">H2O AutoML: Scalable Automatic Machine Learning</em>. In <em class="italic">Proceedings of the AutoML Workshop at ICML</em>, vol. 2020. 2020, LeDell, Erin, and Poirier, <span class="No-Break">Sebastien: </span><a href="https://www.automl.org/wp-content/uploads/2020/07/AutoML_2020_paper_61.pdf"><span class="No-Break">https://www.automl.org/wp-content/uploads/2020/07/AutoML_2020_paper_61.pdf</span></a><span class="No-Break">.</span></li>
+				<li><em class="italic">Towards Automated Machine Learning: Evaluation and Comparison of AutoML Approaches and Tools, </em>Truong, Anh, Walters, Austin, Goodsitt, Jeremy, Hines, Keegan, Bruss, C. Bayan, and Farivar, Reza. In 2019 IEEE 31st international conference on tools with artificial intelligence (ICTAI), pp. 1471–1479. IEEE, <span class="No-Break">2019: </span><a href="https://arxiv.org/pdf/1908.05557&amp;ved=2ahUKEwjS0Zes2ermAhUqTt8KHdCFAhkQFjAGegQIBxAS&amp;usg=AOvVaw0b_JUomS-A1rtsy7v5ZA64.pdf"><span class="No-Break">https://arxiv.org/pdf/1908.05557&amp;ved=2ahUKEwjS0Zes2ermAhUqTt8KHdCF</span>
+<span class="No-Break">AhkQFjAGegQIBxAS&amp;usg=AOvVaw0b_JUomS-A1rtsy7v5ZA64.pdf</span></a></li>
+				<li><em class="italic">AutoML: A Survey of the State-of-the-Art. Knowledge-Based Systems</em>, 212 (2021): 106622, He, Xin, Zhao, Kaiyong, and Chu, Xiaowen. : <span class="No-Break">https://arxiv.org/pdf/1908.00709.pdf?arxiv.org</span><span class="No-Break">.</span></li>
+				<li><em class="italic">Hidden Technical Debt in Machine Learning Systems, </em>Sculley, David, Holt, Gary, Golovin, Daniel, Davydov, Eugene, Phillips, Todd, Ebner, Dietmar, Chaudhary, Vinay, Young, Michael, Crespo, Jean-Francois, and Dennison, Dan. Advances in Neural Information Processing Systems, 28 (<span class="No-Break">2015): </span><a href="https://proceedings.neurips.cc/paper/2015/file/86df7dcfd896fcaf2674f757a2463eba-Paper.pdf"><span class="No-Break">https://proceedings.neurips.cc/paper/2015/file/86df7dcfd896fcaf2674f757a2463eba-Paper.pdf</span></a><span class="No-Break">.</span></li>
+				<li><em class="italic">A Distributed General AutoML Platform on Kubernetes, </em>Zhou, Jinan, Velichkevich, Andrey, Prosvirov, Kirill, Garg, Anubhav, Oshima, Yuji, and Dutta, Debo. Katib. In 2019 USENIX Conference on Operational Machine Learning (OpML 19), pp. 55–57. <span class="No-Break">2019: </span><a href="https://www.usenix.org/system/files/opml19papers-zhou.pdf"><span class="No-Break">https://www.usenix.org/system/files/opml19papers-zhou.pdf</span></a><span class="No-Break">.</span></li>
+			</ul>
+		</div>
+		<div>
+			<div id="_idContainer123" class="IMG---Figure">
+			</div>
+		</div>
+	
+
+		<div id="_idContainer124">
+			<h1 id="_idParaDest-130"><a id="_idTextAnchor145"/>Part 3: Design Patterns for Model Optimization and Life Cycle Management</h1>
+			<p>This part of the book delves into crucial ethical considerations and challenges surrounding AI and machine learning systems, focusing on fairness, explainability, and model governance. It begins by examining various fairness notions and the importance of fair data collection, highlighting the impact of biased data on model performance and societal consequences. The discussion then extends to fairness in model optimization, presenting techniques to mitigate biases and ensure equitable outcomes. Model explainability is also addressed; we'll explore methods and tools for interpreting complex models and fostering trust in AI systems. Finally, the broader ethical implications and challenges of AI are tackled, emphasizing the significance of model governance, accountability, and transparency in the development and deployment of AI solutions. By offering a combination of theoretical insights and practical guidance, this part equips you with a deeper understanding of the ethical dimensions of AI and machine learning, enabling the development and deployment of responsible and equitable <span class="No-Break">AI systems.</span></p>
+			<p>This part is made up of the <span class="No-Break">following chapters:</span></p>
+			<ul>
+				<li><a href="B18681_07.xhtml#_idTextAnchor146"><em class="italic">Chapter 7</em></a>, <em class="italic">Fairness Notions and Fair Data Collection</em></li>
+				<li><a href="B18681_08.xhtml#_idTextAnchor176"><em class="italic">Chapter 8</em></a>, <em class="italic">Fairness in Model Optimization</em></li>
+				<li><a href="B18681_09.xhtml#_idTextAnchor198"><em class="italic">Chapter 9</em></a>, <em class="italic">Model Explainability</em></li>
+				<li><a href="B18681_10.xhtml#_idTextAnchor218"><em class="italic">Chapter 10</em></a>, <em class="italic">Ethics and Model Governance</em></li>
+			</ul>
+		</div>
+		<div>
+			<div id="_idContainer125" class="Content">
+			</div>
+		</div>
+		<div>
+			<div id="_idContainer126" class="Basic-Graphics-Frame">
+			</div>
+		</div>
+		<div>
+			<div id="_idContainer127">
+			</div>
+		</div>
+	</body></html>

@@ -1,0 +1,442 @@
+<html><head></head><body>
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Model Accuracy Degradation and Feedback Loops</h1>
+                </header>
+            
+            <article>
+                
+<p>In this chapter, we will learn about the concept of model performance deterioration using an example of ad-click conversion. Our goal is to identify ad-clicks that result in mobile app downloads. In this case, the <span>ads are for marketing mobile apps.</span></p>
+<p><span>To address the deterioration of model performance, </span>we will learn about <strong>feedback loops</strong>, pipelines in which we retrain models as new data becomes available and assess model performance. Consequently, trained models are constantly kept up to date with the changing patterns in input or training data. The feedback loop is very important when it comes to making sound business decisions based on model output. If a trained model does not adequately capture patterns in dynamic data, it is likely to produce sub-optimal results.</p>
+<p>We will cover the following topics in this chapter:</p>
+<ul>
+<li>Monitoring models for degraded performance</li>
+<li>Developing a use case for evolving training data—ad-click conversion</li>
+<li>Creating a machine learning feedback loop </li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Technical requirements</h1>
+                </header>
+            
+            <article>
+                
+<p>This book's GitHub repository, which contains the source code for this chapter, can be found at <a href="https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services">https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services</a>.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Monitoring models for degraded performance</h1>
+                </header>
+            
+            <article>
+                
+<p><span>In real-world scenarios, the performance of deployed machine learning models degrades over time. To explain this in the case of fraud detection, the models may not capture evolving fraudulent behaviors. Because fraudsters adapt their methods and processes over time to game systems, it is important to retrain fraud detection engines on the latest and greatest data (reflecting anomalous behavior) available. Take a look at the following diagram:</span></p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/32953d5b-29e3-4a6b-bd0a-5497eae93a7b.png" style=""/></div>
+<p><span>The preceding diagram shows how models degrade in terms of predictive performance when they are deployed in production. As another example, in the case of recommender systems, customer preferences keep changing based on a number of contextual and environmental factors. Therefore, it becomes important for personalization engines to capture such preferences and present the most relevant suggestions to customers.</span></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Developing a use case for evolving training data – ad-click conversion</h1>
+                </header>
+            
+            <article>
+                
+<p>Fraud risk is prevalent in almost every industry, for example, airlines, retail, financial services, and so on. The risk is es<span>pecially </span>high in online advertising. For companies investing in digital marketing, it is important to contain costs from fraudulent clicks on ads. Online advertising can become cost-prohibitive if fraudulent behavior is rampant across online ad channels. In this chapter, we will look at ad-click data for mobile apps and predict which clicks will likely yield app downloads. The outcome of this prediction exercise will allow mobile app developers to efficiently allocate online marketing dollars.</p>
+<p>Ad-click behavior is very dynamic. This behavior changes across time, location, and ad channels. A fraudster can develop software to automate clicking on mobile app ads and conceal the identity of clicks—clicks can be generated from multiple IP addresses, devices, operating systems, and channels. To catch this dynamic behavior, it is important to retrain classification models to cover new and emerging patterns. Implementing a feedback loop becomes critical if we wish to accurately determine which clicks will result in app downloads. For instance, clicks on ads for the Helix Jump app may not result in app downloads if these clicks are generated <span>during the eleventh hour, are</span> from the same IP address, and are a few minutes apart. However, if these clicks are produced during business hours, are from different IP addresses, and are spread across the day, then they will result in app downloads. </p>
+<p>The following diagram describes ad-click behavior, along with a binary outcome—<span>whether the </span>mobile app is downloaded or not:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/0add18fb-1208-4d27-a39e-b35cc99141df.png" style=""/></div>
+<p>Depending on how the ad is clicked by the user—<span>whether a </span>device, operating system, or a channel is used, when it is clicked, and for what app—the click may or may not convert into a mobile app download. We will use this dynamic click behavior to illustrate the importance of a feedback loop in machine learning.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Creating a machine learning feedback loop</h1>
+                </header>
+            
+            <article>
+                
+<p>In this section, we will demonstrate how retraining a classification model as new data becomes available will enhance model performance; that is, it will predict which ad-clicks will result in mobile app downloads.</p>
+<p>We have created a synthetic/artificial dataset simulating 2.4 million clicks across four days (Monday through Thursday; July 2 to July 5 of 2018). The dataset can be found here: <a href="https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/tree/master/Ch12_ModelPerformanceDegradation/Data">https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/tree/master/Ch12_ModelPerformanceDegradation/Data</a></p>
+<p>The dataset contains the following elements:</p>
+<ul>
+<li><kbd>ip</kbd>: the IP address of the click</li>
+<li><kbd>app</kbd>: The type of mobile app</li>
+<li><kbd>device</kbd>: The type of device the click is coming from (for example, iPhone 6 plus, iPhone 7)</li>
+<li><kbd>os</kbd>: The type of operating system the click is coming from</li>
+<li><kbd>channel</kbd>: The type of channel the click is coming from</li>
+<li><kbd>click_time</kbd>: The timestamp of the click (UTC)</li>
+<li><kbd>is_downloaded</kbd>: The target that is to be predicted, indicating the app was downloaded</li>
+</ul>
+<p>Having access to the latest and greatest data is a challenge. Data lake and data warehouse environments typically lag by a day (24 hours). When predicting whether clicks that occurred toward the end of the day on Thursday will result in app downloads, it is important to have current data up to and including Thursday, excluding the clicks that we are scoring, for model training.</p>
+<p>To understand the significance of a feedback loop, we will train a tree-based model (XGBoost) to predict the probability of an ad-click (related to an app) that results in the app being download. We will run three different experiments:</p>
+<ul>
+<li><strong>Experiment 1</strong>: Train on the click data for Monday and predict/score a portion of the clicks from Thursday (clicks from a later part of the day).</li>
+<li><strong>Experiment 2</strong>: Let's assume that we have more data available in the data lake environment to retrain the classification model. We will train on the click data for Monday, Tuesday, and Wednesday and predict/score a portion of the clicks from Thursday.</li>
+<li><strong>Experiment 3</strong>: Similarly, we will train on click data for Monday, Tuesday, Wednesday and part of Thursday and predict/score a portion of the clicks from Thursday.</li>
+</ul>
+<p>With each iteration or experiment, you will see the following:</p>
+<ul>
+<li>The classification model's performance measured by <strong>area under curve</strong> (<strong><span>AUC</span></strong>) increases. AUC is measured by plotting the true positive rate against the false positive rate.</li>
+<li>That a random classifier has an <span>AUC</span> of 0.5.</li>
+<li>For an optimal model, the AUC should be closer to 1.</li>
+<li>In other words, the true positive rate (the proportion of the app downloads that you've correctly identified) should be higher than the false positive rate (the proportion of clicks that did not result in any app downloads but has been identified as yielding app downloads).</li>
+</ul>
+<p>Now we need to load and explore the data to determine the best indicators for predicting app downloads.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Exploring data</h1>
+                </header>
+            
+            <article>
+                
+<p>Amazon SageMaker offers built-in tools and capabilities for creating machine learning pipelines that incorporate feedback loops. Since machine learning pipelines were covered in <a href="16e50aca-401b-47b0-87c3-34cc0346e66e.xhtml">Chapter 8</a>,<span> </span><em>Creating Machine Learning Inference Pipelines</em><span>, here, </span>we will focus on the significance of incorporating a feedback loop. Let's begin:</p>
+<ol>
+<li>Install the relevant Python packages and set the locations for the training, validation, and model outputs on the S3 bucket, as follows:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>!pip install pyarrow</strong><br/><strong>!pip install joblib</strong><br/><strong>!pip install xgboost</strong><br/><strong>#Read the dataset from S3 bucket</strong><br/><strong>s3_bucket = 'ai-in-aws'</strong><br/><strong>s3_prefix = 'Click-Fraud'</strong><br/><br/><strong>s3_train_prefix = os.path.join(s3_prefix, 'train')</strong><br/><strong>s3_val_prefix = os.path.join(s3_prefix, 'val')</strong><br/><strong>s3_output_prefix = os.path.join(s3_prefix, 'output')</strong><br/><br/><strong>s3_train_fn = 'train_sample.csv.zip'</strong></pre>
+<ol start="2">
+<li>Read <span><span>the prepared synthetic dataset from the local SageMaker instance, as shown in the following code:</span></span></li>
+</ol>
+<pre style="padding-left: 60px"><strong>file_name = 'ad_track_day'<br/></strong><strong>fn_ext = '.csv'</strong><br/><strong>num_days = 4</strong><br/><strong>dict_of_ad_trk_df = {}</strong><br/><br/><strong>for i in range(1, num_days+1):</strong><br/><strong>dict_of_ad_trk_df[file_name+str(i)] = pd.read_csv(file_name+str(i)+fn_ext)<br/><br/></strong></pre>
+<ol start="3">
+<li>We will now <span>explore the data so that we can prepare features that indicate the following:</span>
+<ul>
+<li><strong>Where</strong><span> </span>the ad-clicks are coming from, that is, <kbd>ip</kbd>,<span> </span><kbd>device</kbd>, and <kbd>os</kbd></li>
+<li><strong>When</strong><span> </span>they come, that is, <kbd>day</kbd> and <kbd>hr</kbd></li>
+<li><strong>How<span> </span></strong>they come, that is, <kbd>channel</kbd></li>
+<li>A combination of where, when, and how</li>
+</ul>
+</li>
+<li>Create chunks of data for each of the experiments. We will use the <kbd>pandas</kbd> library to aggregate ad-clicks by days in the experiment, as shown in the following code:</li>
+</ol>
+<pre style="padding-left: 60px">df_ckFraud_exp1 = pd.concat([dict_of_ad_trk_df[key] for key in ["ad_track_day1"]], ignore_index=True)<br/><br/>df_ckFraud_exp2 = pd.concat([dict_of_ad_trk_df[key] for key in ["ad_track_day1", "ad_track_day2", "ad_track_day3"]], ignore_index=True)<br/><br/>df_ckFraud_exp3 = pd.concat([dict_of_ad_trk_df[key] for key in ["ad_track_day1", "ad_track_day2", "ad_track_day3", "ad_track_day4"]], ignore_index=True)</pre>
+<div class="chapter-content">
+<p style="padding-left: 60px">Let's understand whether the most frequently occurring factors, such as the type of app, device, channel, operating system, and IP address the click is originating from, result in app downloads. </p>
+<p style="padding-left: 60px">Popular apps, which are defined by the number of relevant ad-clicks, are not the same when an app is not downloaded as opposed to when it is downloaded. In other words, although certain mobile app ads are frequently clicked, they are not necessarily those that are downloaded.</p>
+<p style="padding-left: 60px"><strong>Top Apps for Monday</strong>: Let's plot the distribution of the number of ad-clicks by app when apps are downloaded <span>as opposed to </span>when they aren't, as shown in the following code: </p>
+<div class="chapter-content">
+<pre style="padding-left: 60px">%matplotlib inline<br/>plot_clickcnt_ftr(df_ckFraud_exp1, 'app', '1') </pre>
+<p style="padding-left: 60px"><span>For the definition of the </span><kbd>plot_clickcnt_ftr()</kbd> <span>function from this code, please refer to the associated source code for this chapter. The first bar chart shows when apps are not downloaded, while the second one reflects when apps are downloaded:</span></p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/c9781558-870a-43b9-9265-87981e467763.png" style=""/></div>
+<p style="padding-left: 60px">As we saw previously, apps 12, 3, 9, and 15 are the top 4 apps in terms of apps that aren't downloaded. On the other hand, apps 19, 34, 29, and 9 are popular apps when ad-clicks result in app downloads.</p>
+<p style="padding-left: 60px"><strong>Top Devices for Monday</strong><span>: Now let's plot the distribution of the number of ad-clicks by device when apps are downloaded as opposed to when they aren't, as shown in the following code:</span></p>
+<pre style="padding-left: 60px">%matplotlib inline<br/>plot_clickcnt_ftr(df_ckFraud_exp1, 'device', '1') </pre>
+<p style="padding-left: 60px"><span>The same theme holds true; popular devices when clicks do not result in app downloads are different from those when clicks result in app downloads, as shown in the following output:</span></p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/1eaedb61-1d2b-4f07-a0cd-cc6fc496fc4a.png" style=""/></div>
+</div>
+<p style="padding-left: 60px">Even in terms of the operating system and the channel, the same theme is sustained. Therefore, it seems reasonable to note that ad-clicks coming from certain devices, operating systems, and channels for certain apps are indicative of app downloads. It may also be possible that clicks originating from a popular channel, operating system, or device for popular apps may have a higher incidence of being converted into app downloads. Popular is synonymous with a high volume of clicks. </p>
+</div>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Creating features</h1>
+                </header>
+            
+            <article>
+                
+<p>Now that we have explored the data, it is time to create some features. Let's begin by looking at categorical variables in the data. </p>
+<p>The unique IDs of each of the category columns, namely <kbd>app</kbd>, <kbd>device</kbd>, <kbd>os</kbd>, and <kbd>channel</kbd>, are not useful in and of themselves. For a tree-based model, for example, a lower app ID is not better than a higher app ID or vice versa in terms of predicting app downloads. Therefore, we will calculate the frequency of each of these categorical variables, as shown in the following code:</p>
+<pre>def encode_cat_ftrs(df_ckFraud):<br/>cat_ftrs = ['app','device','os','channel']<br/> <br/>for c in cat_ftrs:<br/>df_ckFraud[c+'_freq'] = df_ckFraud[c].map(df_ckFraud.groupby(c).size() / df_ckFraud.shape[0])<br/>return df_ckFraud</pre>
+<ol>
+<li><span>First, we </span>create a list of categorical variables called <kbd>cat_ftrs</kbd><em>.</em> We do this for each of the categorical variables.</li>
+<li>We calculate the frequency by dividing the number of clicks originating from the variable by the total number of clicks in the dataset.</li>
+</ol>
+<p style="padding-left: 60px">For each of these experiments, we call the <kbd>encode_cat_ftrs()</kbd> function to create frequency-related features for all the categorical variables, as follows:</p>
+<pre style="padding-left: 60px">df_ckFraud_exp1 = encode_cat_ftrs(df_ckFraud_exp1)<br/>df_ckFraud_exp2 = encode_cat_ftrs(df_ckFraud_exp2)<br/>df_ckFraud_exp3 = encode_cat_ftrs(df_ckFraud_exp3)</pre>
+<ol start="3">
+<li>Now let's look at time-related features. From the <kbd>click_time</kbd> column, we'll create a variety of time-related features, that is, <kbd>day</kbd>, <kbd>hour</kbd>, <kbd>minute</kbd>, and <kbd>second</kbd>. These features may help uncover click patterns given the day of the week and hour of the day.</li>
+</ol>
+<p style="padding-left: 60px">From the <kbd>datetime</kbd> column, we extract <kbd>day</kbd>, <kbd>hour</kbd>, <kbd>minute</kbd>, and <kbd>second</kbd>, as shown in the following code:</p>
+<pre style="padding-left: 60px">def create_date_ftrs(df_ckFraud, col_name):<br/>"""<br/>create day, hour, minute, second features<br/>"""<br/>df_ckFraud = df_ckFraud.copy()<br/> <br/>df_ckFraud['day'] = df_ckFraud[col_name].dt.day.astype('uint8') ## dt is accessor object for date like properties<br/>df_ckFraud['hour'] = df_ckFraud[col_name].dt.hour.astype('uint8')<br/>df_ckFraud['minute'] = df_ckFraud[col_name].dt.minute.astype('uint8')<br/>df_ckFraud['second'] = df_ckFraud[col_name].dt.second.astype('uint8')<br/> <br/>return df_ckFraud</pre>
+<ol start="4">
+<li>We use the <kbd>dt</kbd> accessor object of the datetime column to obtain time-related features. As with calling <kbd>encode_cat_ftrs</kbd><em> </em>on each of the datasets related to the experiments, we will call <kbd>create_date_ftrs</kbd> on each of them.</li>
+<li>Finally, let's create features that reflect <kbd>when</kbd> and <kbd>where</kbd> the clicks are coming from. Therefore, we will count clicks via the following:</li>
+</ol>
+<ul>
+<li style="list-style-type: none">
+<ul>
+<li>IP Address, Day, and Hour</li>
+<li>IP Address, Channel, and Hour</li>
+<li>IP Address, Operating System, and Hour</li>
+<li>IP Address, App, and Hour</li>
+<li>IP Address, Device, and Hour</li>
+</ul>
+</li>
+</ul>
+<p style="padding-left: 60px">For information on the function used to count clicks by each of the combinations, <kbd>count_clicks</kbd>, please refer to the source code associated with this chapter. <kbd>count_clicks</kbd><em> </em>is called on each of the datasets pertaining to the experiments. </p>
+<p style="padding-left: 60px">Now let's take a look at the prepared dataset after feature engineering:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/504c654d-6de0-4bc3-a0fd-b64c7a31ad15.png" style=""/></div>
+<p style="padding-left: 60px"><span>As you can see, we have all the engineered features:</span></p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/0022597d-d201-4c31-a608-a90ba71bdafd.png" style=""/></div>
+<p style="padding-left: 60px">In the preceding screenshot, we have:</p>
+<ul>
+<li style="list-style-type: none">
+<ul>
+<li><kbd>day</kbd><span>,</span> <kbd>hour</kbd><span>,</span> <kbd>minute</kbd><span>, and</span> <kbd>second</kbd> <span>for each ad-clic</span><span>k</span></li>
+<li><kbd>app</kbd>, <kbd>device</kbd>, operating system (<kbd>os</kbd>), and channel frequency</li>
+<li>Number of clicks by when (<kbd>time</kbd>), where (<kbd>os</kbd>, <kbd>device</kbd>, and <kbd>ip</kbd> address), and how (<kbd>channel</kbd>)</li>
+</ul>
+</li>
+</ul>
+<ol start="6">
+<li>Now let's see how all of these features are related to each other. We will use a <span>correlation matrix to view the relationship among all the attributes, as shown in the following code:</span></li>
+</ol>
+<pre style="padding-left: 60px"># Correlation<br/>df_ckFraud_exp1.corr()</pre>
+<p>The following is part of the correlation matrix generated by the <kbd>corr</kbd><em> </em>function of the <kbd>pandas</kbd> DataFrame:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/daddaa01-eacf-4a4f-9b09-4788cb89961f.png" style=""/></div>
+<p>As we can see, the type of app, the proportion of clicks originating from the device and channel, and the proportion of clicks for an app are key indicators that are predictive of app downloads. Plotting a heatmap for each of the experiments also indicates that these observations are valid. Please refer to the source code associated with this chapter for more information.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Using Amazon's SageMaker XGBoost algorithm to classify ad-click data</h1>
+                </header>
+            
+            <article>
+                
+<p>To understand the significance of a feedback loop, we will train a tree-based model (XGBoost) to predict the probability that an ad-click results in an app download.</p>
+<p>For all of these experiments, we have one test dataset. This contains ad-clicks, along with apps that were downloaded during the later part of the day on Thursday—<span>the </span>last 120,000 clicks from the day. Let's get started:</p>
+<ol>
+<li>We will select 5% of the clicks from the third dataset, which contains clicks from Monday, Tuesday, Wednesday, and Thursday. The third dataset is sorted by time, so we pick the last 120,000 clicks that were generated on Thursday, as shown in the following code:</li>
+</ol>
+<pre style="padding-left: 60px"><span># Sort by hour, minute and second --&gt; pick the last 5% of records<br/>test_data = df_ckFraud_exp3.sort_values(['day', 'hour', 'minute', 'second'], ascending=False).head(n=120000)<br/></span></pre>
+<ol start="2">
+<li>We will also need to rearrange the datasets for all the experiments, so <kbd>is_downloaded</kbd>, our target variable, is the first column in the dataset. This format is required by the SageMaker XGBoost algorithm.</li>
+<li>Now we need to rearrange the test dataset, as follows:</li>
+</ol>
+<pre style="padding-left: 60px"># Rearrange test data so that is_downloaded is the first column<br/>test_data = pd.concat([test_data['is_downloaded'], test_data.drop(['is_downloaded'], axis=1)], axis=1)</pre>
+<ol start="4">
+<li class="mce-root">For <span>each experiment, we will start by creating training and validation datasets. </span></li>
+<li class="mce-root">We will split the current experiment data into training and validation sets, as shown in the following code:</li>
+</ol>
+<pre style="padding-left: 60px">train_data, validation_data = np.split(current_experiment.sample(frac=1, random_state=4567), [int(0.7 * len(current_experiment))])</pre>
+<ol start="6">
+<li>We <span>use NumPy's split function to do so. 70% of the data is allocated for training, while 30% is allocated for validation.</span></li>
+</ol>
+<ol start="7">
+<li>Once we have the training, validation, and test datasets, we upload them to S3. Please refer to the source code associated with this chapter for details.</li>
+</ol>
+<p style="padding-left: 60px">It is time to prepare for model training. To train the XGBoost model, the following hyperparameters are defined (only a few are reported). For detailed information, please refer to the AWS docs (<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/xgboost_hyperparameters.html">https://docs.aws.amazon.com/sagemaker/latest/dg/xgboost_hyperparameters.html</a>):</p>
+<ul>
+<li style="list-style-type: none">
+<ul>
+<li><kbd>max_depth</kbd>: The maximum number of levels between the tree's root and a leaf.</li>
+<li><kbd>eta</kbd>: Learning rate.</li>
+<li><kbd>gamma</kbd>: The node is only split when the resulting split gives a positive reduction in the loss function. Gamma specifies the minimum loss reduction required to make a split.</li>
+<li><kbd>min_child_weight</kbd>: This is used to control tree complexity and the minimum sum of instance weight needed in a child. If this threshold is not met, then tree partitioning will stop.</li>
+<li><kbd>subsample</kbd>: The fraction of observations to be randomly sampled for each tree.</li>
+<li><kbd>colsample_bytree</kbd>: The fraction of columns to be randomly sampled for each tree.</li>
+<li><kbd>scale_pos_weight</kbd>: The dataset is highly imbalanced, where we have a large number of clicks (&gt; 90%) that did not result in app downloads. To account for this, the <kbd>scale_pos_weight</kbd> hyperparameter is used to give clicks that resulted in app downloads more weight. These clicks are heavily underrepresented in the dataset. </li>
+<li><kbd>alpha</kbd>: A regularization parameter to prevent overfitting. Alpha is used to implement L1 regularization, where the sum of the weights of leaves is part of the regularization term (of the objective function).</li>
+<li><kbd>lambda</kbd>: This is used to control L2 regularization, where the sum of the squares of weights is part of the regularization term.</li>
+</ul>
+</li>
+</ul>
+<ol start="8">
+<li>Then, we define some of the hyperparameters of the XGBoost algorithm, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">xgb.set_hyperparameters(max_depth=4,<br/> eta=0.3,<br/> gamma=0,<br/> min_child_weight=6, <br/> colsample_bylevel = 0.8,<br/> colsample_bytree = 0.8,<br/> subsample=0.8,<br/> silent=0,<br/> scale_pos_weight=scale_pos_weight,<br/> objective='binary:logistic',<br/> num_round=100)</pre>
+<p style="padding-left: 60px">While most of the default values for the hyperparameters are accepted, some are explicitly defined here. For instance, <kbd>min_child_weight</kbd> is set to <kbd>6</kbd>, while the default value is <kbd>1</kbd>. This means that a leaf node should have a sizeable number of instances or data points before it can be split further. These values can be tuned for the data in question. <strong>Hyperparameter optimization</strong> (<strong>HPO</strong>), from SageMaker, can be used to automate the process of finding optimal values for hyperparameters.</p>
+<ol start="9">
+<li>We will now fit the XGBoost algorithm to the experiment data (training and validation), as shown in the following code:</li>
+</ol>
+<pre style="padding-left: 60px">xgb.fit({'train': s3_input_train, 'validation': s3_input_validation})</pre>
+<p>The <kbd>fit()</kbd><em> </em>function of the XGBoost estimator module (SageMaker Python SDK) is invoked for model training. The location of both the training and validation datasets is passed as an input for model training.</p>
+<p>Once training concludes, the trained model will be persisted to the location specified (in the S3 bucket). We will need to repeat the same training steps for each of the experiments. In the end, we will have three trained models.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Evaluating model performance</h1>
+                </header>
+            
+            <article>
+                
+<p>In this section, we will evaluate the performance of the three trained models. Our hypothesis is that the first model, which was trained on clicks from Monday and Tuesday, is less predictive of app downloads on the later part of Thursday compared to the second and third models. Similarly, the performance of the second model, which was trained on clicks from Monday through Wednesday, should be less than that of the third model, which was trained on clicks from Monday through the majority of Thursday.</p>
+<p>We will begin by analyzing the features that are deemed important for each of the models, as shown in the following code:</p>
+<pre>exp_lst = ['exp1', 'exp2', 'exp3']<br/>for exp in exp_lst:<br/>   model_file = os.path.join(sm_output_loc, exp, s3_output_fn)<br/>    plot_ftr_imp(model_file)</pre>
+<p>The preceding code is explained as follows:</p>
+<ol>
+<li>First, we retrieve the location of the trained model for each of the three experiments. </li>
+<li>Then, we pass the location to the <kbd>plot_ftr_imp()</kbd> function to create a diagram showing feature importance. To plot feature importance, the function does the following:</li>
+</ol>
+<ul>
+<li style="list-style-type: none">
+<ul>
+<li>Extracts the trained model from the <kbd>.tar</kbd> file</li>
+<li>Loads the XGBoost model</li>
+<li>Calls the <kbd>plot_importance()</kbd> function on the loaded model</li>
+</ul>
+</li>
+</ul>
+<p style="padding-left: 60px">The following diagram shows feature importance for the three trained models, starting with the first model on the left:</p>
+<table border="1" style="border-collapse: collapse;width: 100%">
+<tbody>
+<tr>
+<td>
+<p><img class="alignnone size-full wp-image-1734 image-border" src="assets/d4efc18f-145a-42f1-a0a9-174774a46d58.png" style="width:17.50em;height:3.92em;"/></p>
+</td>
+<td><img class="alignnone size-full wp-image-1735 image-border" src="assets/82248f02-45d1-45d2-8df7-332989aa7f6e.png" style="width:17.42em;height:4.00em;"/></td>
+<td><img class="alignnone size-full wp-image-1736 image-border" src="assets/69c54e56-120d-47c4-851a-3c55e12d5ecc.png" style="width:16.50em;height:4.58em;"/></td>
+</tr>
+<tr style="height: 265px">
+<td style="width: 33%;height: 265px">
+<p><img src="assets/6fc43f97-7778-4b7e-9f3e-01cfe317c2c5.png"/></p>
+</td>
+<td style="width: 30.2755%;height: 265px">
+<p><img src="assets/a87d63c2-f943-4198-aca4-b02963191d94.png"/></p>
+</td>
+<td style="width: 33.7245%;height: 265px">
+<p><img src="assets/82855b16-6eb2-4123-9bf4-4e4d2078aacb.png"/></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p> </p>
+<p style="padding-left: 60px"><span>As we can see, most key predictors have maintained their importance as more data became available, while the order of importance changed. To see how the features look when mapped, take a look at the following diagram:</span></p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/3754c4e4-d804-42c7-b980-5f0b7b2aa52f.png" style=""/></div>
+<p style="padding-left: 60px">XGBoost numbers the features from the input dataset, where the first column is the target variable, while features are ordered from the second column onward.</p>
+<ol start="3">
+<li>Now we will evaluate performance across all three experiments. Let's deploy all three trained models as endpoints as shown in the following code:</li>
+</ol>
+<pre style="padding-left: 60px">model_loc = os.path.join(data_loc, s3_output_fn)<br/><span>xgb_model = Model(model_data=model_loc, image=container, role=role)<br/>xgb_model.deploy(initial_instance_count=1, instance_type='ml.m4.xlarge')</span></pre>
+<p style="padding-left: 60px">In the preceding code, for each of the experiments, to deploy a trained model as an endpoint, we will do the following:</p>
+<ul>
+<li style="list-style-type: none">
+<ol>
+<li>First, we will retrieve the trained model from the location (S3 bucket) where it is saved.</li>
+<li>Then, we will create a SageMaker model by passing the trained model, a Docker image of the XGBoost algorithm, and SageMaker's execution role.</li>
+<li>Finally, we will invoke the <kbd>deploy</kbd> method of the newly created XGBoost Model object. We pass in the number of EC2 instances to provision, along with the type of instance, to the deploy function.</li>
+</ol>
+</li>
+</ul>
+<p style="padding-left: 60px">The following screenshot shows the endpoints that were created after the trained models were deployed:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/473a4807-67d2-41fc-bc96-66f1f5bc7963.png" style=""/></div>
+<ol start="4">
+<li style="font-weight: 400">To <span>view the deployed models, navigate to SageMaker service and expand the <span class="packt_screen">Inference</span> section. Under this section, click on <span class="packt_screen">Endpoints</span> to view endpoint names, the creation time, the status, and the last updated time.</span></li>
+</ol>
+<p style="padding-left: 60px">Now it is time to predict app downloads for the last 120,000 clicks on Thursday.</p>
+<p style="padding-left: 60px">We will create a <kbd>RealTimePredictor</kbd> object for this, as shown in the following code:</p>
+<pre style="padding-left: 60px"> xgb_predictor = sagemaker.predictor.RealTimePredictor(endpoint, sagemaker_session=sess, serializer=csv_serializer, deserializer=None, content_type='text/csv', accept=None)</pre>
+<p class="mce-root" style="padding-left: 60px"><span>The <kbd>RealTimePredictor</kbd> object is created by passing the name of the <kbd>endpoint</kbd>, the current <kbd>sagemaker</kbd> session, and the <kbd>content</kbd> type.</span></p>
+<ol start="5">
+<li>Collect the <kbd>predictions</kbd> for the test data, as follows:</li>
+</ol>
+<pre style="padding-left: 60px"><span>predictions[exp_lst[ind]] = xgb_predictor.predict(test_data.as_matrix()[:10000, 1:]).decode('utf-8')</span></pre>
+<ol start="6">
+<li class="mce-root">As we can see, we invoke the predict method of <kbd>RealTimePredictor</kbd> (the SageMaker Python SDK) by passing the first 10,000 data clicks.</li>
+</ol>
+<p style="padding-left: 60px">We are now ready to compare the predicted results with the actual app downloads. We use the <kbd>confusion_matrix</kbd> module from the <kbd>sklearn</kbd> library to obtain the true positive rate and the false positive rate. We also use the <kbd>roc_auc_score</kbd> and <kbd>accuracy_score</kbd> modules from <kbd>sklearn</kbd> to compute the area under curve and accuracy, respectively. </p>
+<p>The following is the output for each of the experiments:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/45690c8f-7dfd-4b86-9629-414f9fd6fbf6.png" style=""/></div>
+<p>The following is the AUC, which <span><span>shows </span></span>the performance of all the experiments: </p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/8250dcc2-b8fc-42ad-9370-750d81170f3c.png" style=""/></div>
+<p>As we can see <strong>Experiment2</strong> performed better than <strong>Experiment1</strong>, while <strong>Experiment3</strong> performed the best since it had the highest <strong>AUC</strong>. In <strong>Experiment3</strong>, the true positive rate is higher than the false positive rate relative to <strong>Experiment1</strong> and <strong>Experiment2</strong>. Accuracy remained the same across all the experiments. Since AUC is independent of the underlying class distribution of the test dataset, it is an important and key metric when it comes to measuring the model's discriminative power. On the other hand, metrics such as accuracy, recall, and precision are likely to change as the test set changes.</p>
+<p style="font-weight: 400"><span>Therefore, after the trained model is deployed in production, it is important to seek feedback while the model is in operation. As patterns in data change and as new data becomes available, it becomes important to retrain and tune models for optimal performance.</span></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Summary</h1>
+                </header>
+            
+            <article>
+                
+<p style="font-weight: 400">In this chapter, we have learned why it is important to monitor models for degraded performance. To illustrate this idea, we used a synthetic dataset that captures ad-click behavior for mobile app downloads. First, we explored the data to understand the relationship between app downloads and ad-clicks. Then, we created features by aggregating existing click attributes in multiple dimensions. Next, we created three different datasets on which to run three experiments to explain the idea of model performance deterioration as new data becomes available. Next, we fitted the XGBoost model for each of the experiments. Finally, we evaluated performance across all the experiments to conclude that the model with the best performance is the one that took into account the latest and greatest click behavior.</p>
+<p style="font-weight: 400">Consequently, implementing a feedback loop in a machine learning life cycle is critical to maintaining and enhancing model performance and adequately addressing business objectives, whether it is for fraud detection or capturing user preferences for recommendations. </p>
+<p>In the next chapter, which is the final one, we'll summarize all the concepts we've learned about in this book and highlight some machine and deep learning services from Amazon Web Services that are worth exploring. </p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Further reading</h1>
+                </header>
+            
+            <article>
+                
+<p>Refer to the following link for more information on model accuracy degradation and feedback loops: <span class="MsoHyperlink"><a href="https://docs.aws.amazon.com/sagemaker/latest/dg/xgboost_hyperparameters.html">https://docs.aws.amazon.com/sagemaker/latest/dg/xgboost_hyperparameters.html</a>.<br/></span></p>
+
+
+            </article>
+
+            
+        </section>
+    </body></html>

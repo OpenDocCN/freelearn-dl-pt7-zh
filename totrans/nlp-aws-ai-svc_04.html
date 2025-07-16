@@ -1,0 +1,317 @@
+<html><head></head><body><div id="sbo-rt-content"><div id="_idContainer067">
+			<h1 id="_idParaDest-47"><em class="italic"><a id="_idTextAnchor049"/>Chapter 3</em>: Introducing Amazon Comprehend</h1>
+			<p>In the previous chapter, we covered how you can use <strong class="bold">Amazon Textract</strong> for <strong class="bold">Optical Character Recognition</strong> (<strong class="bold">OCR</strong>) and deep dive into its features and specific API implementations. In this chapter, you will get a detailed introduction to <strong class="bold">Amazon Comprehend</strong> and <strong class="bold">Amazon Comprehend Medical</strong>, what their functions are, what business challenges they were created to solve, what features they have, what types of user requirements they can be applied to, and how easy it is to integrate Comprehend with different <strong class="bold">AWS</strong> services, such as <strong class="bold">AWS Lambda</strong>, to build business applications.</p>
+			<p>In this chapter, we will go through the following sections:</p>
+			<ul>
+				<li>Understanding Amazon Comprehend and Amazon Comprehend Medical</li>
+				<li>Exploring Amazon Comprehend and Amazon Comprehend Medical product features</li>
+				<li>Using Amazon Comprehend with your applications</li>
+			</ul>
+			<h1 id="_idParaDest-48"><a id="_idTextAnchor050"/>Technical requirements</h1>
+			<p>For this chapter, you will need access to an <strong class="bold">AWS account</strong>. Before getting started, we recommend that you create an AWS account by referring to <em class="italic">AWS account setup</em> and <em class="italic">Jupyter notebook creation steps</em> in <em class="italic">Technical requirements</em> in <a href="B17528_02_Final_SB_ePub.xhtml#_idTextAnchor027"><em class="italic">Chapter 2</em></a><em class="italic">, Introducing Amazon Textract</em>. While creating an <strong class="bold">Amazon SageMaker</strong> <strong class="bold">Jupyter notebook</strong>, make sure you input <strong class="source-inline">AmazonComprehendFullAccess</strong> to the <strong class="bold">IAM</strong> role attached with your notebook instance, and follow these steps:</p>
+			<ol>
+				<li>Once you create the notebook instance and its status is <strong class="bold">InService</strong>, click on <strong class="bold">Open Jupyter</strong> in the <strong class="bold">Actions</strong> menu heading for the notebook instance.</li>
+				<li>In the terminal window, type first <strong class="source-inline">cd SageMaker</strong> and then type <strong class="source-inline">git clone </strong><a href="https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services">https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services</a>. The Python code and sample datasets for Amazon Comprehend examples are in this repository: <a href="https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services">https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services</a>. Once you navigate to the repository, please select <a href="B17528_03_Final_SB_ePub.xhtml#_idTextAnchor049"><em class="italic">Chapter 3</em></a>, <em class="italic">Introducing Amazon Comprehend – Sample Code</em>.</li>
+			</ol>
+			<p>Check out the following video to see the Code in Action at <a href="https://bit.ly/3Gkd1Oi">https://bit.ly/3Gkd1Oi</a>.</p>
+			<h1 id="_idParaDest-49"><a id="_idTextAnchor051"/>Understanding Amazon Comprehend and Amazon Comprehend Medical</h1>
+			<p>In this <a id="_idIndexMarker172"/>section, we <a id="_idIndexMarker173"/>will talk <a id="_idIndexMarker174"/>about the challenges associated with setting up <strong class="bold">ML</strong> (<strong class="bold">ML</strong>) preprocessing<a id="_idIndexMarker175"/> for <strong class="bold">NLP</strong> (<strong class="bold">NLP</strong>). Then, we will talk about how Amazon Comprehend and Amazon Comprehend Medical can help solve these pain points. Finally, we will talk about how you can use Amazon Comprehend to analyze the extracted text from documents by using Amazon Textract to extract the data.</p>
+			<h2 id="_idParaDest-50"><a id="_idTextAnchor052"/>Challenges associated with setting up ML preprocessing for NLP</h2>
+			<p>Some of the <a id="_idIndexMarker176"/>key challenges while <a id="_idIndexMarker177"/>setting up NLP preprocessing are that documents can be semi-structured, unstructured, or can be in various languages. Once you have a large amount of unstructured data, you would probably like to extract insights from the data using<a id="_idIndexMarker178"/> some<a id="_idIndexMarker179"/> NLP<a id="_idIndexMarker180"/> techniques<a id="_idIndexMarker181"/> for most common use cases such as <strong class="bold">sentiment analysis</strong>, <strong class="bold">text classification</strong>, <strong class="bold">NER</strong> (<strong class="bold">NER</strong>), <strong class="bold">machine translation</strong>, and <strong class="bold">topic modeling</strong>.</p>
+			<div>
+				<div id="_idContainer042" class="IMG---Figure">
+					<img src="Images/B17528_03_01.jpg" alt="Figure 3.1 – NLP modeling" width="1650" height="640"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 3.1 – NLP modeling</p>
+			<p>The challenge with applying these techniques is that the majority of the time is spent in data preprocessing. This applies whether you are doing ML, for example, sentiment<a id="_idIndexMarker182"/> analysis, or deep learning to<a id="_idIndexMarker183"/> apply key NLP techniques to find insights. If you are doing ML, some of the key preprocessing techniques you would use include the following:</p>
+			<ul>
+				<li><strong class="bold">Tokenization</strong>: This simply<a id="_idIndexMarker184"/> means you are dividing unstructured text into words or sentences. For example, for the sentence: "This book is focusing on NLP", the tokenized word output will be "This", "book", "is", "focusing", "on", and "NLP". Similarly, if it is a complex text, you can tokenize it by sentences rather than words.</li>
+				<li><strong class="bold">Stop word removal</strong>: Stop words are words that do not have primary meaning in a sentence, for example, "and" "a", "is", "they", and so on, but they have a meaningful impact when we use them to communicate. An example of the stop words in the following text: "This book is focusing on NLP", would be "is" and "on", and these would be removed as part of preprocessing. A use case where you would not remove a stop word would be in certain sectors, such as  healthcare, where removing stop words would be a blunder as it will completely change the meaning of the sentence.</li>
+				<li><strong class="bold">Stemming</strong>: Stemming means removing the last few characters of a given word to obtain a shorter form, even if that form doesn't have any meaning. For instance, the words "focusing", "focuses", and "focus" convey the same meaning, and can be clubbed under one stem for computer analysis. So instead of having them as different words, we can put them together under the same term: "focus."</li>
+				<li><strong class="bold">Lemmatization</strong>: This, on the other hand, means converting the given word into its<a id="_idIndexMarker185"/> base<a id="_idIndexMarker186"/> form according <a id="_idIndexMarker187"/>to the dictionary definition of the word. For example, focusing → focus. This takes more time than stemming and is a compute-intensive process.</li>
+				<li><strong class="bold">Part-of-speech </strong>(<strong class="bold">PoS</strong>)<strong class="bold"> tagging:</strong> After tokenizing it, this method tags each word as a part of speech. Let's stick with the "This book is focusing on NLP" example. "Book" is a noun and "focusing" is a verb. PoS tags are useful for building <strong class="bold">parse trees</strong>. Parse trees are used in building named entity recognizers and extracting relations between words. PoS tagging is used for building lemmatizers. Lemmatizers will reduce a word to its root form. Moreover, there are various techniques to do PoS tagging, such as lexical-based methods, rule-based methods, and more.</li>
+			</ul>
+			<p>Even after these preprocessing steps, you would still need to apply advanced NLP techniques if you are doing deep learning on top of the preprocessed steps. Some popular techniques are the following:</p>
+			<ul>
+				<li><strong class="bold">Word embedding</strong>: These are vector representations of strings with similar semantic meanings. Word embeddings are used as a starting technique for most deep learning NLP<a id="_idIndexMarker188"/> tasks and are a popular way of <strong class="bold">transfer learning</strong> in NLP. Some of<a id="_idIndexMarker189"/> the common<a id="_idIndexMarker190"/> word embeddings are <strong class="bold">Word2vec</strong>, <strong class="bold">Doc2Vec</strong> for documents, <strong class="bold">GloVe</strong>, <strong class="bold">Continuous Bag of Words</strong> (<strong class="bold">CBOW</strong>), and <strong class="bold">Skip-gram</strong>.</li>
+				<li><strong class="bold">Transformers</strong>: In 2017, there was a paradigm shift from the standard way NLP applications were built upon with transformers, for example, using <strong class="bold">RNN</strong>s, <strong class="bold">LSTM</strong>s, or <strong class="bold">GRU</strong>s initialized with word embedding. Transformers have led to the <a id="_idIndexMarker191"/>development <a id="_idIndexMarker192"/>of pretrained systems such as <strong class="bold">Bidirectional Encoder Representations from Transformers</strong> (<strong class="bold">BERT</strong>) and <strong class="bold">Generative Pretrained Transformer</strong> (<strong class="bold">GPT</strong>). BERT <a id="_idIndexMarker193"/>and GPT<a id="_idIndexMarker194"/> have been trained with huge genera<a id="_idIndexMarker195"/>l language datasets, such as <strong class="bold">Wikipedia Corpus</strong> and <strong class="bold">Common Crawl</strong>, and can be fine-tuned to specific language tasks.</li>
+			</ul>
+			<p>Some of the challenges with setting up these NLP models include the following:</p>
+			<ul>
+				<li>Compute-intensive process and requires GPUs and CPUs</li>
+				<li>Requires large, labeled datasets for training</li>
+				<li>Set up <a id="_idIndexMarker196"/>infrastructure for managing<a id="_idIndexMarker197"/> the compute and scaling the models in production</li>
+				<li>Time-intensive and ML skills are needed to perform modeling</li>
+			</ul>
+			<p>To overcome these challenges, we have Amazon SageMaker, which helps with removing all the infrastructure-heavy lifting of building, training, tuning, and deploying NLP models from idea to execution quickly.</p>
+			<p class="callout-heading">Amazon SageMaker</p>
+			<p class="callout">You can learn more about how to get started with Amazon SageMaker NLP techniques in the book <em class="italic">Learn Amazon SageMaker</em> by Julien Simon.</p>
+			<p>Moreover, talking specifically about implementing transformers in your NLP models, Amazon SageMaker <a id="_idIndexMarker198"/>also supports transformer implementation in <strong class="bold">PyTorch</strong>, <strong class="bold">TensorFlow</strong>, and <strong class="bold">HuggingFace</strong>.</p>
+			<p>The <strong class="bold">Hugging Face transformers</strong> package is an immensely popular Python library providing pretrained models that are useful for a variety of NLP tasks. Refer to this blog to learn<a id="_idIndexMarker199"/> more: <a href="https://aws.amazon.com/blogs/machine-learning/aws-and-hugging-face-collaborate-to-simplify-and-accelerate-adoption-of-natural-language-processing-models/">https://aws.amazon.com/blogs/machine-learning/aws-and-hugging-face-collaborate-to-simplify-and-accelerate-adoption-of-natural-language-processing-models/</a>.</p>
+			<p>So, we have covered some of the key challenges with preprocessing NLP techniques and modeling. With AWS AI services such as Amazon Comprehend, you don't need to worry about spinning up servers or setting up complex infrastructure for NLP training. You also don't need to worry about all the preprocessing techniques we've covered, for example, tokenization, PoS tagging, and so on.</p>
+			<p>You also don't need to think about implementing transformers to set up deep learning models to accomplish some of the key NLP tasks, such as text classification, topic modeling, NER, key phrase detection, and a lot more.</p>
+			<p>Amazon Comprehend and Comprehend Medical give you APIs to accomplish some key NLP tasks (such as sentiment analysis, text classification, or topic modeling) on a variety of <a id="_idIndexMarker200"/>unstructured<a id="_idIndexMarker201"/> texts (such as emails, chats, social media feeds, or healthcare notes).</p>
+			<p>In the next section, we will cover how Comprehend and Comprehend Medical can detect insights in text with no preprocessing.</p>
+			<h2 id="_idParaDest-51"><a id="_idTextAnchor053"/>Exploring the benefits of Amazon Comprehend and Comprehend Medical</h2>
+			<p>In this <a id="_idIndexMarker202"/>section, we <a id="_idIndexMarker203"/>will cover some of the key benefits of Amazon Comprehend and Comprehend Medical by discussing the following examples:</p>
+			<ul>
+				<li>Integrates NLP APIs that use a pretrained deep learning model under the hood. These APIs can be added to your apps to make them intelligent as you do not need textual analysis expertise to use them.</li>
+				<li>Provides scalable NLP processing, as its serverless APIs enable you to analyze several documents or unstructured textual data for NLP without worrying about spinning up servers and managing them.</li>
+				<li>Both of these services integrate with other AWS services: <strong class="bold">AWS IAM</strong>, for identity and access management; <strong class="bold">Amazon S3</strong>, for storage; <strong class="bold">AWS Key Management Service</strong> (<strong class="bold">KMS</strong>), to <a id="_idIndexMarker204"/>manage security keys during encryption; <strong class="bold">AWS Lambda</strong>, to create serverless architecture. You can perform real-time analysis both from streaming data coming from <strong class="bold">Amazon Kinesis</strong> or a batch of data in Amazon S3, then use the NLP APIs to gain insights on this data and display it in a dashboard using <strong class="bold">Amazon Quicksight</strong>, which is a visualization tool similar to <strong class="bold">Tableau</strong>.</li>
+				<li>These <a id="_idIndexMarker205"/>services provide encryption <a id="_idIndexMarker206"/>of output results and volume data in Amazon S3. With Amazon Comprehend, you can use KMS keys to encrypt the output results of the jobs, as well as the data attached on the storage volume of the compute instance that processes the analysis job under the hood.</li>
+				<li>It's cost-effective, as you only have to pay for the text that you will analyze.</li>
+			</ul>
+			<h2 id="_idParaDest-52"><a id="_idTextAnchor054"/>Detecting insights in text using Comprehend and Comprehend Medical without preprocessing</h2>
+			<p>Amazon <a id="_idIndexMarker207"/>Comprehend <a id="_idIndexMarker208"/>and Amazon Comprehend Medical are AWS AI services, similar to Amazon Textract (which we covered in <a href="B17528_02_Final_SB_ePub.xhtml#_idTextAnchor027"><em class="italic">Chapter 2</em></a><em class="italic">,</em> <em class="italic">Introducing Amazon Textract</em>), where you do not need to set up complex models. You call the Amazon Comprehend and Amazon Comprehend Medical APIs and send a text request, and you will get a response back with the detected confidence score. The difference between Amazon Comprehend and Amazon Comprehend Medical is that Comprehend Medical is specific to healthcare NLP use cases. Comprehend Medical uses ML to extract health-related, meaningful insights from unstructured medical text, while Amazon Comprehend uses NLP to extract meaningful information about the content of unstructured text by recognizing the <strong class="bold">entities</strong>, <strong class="bold">key phrases</strong>, <strong class="bold">language</strong>, <strong class="bold">sentiments</strong>, and other common elements in the text.</p>
+			<p>Some of the key use cases of Amazon Comprehend are as follows:</p>
+			<ul>
+				<li><em class="italic">Using topic modeling to search documents based on topics</em>: With Amazon Comprehend topic modeling, you have the ability to configure the number of topics you are looking for in your documents or text files. With topic modeling, you can search the documents attached with each topic.</li>
+				<li><em class="italic">Using sentiment analysis to analyze the sentiment of what customers think of your product</em>: With Amazon Comprehend sentiment analysis APIs, you can find out how customers feel (such as positive, negative, neutral, or mixed) about their products. For example, suppose you find a restaurant on Yelp. It's a pizza <a id="_idIndexMarker209"/>place. You <a id="_idIndexMarker210"/>go there, try the pizza, and do not like it, so you post a comment: "The pizza here was not great." Business owners using Comprehend sentiment analysis can quickly analyze the sentiment of this text and act in real time on improving user satisfaction before their business goes down.</li>
+				<li><em class="italic">Quick discovery of customer feelings based on topics and entities</em>: You can combine multiple features of Amazon Comprehend, such as topic modeling, with entity recognition and sentiment analysis to discover the topics that your end users are talking about in various forums.</li>
+				<li><em class="italic">Bring your own data to perform custom classification and custom entity recognition</em>: Amazon Comprehend provides you with the capability to quickly get started with custom entities. For example, if you are a manufacturing firm and you are looking for certain product codes in the documents, such as PR123, it should be detected as the product code using ML.<p>You can bring a sample of your data and use Amazon Comprehend Custom entity recognition to get started without needing to worry about writing a complex model. You also do not need to worry about labeling large datasets to get started, as Amazon Comprehend <strong class="bold">Custom</strong> uses transfer learning under the hood. You can get started with a small set of labeled data to create custom entities specific to your use case. Similarly, you can bring your own data and perform custom classification to perform multi-class and multi-label classification to identify classes.</p></li>
+			</ul>
+			<p>In the case of healthcare records, you can use Amazon Comprehend Medical. You can use Comprehend Medical for the following healthcare applications:</p>
+			<ul>
+				<li>Using Comprehend Medical APIs to analyze case documents for patient case management and outcomes.</li>
+				<li>Using Comprehend Medical APIs to detect useful information in clinical texts to optimize<a id="_idIndexMarker211"/> the<a id="_idIndexMarker212"/> matching process and drug safety for life sciences and research organizations.</li>
+				<li>Using Comprehend Medical to extract billing codes which can decrease the time to revenue for insurance payers involved in medical billing.</li>
+				<li>Comprehend Medical also supports ontology linking for <strong class="bold">ICD-10-CM</strong> (<strong class="bold">International Classification of Diseases – 10th Version – Clinical Modification</strong>)and <strong class="bold">RxNorm</strong>. Ontology linking means detecting entities in clinical text and linking those entities to concepts in standardized medical ontologies, such as the RxNorm and ICD-10-CM knowledge bases.</li>
+				<li>Detecting <strong class="bold">PHI</strong> data, such as age, date from clinical documents, and set controls, to implement PHI compliance in the medical organization.</li>
+			</ul>
+			<p>We will cover Amazon Comprehend Medical use cases in detail in <a href="B17528_12_Final_SB_ePub.xhtml#_idTextAnchor141"><em class="italic">Chapter 12</em></a><em class="italic">,</em> <em class="italic">AI and NLP in Healthcare</em>.</p>
+			<h2 id="_idParaDest-53"><a id="_idTextAnchor055"/>Using these services to gain insights from OCR documents from Amazon Textract</h2>
+			<p>If you <a id="_idIndexMarker213"/>have documents in the form of scanned images or PDFs, you can use Amazon Textract to extract data quickly from these documents and then use Amazon Comprehend to gain meaningful insights from the extracted text, such as entities, key phrases, and sentiment. You can further classify these documents using Amazon Comprehend text classification, and also perform topic modeling to identify key topics within the documents. We will cover how you can use Amazon Textract with Amazon Comprehend together in an architecture in <a href="B17528_04_Final_SB_ePub.xhtml#_idTextAnchor063"><em class="italic">Chapter 4</em></a><em class="italic">,</em> <em class="italic">Automating Document Processing Workflows for Financial Institutions</em>, and in <a href="B17528_05_Final_SB_ePub.xhtml#_idTextAnchor074"><em class="italic">Chapter 5</em></a><em class="italic">,</em> <em class="italic">Creating NLP Search </em>in the section<em class="italic"> Creating NLP-powered smart search indexes</em>. Moreover, for the healthcare industry, if you have lots of scanned documents such as medical intake forms, patient notes, and so on, you can use Amazon Textract to extract data from these documents and then use Amazon Comprehend Medical to extract key insights from this unstructured text data.</p>
+			<p>In this section, we first covered the challenges associated with setting up NLP modeling. Then we discussed how Amazon Comprehend and Comprehend Medical can address the pain points associated with setting up NLP models, such as scalability, preprocessing steps, and infrastructure setup. Lastly, we covered how you can automate your documents and enrich them with NLP by combining Amazon Textract and Amazon Comprehend. We have covered how Comprehend and Comprehend Medical can provide rich APIs for building intelligent NLP applications, which are also scalable to process large numbers of documents or unstructured data. In the next section, we will talk about some of the product features of these services using an AWS Console demo.</p>
+			<h1 id="_idParaDest-54"><a id="_idTextAnchor056"/>Exploring Amazon Comprehend and Amazon Comprehend Medical product features</h1>
+			<p>In this<a id="_idIndexMarker214"/> section, we will talk about<a id="_idIndexMarker215"/> Amazon Comprehend and Amazon Comprehend Medical product features using an AWS Console demo. We will start with Amazon Comprehend, and then move to Amazon Comprehend Medical.</p>
+			<h2 id="_idParaDest-55"><a id="_idTextAnchor057"/>Discovering Amazon Comprehend</h2>
+			<p>Amazon<a id="_idIndexMarker216"/> Comprehend enables you to examine your unstructured data, for example, social media feeds, posts, emails, web pages, data extracted from Amazon Textract, phone transcripts, call center records, or really any kind of unstructured textual data. It can help you gain various insights about its content by using a number of pretrained models. <em class="italic">Figure 3.2</em> is a diagram of how Amazon Comprehend actually works:</p>
+			<div>
+				<div id="_idContainer043" class="IMG---Figure">
+					<img src="Images/B17528_03_02.jpg" alt="Figure 3.2 – Amazon Comprehend features&#13;&#10;" width="1111" height="381"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 3.2 – Amazon Comprehend features</p>
+			<p>With Amazon Comprehend, you can perform the following on your input unstructured textual data by using the following <strong class="bold">text analysis</strong> APIs:</p>
+			<ul>
+				<li><strong class="bold">Detect Entities</strong></li>
+				<li><strong class="bold">Detect Key Phrases</strong></li>
+				<li><strong class="bold">Detect the Dominant Language</strong></li>
+				<li><strong class="bold">Detect Personally Identifiable Information</strong> (<strong class="bold">PII</strong>)</li>
+				<li><strong class="bold">Determine Sentiment</strong></li>
+				<li><strong class="bold">Analyze Syntax</strong></li>
+				<li><strong class="bold">Topic Modeling</strong></li>
+			</ul>
+			<p>These text analysis APIs can be used both in real-time and in a batch manner, while topic modeling is a batch job or asynchronous process and cannot be used for real-time use cases.</p>
+			<p>There are two modes in which you can use these APIs:</p>
+			<ul>
+				<li><em class="italic">Real-time in any application</em>: You can use these APIs for real-time use cases by sending one document at a time, or in batch real-time operations by sending 15 documents in a batch and getting a response immediately.</li>
+				<li><em class="italic">Batch or asynchronous manner</em>: Where you bring your large batch of data into Amazon S3, point to a dataset, and run any of the preceding analyses in the form of a batch job. The results of the batch job are saved to an S3 bucket.<p class="callout-heading">Note </p><p class="callout">For synchronous APIs, your text has to be UTF-8 encoded and 5,000 bytes.</p></li>
+			</ul>
+			<p>Let's take a <a id="_idIndexMarker217"/>quick look at some Amazon Comprehend features on the AWS Console. Please refer to the <em class="italic">Technical requirements</em> section if you have not already set up your AWS account.</p>
+			<p>Since we all forget to set up autopay messages to pay our credit card bills, in this demo we will show you a quick analysis of a sample autopay message to extract some key insights using Amazon Comprehend:</p>
+			<ol>
+				<li value="1">Go to Amazon Comprehend. Click on <strong class="bold">Launch Amazon Comprehend</strong>:<div id="_idContainer044" class="IMG---Figure"><img src="Images/B17528_03_03.jpg" alt="Figure 3.3 – Amazon Comprehend Console&#13;&#10;" width="1153" height="323"/></div><p class="figure-caption">Figure 3.3 – Amazon Comprehend Console</p></li>
+				<li>We will use the<a id="_idIndexMarker218"/> following sample autopay text to analyze all of the features of Amazon Comprehend available through the AWS Console:<p class="source-code">Hi Alex. Your NoNameCompany Financial Services, LLC credit card account 1111-0000-1111-0010 has a minimum payment of $25.00 that is due by Sunday, June 19th. Based on your autopay settings, we are going to withdraw your payment on the due date from your bank account XXXXXX1121 with the routing number  XXXXX0000.</p><p class="source-code">Your latest statement was mailed to 100 XYZ Street, Anytown, WA 98121.</p><p class="source-code">After your payment is received, you will receive a confirmation text message at 555-0100-0000.</p><p class="source-code">If you have questions about your bill, NoNameCompany Customer Service is available by phone at 206-555-0199 or email at support@nonamecompany.com.</p></li>
+				<li>Copy the preceding text and insert it into <strong class="bold">Real-time analysis → Input text</strong>, as shown in <em class="italic">Figure 3.4</em>, and click on <strong class="bold">Built-in</strong>, and then <strong class="bold">Analyze</strong>:<div id="_idContainer045" class="IMG---Figure"><img src="Images/B17528_03_04.jpg" alt="Figure 3.4 – Real-time analysis Input text in AWS Console&#13;&#10;" width="1528" height="638"/></div><p class="figure-caption">Figure 3.4 – Real-time analysis Input text in AWS Console</p></li>
+				<li>Scroll down to see the insights.</li>
+			</ol>
+			<p>Now, we <a id="_idIndexMarker219"/>will walk through each <strong class="bold">Insights</strong> API by changing each tab.</p>
+			<h3>Detecting entities</h3>
+			<p>You can<a id="_idIndexMarker220"/> see from the screenshot in <em class="italic">Figure 3.5</em> that Amazon Comprehend was able to detect the highlighted entities from the text you entered:</p>
+			<div>
+				<div id="_idContainer046" class="IMG---Figure">
+					<img src="Images/B17528_03_05.jpg" alt="Figure 3.5 – Detect entities insights&#13;&#10;" width="547" height="209"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 3.5 – Detect entities insights</p>
+			<ol>
+				<li value="1">Scroll<a id="_idIndexMarker221"/> down to the results to understand more about these entities and what is identified as an entity by Amazon Comprehend's built-in APIs without any customization.<p>In the following screenshot in <em class="italic">Figure 3.6</em>, you can see that <strong class="bold">Alex</strong> has been identified as a <strong class="bold">Person</strong>, and <strong class="bold">NoNameCompany</strong>, the sender of the autopay message, has been identified as an <strong class="bold">Organization</strong>. The date by which Alex's amount is due (<strong class="bold">June 19th</strong>) has been identified as a <strong class="bold">Date</strong> entity, along with their specific confidence scores. The <strong class="bold">confidence score</strong> means how likely a match is to be found by the ML model, which is in a range from 0 to 100. The higher the score, the greater the confidence in the answer. A score of 100 is likely an exact match, while a score of 0 means that no matching answer was found:</p><div id="_idContainer047" class="IMG---Figure"><img src="Images/B17528_03_06.jpg" alt="Figure 3.6 – Detect entities results&#13;&#10;" width="1000" height="653"/></div><p class="figure-caption">Figure 3.6 – Detect entities results</p><p class="callout-heading">Note</p><p class="callout">Out of the box, Amazon<a id="_idIndexMarker222"/> Comprehend's built-in APIs can detect Person, Location, Quantity, Organization, Date, Commercial Item, Quantity, and Title from any text.</p></li>
+				<li>Let's quickly scroll down to <strong class="bold">Application integration</strong> to see what type of request it expects, and what type of response it gives based on this request for the API:</li>
+			</ol>
+			<div>
+				<div id="_idContainer048" class="IMG---Figure">
+					<img src="Images/B17528_03_07.jpg" alt="Figure 3.7 – Comprehend Detect Entities request and response&#13;&#10;" width="1133" height="597"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 3.7 – Comprehend Detect Entities request and response</p>
+			<p>In the last section <a id="_idIndexMarker223"/>of this chapter, we will see how to call these APIs using <strong class="source-inline">python boto 3</strong> <strong class="bold">SDK</strong>s and integrate them into your applications.</p>
+			<h3>Detecting key phrases</h3>
+			<p>Change the tab to <strong class="bold">key phrases</strong> to understand what the key phrases are and what Amazon Comprehend has predicted:</p>
+			<div>
+				<div id="_idContainer049" class="IMG---Figure">
+					<img src="Images/B17528_03_08.jpg" alt="Figure 3.8 – Detect key phrases&#13;&#10;" width="1106" height="689"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 3.8 – Detect key phrases</p>
+			<p>In English, a<a id="_idIndexMarker224"/> key phrase consists of a noun phrase (noun plus modifier) that describes a particular thing. For example, in the text in <em class="italic">Figure 3.8</em>, "<strong class="bold">Hi Alex</strong>", "<strong class="bold">Your NoNameCompany Financial Services</strong>", and "<strong class="bold">minimum payment</strong>" are some of the key phrases identified by the Amazon Comprehend API. Without reading the text and just looking at these keywords a person can know it is about a finance company and something to do with a payment, which is really useful when you have large amounts of unstructured text.</p>
+			<h3>Language detection</h3>
+			<p>Change <a id="_idIndexMarker225"/>the tab to see the dominant language identified by Amazon Comprehend, as shown in <em class="italic">Figure 3.9</em>:</p>
+			<div>
+				<div id="_idContainer050" class="IMG---Figure">
+					<img src="Images/B17528_03_09.jpg" alt="Figure 3.9 – Detect language console demo&#13;&#10;" width="1109" height="503"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 3.9 – Detect language console demo</p>
+			<p>Similar to other Comprehend APIs, Amazon Comprehend detects the language of the given text and provides a confidence score along with it. You can use this feature for a book written<a id="_idIndexMarker226"/> in multiple different languages, such as both French and Hindi. Using language detection APIs, you can detect the language and classify the percentage of each language the book consists of, and then you can use <strong class="bold">Amazon Translate</strong>, which is an AWS service that translates the text from one language to another. We will see this example in future chapters in order to translate it. </p>
+			<h3>PII detection</h3>
+			<p>Change<a id="_idIndexMarker227"/> the tab to PII to see what you will get using the Amazon Comprehend out-of-the-box PII detection API as follows:</p>
+			<div>
+				<div id="_idContainer051" class="IMG---Figure">
+					<img src="Images/B17528_03_10.jpg" alt="Figure 3.10 – PII detection demo&#13;&#10;" width="1103" height="534"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 3.10 – PII detection demo</p>
+			<p>As you can<a id="_idIndexMarker228"/> see in <em class="italic">Figure 3.10</em>, Amazon Comprehend provides you with <strong class="bold">Offsets</strong> and <strong class="bold">Labels</strong> with its real-time or sync PII APIs. If you want to redact the PII data from your text, you can use an asynchronous job. Amazon Comprehend can detect these PII entities: age, address, AWS access key, AWS secret key, bank-related details (such as bank account and bank routing number), credit card details (such as credit card number and expiry date), identification details (such as driving license ID and passport number), network-related details (such as emails, IP address, and MAC address), URLs; passwords; and usernames.</p>
+			<p>With this understanding of types of PII entities detected by Amazon Comprehend, let's scroll down to see the entities or results of Offsets detected by PII for the text you entered:</p>
+			<div>
+				<div id="_idContainer052" class="IMG---Figure">
+					<img src="Images/B17528_03_11.jpg" alt="Figure 3.11 – Detect PII results" width="909" height="598"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 3.11 – Detect PII results</p>
+			<p>You also get <a id="_idIndexMarker229"/>a confidence score along with the entity and the type of PII entity.</p>
+			<p>In case you do not want to identify the specific entities and just want to know what type of PII your documents have, you can use the Labels PII feature.</p>
+			<p>Select the <strong class="bold">Labels</strong> button to see this feature in action:</p>
+			<div>
+				<div id="_idContainer053" class="IMG---Figure">
+					<img src="Images/B17528_03_12.jpg" alt="Figure 3.12 – Detect PII Labels result&#13;&#10;" width="940" height="651"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 3.12 – Detect PII Labels result</p>
+			<p>From the <a id="_idIndexMarker230"/>results shown in <em class="italic">Figure 3.12</em>, you can clearly see that <strong class="bold">Date time</strong>, <strong class="bold">Email</strong>, <strong class="bold">Name</strong>, <strong class="bold">Address</strong>, and <strong class="bold">Phone</strong> are some of the pieces of PII related to a person in the text you entered.</p>
+			<h3>Detecting sentiment</h3>
+			<p>Change<a id="_idIndexMarker231"/> to the <strong class="bold">Sentiment</strong> tab to understand the sentiment of the text you have entered:</p>
+			<div>
+				<div id="_idContainer054" class="IMG---Figure">
+					<img src="Images/B17528_03_13.jpg" alt="Figure 3.13 – Detect sentiment results" width="1112" height="493"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 3.13 – Detect sentiment results</p>
+			<p>Since the text was related to an autopay message, a neutral sentiment was detected by Amazon Comprehend's Detect Sentiment real-time API. The Amazon Comprehend sentiment <a id="_idIndexMarker232"/>analysis feature helps determine whether the sentiment is positive, negative, neutral, or mixed. You can use this feature for various use cases, such as determining the sentiments of an online book review, Twitter sentiment analysis, or any social media sentiment handles, such as Reddit or Yelp reviews sentiment analysis.</p>
+			<h3>Detecting syntax</h3>
+			<p>Click on<a id="_idIndexMarker233"/> the last tab, <strong class="bold">Syntax</strong>, to see what type of responses you can get with Amazon Comprehend's Detect Syntax feature:</p>
+			<div>
+				<div id="_idContainer055" class="IMG---Figure">
+					<img src="Images/B17528_03_14.jpg" alt="Figure 3.14 – Detect syntax or part of speech results&#13;&#10;" width="1171" height="668"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 3.14 – Detect syntax or part of speech results</p>
+			<p>Amazon <a id="_idIndexMarker234"/>Comprehend is able to identify nouns, verbs, and adjectives, and can identify 17 types of parts of speech overall. This feature can be really useful for data preprocessing for NLP models that require PoS tagging.</p>
+			<p class="callout-heading">Note</p>
+			<p class="callout">We covered all the Amazon Comprehend text analysis real-time APIs in detail. You can perform batch real-time operations with all of these APIs we covered and send 25-5,000 bytes (<a href="https://docs.aws.amazon.com/comprehend/latest/dg/guidelines-and-limits.html">https://docs.aws.amazon.com/comprehend/latest/dg/guidelines-and-limits.html</a>) UTF-8 text documents at once to get real-time results. Comprehend custom has now the ability to bring pdf documents directly for analysis and custom training.</p>
+			<h3>Amazon Comprehend Custom feature</h3>
+			<p>With Amazon<a id="_idIndexMarker235"/> Comprehend Custom you can bring your own datasets, quickly create custom entities, and perform custom classification. This feature is a batch or asynchronous feature that involves two steps:</p>
+			<ol>
+				<li value="1"><em class="italic">Train a classifier or entity recognizer</em> by providing a small, labeled dataset. This classifier or entity recognizer uses <strong class="bold">automated ML</strong> (<strong class="bold">AutoML</strong>) and <a id="_idIndexMarker236"/>transfer learning to pick and train a model based on your training dataset provided. It also provides an F1 score and precision and recall metrics with this trained model.</li>
+				<li><em class="italic">Run batch or real-time analysis on this trained model</em> after you have trained a custom classifier or custom entity recognizer model. You again have two choices to create a batch job using this trained model for batches of data in the form of an "Analysis job" in the Amazon Comprehend console. You can also create a real-time endpoint that can be used for classifying use cases such as live Twitter feeds, news feed or customer service requests, and so on, using this model in near-real-time.</li>
+			</ol>
+			<div>
+				<div id="_idContainer056" class="IMG---Figure">
+					<img src="Images/B17528_03_15.jpg" alt="Figure 3.15 – Comprehend custom classification workflow&#13;&#10;" width="1199" height="679"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 3.15 – Comprehend custom classification workflow</p>
+			<p>We will cover Comprehend custom entity features in <a href="B17528_14_Final_SB_ePub.xhtml#_idTextAnchor162"><em class="italic">Chapter 14</em></a><em class="italic">,</em> <em class="italic">Auditing Named Entity Recognition Workflows</em>, and Comprehend custom classification features in <a href="B17528_15_Final_SB_ePub.xhtml#_idTextAnchor178"><em class="italic">Chapter 15</em></a><em class="italic">,</em> <em class="italic">Classifying Documents and Setting up Human in the Loop for Active Learning</em>.</p>
+			<p>We will cover <a id="_idIndexMarker237"/>topic modeling product features in detail in <a href="B17528_06_Final_SB_ePub.xhtml#_idTextAnchor089"><em class="italic">Chapter 6</em></a><em class="italic">,</em> <em class="italic">Using NLP to Improve Customer Service Efficiency</em>.<em class="italic"> </em></p>
+			<h3>Amazon Comprehend Events</h3>
+			<p>Amazon <a id="_idIndexMarker238"/>Comprehend <strong class="bold">Events</strong> has a specific use case for financial organizations, where you can use this API to see the relationships between various entities extracted through Amazon Comprehend in the case of any important financial events such as press releases, mergers, and acquisitions. You can use this Events batch API to detect events over large documents to answer who, what, when, and where the event happened. To learn more about Comprehend Events, refer to this <a id="_idIndexMarker239"/>blog: <a href="https://aws.amazon.com/blogs/machine-learning/announcing-the-launch-of-amazon-comprehend-events/">https://aws.amazon.com/blogs/machine-learning/announcing-the-launch-of-amazon-comprehend-events/</a>.</p>
+			<h2 id="_idParaDest-56"><a id="_idTextAnchor058"/>Deriving diagnoses from a doctor-patient transcript with Comprehend Medical</h2>
+			<p>Amazon <a id="_idIndexMarker240"/>Comprehend Medical provides two types of analysis:</p>
+			<ul>
+				<li><strong class="bold">Text analysis APIs</strong>: Similar to Amazon Comprehend text analysis APIs, Comprehend Medical has APIs to detect medical entities and detect PHI.</li>
+				<li><strong class="bold">Oncology detection APIs</strong>: These APIs help link the entities with either RxNorm <a id="_idIndexMarker241"/>or ICD-10-CM linking. According to the <strong class="bold">National Institutes of Health</strong> (<strong class="bold">NIH</strong>) (<a href="https://www.nlm.nih.gov/research/umls/rxnorm/index.html">https://www.nlm.nih.gov/research/umls/rxnorm/index.html</a>), RxNorm provides normalized names for clinical drugs and links its names to many of the drug vocabularies commonly used in pharmacy management and drug interaction software. By providing links between these vocabularies, RxNorm can mediate messages between systems not using the same software and vocabulary. ICD-10-CM (The ICD-10 Clinical Modification) is a modification of the ICD-10, authorized by the World Health Organization, and used as a source for diagnosis codes in the United States of America. To learn more, refer to its Wikipedia entry: <a href="https://en.wikipedia.org/wiki/ICD-10-CM">https://en.wikipedia.org/wiki/ICD-10-CM</a>. </li>
+			</ul>
+			<p>Now, we will quickly cover Amazon Comprehend Medical features through the AWS Console again:</p>
+			<ol>
+				<li value="1">Open the AWS Console: <a href="https://console.aws.amazon.com/comprehend/v2/home?region=us-east-1#try-comprehend-medical">https://console.aws.amazon.com/comprehend/v2/home?region=us-east-1#try-comprehend-medical</a>.</li>
+				<li>Click on the <strong class="bold">Real-time analysis</strong> feature in Amazon Comprehend Medical, and enter <a id="_idIndexMarker242"/>the following sample text:<p class="source-code">Pt is 35 yo woman, IT professional with past medical history that includes</p><p class="source-code">- status post cardiac catheterization in may 2019.</p><p class="source-code">She haspalpitations and chest pressure today.</p><p class="source-code">HPI : Sleeping trouble for present dosage of Catapres. Severe rash on thighs, slightly itchy</p><p class="source-code">Meds : Xanax100 mgs po at lunch daily,</p><p class="source-code">Catapres 0.2 mgs -- 1 and 1 / 2 tabs po qhs</p><p class="source-code">Lungs : clear</p><p class="source-code">Heart : Regular rhythm</p><p class="source-code">Next follow up as scheduled on 06/19/2021</p></li>
+				<li>Copy this text and paste it into <strong class="bold">Input text</strong>, as shown in <em class="italic">Figure 3.16</em>, and click on <strong class="bold">Analyze</strong>:<div id="_idContainer057" class="IMG---Figure"><img src="Images/B17528_03_16.jpg" alt="Figure 3.16 – Input text for real-time Amazon Comprehend Medical analysis&#13;&#10;" width="1636" height="631"/></div><p class="figure-caption">Figure 3.16 – Input text for real-time Amazon Comprehend Medical analysis</p><p class="callout-heading">Note</p><p class="callout">With Comprehend Medical real-time APIs, you can analyze up to 200,000 characters. </p></li>
+				<li>Scroll <a id="_idIndexMarker243"/>down to see the result of Comprehend Medical entities real-time APIs:<div id="_idContainer058" class="IMG---Figure"><img src="Images/B17528_03_17.jpg" alt="Figure 3.17 – Comprehend Medical detect entities&#13;&#10;" width="996" height="588"/></div><p class="figure-caption">Figure 3.17 – Comprehend Medical detect entities</p><p>You can see that Comprehend Medical also provides relationships within these entities, such as <strong class="bold">Catapres</strong> dosage, and the frequency at which the drug should be administered. Amazon Comprehend Medical detects Entity, Type, and Category, such as whether the entity is PHI or treatment or time expression and traits, along with a confidence score.</p></li>
+				<li>Scroll down further to see detected entities in <strong class="bold">Results</strong>. This detects the entity with its Type and Category; for example, <strong class="source-inline">35</strong> is an entity that has been detected, with an<a id="_idIndexMarker244"/> entity Type of Age, and a Category of PHI.</li>
+			</ol>
+			<div>
+				<div id="_idContainer059" class="IMG---Figure">
+					<img src="Images/B17528_03_18.jpg" alt="Figure 3.18 – Comprehend Medical detect entities results&#13;&#10;" width="813" height="758"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 3.18 – Comprehend Medical detect entities results</p>
+			<h3>RxNorm concepts</h3>
+			<p>Use<a id="_idIndexMarker245"/> this feature to identify medication <a id="_idIndexMarker246"/>as entities:</p>
+			<ol>
+				<li value="1">Switch tabs to <strong class="bold">RxNorm</strong>. You'll see a screen like the following screenshot:<div id="_idContainer060" class="IMG---Figure"><img src="Images/B17528_03_19.jpg" alt="Figure 3.19 – Comprehend Medical InferRxNorm results&#13;&#10;" width="906" height="526"/></div><p class="figure-caption">Figure 3.19 – Comprehend Medical InferRxNorm results</p><p>If you scroll down to <strong class="bold">Results</strong>, Comprehend Medical shows the <strong class="bold">RXCUI</strong>s for each medication, along with a confidence score. An RXCUI is a machine-readable code that refers to a unique name for a particular drug, and drugs having the same RXCUI are considered to be the<a id="_idIndexMarker247"/> same drug. This Comprehend Medical feature provides RxNorm information <a id="_idIndexMarker248"/>such as strength, frequency, dose, dose form, and route of administration. You can use this RxNorm feature for scenarios such as the following:</p><ul><li>Patient screening for medications.</li><li>Preventing probable negative reactions, which can be caused by new prescription drugs interacting with drugs the patient is already taking.</li><li>Screening based on drug history, using the RXCUI for inclusion in clinical trials.</li><li>Checking for appropriate frequency and dosage of a drug and drug screening.</li></ul></li>
+			</ol>
+			<h3>ICD-10-CM concepts</h3>
+			<p>Let's <a id="_idIndexMarker249"/>change the tab to <strong class="bold">ICD-10-CM concepts</strong> and<a id="_idIndexMarker250"/> you will get the following analysis:</p>
+			<div>
+				<div id="_idContainer061" class="IMG---Figure">
+					<img src="Images/B17528_03_20.jpg" alt="Figure 3.20 – Comprehend Medical InferICD-10-CM results&#13;&#10;" width="789" height="615"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 3.20 – Comprehend Medical InferICD-10-CM results</p>
+			<p>The <strong class="bold">InferICD10CM</strong> API detects<a id="_idIndexMarker251"/> possible medical conditions as entities and links them to codes from the ICD-10-CM, along with a confidence score. In healthcare, these codes are standard medical transaction codes, set for diagnostic purposes to comply with the <strong class="bold">Health Insurance Portability and Accountability Act</strong> (<strong class="bold">HIPAA</strong>), and <a id="_idIndexMarker252"/>used for classifying and reporting diseases. You can use these ICD-10-CM codes for downstream analysis as the signs, symptoms, traits, and attributes.</p>
+			<p>InferICD10CM is well-suited to scenarios such as professional medical coding assistance for patient records, clinical trials and studies, integration with an existing medical software system, early detection and diagnosis, and population health management.</p>
+			<p>In the next <a id="_idIndexMarker253"/>section, we will see these APIs in action by performing a walkthrough of a Jupyter <a id="_idIndexMarker254"/>notebook.</p>
+			<h1 id="_idParaDest-57"><a id="_idTextAnchor059"/>Using Amazon Comprehend with your applications</h1>
+			<p>In this section, you<a id="_idIndexMarker255"/> will see a detailed <a id="_idIndexMarker256"/>walkthrough of broad categories of APIs available for Amazon Comprehend and Comprehend Medical through a Jupyter notebook example, which you can run in your AWS account. To set up the notebook, refer to the <em class="italic">Technical requirements</em> section of this chapter.</p>
+			<p>We will be showing you a subset of key APIs in Comprehend along with their functions, and then will talk about how you can build applications integrating with AWS Lambda, <strong class="bold">API Gateway</strong>, and Comprehend.</p>
+			<p class="callout-heading">Note</p>
+			<p class="callout">We will cover Amazon Comprehend Medical APIs in <a href="B17528_12_Final_SB_ePub.xhtml#_idTextAnchor141"><em class="italic">Chapter 12</em></a><em class="italic">,</em> <em class="italic">AI and NLP in Healthcare</em>.</p>
+			<p>Let's start with the Amazon<a id="_idIndexMarker257"/> Comprehend APIs first. Amazon Comprehend provides three types of API.</p>
+			<ul>
+				<li><strong class="bold">Real-time APIs</strong>: For all the text analysis features we covered and Comprehend Custom model endpoints.</li>
+				<li><strong class="bold">Batch real-time APIs</strong>: For all the text analysis features.</li>
+				<li><strong class="bold">Batch or analysis job APIs</strong>: For all text analysis features, topic modeling features, and Comprehend Custom model training.</li>
+			</ul>
+			<p>In the notebook <a href="https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2003/Chapter%203%20Introduction%20to%20Amazon%20Comprehend.ipynb">https://github.com/PacktPublishing/Natural-Language-Processing-with-AWS-AI-Services/blob/main/Chapter%2003/Chapter%203%20Introduction%20to%20Amazon%20Comprehend.ipynb</a>, we will cover real-time APIs and batch real-time APIs.</p>
+			<p class="callout-heading">Note</p>
+			<p class="callout">You can implement the same features in other supported APIs such as Java, Ruby, .NET, AWS CLI, Go, C++, JavaScript, and PHP. For more information on Comprehend APIs, refer to the Amazon documentation: <a href="https://docs.aws.amazon.com/comprehend/latest/dg/API_Reference.html">https://docs.aws.amazon.com/comprehend/latest/dg/API_Reference.html</a>.</p>
+			<ol>
+				<li value="2">Let's start with setting up the Python <strong class="source-inline">boto3</strong> APIs for Amazon Comprehend:<p class="source-code">import boto3</p><p class="source-code">comprehend = boto3.client('comprehend')</p></li>
+				<li>Let's see<a id="_idIndexMarker258"/> how we can perform<a id="_idIndexMarker259"/> entity extraction using sync or real-time APIs of <strong class="source-inline">detect_entities</strong>. I am sure you have been reading a lot of Packt books; let's see the following sample text about Packt Publications and what entities we can find from this:<p class="source-code">SampleText="Packt is a publishing company founded in 2003 headquartered in Birmingham, UK, with offices in Mumbai, India. Packt primarily publishes print and electronic books and videos relating to information technology, including programming, web design, data analysis and hardware."</p></li>
+				<li>We will call the <strong class="source-inline">detect_entities</strong> API (<strong class="source-inline">comprehend.detect_entities</strong>) to extract entities from the sample text:<p class="source-code">response = comprehend.detect_entities(</p><p class="source-code">Text=SampleText,</p><p class="source-code">    LanguageCode='en')</p></li>
+				<li>The following is the response for extracted entities from the blurb about Packt Publications:<p class="source-code">import json</p><p class="source-code">print (json.dumps(response, indent=4, sort_keys=True))</p><p>This gives <a id="_idIndexMarker260"/>us<a id="_idIndexMarker261"/> the following output:</p><div id="_idContainer062" class="IMG---Figure"><img src="Images/B17528_03_21.jpg" alt="Figure 3.21 – JSON results screenshot&#13;&#10;" width="376" height="667"/></div><p class="figure-caption">Figure 3.21 – JSON results screenshot</p><p>Comprehend was able to successfully detect entities along with their type, and give a response that Packt Publications is an organization located in Birmingham, UK, and Mumbai, India.</p></li>
+				<li>Now we know what Packt Publications is, let's identify some key phrases about this organization using the <strong class="source-inline">detect_key_phrases</strong> API, but when the text is in French.<p class="callout-heading">Note</p><p class="callout">Amazon Comprehend supports analysis in multiple languages using these APIs. The supported languages are French, Japanese, Korean, Hindi, Arabic, and Chinese.</p><p>Here is a<a id="_idIndexMarker262"/> sample text about<a id="_idIndexMarker263"/> Packt Publications (<a href="https://en.wikipedia.org/wiki/Packt">https://en.wikipedia.org/wiki/Packt</a>), translated into French<a id="_idIndexMarker264"/> using <strong class="bold">Amazon Translate</strong>:</p><p class="source-code">SampleText="Packt est une société d'édition fondée en 2003 dont le siège est à Birmingham, au Royaume-Uni, avec des bureaux à Mumbai, en Inde. Packt publie principalement des livres et des vidéos imprimés et électroniques relatifs aux technologies de l'information, y compris la programmation, la conception Web, l'analyse de données et le matériel"</p></li>
+				<li>We are going to use the <strong class="source-inline">detect_key_phrases</strong> API with <strong class="source-inline">fr</strong> as a parameter to <strong class="source-inline">LanguageCode</strong> to detect key phrases from the preceding French text:<p class="source-code">response = comprehend.detect_key_phrases(</p><p class="source-code">    Text= SampleText,</p><p class="source-code">    LanguageCode='fr'</p><p class="source-code">)</p></li>
+				<li>Let's see the response from Amazon Comprehend:<p class="source-code">print (json.dumps(response, indent=4, sort_keys=True))</p><p>This <a id="_idIndexMarker265"/>returns <a id="_idIndexMarker266"/>the following:</p></li>
+			</ol>
+			<div>
+				<div id="_idContainer063" class="IMG---Figure">
+					<img src="Images/B17528_03_22.jpg" alt="Figure 3.22 – Comprehend Detect Key Phrase response" width="480" height="762"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 3.22 – Comprehend Detect Key Phrase response</p>
+			<p>Amazon Comprehend is able to identify key phrases along with the location of the text.</p>
+			<p>Now, what if you wanted to buy a book from Packt Publications, you might want to read the reviews and determine whether they are positive or not.</p>
+			<p>Using the <strong class="source-inline">batch_detect_sentiment</strong> API, we will show you how you can analyze multiple <a id="_idIndexMarker267"/>reviews at once. For this demo, we will <a id="_idIndexMarker268"/>pick some sample reviews from the book <em class="italic">40 Algorithms Every Programmer Should Know</em> (<a href="https://www.packtpub.com/product/40-algorithms-every-programmer-should-know/9781789801217">https://www.packtpub.com/product/40-algorithms-every-programmer-should-know/9781789801217</a>):</p>
+			<ol>
+				<li value="1">We are going to analyze some of the reviews of this book using <strong class="source-inline">batch_detect_sentiment</strong>:<p class="source-code">response = comprehend.batch_detect_sentiment(</p><p class="source-code">    TextList=[</p><p class="source-code">        'Well this is an area of my interest and this book is packed with essential knowledge','kinda all in one With good examples and rather easy to follow', 'There are good examples and samples in the book.', '40 Algorithms every Programmer should know is a good start to a vast topic about algorithms'</p><p class="source-code">    ],</p><p class="source-code">    LanguageCode='en'</p><p class="source-code">)</p></li>
+				<li>Now, let's see the response for this by running the following code:<p class="source-code">print (json.dumps(response, indent=4, sort_keys=True))</p><p>This produces the following output:</p><div id="_idContainer064" class="IMG---Figure"><img src="Images/B17528_03_23.jpg" alt="Figure 3.23 – Comprehend Sentiment Analysis response&#13;&#10;" width="417" height="756"/></div><p class="figure-caption">Figure 3.23 – Comprehend Sentiment Analysis response</p><p>Out of these four reviews analyzed, we can definitely see that, overall, it's a positive review for this book. Now, while reading the reviews, there were some reviews in different languages which, being an English reader, I did not understand. Unfortunately, I don't know which languages these reviews use, and therefore what to choose for translation.</p></li>
+				<li>Let's use the <strong class="source-inline">batch_detect_dominant_language</strong> API of Comprehend to identify what <a id="_idIndexMarker269"/>languages these <a id="_idIndexMarker270"/>reviews are in before we translate them:<p class="source-code">response = comprehend.batch_detect_dominant_language(</p><p class="source-code">    TextList=[</p><p class="source-code">        'It include recenet algorithm trend. it is very helpful.','Je ne lai pas encore lu entièrement mais le livre semble expliquer de façon suffisamment claire lensemble de ces algorithmes.'</p><p class="source-code">    ]</p><p class="source-code">)</p></li>
+				<li>Now, let's see the response from Comprehend to figure out the review languages:<p class="source-code">print (json.dumps(response, indent=4, sort_keys=True))</p><p>This gives us the following output:</p></li>
+			</ol>
+			<div>
+				<div id="_idContainer065" class="IMG---Figure">
+					<img src="Images/B17528_03_24.jpg" alt="Figure 3.24 – Comprehend Detect Language response" width="450" height="456"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 3.24 – Comprehend Detect Language response</p>
+			<p>It's interesting <a id="_idIndexMarker271"/>to find out that out of the two <a id="_idIndexMarker272"/>reviews sent to this batch detect the dominant language, one is in English, and one is in French.</p>
+			<p>We have now covered some of the key APIs, such as <strong class="source-inline">detect_entities</strong>, <strong class="source-inline">detect_key_phrases</strong>, <strong class="source-inline">batch_detect_sentiment</strong>, and <strong class="source-inline">batch_detect_dominant_languages</strong>.</p>
+			<p>Now, we will see how we can use these APIs in building an application.</p>
+			<h2 id="_idParaDest-58"><a id="_idTextAnchor060"/>Architecting applications with Amazon API Gateway, AWS Lambda, and Comprehend</h2>
+			<p>In a <a id="_idIndexMarker273"/>previous <a id="_idIndexMarker274"/>section, we<a id="_idIndexMarker275"/> covered<a id="_idIndexMarker276"/> Amazon <a id="_idIndexMarker277"/>Comprehend's<a id="_idIndexMarker278"/> text analysis API. You can easily call these APIs in a serverless manner using a Lambda function. Amazon Lambda is a serverless event-based trigger that can be integrated with Amazon API Gateway and triggered for <strong class="bold">GET</strong> and <strong class="bold">POST</strong> requests. Amazon API gateway is a serverless <strong class="bold">REST</strong>-based service, which allows you to build GET/POST APIs to easily integrate with any application, be it mobile or web app.</p>
+			<p>You can create an API to be embedded in your application where you send a text to be analyzed using API Gateway; then the API Gateway calls the Amazon Lambda function, based on the type of request it receives. Amazon Lambda can further call Amazon Comprehend APIs (real-time or batch detect real-time APIs). It then passes the Comprehend response to API Gateway, as shown in the architecture diagram in <em class="italic">Figure 3.25</em>:</p>
+			<div>
+				<div id="_idContainer066" class="IMG---Figure">
+					<img src="Images/B17528_03_25.jpg" alt="Figure 3.25 – Building real-time application with Amazon Comprehend" width="586" height="124"/>
+				</div>
+			</div>
+			<p class="figure-caption">Figure 3.25 – Building real-time application with Amazon Comprehend</p>
+			<h1 id="_idParaDest-59"><a id="_idTextAnchor061"/>Summary</h1>
+			<p>In this chapter, we covered why you would need to use Amazon Comprehend and Amazon Comprehend Medical. We also discussed the challenges associated with setting NLP pipelines.</p>
+			<p>Then, we introduced these services, and covered some key benefits they provide, for example, not needing ML skills, or easily using the APIs to build scalable NLP solutions. After that, we showed some key product features of Amazon Comprehend and Amazon Comprehend Medical through a Console demo. Some of Amazon Comprehend's features are identifying entities, key phrases, and sentiment, as well as detecting dominant language, topic modeling, and so on. For Amazon Comprehend Medical, we covered how you can use both text analysis APIs and oncology APIs to enrich and extract key information from medical notes. Then we gave you a quick walkthrough of these APIs using a Jupyter notebook and covered sync and batch sync APIs. We gained a basic theoretical understanding of creating a serverless application using these APIs.</p>
+			<p>In the next chapter, we will talk about how you can integrate Amazon Textract with Amazon Comprehend for automating financial documents.</p>
+		</div>
+	</div></body></html>

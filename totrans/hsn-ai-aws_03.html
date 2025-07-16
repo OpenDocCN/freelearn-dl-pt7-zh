@@ -1,0 +1,604 @@
+<html><head></head><body>
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Anatomy of a Modern AI Application</h1>
+                </header>
+            
+            <article>
+                
+<p>In this chapter, we will discuss the importance of good architecture design for <strong>artificial intelligence</strong> (<strong>AI</strong>) applications. First, we will cover the architecture design principles and then create a reference architecture for our hands-on projects. In this chapter, we will recreate the Amazon Rekognition demo with our reference architecture and the components that make it up. We will learn <span>how </span>to use several AWS tools and services to build our hands-on project in the serverless style and then deploy it to the AWS cloud.</p>
+<p>We will cover the following topics in this chapter:</p>
+<ul>
+<li>Understanding the success factors of artificial intelligence applications</li>
+<li>Understanding the architecture design principles for AI applications</li>
+<li>Understanding the architecture of modern AI applications</li>
+<li>Creating custom AI capabilities</li>
+<li>Developing an AI application locally using AWS Chalice</li>
+<li>Developing a demo application web user interface</li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Technical requirements</h1>
+                </header>
+            
+            <article>
+                
+<p>This book's GitHub repository, which contains the source code for this chapter, can be found at <a href="https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services">https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services</a>.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Understanding the success factors of artificial intelligence applications</h1>
+                </header>
+            
+            <article>
+                
+<p>Let's talk about what makes an AI application successful, and really, what makes any software application successful. There are two main factors that determine application success:</p>
+<ul>
+<li>The first factor is whether the application is a solution that actually solves a particular problem.</li>
+<li>The second factor is how well the application is implemented to deliver the solution to the problem.</li>
+</ul>
+<p>Basically, we are talking about <em>what to build</em> and <em>how to build it</em>. Both of these factors are difficult to get right and for the majority of cases, both of them are required to make an application successful.</p>
+<p>The fact is, deciding on precisely <em>what to build</em> is the more important factor of the two. If we get this factor wrong, we will have a flawed product that will not deliver a viable solution to the problem. It will not matter how elegant the architecture is or how clean the code base is—a flawed product will be unsuccessful. Deciding on precisely what to build is rarely a one-shot deal, though. It is a fallacy to believe that the perfect solution can be designed in advance. In many cases, your target customers don't even know what they want or need. Successful solutions require extensive iterations of product development, customer feedback, and a tremendous amount of effort to refine the product requirements.</p>
+<p>This need to iterate and experiment with the solution makes <em>how to build it</em> an important factor for finding out <em>what to build</em>. It doesn't take a tremendous amount of skill to get an application to work. You can always get the first iteration, the first version, or the first pivot, to work with sheer determination and brute force. It might not be elegant, but the application works. However, when the first iteration is not the right solution to the problem, then a more elegant architecture and a cleaner code base will enable faster iterations and pivots, thus giving you more opportunities to figure out <em>what to build</em>.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Understanding the architecture design principles for AI applications</h1>
+                </header>
+            
+            <article>
+                
+<p>Building elegant applications is not trivial, but building elegant AI applications can be even harder. As AI practitioners in a rapidly changing technology landscape, it's important to understand good architecture design principles and to have a passion for software craftsmanship since it takes relentless discipline to build and maintain applications that can adapt to the fast-evolving AI technologies. Good architecture design can easily adapt to changes. However, it is impossible to predict all future changes. Therefore, we need to rely on a set of well-accepted design principles to guide us on good application architecture. Let's go over them now:</p>
+<ul>
+<li>A well-architected application should be built on top of small services with focused business capabilities. By small, we don't necessarily mean a small amount of code. Instead, small services should follow the single responsibility principle; that is, to do one or very few things well.</li>
+<li>These small services are much easier to implement, test, and deploy. They are also easier to reuse and to compose more business capabilities.</li>
+<li>A good application architecture should have well-defined boundaries to enforce separation of concerns.</li>
+<li>The services and components of the application should maintain this separation by hiding internal implementation details from the others.</li>
+<li>This separation allows services and components to be replaceable with minimal impact on the rest of the application, thus supporting easier evolution and improvement of the solution.</li>
+</ul>
+<p>If you are new to software architecture design, the differences between good and bad designs might appear subtle. It will take you a lot of experience to acquire the knowledge and skills you need to truly appreciate good design. In this book, we will provide you with examples of elegant designs that are good starting points for AI applications.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Understanding the architecture of modern AI applications</h1>
+                </header>
+            
+            <article>
+                
+<p>Defining a clean architecture design is a necessary step for developing successful AI applications, and we recommend four basic components that make it up.</p>
+<p>These four components are as follows:</p>
+<ul>
+<li><strong>User interfaces</strong>: These are the user-facing components that deliver the business capabilities of your application to the end users:
+<ul>
+<li>They are also known as frontends. Examples of user interfaces include websites, mobile apps, wearables, and voice assistant interfaces.</li>
+<li>The same application can deliver different tailored user experiences by choosing different device form factors, interaction modalities, and user interfaces.</li>
+<li>How you deliver intelligent capabilities on a web page is going to be very different than how you would do so on wearable devices.</li>
+</ul>
+</li>
+</ul>
+<p style="padding-left: 60px">As an AI practitioner, an important skill is designing the user experience to deliver your intelligent capabilities to the users. Getting this part right is one of the most important factors for the success of your AI applications.</p>
+<ul>
+<li><strong>Orchestration layer</strong>: These are the public APIs that will be called by your user interfaces to deliver the business capabilities:
+<ul>
+<li>Usually, these APIs are the entry points to the backend.</li>
+<li>The public APIs should be tailored to the specific interfaces and modalities in order to deliver the best experiences to the users.</li>
+<li>The public APIs will call upon one or more small services (through private APIs) to deliver business capabilities.</li>
+</ul>
+</li>
+</ul>
+<p style="padding-left: 60px">They play an orchestration role to combine several lower-level capabilities to compose higher-level capabilities that are needed by the user interfaces. There are other names for these public APIs that you might be familiar with; that is, <strong>Backends for Frontends</strong> (or <strong>BFFs</strong>) and experience APIs.</p>
+<ul>
+<li><strong>Private APIs</strong>: The private APIs define the interaction contracts that are used by the public APIs to access lower-level services:
+<ul>
+<li>The private APIs wrap the service implementations, which provide certain capabilities, in order to hide their details.</li>
+<li>These APIs play a key role in the composability and the replaceability qualities of software systems.</li>
+<li>The private APIs are the interfaces for the common capabilities that can be composed and reused by multiple applications.</li>
+<li>These private APIs follow the service-oriented design pattern. You might be familiar with this pattern from similar architectures, such as microservices architecture and <strong>service-oriented architecture</strong> (or <strong>SOA</strong>).</li>
+<li>They should be designed with the single responsibility principle in mind.</li>
+</ul>
+</li>
+</ul>
+<p style="padding-left: 60px">A set of well-designed private APIs is a valuable asset and competitive advantage for any organization. The organization will be able to rapidly innovate, improve, and deploy solutions to the market.</p>
+<ul>
+<li><strong>Vendor/custom services:</strong> These are the implementations of the business capabilities, whether they are AI or otherwise:
+<ul>
+<li>These implementations can be provided by vendors as web services or hosted within your infrastructure. They can also be custom solutions that have been built by your organization.</li>
+<li>These services have their own APIs, such as RESTful endpoints or SDKs that the private APIs will call upon to wrap the implementations.</li>
+</ul>
+</li>
+</ul>
+<p style="padding-left: 60px">In this book, we will be leveraging Amazon as the vendor to provide many of the web services via the <em>boto3</em> SDK. Later in this book, we will also teach you how to build custom AI capabilities using AWS' Machine Learning services and deploy them as ML models with RESTful endpoints.</p>
+<p><span>The following diagram illustrates the organization of these basic architecture components and layers:</span></p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/fb81a005-0eec-4874-9c04-307294527e17.png" style=""/></div>
+<p>The key to a clean architecture is to keep these components separated through well-defined interaction contracts between each layer:</p>
+<ul>
+<li>The user interfaces should only know about the public APIs in the orchestration layer.</li>
+<li>The public APIs should only know about the private APIs that they depend on.</li>
+<li>The private APIs should only know about the service implementations they wrap around.</li>
+<li>This is the principle of information hiding, which is applied at the architecture level.</li>
+</ul>
+<p>There are many benefits to enforcing these logical boundaries at the architecture level, for example, if we would like to switch to a better vendor service. All we need to do is create a new set of private APIs to wrap around the new vendor service while keeping the same private API contracts to the public APIs (and then retire the old private APIs). This way, the public APIs, as well as the user interfaces, won't be affected by this change. This limits the impact of the change to a specific part of the application.</p>
+<div class="packt_infobox">Most of the applications we use today are composed of a frontend and a backend. The frontend usually runs in a browser or on a mobile device, while the backend runs on server infrastructure in the cloud or in a private data center. The architecture that's recommended here is a good starting point for these types of applications. There are more specialized applications, such as embedded systems, that might require a different architecture design. We will not dive into the architecture needs of these more specialized applications in this book.</div>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Creation of custom AI capabilities</h1>
+                </header>
+            
+            <article>
+                
+<p>As AI practitioners, there are two distinct development life cycles we can be involved in:</p>
+<ul>
+<li>The AI application development life cycle</li>
+<li>The AI capability development life cycle</li>
+</ul>
+<p>Usually, especially in larger organizations where roles are more specialized, an AI practitioner only participates in one of these life cycles. Even if you do not participate in one of these life cycles, getting a good understanding of both is useful for all AI practitioners.</p>
+<p><strong>The AI application development life cycle</strong> involves iterating the solution, designing the user experience, defining the application architecture, and integrating the various business capabilities. This is similar to the traditional software development life cycle, but with the intent of embedding intelligence into the solutions.</p>
+<p><strong>The AI capability development life cycle</strong> deals with developing intelligent capabilities using data and machine learning techniques. The data products that are created during the AI capability's development life cycle can then be integrated into the applications as AI capabilities or AI services. In other words, the AI capability development life cycle produces custom AI capabilities that the AI application development life cycle consumes.</p>
+<p>Different sets of technical and problem-solving skills are needed by these two life cycles. <span>The following diagram provides an overview of the steps that are required to create AI capabilities:</span></p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/897a3bf6-815d-4db1-80cf-baf25c9f4427.png" style=""/></div>
+<p>AI capabilities are at the heart of AI applications. As we mentioned in <a href="606f673e-f72c-43ed-9a1e-fc06796b1303.xhtml">Chapter 1</a>, <em>Introduction to Artificial Intelligence and Amazon Web Services</em>, data is the new intellectual property. Any successful organization should have a well-defined data strategy to collect, store, process, and disseminate data. Raw and processed datasets should be safely placed and made available in data storage systems such as databases, data lakes, and data warehouses. From these data stores, data scientists can access data to support the analysis that's specific to a business problem or question they are working on. Some of the analysis results will generate useful business insights with the potential to perform predictive analysis. With these insights, data scientists can then choose from various machine learning algorithms to train machine learning models to perform automated predictions and decision-making, including classifications and regression analysis.</p>
+<p>Once trained and tuned, machine learning models can then be deployed as AI services with interfaces for applications to access their intelligence. For example, Amazon SageMaker lets us train machine learning models and then deploy them as web services with RESTful endpoints. Finally, as a part of your data strategy, the feedback data from deployed AI services should be collected to improve future iterations of the AI services.</p>
+<div class="packt_tip">As we mentioned in the previous chapter, we highly recommend that you first leverage existing AI services from vendors such as AWS as much as possible for your intelligent-enabled applications. Each one of the AWS AI capabilities has gone through numerous iterations of the AI capability development life cycle with a massive amount of data that most organizations do not have access to. It only makes sense to build your own AI capabilities if you have a true data intellectual property or a need that's not addressed by the vendor solutions. It takes a tremendous amount of effort, skill, and time to train production-ready machine learning models.</div>
+<p>The second part of this book will focus on the AI application development life cycle, while the third part of this book will focus on the AI capability development life cycle.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Working with a hands-on AI application architecture</h1>
+                </header>
+            
+            <article>
+                
+<p><span><span>In the previous section, we recommended an architecture design for modern AI applications. In this section, we will define the specific technologies and tech stacks we will use in this book to implement the recommended architecture design. We evaluated several factors when deciding on the best choices for this book, including simplicity, learning curve, industry trends, and others. Keep in mind that there can be many valid technology choices and implementations for the recommended architecture design.</span></span></p>
+<p>For the hands-on AI application development projects, we will use the following architecture and technology stack:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/2048621a-c064-47d8-9366-ce21c016120b.png" style=""/></div>
+<p>As the preceding diagram illustrates, the AI application projects will be made up of the four basic architectural components we discussed earlier:</p>
+<ul>
+<li><strong>User interfaces</strong>: We will be using web pages as user interfaces. We will develop relatively simple user interfaces using HTML, CSS, and JavaScript. HTML and CSS will display the UI components and handle user inputs. JavaScript will communicate with the server backend via the public APIs in the orchestration layer. The project web pages will be deployed on AWS S3 as a static website without the need for traditional web servers. This is known as serverless because we don't need to manage and maintain any server infrastructure.</li>
+</ul>
+<div class="packt_tip">We are using plain HTML and JavaScript to limit the scope of this book. You should consider single-page web application frameworks such as Angular, React, or Vue for your web user interfaces after finishing the hands-on projects in this book.<br/>
+<br/>
+Also, you are not limited to web applications as the only choice for AI applications. Other user interfaces and modalities, such as mobile or voice assistant devices, can sometimes provide a better user experience. We recommend that you think about how the application design should be changed in order to support these other user interfaces and modalities. These thought experiments will help you build the design muscles for AI practitioners.</div>
+<ul>
+<li><strong>Orchestration layer</strong>: We will be using AWS Chalice, a Python serverless microframework for AWS. Chalice allows us to quickly develop and test Python applications in its local development environment, and then easily deploy the Python applications to Amazon API Gateway and AWS Lambda as highly available and scalable serverless backends. Amazon API Gateway is a fully managed service that will host our public APIs as RESTful endpoints. The API Gateway will forward the RESTful requests that were issued to our public APIs to AWS Lambda functions where our orchestration logic will be deployed to. AWS Lambda is a serverless technology that lets us run code without provisioning or manage servers. When a Lambda function is invoked, for instance, from the API Gateway, the code is automatically triggered and run on the AWS infrastructure. You only pay for the computing resources that are consumed.</li>
+<li><strong>Private APIs</strong>: We will be packaging the private APIs as Python libraries within the Chalice framework. Chalice allows us to write code in a modular way by structuring some services as libraries in the <kbd>Chalicelib</kbd> directory. In our hands-on projects, the private APIs are plain old Python classes with well-defined method signatures to provide access to the service implementations. In our projects, the boundary between the public and private APIs is logical rather than physical; therefore, attention must be paid to ensure the cleanliness of the architecture layers.</li>
+</ul>
+<div class="packt_infobox">We will be reusing some of the private APIs in multiple projects. Our mechanism of reuse is similar to shared libraries. In larger organizations, the private APIs are usually deployed as RESTful endpoints so that different applications can easily share them.</div>
+<ul>
+<li><strong>Vendor services</strong>: We will be leveraging AWS for various capabilities. For example, we need to develop these intelligent-enabled applications, including AI capabilities and more. The private APIs will access the AWS services in the cloud via the <em>boto3</em> SDK. Clean design requires <em>boto3</em> and AWS implementation details to be completely wrapped and hidden by the private APIs; the public APIs should not know which vendor services or custom solutions are used by the private APIs to provide these capabilities.</li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Object detector architecture</h1>
+                </header>
+            
+            <article>
+                
+<p><span>We will be recreating the </span><em>Amazon Rekognition</em><span> demo with our own web frontend and Python backend. </span><span>First, let's understand the architecture of the Object Detector application we are about to develop.</span></p>
+<p>Using the reference architecture design and the technology stack we discussed previously, here is the architecture for the Object Detector application:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/e5a349ff-420e-4d9a-b779-3d33dd3aadb6.png" style=""/></div>
+<p>The user will interact with the Object Detector through a web user interface:</p>
+<ul>
+<li>We will provide a web user interface for users so that they can see the Object Detection demo.</li>
+<li>The web user interface will interact with the orchestration layer containing just one RESTful endpoint: the <span>Demo Object Detection endpoint.</span></li>
+<li>The endpoint interacts with both the Storage Service and the Recognition Service to perform the Object Detection demo.</li>
+<li>The Storage Service and the Recognition Service calls the Amazon S3 and Amazon Rekognition services using the <em>Boto3</em> SDK, respectively.</li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Component interactions of the Object Detector</h1>
+                </header>
+            
+            <article>
+                
+<p><span>Let's understand the interactions between the various components of the Object Detector application:</span></p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/5055dc1a-60b4-46cb-844c-a2297ee05f35.png" style=""/></div>
+<p>From the user's perspective, the application loads a random image and displays the objects (or labels) that have been detected within that image. The demo workflow is as follows:</p>
+<ol>
+<li>The object detector application's web interface calls the Demo Object Detection endpoint to start the demo.</li>
+<li>The endpoint calls the Storage Service to get a list of files that are stored in a specified S3 bucket.</li>
+<li>After receiving the list of files, the endpoint randomly selects an image file for the demo.</li>
+<li>The endpoint then calls the Recognition Service to perform object detection on the selected image file.</li>
+<li>After receiving the object labels, the endpoint packages the results in JSON format.</li>
+<li>Finally, the web interface displays the randomly selected image and its detection results.</li>
+</ol>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Creating the base project structure</h1>
+                </header>
+            
+            <article>
+                
+<p>Next, let's create the hands-on project structure. Follow these steps to create the architecture and technology stack:</p>
+<ol>
+<li>In Terminal, we will create the root project directory and enter it with the following commands:</li>
+</ol>
+<pre class="p1" style="padding-left: 60px"><strong><span class="s1">$ mkdir ObjectDetector<br/></span><span class="s1">$ cd ObjectDetector</span></strong></pre>
+<ol start="2">
+<li>We will create placeholders for the web frontend by creating a directory named <kbd>Website</kbd>. Within this directory, we will have two files, <kbd>index.html</kbd> and <kbd>scripts.js</kbd>, as follows:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>$ mkdir Website</strong><br/><strong>$ touch Website/index.html</strong><br/><strong>$ touch Website/scripts.js</strong></pre>
+<ol start="3">
+<li>We will create a Python 3 virtual environment with <kbd>pipenv</kbd> in the project's root directory. Our Python portion of the project needs two packages, <kbd>boto3</kbd> and <kbd>chalice</kbd>. We can install them with the following commands:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>$ pipenv --three</strong><br/><strong>$ pipenv install boto3</strong><br/><strong>$ pipenv install chalice</strong></pre>
+<ol start="4">
+<li>Remember that the Python packages that were installed via <kbd>pipenv</kbd> are only available if we activate the virtual environment. One way to do this is with the following command:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>$ pipenv shell</strong></pre>
+<ol start="5">
+<li>Next, while still in the virtual environment, we will create the orchestration layer as an AWS Chalice project named <kbd>Capabilities</kbd> with the following commands:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>$ chalice new-project Capabilities</strong></pre>
+<p style="padding-left: 60px">This command will create a Chalice project structure within the <kbd>ObjectDetector</kbd> directory. The Chalice project structure should look similar to the following:</p>
+<pre style="padding-left: 60px"><strong>├── ObjectDetector/</strong><br/><strong>    ├── Capabilities/</strong><br/><strong>        ├── .chalice/</strong><br/><strong>            ├── config.json</strong><br/><strong>    ├── app.py</strong><br/><strong>    ├── requirements.txt</strong><br/><strong>...</strong></pre>
+<p style="padding-left: 60px">In this project structure, we have the following:</p>
+<ul>
+<li style="padding-left: 30px">The <kbd>config.json</kbd> file contains configuration options for deploying our Chalice application to AWS.</li>
+<li style="padding-left: 30px">The <kbd>app.py</kbd> file is the main Python file where our public orchestration APIs are defined and implemented.</li>
+<li style="padding-left: 30px">The <kbd>requirements.txt</kbd> file specifies the Python packages that are needed by the application when it is deployed to AWS. These packages are different from the packages we installed using Pipenv. The Pipenv installed packages are the ones we need during development in the local environment; the packages in the <kbd>requirements.txt</kbd> file are the ones the application needs to run in the AWS cloud. For example, AWS Chalice is required during the development of the application but it is not needed once the application has been deployed to AWS.</li>
+</ul>
+<div class="packt_infobox"><kbd>boto3</kbd> is required when we're running our projects in the AWS cloud; however, it is already provided in the AWS Lambda runtime environment, and so we do not need to explicitly specify it in the <kbd>requirements.txt</kbd> file. Do remember to include any other Python packages that the applications need in that file, though.</div>
+<ol start="6">
+<li>Now, we need to create a <kbd>chalicelib</kbd> Python package within the Chalice project structure in the <kbd>Capabilities</kbd> directory. Chalice will automatically include any of the Python files in <kbd>chalicelib</kbd> in the deployment package. We will use <kbd>chalicelib</kbd> to hold the Python classes that implement our private APIs.</li>
+</ol>
+<p>To create the <kbd>chalicelib</kbd> package, issue the following commands:</p>
+<pre><strong>cd Capabilities</strong><br/><strong>mkdir chalicelib</strong><br/><strong>touch chalicelib/__init__.py</strong><br/><strong>cd ..</strong></pre>
+<p>Note that <kbd>__init__.py</kbd> makes <kbd>chalicelib</kbd> a proper Python package.</p>
+<p>We should have the following project directory structure:</p>
+<pre><strong>Project Structure</strong><br/><strong>------------</strong><br/><strong>├── ObjectDetector/</strong><br/><strong>    ├── Capabilities/</strong><br/><strong>        ├── .chalice/</strong><br/><strong>            ├── config.json</strong><br/><strong>        ├── chalicelib/</strong><br/><strong>            ├── __init__.py</strong><br/><strong>        ├── app.py</strong><br/><strong>        ├── requirements.txt</strong><br/><strong>    ├── Website/</strong><br/><strong>        ├── index.html</strong><br/><strong>        ├── script.js</strong><br/><strong>    ├── Pipfile</strong><br/><strong>    ├── Pipfile.lock</strong></pre>
+<p>This is the project structure for the <kbd>ObjectDetector</kbd> application. It contains all the layers of the AI application architecture we defined earlier. This project structure is also the base structure for all the hands-on projects in part 2 of this book.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Developing an AI application locally using AWS Chalice</h1>
+                </header>
+            
+            <article>
+                
+<p>First, let's implement the private APIs and services that provide common capabilities. We will have two services; both of them should be created in the <kbd>chalicelib</kbd> directory:</p>
+<ol start="1">
+<li><kbd>StorageService</kbd>:<strong> </strong>The <kbd>StorageService</kbd> class that's implemented in the <kbd>storage_service.py</kbd> file connects to AWS S3 via <kbd>boto3</kbd> to perform tasks on files we need for the applications.</li>
+</ol>
+<p style="padding-left: 60px">Let's implement <span><kbd>StorageService</kbd>, as follows:</span></p>
+<pre style="padding-left: 60px"><span>import </span>boto3<br/><br/><span>class </span>StorageService:<br/><span>    def </span><span>__init__</span>(<span>self</span>, storage_location):<br/><span>        self</span>.client = boto3.client(<span>'s3'</span>)<br/><span>        self</span>.bucket_name = storage_location<br/><br/><span>    def </span>get_storage_location(<span>self</span>):<br/><span>        return </span><span>self</span>.bucket_name<br/><br/><span>    def </span>list_files(<span>self</span>):<br/>        response = <span>self</span>.client.list_objects_v2(<span>Bucket </span>= <span>self</span>.bucket_name)<br/><br/>        files = []<br/><span>        for </span>content <span>in </span>response[<span>'Contents'</span>]:<br/>            files.append({<br/><span>                'location'</span>: <span>self</span>.bucket_name,<br/><span>                'file_name'</span>: content[<span>'Key'</span>],<br/>                <span>'url'</span>: <span>"http://" </span>+ <span>self</span>.bucket_name + <span>".s3.amazonaws.com/" </span>+ content[<span>'Key'</span>]<br/>            })<br/><span>        return </span>files</pre>
+<p style="padding-left: 60px">In the class, there is currently a constructor and two methods:</p>
+<ul>
+<li style="list-style-type: none">
+<ul>
+<li>The <kbd>__init__()</kbd> constructor takes a parameter, <kbd>storage_location</kbd>. In this implementation of <kbd>StorageService</kbd>, <kbd>storage_location</kbd> represents the S3 bucket where files will be stored. However, we purposely gave this parameter a generic name so that different implementations of <kbd>StorageService</kbd> can use other storage services besides AWS S3.</li>
+<li>The first method, <kbd>get_storage_location()</kbd>, just returns the S3 bucket name as <kbd>storage_location</kbd>. Other service implementations will use this method to get the generic storage location.</li>
+<li>The second method, <kbd>list_files()</kbd>, retrieves a list of files from an S3 bucket specified by <kbd>storage_location</kbd>. The files in this bucket are then returned as a list of Python objects. Each object describes a file, including its location, filename, and URL.</li>
+</ul>
+</li>
+</ul>
+<p style="padding-left: 60px">Note that we are also describing the files using more generic terms, such as location, filename, and URL, rather than bucket, key, and s3 URL. In addition, we are returning a new Python list with our own JSON format, rather than returning the available response from <em>boto3</em>. This prevents AWS implementation details from leaking out of this private API's implementation.</p>
+<p style="padding-left: 60px">The design decisions in <kbd>StorageService</kbd> are made to hide the implementation details from its clients. Because we are hiding the <kbd>boto3</kbd> and S3 details, we are free to change <kbd>StorageService</kbd> so that we can use other SDKs or services to implement the file storage capabilities.</p>
+<ol start="2">
+<li><kbd>RecognitionService</kbd>: The <kbd>RecognitionService</kbd> class that's implemented in the <kbd>recognition_service.py</kbd> file calls the Amazon Rekognition service via <kbd>boto3</kbd> to perform image and video analysis tasks.</li>
+</ol>
+<p style="padding-left: 60px">Let's implement <span><kbd>RecognitionService</kbd>, as follows:</span></p>
+<pre style="padding-left: 60px"><span>import </span>boto3<br/><br/><span>class </span>RecognitionService:<br/><span>    def </span><span>__init__</span>(<span>self</span>, storage_service):<br/><span>        self</span>.client = boto3.client(<span>'rekognition'</span>)<br/><span>        self</span>.bucket_name = storage_service.get_storage_location()<br/><br/><span>    def </span>detect_objects(<span>self</span>, file_name):<br/>        response = <span>self</span>.client.detect_labels(<br/><span>            Image </span>= {<br/><span>                'S3Object'</span>: {<br/><span>                    'Bucket'</span>: <span>self</span>.bucket_name,<br/><span>                    'Name'</span>: file_name<br/>                }<br/>            }<br/>        )<br/><br/>        objects = []<br/><span>        for </span>label <span>in </span>response[<span>"Labels"</span>]:<br/>            objects.append({<br/><span>                'label'</span>: label[<span>'Name'</span>],<br/><span>                'confidence'</span>: label[<span>'Confidence'</span>]<br/>            })<br/><span>        return </span>objects</pre>
+<p style="padding-left: 60px">In this class, i<span>t currently has a constructor and one method:</span></p>
+<ul>
+<li style="list-style-type: none">
+<ul>
+<li>The <kbd>__init__()</kbd> constructor takes in <kbd>StorageService</kbd> as a dependency to get the necessary files. This allows new implementations of <kbd>StorageService</kbd> to be injected and used by <kbd>RecognitionService</kbd>; that is, as long as the new implementations of <kbd>StorageService</kbd> implement the same API contract. This is known as the dependency injection design pattern, which makes software components more modular, reusable, and readable.</li>
+<li>The <kbd>detect_objects()</kbd> method takes in an image filename, including both the path and name portions, and then performs object detection on the specified image. This method implementation assumes that the image file is stored in an S3 bucket and calls Rekognition's <kbd>detect_labels()</kbd> function from the <kbd>boto3</kbd> <span>SDK. </span><span>When the labels are returned by <em>boto3</em>, this method constructs a new Python list, with each item in the list describing an object that was detected and the confidence level of the detection.</span></li>
+</ul>
+</li>
+</ul>
+<p style="padding-left: 60px">Note that, from the method's signatures (the parameters and return value), it does not expose the fact that the S3 and Rekognition services are used. This is the same information-hiding practice we used in <kbd>StorageService</kbd>.</p>
+<p style="padding-left: 60px">In <kbd>RecognitionService</kbd>, we could use the <kbd>StorageService</kbd> that was passed in through the constructor to get the actual image files and perform detection on the image files. Instead, we are directly passing the image files' buckets and names through the <kbd>detect_labels()</kbd> function. This latter implementation choice takes advantage of the fact that AWS S3 and Amazon Rekognition are nicely integrated. The important point is that the private API's contract allows both implementations, and our design decision picked the latter implementation.</p>
+<ol start="3">
+<li><kbd>app.py</kbd>:<strong> </strong>Next, let's implement the public APIs that are tailored for our image recognition web application. We only need one public API for the demo application. It should be implemented in the <kbd>app.py</kbd> file in the Chalice project structure.</li>
+</ol>
+<p style="padding-left: 60px">Replace the existing contents of <kbd>app.py</kbd> with the following code block. Let's understand the components of the class:</p>
+<ul>
+<li style="list-style-type: none">
+<ul>
+<li>The <kbd>demo_object_detection()</kbd> function uses <kbd>StorageService</kbd> and <kbd>RecognitionService</kbd> to perform its tasks; therefore, we need to import these from <kbd>chalicelib</kbd> and create new instances of these services.</li>
+<li><kbd>storage_location</kbd> is initialized to <kbd>contents.aws.ai</kbd>, <span>which contains the image files we uploaded in the previous chapter. </span><span>You should replace</span> <span><kbd>contents.aws.ai</kbd> with your own S3 bucket.</span></li>
+<li>This function is annotated with <kbd>@app.route('/demo-object-detection', cors = True)</kbd>. This is a special construct used by Chalice to define a RESTful endpoint with a URL path called <kbd>/demo-object-detection</kbd>:
+<ul>
+<li><span>Chalice maps this endpoint to the <kbd>demo_object_detection()</kbd> Python function.</span></li>
+<li>The annotation also sets <kbd>cors</kbd> to true, which enables <strong>Cross-Origin Resource Sharing</strong> (<strong>CORS</strong>) by adding certain HTTP headers to the response of this endpoint. These extra HTTP headers tell a browser to let a web application running at one origin (domain) so that it has permission to access resources from a different origin (domain, protocol, or port number) other than its own. Let's have a look at the implementations in the following class:</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<div class="packt_infobox">The Chalice annotation syntax might look familiar to Flask developers. AWS Chalice borrows a lot of its design and syntax from the Flask framework.</div>
+<pre style="padding-left: 60px"><span>from </span>chalice <span>import </span>Chalice<br/><span>from </span>chalicelib <span>import </span>storage_service<br/><span>from </span>chalicelib <span>import </span>recognition_service<br/><br/><span>import </span>random<br/><br/><span>#####<br/></span><span># chalice app configuration<br/></span><span>#####<br/></span>app = Chalice(<span>app_name</span>=<span>'Capabilities'</span>)<br/>app.debug = <span>True<br/></span><span><br/></span><span><br/></span><span>#####<br/></span><span># services initialization<br/></span><span>#####<br/></span>storage_location = <span>'contents.aws.ai'<br/></span>storage_service = storage_service.StorageService(storage_location)<br/>recognition_service = recognition_service.RecognitionService(storage_service)<br/><br/><br/><span>@app.route</span>(<span>'/demo-object-detection'</span>, <span>cors </span>= <span>True</span>)<br/><span>def </span>demo_object_detection():<br/><span>    """randomly selects one image to demo object detection"""<br/></span><span>    </span>files = storage_service.list_files()<br/>    images = [file <span>for </span>file <span>in </span>files <span>if </span>file[<span>'file_name'</span>].endswith(<span>".jpg"</span>)]<br/>    image = random.choice(images)<br/><br/>    objects = recognition_service.detect_objects(image[<span>'file_name'</span>])<br/><br/><span>    return </span>{<br/><span>        'imageName'</span>: image[<span>'file_name'</span>],<br/><span>        'imageUrl'</span>: image[<span>'url'</span>],<br/><span>        'objects'</span>: objects<br/>    }</pre>
+<p style="padding-left: 60px"><span>Let's talk about the preceding code in detail:</span></p>
+<ul>
+<li style="list-style-type: none">
+<ul>
+<li>The <kbd>demo_object_detection()</kbd> function gets a list of image files (files that have a <kbd>.jpg</kbd> extension) from <kbd>StorageService</kbd> and then randomly selects one of them to perform the object detection demo.</li>
+<li><span>Random selection is implemented here to simplify our demo application so that it only displays one image and its detection results.</span></li>
+<li><span><span>Once the image has been randomly selected, the function calls <kbd>detect_objects()</kbd> from <kbd>RecognitionService</kbd> and then generates an HTTP response in the <strong>JavaScript Object Notation</strong> (<strong>JSON</strong>) format.</span></span></li>
+<li><span>Chalice automatically wraps the response object in the proper HTTP headers, response code, and the JSON payload. The JSON format is part of the contract between our frontend and this public API.</span></li>
+</ul>
+</li>
+</ul>
+<p style="padding-left: 60px">We are ready to run and test the application's backend locally. Chalice provides a local mode, which includes a local HTTP server that you can use to test the endpoints.</p>
+<ol start="4">
+<li>Start the <kbd>chalice local</kbd> mode within the <kbd>pipenv</kbd> virtual environment with the following commands:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>$ cd Capabilities</strong><br/><strong>$ chalice local</strong><br/><strong>Restarting local dev server.</strong><br/><strong>Found credentials in shared credentials file: ~/.aws/credentials</strong><br/><strong>Serving on http://127.0.0.1:8000</strong></pre>
+<p style="padding-left: 60px">Now, the local HTTP server is running at the address and port number in the Terminal output; that is, <kbd>http://127.0.0.1:8000</kbd>. Keep in mind that even though we are running the endpoint locally, the services that the endpoint calls are making requests to AWS via the <kbd>boto3</kbd> SDK.</p>
+<p style="padding-left: 60px">Chalice's local mode automatically detected the AWS credentials in the <kbd>~/.aws/credentials</kbd> file. Our service implementations, which are using <kbd>boto3</kbd>, will use the key pairs that are found there and will issue requests with the corresponding user's permissions. If this user does not have permissions for S3 or Rekognition, the request to the endpoint will fail.</p>
+<ol start="5">
+<li>We can now issue HTTP requests to the local server to test the <kbd>/demo-object-detection</kbd> endpoint. For example, you can use the Unix <kbd>curl</kbd> command as follows:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>$ curl http://127.0.0.1:8000/demo-object-detection</strong><br/><strong>{"imageName":"beagle_on_gravel.jpg","imageUrl":"https://contents.aws.ai.s3.amazonaws.com/beagle_on_gravel.jpg","objects":[{"label":"Pet","confidence":98.9777603149414},{"label":"Hound","confidence":98.9777603149414},{"label":"Canine","confidence":98.9777603149414},{"label":"Animal","confidence":98.9777603149414},{"label":"Dog","confidence":98.9777603149414},{"label":"Mammal","confidence":98.9777603149414},{"label":"Beagle","confidence":98.0347900390625},{"label":"Road","confidence":82.47952270507812},{"label":"Dirt Road","confidence":74.52912902832031},{"label":"Gravel","confidence":74.52912902832031}]}</strong></pre>
+<p>Note that, in this code, we just append the endpoint URL path to the base address and port number where the local HTTP server is running. The request should return JSON output back from the local endpoint.</p>
+<p><span>This is the JSON that our web user interface will receive and use to display the detection results to the user.</span></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Developing a demo application web user interface</h1>
+                </header>
+            
+            <article>
+                
+<p>Next, let's create a simple web user interface with HTML and JavaScript in the <kbd>index.html</kbd> and <kbd>script.js</kbd> files in the website directory.</p>
+<p>Refer to the code in the <kbd>index.html</kbd> file, as follows:</p>
+<pre><span>&lt;!doctype </span><span>html</span><span>&gt;<br/>&lt;html lang="en"/&gt;<br/><br/>&lt;head&gt;<br/>    &lt;meta charset="utf-8"/&gt;<br/>    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"/&gt;<br/><br/>    &lt;title&gt;Object Detector&lt;/title&gt;<br/><br/>    &lt;link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css"&gt;<br/>    &lt;link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-blue-grey.css"&gt;<br/>&lt;/head&gt;<br/><br/>&lt;body class="w3-theme-14" onload="runDemo()"&gt;<br/>    &lt;div style="min-width:400px"&gt;<br/>        &lt;div class="w3-bar w3-large w3-theme-d4"&gt;<br/>            &lt;span class="w3-bar-item"&gt;Object Detector&lt;/span&gt;<br/>        &lt;/div&gt;<br/><br/>        &lt;div class="w3-container w3-content"&gt;<br/>            &lt;p class="w3-opacity"&gt;&lt;b&gt;Randomly Selected Demo Image&lt;/b&gt;&lt;/p&gt;<br/>            &lt;div class="w3-panel w3-white w3-card w3-display-container"<br/>                style="overflow: hidden"&gt;<br/>                &lt;div style="float: left;"&gt;<br/>                    &lt;img id="image" width="600"/&gt;<br/>                &lt;/div&gt;<br/>                &lt;div id="objects" style="float: right;"&gt;<br/>                    &lt;h5&gt;Objects Detected:&lt;/h5&gt;<br/>                &lt;/div&gt;<br/>            &lt;/div&gt;<br/>        &lt;/div&gt;<br/>    &lt;/div&gt;<br/><br/>    &lt;script src="scripts.js"&gt;&lt;/script&gt;<br/>&lt;/body&gt;<br/><br/>&lt;/html&gt;</span></pre>
+<p>We are using standard HTML tags here, so the code of the web page should be easy to follow for anyone familiar with HTML. A few things worth pointing out are as follows:</p>
+<ul>
+<li>We are including a couple of <strong>Cascading Style Sheets</strong> (<strong>CSS</strong>) from <a href="http://www.w3schools.com">www.w3schools.com</a> to make our web interface a bit prettier than plain HTML. Most of the classes in the HTML tags are defined in these style sheets.</li>
+<li>The <kbd>&lt;img&gt;</kbd> tag with the <kbd>image</kbd> ID will be used to display the randomly selected demo image. This ID will be used by JavaScript to add the image dynamically.</li>
+<li>The <kbd>&lt;div&gt;</kbd> tag with the <kbd>objects</kbd> ID will be used to display the objects that were detected in the demo image. This ID will also be used by JavaScript to add the object labels and confidence levels dynamically.</li>
+<li><span>The <kbd>scripts.js</kbd> file is included toward the bottom of the HTML file. This adds the dynamic behaviors that were implemented in JavaScript to this HTML page.</span></li>
+<li><span>The <kbd>runDemo()</kbd> function from <kbd>scripts.js</kbd> is run when the HTML page is loaded in a browser. This is accomplished in the </span><span><kbd>index.html</kbd> page's </span><span><kbd>&lt;body&gt;</kbd> tag with the <kbd>onload</kbd> attribute.</span></li>
+</ul>
+<p>Please refer to the code of the <kbd>scripts.js</kbd> file, as follows:</p>
+<pre><span>"use strict"</span>;<br/><br/><span>const </span><span>serverUrl </span>= <span>"http://127.0.0.1:8000"</span>;<br/><br/><span>function </span><span>runDemo</span>() {<br/>    <span>fetch</span>(<span>serverUrl </span>+ <span>"/demo-object-detection"</span>, {<br/>        <span>method</span>: <span>"GET"<br/></span><span>    </span>}).<span>then</span>(response =&gt; {<br/>        <span>if </span>(!response.<span>ok</span>) {<br/>            <span>throw </span>response;<br/>        }<br/>        <span>return </span>response.<span>json</span>();<br/>    }).<span>then</span>(data =&gt; {<br/>        <span>let </span><span>imageElem </span>= <span>document</span>.<span>getElementById</span>(<span>"image"</span>);<br/>        <span>imageElem</span>.<span>src </span>= data.imageUrl;<br/>        <span>imageElem</span>.<span>alt </span>= data.imageName;<br/><br/>        <span>let </span><span>objectsElem </span>= <span>document</span>.<span>getElementById</span>(<span>"objects"</span>);<br/>        <span>let </span><span>objects </span>= data.objects;<br/>        <span>for </span>(<span>let </span><span>i </span>= <span>0</span>; <span>i </span>&lt; <span>objects</span>.<span>length</span>; <span>i</span>++) {<br/>            <span>let </span><span>labelElem </span>= <span>document</span>.<span>createElement</span>(<span>"h6"</span>);<br/>            <span>labelElem</span>.<span>appendChild</span>(<span>document</span>.<span>createTextNode</span>(<br/>                <span>objects</span>[<span>i</span>].<span>label </span>+ <span>": " </span>+ <span>objects</span>[<span>i</span>].confidence + <span>"%"</span>)<br/>            );<br/>            <span>objectsElem</span>.<span>appendChild</span>(<span>document</span>.<span>createElement</span>(<span>"hr"</span>));<br/>            <span>objectsElem</span>.<span>appendChild</span>(<span>labelElem</span>);<br/>        }<br/>    }).<span>catch</span>(error =&gt; {<br/>        <span>alert</span>(<span>"Error: " </span>+ error);<br/>    });<br/>}</pre>
+<p>Let's talk about the preceding code in detail:</p>
+<ul>
+<li>The script has only one function, <kbd>runDemo()</kbd>. This function makes an HTTP <span><kbd>GET</kbd> </span>request to the <kbd>/demo-object-detection</kbd> endpoint running on the local HTTP server via the Fetch API that's available in JavaScript.</li>
+<li>If the response from the local endpoint is <kbd>ok</kbd>, then it converts the payload into a JSON object and passes it down to the next processing block.</li>
+<li>The <span><kbd>runDemo()</kbd> </span>function then looks for an HTML element with the <kbd>image</kbd> ID, which is the <kbd>&lt;img&gt;</kbd> tag in HTML, and specifies the <kbd>src</kbd> attribute as the <kbd>imageUrl</kbd> returned by the endpoint. Remember, this <kbd>imageUrl</kbd> is set to the URL of the image file stored in S3. The <kbd>&lt;img&gt;</kbd> tag's <kbd>alt</kbd> attribute is set to <kbd>imageName</kbd>. <kbd>imageName</kbd> will be displayed to the user if the image cannot be loaded for some reason.</li>
+<li><span>Note that the image in S3 must be set to public readable in order for the website to display it. If you only see the <kbd>alt</kbd> text, double-check that the image is readable by the public.</span></li>
+<li>The <kbd>runDemo()</kbd> function then looks for an HTML element with the <kbd>objects</kbd> ID, which is a <kbd>&lt;div&gt;</kbd> tag, and appends a <kbd>&lt;h6&gt;</kbd> heading element for each object returned by the local endpoint, including each object's label and detection confidence level.</li>
+</ul>
+<p>Now, we are ready to see this website in action. To run the website locally, simply open the <kbd>index.html</kbd> file in your browser. You should see a web page similar to the following screenshot:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/857da830-9229-4755-8b7f-a17b6a98b505.png" style=""/></div>
+<p>Upload a few JPEG image files and refresh the page a few times to see the object detection demo run; the demo will select a different image that's stored in your S3 bucket each time it runs. The <kbd>ObjectDetector</kbd> application is not as fancy as the Amazon Rekognition demo, but pat yourself on the back for creating a well-architected AI application!</p>
+<p>The local HTTP server will run continuously unless you explicitly stop it. To stop the local HTTP server, go to the Terminal window that's running <kbd>chalice local</kbd> and press <em>Ctrl</em> + <em>C</em>.</p>
+<p>The final project structure for the <kbd>ObjectDetector</kbd> application should look as follows:</p>
+<pre>Project Organization<br/>------------<br/>├── ObjectDetector/<br/>    ├── Capabilities/<br/>        ├── .chalice/<br/>            ├── config.json<br/>        ├── chalicelib/<br/>            ├── __init__.py<br/>            ├── recognition_service.py<br/>            ├── storage_service.py<br/>        ├── app.py<br/>        ├── requirements.txt<br/>    ├── Website/<br/>        ├── index.html<br/>        ├── script.js<br/>    ├── Pipfile<br/>    ├── Pipfile.lock</pre>
+<p>It's now time to make our AI application public and deploy it to the AWS cloud.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Deploying AI application backends to AWS via Chalice</h1>
+                </header>
+            
+            <article>
+                
+<p>Deployment to AWS with Chalice is amazingly simple yet powerful. Chalice automatically translates the endpoint annotations in <kbd>app.py</kbd> into HTTP endpoints and deploys them onto the Amazon API Gateway as public APIs. Chalice also deploys the Python code in <kbd>app.py</kbd> and <kbd>chalicelib</kbd> as AWS Lambda functions and then connects the API gateway endpoints as triggers to these Lambda functions. This simplicity is the reason why we chose a serverless framework such as AWS Chalice to develop our hands-on projects.</p>
+<p>When we ran the backend locally, Chalice automatically detected the AWS credentials in our development environment and made them available to the application. Which credentials will the application use when it is running in AWS? Chalice automatically creates an AWS IAM role for the application during the deployment process. Then, the application will run with the permissions that have been granted to this role. Chalice can automatically detect the necessary permissions, but this feature is considered experimental at the time of writing and does not work well with our projects' structures. For our projects, we need to tell Chalice to <em>not</em> perform this analysis for us by setting <kbd>autogen_policy</kbd> to <kbd>false</kbd> in the <kbd>config.json</kbd> file in the <kbd>.chalice</kbd> directory of the project structure. The following is the <kbd>config.json</kbd> file:</p>
+<pre>{<br/><span>    "version"</span>: <span>"2.0"</span>,<br/><span>    "app_name"</span>: <span>"Capabilities"</span>,<br/><span>    "stages"</span>: {<br/><span>        "dev"</span>: {<br/><span>            "autogen_policy"</span>: <span>false</span>,<br/><span>            "api_gateway_stage"</span>: <span>"api"<br/></span>        }<br/>    }<br/>}</pre>
+<div class="packt_infobox"><span>Note that, in this configuration, there is a <kbd>dev</kbd> stage in <kbd>config.json</kbd>. Chalice provides us with the ability to deploy our application in multiple environments. Different </span><span>environments are used by mature software organizations to perform various software life cycle tasks, such as testing and maintenance in an isolated manner. </span><span>For example, we have the development (<kbd>dev</kbd>) environment for rapid experimentation, quality assurance (<kbd>qa</kbd>) for integration testing, user acceptance testing (<kbd>uat</kbd>) for business requirement validation, performance (<kbd>prof</kbd>) for stress testing, and product (<kbd>prod</kbd>) for live traffic from end users.</span></div>
+<p>Next, we need to create a new file, <kbd>policy-dev.json</kbd>, in the <kbd>.chalice</kbd> directory to manually specify the AWS services the project needs:</p>
+<pre>{<br/><span>    "Version"</span>: <span>"2012-10-17"</span>,<br/><span>        "Statement"</span>: [<br/>        {<br/><span>            "Effect"</span>: <span>"Allow"</span>,<br/><span>            "Action"</span>: [<br/><span>                "logs:CreateLogGroup"</span>,<br/><span>                "logs:CreateLogStream"</span>,<br/><span>                "logs:PutLogEvents"</span>,<br/><span>                "s3:*"</span>,<br/><span>                "rekognition:*"</span><span><br/></span>            ],<br/><span>            "Resource"</span>: <span>"*"<br/></span>        }<br/>    ]<br/>}</pre>
+<p>Here, we are specifying S3 and Rekognition, in addition to some permissions to allow the project to push logs to CloudWatch.</p>
+<p>Now, we are ready to deploy the backend on the AWS <span>Chalice framework:</span></p>
+<ol>
+<li><span>R</span>un the following command within the <kbd>Capabilities</kbd> directory:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>$ chalice deploy</strong><br/><strong>Creating deployment package.</strong><br/><strong>Creating IAM role: Capabilities-dev</strong><br/><strong>Creating lambda function: Capabilities-dev</strong><br/><strong>Creating Rest API</strong><br/><strong>Resources deployed:</strong><br/><strong>  - Lambda ARN: arn:aws:lambda:us-east-1:&lt;UID&gt;:function:Capabilities-dev</strong><br/><strong>  - Rest API URL: https://&lt;UID&gt;.execute-api.us-east-1.amazonaws.com/api/</strong></pre>
+<p style="padding-left: 60px">When the deployment is complete, in the output, Chalice will show a RESTful API URL that looks similar to <kbd>https://&lt;UID&gt;.execute-api.us-east-1.amazonaws.com/api/</kbd>, where <kbd>&lt;UID&gt;</kbd> is a unique identifier string. This is the server URL your frontend app should hit to access the application backend running on AWS.</p>
+<div class="packt_infobox">You can now verify the results of the Chalice deployment in the AWS Management Console under three services:<br/>
+<ul>
+<li>Amazon API Gateway</li>
+<li>AWS Lambda</li>
+<li>Identity and Access Management</li>
+</ul>
+Take a look at the console pages of these services and see what AWS Chalice has set up for our application.</div>
+<ol start="2">
+<li>Use the <kbd>curl</kbd> command to test the remote endpoint, as follows. You should get similar output to when we were testing with the local endpoint:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>$ curl https://&lt;UID&gt;.execute-api.us-east-1.amazonaws.com/api/demo-object-detection</strong><br/><strong>{"imageName":"beagle_on_gravel.jpg","imageUrl":"https://contents.aws.ai.s3.amazonaws.com/beagle_on_gravel.jpg","objects":[{"label":"Pet","confidence":98.9777603149414},{"label":"Hound","confidence":98.9777603149414},{"label":"Canine","confidence":98.9777603149414},{"label":"Animal","confidence":98.9777603149414},{"label":"Dog","confidence":98.9777603149414},{"label":"Mammal","confidence":98.9777603149414},{"label":"Beagle","confidence":98.0347900390625},{"label":"Road","confidence":82.47952270507812},{"label":"Dirt Road","confidence":74.52912902832031},{"label":"Gravel","confidence":74.52912902832031}]}</strong></pre>
+<p>Congratulations! You've just deployed a serverless backend for an AI application that is highly available and scalable, running in the cloud.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Deploying a static website via AWS S3</h1>
+                </header>
+            
+            <article>
+                
+<p>Next, let's deploy the frontend web user interface to AWS S3.</p>
+<p>One of the buckets we created in the previous chapter was for the purpose of website hosting. Let's configure it via the AWS Management Console for static website hosting:</p>
+<ol>
+<li>Navigate to the <strong><span class="packt_screen">Amazon S3</span></strong> service in the management console and click on your bucket.</li>
+<li>In the <span class="packt_screen"><strong>Properties</strong> </span>tab, as shown in the following screenshot, click on the <span class="packt_screen"><strong>Static website hostin</strong><strong>g</strong></span> card:</li>
+</ol>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/de924c16-f2ea-40f6-8a72-28eda90e4419.png" style=""/></div>
+<ol start="3">
+<li>When you click on the <strong><span class="packt_screen">Static website hosting</span></strong> card, a configuration card will pop up.</li>
+<li>Select <strong><span class="packt_screen">Use this bucket to host a website</span></strong> and enter <kbd>index.html</kbd> and <kbd>error.html</kbd> for the <strong><span class="packt_screen">Index document</span></strong> and <strong><span class="packt_screen">Error document</span></strong> fields, respectively.</li>
+</ol>
+<ol start="5">
+<li>Copy the <span class="packt_screen"><strong>Endpoint</strong></span> URL on your configuration page and then click <strong><span class="packt_screen">Save</span></strong>. This endpoint URL will be the public address of your static website:</li>
+</ol>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/14db876d-8b7d-4fae-8b14-d25048edacde.png" style=""/></div>
+<ol start="6">
+<li>Next, we can upload the <kbd>index.html</kbd> and <kbd>scripts.js</kbd> files to this S3 bucket. Before we do that, we need to make a change in <kbd>scripts.js</kbd>. Remember, the website will be running in the cloud now, and won't have access to our local HTTP server.</li>
+</ol>
+<ol start="7">
+<li>Replace the local server URL in the <kbd>scripts.js</kbd> file with the one from our backend deployment, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">"use strict";<br/><br/>const serverUrl = "https://&lt;UID&gt;.execute-api.us-east-1.amazonaws.com/api";<br/>...</pre>
+<ol start="8">
+<li>Finally, set the permissions of the <kbd>index.html</kbd> and <kbd>scripts.js</kbd> files to publicly readable. To do that, we need to modify the S3 bucket permissions under the <span class="packt_screen"><strong>Permissions</strong> </span>tab.</li>
+<li>Click on the <strong><span class="packt_screen">Public access settings</span></strong> button, uncheck all four checkboxes, and then type <kbd>confirm</kbd> to confirm these changes. This will allow the contents of this S3 bucket to be made publicly accessible, as follows:</li>
+</ol>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/825dc8b3-2ef9-4727-8b52-dfb95c14ac50.png" style=""/></div>
+<p class="mce-root"/>
+<ol start="10">
+<li>Now, we are able to make the files public by selecting both files, clicking on <strong><span class="packt_screen">Actions</span></strong>, and clicking on <strong><span class="packt_screen">Make public</span></strong>, as shown in the following screenshot:</li>
+</ol>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/77181fa1-98ed-4025-a675-8cf253bb64bb.png" style=""/></div>
+<p>Open the S3 endpoint URL in your browser. The URL should look something like <kbd>http://&lt;BUCKET&gt;.s3-website-us-east-1.amazonaws.com/</kbd>.</p>
+<p>Your <kbd>ObjectDetector</kbd> website is now running in your browser and it's communicating with the backend running on AWS to demo your intelligent-enabled application's capability. Both the frontend and the backend are serverless and both are running on the AWS cloud infrastructure, which scales automatically with demand.</p>
+<p>Congratulations! You've just developed an end-to-end AI application to AWS! You can now share this AI application with anyone in the world with a browser.</p>
+<div class="packt_infobox">Even though your new AWS account might have free-tier services, you should still limit the number of people you share the website URL and API endpoints with. You will be charged if the AWS resources that are consumed exceed the amount that's covered under the free-tier plan.</div>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Summary</h1>
+                </header>
+            
+            <article>
+                
+<p>In this chapter, we discussed the importance of good architecture design for artificial intelligence applications. We created a reference architecture design for web applications that will be the template for all of our hands-on projects in part 2 of this book. Using this reference architecture, we recreated the Amazon Rekognition demo application using several AWS tools and services in the serverless style. We built the demo application's backend with AWS Chalice and <em>boto3</em> and leveraged AWS S3 and Amazon Rekognition to provide the business capabilities. Through the hands-on project, we showed you how architecture boundaries and good design allow for flexible application development and evolution. We also b<span>uilt </span><span>a </span><span>simple web user interface for the demo application with HTML, CSS, and JavaScript. Finally, we d</span><span>eployed the</span><span> demo application as a </span><span>serverless application to the AWS cloud.</span></p>
+<p>Now that we have experience building a simple yet elegant <span>intelligent-enabled </span>application, we are ready to use the same architecture template and <span>toolset </span>to build more AI<span> applications in part 2 of this book.</span></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Further reading</h1>
+                </header>
+            
+            <article>
+                
+<p>You can refer to the following links for more information on the anatomy of a modern AI application:</p>
+<ul>
+<li><a href="http://www.cs.nott.ac.uk/~pszcah/G51ISS/Documents/NoSilverBullet.html">http://www.cs.nott.ac.uk/~pszcah/G51ISS/Documents/NoSilverBullet.html</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS">https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS</a></li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    </body></html>

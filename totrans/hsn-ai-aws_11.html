@@ -1,0 +1,426 @@
+<html><head></head><body>
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Creating Machine Learning Inference Pipelines</h1>
+                </header>
+            
+            <article>
+                
+<p><span>The data transformation logic that is used to process data for model training is the same as the logic that's used to prepare data for obtaining inferences. It is redundant to repeat the same logic twice.</span></p>
+<p>The goal of this chapter is to walk you through how SageMaker and other AWS services can be employed to create <strong>machine learning</strong> (<strong>ML</strong>) pipelines that can process big data, train algorithms, deploy trained models, and run inferences, all while using the same <span>data processing </span>logic for model training and inference.</p>
+<p>In this chapter, we will cover the following topics:</p>
+<ul>
+<li>Understanding the architecture of the inference pipeline in SageMaker</li>
+<li>Creating features using Amazon Glue and SparkML</li>
+<li>Identifying topics by training NTM in SageMaker</li>
+<li>Running online as opposed to batch inference in SageMaker</li>
+</ul>
+<p>Let's look at the technical requirements for this chapter.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Technical requirements</h1>
+                </header>
+            
+            <article>
+                
+<p><span>To illustrate the concepts that we will cover in this chapter, we </span>will u<span>se the </span><a href="https://www.kaggle.com/therohk/million-headlines">ABC Millions Headlines</a><span> dataset. This dataset contains approximately a million news headlines. In the <a href="https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/tree/master/Ch10_InferencePipeline_SageMaker/million-headlines-data">github</a> repository associated with this chapter, you should find the following files:</span></p>
+<ul>
+<li><a href="https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/blob/master/Ch10_InferencePipeline_SageMaker/million-headlines-data/abcnews-date-text.zip">abcnews-date-text.zip</a>: The input dataset</li>
+<li><a href="https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/tree/master/Ch10_InferencePipeline_SageMaker/million-headlines-data/libraries-mleap">libraries-mleap</a>: MLeap libraries (includes a <kbd>.jar</kbd> file and a Python wrapper for the <kbd>.jar</kbd>)</li>
+</ul>
+<p>Let's begin by looking at the architecture of an inference pipeline.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Understanding the architecture of the inference pipeline in SageMaker</h1>
+                </header>
+            
+            <article>
+                
+<p>There are three major components of the inference pipeline we are building:</p>
+<ul>
+<li>Data preprocessing</li>
+<li>Model training</li>
+<li>Data preprocessing (from <em>Step 1</em>) and inference</li>
+</ul>
+<p>The following is the architectural diagram—the steps we are going to walk through are applicable to big data:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/6b5a0f5c-f99a-4686-a9bb-f038157b4512.png" style=""/></div>
+<p>In the first step of the pipeline, we execute data processing logic on Apache Spark via AWS Glue. The Glue service is called from a SageMaker Notebook instance.</p>
+<div class="packt_infobox">Amazon Glue is a fully managed, serverless <strong>Extract, Transform, and Load</strong> (<strong><span>ETL</span></strong>) service that's used to wrangle big data. ETL jobs are run on an Apache Spark environment where Glue provisions, the configuration and scale the resources that are required to run the jobs.</div>
+<p>The data processing logic, in our case, includes creating tokens/words from each of the news headlines, removing stop words, and counting the frequency of each of the words in a given headline. The ETL logic is serialized into an MLeap bundle, which can be used at the time of inference for data processing. Both the serialized SparkML model and processed input data are stored in an S3 bucket.</p>
+<div class="packt_infobox">MLeap is an open source Spark package that's designed to serialize Spark-trained transformers. Serialized models are used to transform data into the desired format. </div>
+<p>In the second step, the <span><strong>neural topic model</strong> </span>(<strong><span>NTM</span></strong>) algorithm is trained on the processed data to discover topics.</p>
+<p>In <em>Step 3</em>, both the SparkML and trained NTM models are used to create a pipeline model, which is used to execute the models in the specified sequence. SparkML serves a docker container, and the NTM docker container is provisioned as an endpoint for real-time model predictions. The same pipeline model can be used to run inferences in batch mode, that is, score multiple news headlines in one go, discovering topics for each of them.</p>
+<p>It is now time to delve globally into <em>Step 1—</em>how to invoke Amazon Glue from a SageMaker Notebook instance for big data processing.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Creating features using Amazon Glue and SparkML</h1>
+                </header>
+            
+            <article>
+                
+<p>To create features in a big data environment, we will use PySpark to write data preprocessing logic. This logic will be part of the Python <kbd>abcheadlines_processing.py</kbd> file. Before we review the logic, we need to walk through some prerequisites.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Walking through the prerequisites</h1>
+                </header>
+            
+            <article>
+                
+<ol>
+<li>Provide SageMaker Execution Role access to the Amazon Glue service, as follows:</li>
+</ol>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/b28c721a-2aed-4dfe-9639-7147a6e1b999.png" style=""/></div>
+<div class="CDPAlignCenter CDPAlign packt_figref">Obtaining <span>a SageMaker Execution Role by running the</span> get_execution_role() <span>method of the SageMaker session object</span></div>
+<ol start="2">
+<li>On the IAM Dashboard, click on <span class="packt_screen">Roles</span> on the left navigation pane and search for this role. Click on the <span class="packt_screen">Target Role</span> to navigate to its <span class="packt_screen">Summary</span> page. Click on the <span class="packt_screen">Trust Relationships</span> tab to add <kbd>AWS Glue</kbd> as an additional trusted entity. Click on <span class="packt_screen">Edit trust relationship</span> to add the following entry to <kbd>"Service" key: "glue.amazonaws.com"</kbd>.</li>
+<li>Upload MLeap binaries to the appropriate location on the S3 bucket, as follows. The binaries can be found in the source code for this chapter:</li>
+</ol>
+<pre style="padding-left: 60px">python_dep_location = sess.upload_data(path='python.zip', bucket=default_bucket, key_prefix='sagemaker/inference-pipeline/dependencies/python')   <br/><br/>jar_dep_location = sess.upload_data(path='mleap_spark_assembly.jar', bucket=default_bucket, key_prefix='sagemaker/inference-pipeline/dependencies/jar') </pre>
+<ol start="4">
+<li>We will use the <kbd>upload_data()</kbd> method of the SageMaker Session object to upload MLeap binaries to the appropriate location on the S3 bucket. We will <span>need the <kbd>MLeap</kbd> Java package and the Python wrapper, MLeap, to serialize SparkML models. </span>Similarly, we will upload the input data, that is, <a href="https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services/blob/master/Ch10_InferencePipeline_SageMaker/million-headlines-data/abcnews-date-text.zip">abcnews-date-text.zip</a>, to the relevant location on the S3 bucket.</li>
+</ol>
+<p><span>Now we'll review the data preprocessing logic in <kbd>abcheadlines_processing.py</kbd></span>.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Preprocessing data using PySpark</h1>
+                </header>
+            
+            <article>
+                
+<p>The following data preprocessing logic is executed on a Spark cluster. Let's go through the steps:</p>
+<ol>
+<li>We will begin by gathering arguments sent by the SageMaker Notebook instance, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">args = getResolvedOptions(sys.argv, ['S3_INPUT_BUCKET',<br/> 'S3_INPUT_KEY_PREFIX',<br/> 'S3_INPUT_FILENAME',<br/> 'S3_OUTPUT_BUCKET',<br/> 'S3_OUTPUT_KEY_PREFIX',<br/> 'S3_MODEL_BUCKET',<br/> 'S3_MODEL_KEY_PREFIX'])</pre>
+<p style="padding-left: 60px">We will use the <kbd>getResolvedOptions()</kbd> utility function from the AWS Glue library to read all the arguments that were sent by the SageMaker notebook instance. </p>
+<ol start="2">
+<li>Next, we will read the news headlines, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">abcnewsdf = spark.read.option("header","true").csv(('s3://' + os.path.join(args['S3_INPUT_BUCKET'], args['S3_INPUT_KEY_PREFIX'], args['S3_INPUT_FILENAME'])))</pre>
+<p style="padding-left: 60px">We use <kbd><span>spark</span></kbd><span>, which is the active SparkSession, to read</span> the <kbd>.csv</kbd> <span>file that contains the relevant news headlines.</span></p>
+<ol start="3">
+<li>Next, we retrieve 10% of the headlines and define the data transformations. We can process all 1,000,000 headlines using distributed computing from Apache Spark. We will, however, illustrate the concepts behind using AWS Glue from a SageMaker notebook instance by using a sample of the dataset:</li>
+</ol>
+<pre style="padding-left: 60px">abcnewsdf = abcnewsdf.limit(hdl_fil_cnt) <br/><br/>tok = Tokenizer(inputCol="headline_text", outputCol="words") <br/>swr = StopWordsRemover(inputCol="words", outputCol="filtered")<br/>ctv = CountVectorizer(inputCol="filtered", outputCol="tf", vocabSize=200, minDF=2)<br/>idf = IDF(inputCol="tf", outputCol="features")</pre>
+<p class="mce-root" style="padding-left: 30px"><kbd>hdl_fil_cnt</kbd> is 10% of the total number of headlines. <kbd>abcnewsdf</kbd> contains around 100,000 headlines. We use <kbd>Tokenizer</kbd>, <kbd>StopWordsRemover</kbd>, <kbd>CountVectorizer</kbd>, and the <strong>inverse document frequency</strong> (<strong>IDF</strong>) transformer and estimator objects from <kbd>pyspark.ml.feature</kbd> to transform the headline text, as follows:</p>
+<ol>
+<li style="padding-left: 30px">First, <kbd>Tokenizer</kbd> transforms the headline text into a list of words.<span> </span></li>
+<li style="padding-left: 30px">Second, <kbd>StopWordsTokenizer</kbd> removes stop words from the list of words produced by <kbd>Tokenizer</kbd>.</li>
+<li style="padding-left: 30px">Third, <kbd>CountVectorizer</kbd> takes the output from the previous step to calculate word frequency.</li>
+<li style="padding-left: 30px">Lastly, IDF, an estimator, computes the inverse document frequency factor for each of the words (IDF is given by <img class="fm-editor-equation" src="assets/f6c66ff6-087f-4596-b312-1ebda4c02ce7.png" style="width:6.83em;height:2.58em;"/>, where <img class="fm-editor-equation" src="assets/cf4cbbb2-b784-479f-83eb-0dfe0164b3eb.png" style="width:1.75em;height:1.50em;"/> is the term frequency of term i in headline j, N is the total number of headlines, and <br/>
+<img class="fm-editor-equation" src="assets/f6f4c888-b901-412d-9772-29ec0561f6cf.png" style="width:1.75em;height:1.50em;"/> is the number of headlines containing term i). W<span>ords that are unique to a headline are much more important than those that appear frequently in other headlines.</span></li>
+</ol>
+<p style="padding-left: 60px">For more information on <kbd>Estimator</kbd> <span>and</span> <kbd>Transformer</kbd> <span>objects in Spark ML, please refer to Spark's documentation at </span><a href="https://spark.apache.org/docs/latest/ml-pipeline.html">https://spark.apache.org/docs/latest/ml-pipeline.html</a><span>.</span></p>
+<ol start="4">
+<li>Next, we will stitch all the transformer and estimator stages together into a pipeline and transform the headlines into feature vectors. The width of a feature vector is 200, as defined by <kbd>CountVectorizer</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px">news_pl = Pipeline(stages=[tok, swr, ctv, idf])<br/>news_pl_fit = news_pl.fit(abcnewsdf)<br/>news_ftrs_df = news_pl_fit.transform(abcnewsdf)</pre>
+<p style="padding-left: 60px">In the preceding code, we use the <kbd>Pipeline</kbd> object from <kbd>pyspark.ml</kbd> to tie data transformations together. We also call the <kbd>fit()</kbd> method on the <kbd>Pipeline</kbd> object, <kbd>news_pl</kbd>, to create <kbd>PipelineModel</kbd>. <kbd>news_pl_fit</kbd> will have learned the IDF factor for each of the words in the news headlines. When the <kbd>transform()</kbd> method is invoked on <kbd>news_pl_fit</kbd>, the input headlines are transformed into feature vectors. Each headline will be represented by a vector that's 200 in length. <kbd>CountVectorizer</kbd> picks the top 200 words ordered by word frequency across all the headlines. <span>Note that the processed headlines will be stored in the <kbd>features</kbd> column, as indicated by the <kbd>outputCol</kbd> parameter of the IDF Estimator stage.</span></p>
+<ol start="5">
+<li>Now we save the resulting feature vectors in <kbd>.csv</kbd> format, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">news_save = news_formatted.select("result")<br/>news_save.write.option("delimiter", "\t").mode("append").csv('s3://' + os.path.join(args['S3_OUTPUT_BUCKET'], args['S3_OUTPUT_KEY_PREFIX']))</pre>
+<p class="mce-root" style="padding-left: 60px">To save the processed headlines in <kbd>.csv</kbd> format, the <kbd>features</kbd> column needs to be in a simple string format. The CSV file format does not support storing arrays or lists in a column. We will define a user-defined function, <kbd>get_str</kbd>, to convert a feature vector into a string of comma-separated tf-idf numbers. Please look at the source code associated with this chapter for additional details. The resulting <kbd>news_save</kbd> DataFrame will be saved to a designated location on the S3 bucket as a <kbd>.csv</kbd> file. The following screenshot shows the format of the <kbd>.csv</kbd> file:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/c3a22483-4c2e-4efc-b3f4-a1c75d0c4a6c.png"/></div>
+<ol start="6">
+<li>Similarly, we will also save the vocabulary into a separate text file.</li>
+<li>Now it's time to serialize <kbd>news_pl_fit</kbd> and push it to an S3 bucket, as follows:</li>
+</ol>
+<pre style="padding-left: 60px"> SimpleSparkSerializer().serializeToBundle(news_pl_fit, "jar:file:/tmp/model.zip", news_ftrs_df)<br/>s3.Bucket(args['S3_MODEL_BUCKET']).upload_file('/tmp/model.tar.gz', file_name)</pre>
+<p>In the preceding code block, we use the <kbd>serializetoBundle()</kbd> method of the <kbd>SimpleSparkSerializer</kbd> object from the MLeap <kbd>pyspark</kbd> library to serialize <kbd>news_pl_fit</kbd>. We will convert the format of the serialized model from a <kbd>.zip</kbd> into a <kbd>tar.gz</kbd> before uploading it to the S3 bucket.</p>
+<p>Now let's walk through the process of running <kbd>abcheadlines_processing.py</kbd> through an AWS Glue job.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Creating an AWS Glue job</h1>
+                </header>
+            
+            <article>
+                
+<p>Now we will create a Glue job using <kbd>Boto3</kbd>, which is the AWS SDK for Python. This SDK allows Python developers to create, configure, and manage AWS services.</p>
+<p>Let's create a Glue job by providing the following specifications:</p>
+<pre class="mce-root">response = glue_client.create_job(<br/>    Name=job_name,<br/>    Description='PySpark job to featurize the ABC News Headlines dataset',<br/>    Role=role,<br/>    ExecutionProperty={<br/>        'MaxConcurrentRuns': 1<br/>    }, </pre>
+<p class="mce-root">In the preceding code block, we call the <kbd>create_job()</kbd> method of the AWS Glue client by passing in the job name, description, and role. We also specify how many concurrent we want to execute.</p>
+<p>Now let's look at the command that's sent by Glue to the Spark cluster:</p>
+<pre>Command={<br/>'Name': 'glueetl',<br/>'ScriptLocation': script_location<br/>},</pre>
+<p>In the preceding code, we define the command name and location of the Python script containing the data preprocessing logic, that is, <span><kbd>abcheadlines_processing.py</kbd>.</span></p>
+<p>Now let's look at which binaries need to be configured in order to serialize SparkML models:</p>
+<pre>DefaultArguments={<br/>'--job-language': 'python',<br/>'--extra-jars' : jar_dep_location,<br/>'--extra-py-files': python_dep_location<br/>},)</pre>
+<p>In the <span>preceding </span>code, we define a default language so that we can preprocess big data, the locations of the MLeap <kbd>.jar</kbd> file, and the Python wrapper of MLeap.</p>
+<p>Now that we have created the Glue job, let's run it:</p>
+<pre>job_run_id = glue_client.start_job_run(JobName=job_name,<br/>                                       Arguments = {<br/>                                        '--S3_INPUT_BUCKET': s3_input_bucket,<br/>                                        '--S3_INPUT_KEY_PREFIX': s3_input_key_prefix,<br/>                                        '--S3_INPUT_FILENAME': s3_input_fn, <br/>                                        '--S3_OUTPUT_BUCKET': s3_output_bucket,<br/>                                        '--S3_OUTPUT_KEY_PREFIX': s3_output_key_prefix,<br/>                                        '--S3_MODEL_BUCKET': s3_model_bucket,<br/>                                        '--S3_MODEL_KEY_PREFIX': s3_model_key_prefix<br/>                                       })</pre>
+<p class="mce-root">We invoke the <kbd>start_job_run()</kbd> method of the AWS Glue client by passing the name of the Glue job we created earlier, along with the arguments that define the input and location locations.</p>
+<p>We can get the status of the Glue job as follows:</p>
+<pre>job_run_status = glue_client.get_job_run(JobName=job_name,RunId=job_run_id)['JobRun']['JobRunState']</pre>
+<p class="mce-root">We will receive the following output:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/e3183a01-8ff2-4ff4-af3b-6179cebff7d9.png" style=""/></div>
+<p>We invoke the <kbd>get_job_run()</kbd> method of the AWS Glue client and pass in the name of the Glue job whose status we want to check.</p>
+<p>To check the status of the AWS Glue job, you can also navigate to the AWS Glue service from the <span class="packt_screen">Services</span> menu. Under the <span class="packt_screen">ETL</span> section in the left-hand navigation menu, click on <span class="packt_screen">Jobs</span>. Select a job name to look at the details of that Glue job:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/95836dc1-f89a-4488-a734-4475aeef0e0e.png" style=""/></div>
+<p>Now we will uncover topics that are in the ABC News Headlines dataset by fitting NTM to it.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Identifying topics by training NTM in SageMaker</h1>
+                </header>
+            
+            <article>
+                
+<p>Perform the following steps to train the NTM model:</p>
+<ol>
+<li>Read the processed ABC News Headlines dataset from the output folder on the designated S3 bucket, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">abcnews_df = pd.read_csv(os.path.join('s3://', s3_output_bucket, f.key))</pre>
+<p style="padding-left: 60px"><span>We use the <kbd>read_csv()</kbd> function from the pandas library to read the processed news headlines into a DataFrame. The DataFrame contains </span><span><span>110,365 headlines and 200 words. </span></span></p>
+<ol start="2">
+<li>Then, we split the dataset into three parts—train, validation, and test—<span>as follows:</span></li>
+</ol>
+<pre style="padding-left: 60px">vol_train = int(0.8 * abcnews_csr.shape[0])<br/><br/>train_data = abcnews_csr[:vol_train, :] <br/>test_data = abcnews_csr[vol_train:, :]<br/><br/>vol_test = test_data.shape[0]<br/>val_data = test_data[:vol_test//2, :]<br/>test_data = test_data[vol_test//2:, :]</pre>
+<p style="padding-left: 60px">In the preceding code block, we take 80% of the data for training, 10% for validation, and the remaining 10% for testing.</p>
+<ol start="3">
+<li>Upload the train, validation, and test datasets to the appropriate location on the S3 bucket. We also need to upload the vocabulary text file that was created by the AWS Glue job to the auxiliary path. SageMaker's built-in algorithm uses the auxiliary path to provide additional information while training. In this case, our vocabulary contains 200 words. However, the feature vector from the previous section does not know the word name; it does, however, know the word index. Therefore, after the NTM is trained, so that SageMaker can output significant words that correspond to a topic, it needs a vocabulary text file.</li>
+<li>The next step is to define the NTM Estimator object from SageMaker by passing the number and type of compute instances and the Docker NTM image to a SageMaker session. Estimators are learning models that are suitable for the data. </li>
+<li>Now we are ready to train the NTM algorithm, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">ntm_estmtr_abc.fit({'train': s3_train, 'validation': s3_val, 'auxiliary': s3_aux})</pre>
+<p class="mce-root">To train the NTM algorithm, we use the <kbd>fit()</kbd> method of the <kbd>ntm</kbd> Estimator object by passing the location of the train, test, and auxiliary datasets. <span>Since we have a whole new chapter, <a href="0537c904-c763-496c-bfd2-f18042dcd0a2.xhtml">Chapter 9</a>, </span><em>Discovering Topics in Text Collection</em><span>, dedicated to understanding how the NTM algorithm works, we will save the model training details for later.</span></p>
+<ol>
+<li>The following is the model's output—we've configured the model so that it retrieves five topics:</li>
+</ol>
+<pre class="mce-root" style="padding-left: 60px">International Politics and Conflict<br/>[0.40, 0.94] defends decision denies war anti pm warns un bush report iraq calls public australia minister backs wins tas plans chief<br/><br/>Sports and Crime<br/>[0.52, 0.77] clash top win world tour test pakistan back record cup killed title final talks england set australia us still pm<br/><br/>Natural Disasters and Funding<br/>[0.45, 0.90] urged indigenous water power take call lead boost final residents get wa act funds england centre fire help plan funding<br/><br/>Protest and Law Enforcement<br/>[0.51, 0.72] new record says found strike set win cup south police fire us go pay court plan rise australia bid deal<br/><br/>Crime<br/>[0.54, 0.93] charged dies murder man charges crash death dead car two woman accident face charge found attack police injured court sydney</pre>
+<p class="mce-root">There are two numbers at the beginning of each topic—kld and recons. We will go into each of these losses in the next chapter. But for now, understand that the first fraction reflects the loss in creating embedded news headlines, while the second fraction reflects the reconstruction loss (that is, creating headlines from embeddings). The smaller the losses, the better the topic clusters. </p>
+<p class="mce-root">For each of the topics we've discovered, we manually label the topics based on the word groupings.</p>
+<p class="mce-root">Now we are ready to look at inference patterns. Inferences can be obtained both in real-time and batch mode. </p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Running online versus batch inferences in SageMaker</h1>
+                </header>
+            
+            <article>
+                
+<p>In real-world production scenarios, we typically come across two situations:</p>
+<ul>
+<li>Running inferences in real-time or in online mode</li>
+<li>Running inferences in batch or in offline mode</li>
+</ul>
+<p>To illustrate this, in the case of using a recommender system as part of a web/mobile app, real-time inferences can be used when you want to personalize item suggestions based on in-app activity. The in-app activity, such as items you browsed, items left in your shopping cart and not checked out, and so on, can be sent as input to an online recommender system.</p>
+<p>On the other hand, if you want to present item suggestions to your customers even before they engage with your web/mobile app, then you can send data related to their historical consumption behavior to an offline recommender system so that you can obtain item suggestions for your entire customer base in one shot.</p>
+<p>Let's look at how real-time predictions are run.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Creating real-time predictions through an inference pipeline</h1>
+                </header>
+            
+            <article>
+                
+<p>In this section, we will build a pipeline where we reuse the serialized SparkML model for data preprocessing and employ a trained NTM model to derive topics from preprocessed headlines. SageMaker's Python SDK provides classes such as <kbd>Model</kbd>, <kbd>SparkMLModel</kbd>, and <kbd>PipelineModel</kbd> to create an inference pipeline that can be used to conduct feature processing and then score processed data using the trained algorithm.</p>
+<p>Let's walk through the steps for creating an endpoint that can be used for real-time predictions:</p>
+<ol>
+<li>Create a <kbd>Model</kbd> from the NTM training job (the one we created in the previous section), as follows:</li>
+</ol>
+<pre style="padding-left: 60px">ntm_model = Model(model_data=modeldataurl, image=container)</pre>
+<p style="padding-left: 60px">Here, we create the <kbd>Model</kbd> object that's present in the <kbd>sagemaker.model</kbd> module. We pass in the location of the trained NTM model and the Docker registry path of the NTM inference image.</p>
+<ol start="2">
+<li>Create a SparkML <kbd>Model</kbd> representing the learned data preprocessing logic, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">sparkml_data = 's3://{}/{}/{}'.format(s3_model_bucket, s3_model_key_prefix, 'model.tar.gz')<br/>sparkml_model = SparkMLModel(model_data=sparkml_data, env={'SAGEMAKER_SPARKML_SCHEMA' : schema_json})</pre>
+<p style="padding-left: 60px">We define <kbd>sparkml_data</kbd> as the location of the serialized <kbd>PipelineModel</kbd> from the <kbd>pyspark.ml</kbd> package. Remember that <kbd>PipelineModel</kbd> contains three transformers (<kbd>Tokenizer</kbd>, <kbd>StopWordsRemover</kbd>, and <kbd>CountVectorizer</kbd>) and one estimator (IDF) from the data preprocessing we did in the previous section. Then, we create a <kbd>SparkMLModel</kbd> object, <kbd>sparkml_model</kbd>, by passing the location of the trained Spark <kbd>PipelineModel</kbd> and <span>schema of</span> input data for inference. </p>
+<ol start="3">
+<li>Create a <kbd>PipelineModel</kbd>, encompassing and sequencing the <kbd>sparkml_model</kbd> (data preprocessing) and <kbd>ntm_model</kbd> as follows:</li>
+</ol>
+<pre style="padding-left: 60px">sm_model = PipelineModel(name=model_name, role=role, models=[sparkml_model, ntm_model])</pre>
+<p style="padding-left: 60px">We create a <kbd>PipelineModel</kbd> object from the <kbd>sagemaker.pipeline</kbd> module by passing in the model name, the <kbd>sagemaker</kbd> execution role, and the sequence of models we want to execute.</p>
+<ol start="4">
+<li>Now it's time to deploy the <kbd>PipelineModel</kbd>, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">sm_model.deploy(initial_instance_count=1, instance_type='ml.c4.xlarge', endpoint_name=endpoint_name)</pre>
+<p>We will invoke the <kbd>deploy()</kbd> method on <kbd>sm_model</kbd> to deploy the model as an endpoint. We pass the number and type of instances we need to host the endpoint, along with the endpoint's name, to the deployed model.</p>
+<p>Now it's time to pass a sample headline from the test dataset to the newly created endpoint. Let's walk through the steps:</p>
+<ol>
+<li>First, we create a <kbd>RealTimePredictor</kbd> object from the <kbd>sagemaker.predictor</kbd> module, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">predictor = RealTimePredictor(endpoint=endpoint_name, sagemaker_session=sess, serializer=json_serializer,<br/> content_type=CONTENT_TYPE_JSON, accept=CONTENT_TYPE_CSV)</pre>
+<p style="padding-left: 60px">We define the <kbd>RealTimePredictor</kbd> object by passing the name of the endpoint created previously, the current SageMaker session, the serializer (this defines how the input data is encoded when transmitting it to an endpoint), and the request and response content types.</p>
+<ol start="2">
+<li>Then we invoke the <kbd>predict()</kbd> method of the <kbd>RealTimePredictor</kbd> object, <kbd>predictor</kbd>, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">predictor.predict(payload)</pre>
+<p style="padding-left: 60px"><span><span>We call the <kbd>predict()</kbd> method of <kbd>predictor</kbd>, initializ</span></span>ed as the <kbd>RealTimePredictor</kbd> obj<span><span>ect, by passing a sample headline from the test dataset as part of the <kbd>json</kbd> payload, as follows:</span></span></p>
+<pre style="padding-left: 60px">payload = {<br/>    "schema": {<br/>        "input": [<br/>        {<br/>            "name": "headline_text",<br/>            "type": "string"<br/>        }, <br/>    ],<br/>    "output": <br/>        {<br/>            "name": "features",<br/>            "type": "double",<br/>            "struct": "vector"<br/>        }<br/>    },<br/>    "data": [<br/>        ["lisa scaffidi public hearing possible over expenses scandal"]<br/>            ]<br/>            <br/>}</pre>
+<p>The payload variable contains two keys, <kbd>schema</kbd> and <kbd>data</kbd>. The <kbd>schema</kbd> key contains the input and output structure of <kbd>SparkMLModel</kbd>, while the <kbd>data</kbd> key contains a sample headline whose topics we want to discover. <span>If we choose to override the SageMaker <kbd>sparkml</kbd> schema we specified while initializing <kbd>SparkMLModel</kbd>, we can pass the new schema. The f</span>ollowing is the output from scoring a news headline:</p>
+<pre>{"predictions":[{"topic_weights":[0.5172129869,0.0405323133,0.2246916145,0.1741439849,0.0434190407]}]}</pre>
+<p class="mce-root">We can see that the headline has three prominent topics: International Politics and Conflict, followed by Funding/Expenses related challenges and Law Enforcement.</p>
+<p class="mce-root">A little bit of context—Lisa Scaffidi was the Lord Mayor of Perth, Western Australia. She was charged with inappropriate use of her position—failure to declare gifts and travel worth tens of thousands of dollars. Therefore, this headline aptly has a mixture of topics: International Politics and Conflict (51%), followed by Funding/Expenses-related challenges (22%) and then by Law Enforcement (17%).</p>
+<p class="mce-root">Now let's look at inferring topics for a batch of headlines.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Creating batch predictions through an inference pipeline</h1>
+                </header>
+            
+            <article>
+                
+<p>In this section, we will turn our attention from real-time predictions to batch predictions. To address the need to deploy trained models in offline mode, SageMaker offers Batch Transform. Batch Transform is a newly released high-performance and throughput feature where inferences can be obtained for the entire dataset. Both the input and output data is stored in an S3 bucket. The <em>Batch Transform</em> service manages the necessary compute resources to score the input data, given the trained model.</p>
+<p>This following diagram shows how the <em>Batch Transform</em> service works:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/a8f0276a-427e-4ad3-b79b-f3baa6febd93.png" style=""/></div>
+<p>In the preceding diagram, we can see the following steps:</p>
+<ol>
+<li>The Batch Transform service ingests large volumes of input data (from the S3 bucket) through an agent.</li>
+<li>The role of the Batch Transform agent is to orchestrate communication between the trained model and the S3 bucket, where input and output data is stored.</li>
+</ol>
+<ol start="3">
+<li>Once the request data is available to the agent, it sends it to the trained model, which transforms news headlines and generates topics.</li>
+<li>The inferences or topics that are produced are deposited back in the designated S3 bucket by the intermediate agent.</li>
+</ol>
+<p>Let's go through the steps for running a Batch Transform job:</p>
+<ol>
+<li>Define the path to the S3 bucket where the input and output data is stored, along with the name of the <kbd>PipelineModel</kbd> we created in the previous section. The name of the <kbd>PipelineModel</kbd> can be obtained either programmatically or through the AWS console (navigate to the SageMaker service on the left navigation pane; then, under <span class="packt_screen">Inference</span>, click on <span class="packt_screen">Models</span>).</li>
+<li>Create a <kbd>Transformer</kbd> object from the <kbd>sagemaker.transformer</kbd> module, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">transformer = sagemaker.transformer.Transformer(<br/> model_name = model_name,<br/> instance_count = 1,<br/> instance_type = 'ml.m4.xlarge',<br/> strategy = 'SingleRecord',<br/> assemble_with = 'Line',<br/> output_path = output_data_path,<br/> base_transform_job_name='serial-inference-batch',<br/> sagemaker_session=sess,<br/> accept = CONTENT_TYPE_CSV<br/>)</pre>
+<p style="padding-left: 60px">Here, we define the compute resources that are required to run the pipeline model, for example, the EC2 instance type and number. Then, we define and assemble a strategy, that is, how to batch records (single or multiple records) and how to assemble the output. The Current SageMaker session and output content type defined by <kbd>accept</kbd> are also provided.</p>
+<ol start="3">
+<li>Invoke the <kbd>transform()</kbd> method of the transformer object we created in the previous step, as follows:</li>
+</ol>
+<pre style="padding-left: 60px">transformer.transform(data = input_data_path,<br/>                      job_name = job_name,<br/>                      content_type = CONTENT_TYPE_CSV, <br/>                      split_type = 'Line')</pre>
+<p>We define the path to the input data, the name of the Batch Transform job, the input content type, and how the input records are separated (news headlines are separated by line, in this case). Next, we wait for the batch inference to be run on all the input data. The following is an excerpt from the output that was produced:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/4d2d5be4-9609-4e0d-9862-b21a87aff883.png" style=""/></div>
+<p>Remember that we have uncovered five topics: International Politics and Conflict, Sports and Crime, Natural Disasters and Funding, Protest and Law Enforcement, and Crime. For each news headline, the NTM algorithm predicts the probability that the headline contains topics 1 through 5. Thus, each headline will be represented by a mixture of five topics. </p>
+<p>For example, in the <em>Indonesian police say gunfire killed azahari</em> headline, crime-related topics are predominant. The topics are very relevant since the headline has to do with the murder of Azahari, the mastermind behind the 2002 Bali bombing. </p>
+<p>By completing this section, we have successfully looked at two different patterns for running inferences in SageMaker.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Summary</h1>
+                </header>
+            
+            <article>
+                
+<p>In this chapter, we have learned how to reuse data preprocessing logic for training and inference and how to run online as opposed to offline inferences. We started by understanding the architecture of the machine learning inference pipeline. Then, we used the ABC News Headlines dataset to illustrate big data processing through AWS Glue and SparkML. Then, we discovered topics from the news headlines by fitting the NTM algorithm to processed headlines. Finally, we walked through real-time as opposed to batch inferences by utilizing the same data preprocessing logic for inference. Through the inference pipeline, data scientists and machine learning engineers can increase speed with which ML solutions are marketed.</p>
+<p>In the next chapter, we'll do a deep dive into <strong>Neural Topic Models</strong> (<strong><span>NTMs</span></strong>).</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Further reading</h1>
+                </header>
+            
+            <article>
+                
+<p>The following reading material is intended to enhance your understanding of what was covered in this chapter:</p>
+<ul>
+<li><strong>Pipeline models in Spark</strong>:<strong> </strong><a href="https://blog.insightdatascience.com/spark-pipelines-elegant-yet-powerful-7be93afcdd42">https://blog.insightdatascience.com/spark-pipelines-elegant-yet-powerful-7be93afcdd42</a></li>
+<li><strong>Batch Transform</strong>:<strong> </strong><a href="https://docs.aws.amazon.com/sagemaker/latest/dg/how-it-works-batch.html">https://docs.aws.amazon.com/sagemaker/latest/dg/how-it-works-batch.html</a></li>
+<li><strong>Topic modeling</strong>:<strong> </strong><a href="https://medium.com/ml2vec/topic-modeling-is-an-unsupervised-learning-approach-to-clustering-documents-to-discover-topics-fdfbf30e27df">https://medium.com/ml2vec/topic-modeling-is-an-unsupervised-learning-approach-to-clustering-documents-to-discover-topics-fdfbf30e27df</a></li>
+<li><strong>Transformers in Spark</strong>:<strong> </strong><a href="https://spark.apache.org/docs/1.6.0/ml-guide.html#transformers">https://spark.apache.org/docs/1.6.0/ml-guide.html#transformers</a></li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    </body></html>

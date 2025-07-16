@@ -1,0 +1,661 @@
+<html><head></head><body>
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Extracting Information from Text with Amazon Comprehend</h1>
+                </header>
+            
+            <article>
+                
+<p>In this chapter, we will build an application that can automatically extract contact information from photos of business cards. With this application, we aim to reduce tedious manual work by using automation. We will use Amazon Rekognition to detect text in the business card photos and then use Amazon Comprehend to extract structured information such as the name, address, and phone number. We will demonstrate that the goal of automation is not always full autonomy; there is some value in keeping the human component in the solution.</p>
+<p>In this chapter, we will cover the following topics:</p>
+<ul>
+<li>Understanding the role of Artificial Intelligence in our workplaces</li>
+<li>Performing information extraction with Amazon Comprehend and Amazon Comprehend Medical</li>
+<li>Storing and retrieving data in AWS DynamoDB</li>
+<li>Building serverless AI applications with AWS services, RESTful APIs, and web user interface</li>
+<li>Reusing existing AI service implementations within the reference architecture</li>
+<li>Discussing human-in-the-loop interface design in automation solutions</li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Technical requirements</h1>
+                </header>
+            
+            <article>
+                
+<p>This book's GitHub repository, which contains the source code for this chapter, can be found at <a href="https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services">https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-on-Amazon-Web-Services</a>.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Working with your Artificial Intelligence coworker</h1>
+                </header>
+            
+            <article>
+                
+<p><strong>Artificial Intelligence</strong> (<strong>AI</strong>) is advancing the progress of automation in our lives. When most people think about intelligent automation they think of smart thermostats, vacuum robots, or autonomous vehicles that help us live better. There are also tremendous opportunities for us to use intelligent automation to help us work better. AI can complement human labor in the workplace to provide value for businesses, contribute to economic growth, and redirect human labor toward creative work. One area hungry for automation progress is manual back office processes. There are many tasks still fulfilled by humans behind the scenes when we deposit checks, when we sign up for services, and when we buy things online.</p>
+<p>There certainly are concerns about losing jobs to automation; however, we have also observed improved worker morale when menial efforts are automated. Most of the manual back office processes are tedious and repetitive. For example, there are people whose jobs involve reading through multiple documents, identifying certain pieces of information within them, and then manually entering the information into computer systems. These back-office document processing tasks are also called "swivel-chair" processes because the workers are constantly swiveling in their chairs to switch between the documents and the computer screens. We could use AI to automate the documentation process by reading the documents using <strong>Optical Character Recognition</strong> (<strong>OCR</strong>) and then extracting information using <strong>Natural Language Processing</strong> (<strong>NLP</strong>).</p>
+<p>However, automating document processing is not trivial. Paper documents must be scanned first. Depending on the quality of the document image, the complexity of the document structure, or even handwritten text within the documents, it can be difficult to guarantee processing accuracy. For certain business environments and use cases, anything less than 100% accuracy is not acceptable. In such cases, automation developers must design with failover to manual intervention in mind so that humans can step in and take over. For example, an automation solution can extract the dollar amount on a check during a bank deposit. Inaccuracies during this business process can have major consequences for the bank customer. To ensure the correct dollar amount is deposited, the automation solution could extract the value and then show the extracted amount to a human operator before the deposit is completed. This solution leverages AI capabilities to automate the task but also allows humans to intervene in the event of errors.</p>
+<p><span>In this chapter, we will be implementing an application, Contact Organizer, to automate document processing. More specifically, this application helps us extract contact information from scanned business cards. To ensure accuracy, our application will provide a </span>human-in-the-loop<span> user interface so that automatically extracted information can be reviewed and corrected by the user before it is saved. This human-in-the-loop user interface is a popular approach because it improves automation accuracy with human judgement.</span></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Understanding the Contact Organizer architecture</h1>
+                </header>
+            
+            <article>
+                
+<p><span>The C</span>ontac<span>t Organizer application will provide a web user interface for users so that they can upload an image of a business card. The contact information will be extracted and categorized by the application. The automatically extracted contact information will then be displayed to the user in the web user interface. The user can review and correct the information before saving it to a permanent contact store.</span></p>
+<p><span>The following diagram shows the architecture's design, highlighting the layers and services of the Contact Organizer application. </span>The following architecture design should look very familiar by now; the layers and components follow the same reference architecture template we defined in <a href="042787e6-6f54-4728-8354-e22d87be0460.xhtml">Chapter 2</a>, <em>Anatomy of a Modern AI Application</em>:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/0b0b3b30-5bd6-4d8f-91e9-2317d7f25ffc.png" style=""/></div>
+<p><span>In this application, the web user interface will interact with three RESTful endpoints in the orchestration layer:</span></p>
+<ul>
+<li><strong>Upload Recording Endpoint</strong> will<span> delegate the image upload to our <strong>Storage Service</strong>.</span></li>
+<li><strong>Extract Information Endpoint</strong> will use the <strong>Recognition Service</strong> and <strong>Extraction Service</strong>:
+<ul>
+<li>The Recognition Service is reused from <a href="504c5915-cf10-4cd0-8f5c-3c75466f7dc6.xhtml">Chapter 3</a>, <em>Detecting and Translating Text with Amazon Rekognition and Translate</em>, when we looked at the Pictorial Translator project.</li>
+<li>The Extraction Service will use both Amazon Comprehend and Amazon Comprehend Medical to extract and categorize the <span>diverse </span>contact information such as name, address, and phone number.</li>
+</ul>
+</li>
+<li><strong>Save/Get Contacts Endpoints</strong> will write to/read from the <strong>Contact Store</strong>, which is backed by the AWS DynamoDB NoSQL database.</li>
+</ul>
+<p><span>In Contact Organizer, there are several opportunities for us to reuse components we already implemented in previous projects. In the orchestration layer, we can reuse the Upload Recording Endpoint. In the service implementation layer, we can reuse the Storage and Recognition services.</span></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Component interactions in Contact Organizer</h1>
+                </header>
+            
+            <article>
+                
+<p>The following interaction diagram walks through the Contact Organizer's business logic workflow between the application's components:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/bad3f779-841b-4e53-94a8-2cf2bd441813.png"/></div>
+<p><span><span>From the user's perspective, we have the following:</span></span></p>
+<ol>
+<li>When the Contact Organizer web user interface first loads, it will get and display all of the existing contacts.</li>
+<li>The user can then upload a photo of a business card via the web user interface.</li>
+<li>After the upload is completed, two steps are kicked off:
+<ol>
+<li>The uploaded business card image is displayed in the user interface.</li>
+<li>The automated contact information extraction process is started.</li>
+</ol>
+</li>
+<li>When the information extraction is completed, the extracted information is displayed to the user for review and correction.</li>
+<li>After the user has reviewed and corrected the information, the contact information can be persisted after the user clicks the <strong>Save</strong> button.</li>
+</ol>
+<p>We designed the Contact Organizer to have a human-in-the-loop user interface, as follows:</p>
+<ol>
+<li>The uploaded business card image is displayed back to the user so that they can see the original contact information.</li>
+<li>The automatically extracted contact information is also displayed to the user, along with the business card image.</li>
+<li>The user has the option to change or correct any of the extracted information from the user interface.</li>
+<li>The user has to explicitly click the <span class="packt_screen">Save</span> button, which acts as confirmation from a human that the contact information is correct.</li>
+</ol>
+<div class="packt_tip">This human-in-the-loop user interface should not just be an afterthought in an intelligence-enabled solution either. O<span>ur rule of thumb </span>for evaluating the design of such interfaces is that the solution should be fully functional, even if the AI capabilities are not present alongside the user interface.</div>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Setting up the project structure</h1>
+                </header>
+            
+            <article>
+                
+<p>Create a similar base project structure to the one we outlined in <a href="https://cdp.packtpub.com/hands_on_artificial_intelligence_on_amazon_web_services/wp-admin/post.php?post=301&amp;action=edit#post_299">Chapter 2</a><span>, </span><em>Anatomy of a Modern AI Application</em>, including <kbd>pipenv</kbd>, <kbd>chalice</kbd>, and the web files:</p>
+<ol>
+<li>In the terminal, we will create the <kbd>root</kbd> project directory and enter it with the following commands:</li>
+</ol>
+<pre class="p1" style="padding-left: 60px"><span class="s1">$ mkdir </span>ContactOrganizer<span class="s1"><br/></span><span class="s1">$ cd </span>ContactOrganizer</pre>
+<ol start="2">
+<li>We will create placeholders for the web frontend by creating a directory named <kbd>Website</kbd>. Within this directory, we will create two files, <kbd>index.html</kbd> and <kbd>scripts.js</kbd>, as shown in the following code:</li>
+</ol>
+<pre style="padding-left: 60px">$ mkdir Website<br/>$ touch Website/index.html<br/>$ touch Website/scripts.js</pre>
+<ol start="3">
+<li>We will create a Python 3 virtual environment with<span> </span><kbd>pipenv</kbd> in the project's root directory. Our Python portion of the project needs two packages, <kbd>boto3</kbd> and <kbd>chalice</kbd>. We can install them with the following commands:</li>
+</ol>
+<pre style="padding-left: 60px">$ pipenv --three<br/>$ pipenv install boto3<br/>$ pipenv install chalice</pre>
+<ol start="4">
+<li>Remember that the Python packages that are installed via <kbd><span>pipenv</span></kbd> are only available if we activate the virtual environment. One way to do this is with the following command:</li>
+</ol>
+<pre style="padding-left: 60px">$ pipenv shell</pre>
+<ol start="5">
+<li>Next, while still in the virtual environment, we will create the orchestration layer as an AWS Chalice project named <kbd>Capabilities</kbd> with the following commands:</li>
+</ol>
+<pre style="padding-left: 60px">$ chalice new-project Capabilities</pre>
+<ol start="6">
+<li>To create the <kbd>chalicelib</kbd> Python package, issue the following commands:</li>
+</ol>
+<pre style="padding-left: 60px">cd Capabilities<br/>mkdir chalicelib<br/>touch chalicelib/__init__.py<br/>cd ..</pre>
+<p style="padding-left: 60px">The initial project structure for Contact Organizer should look as follows:</p>
+<pre style="padding-left: 60px">Project Structure<br/>------------<br/>├── ContactOrganizer/<br/>    ├── Capabilities/<br/>        ├── .chalice/<br/>            ├── config.json<br/>        ├── chalicelib/<br/>            ├── __init__.py<br/>        ├── app.py<br/>        ├── requirements.txt<br/>    ├── Website/<br/>        ├── index.html<br/>        ├── script.js<br/>    ├── Pipfile<br/>    ├── Pipfile.lock</pre>
+<p><span>This project structure for Contact Organizer contains the user interface, orchestration, and service implementations layers of the AI application architecture that we defined in <a href="https://cdp.packtpub.com/hands_on_artificial_intelligence_on_amazon_web_services/wp-admin/post.php?post=301&amp;action=edit#post_299">Chapter 2</a>, <em>Anatomy of a Modern AI Application</em>.</span></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Implementing services</h1>
+                </header>
+            
+            <article>
+                
+<p>Let's implement the Contact Organizer layer-by-layer, starting with the service implementations that contain crucial AI capabilities. Many of the capabilities we need for this project, such as detecting text in images and handling file uploads, were implemented in previous projects. Services with truly new capabilities are the Extraction Service and Contact Store.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Recognition Service – text detection</h1>
+                </header>
+            
+            <article>
+                
+<p>Once again, we are going to leverage the Amazon Rekognition Service to provide the capability to detect text in an image. We can reuse the exact same implementation of our Recognition Service from the Pictorial Translator project in <a href="504c5915-cf10-4cd0-8f5c-3c75466f7dc6.xhtml">Chapter 3</a><span>, </span><em>Detecting and Translating Text with Amazon Rekognition and Translate</em>, as shown in the following code:</p>
+<pre>import boto3<br/><br/>class RecognitionService:<br/>    def __init__(self, storage_location):<br/>        self.client = boto3.client('rekognition')<br/>        self.bucket_name = storage_location<br/><br/>    def detect_text(self, file_name):<br/>        response = self.client.detect_text(<br/>            Image = {<br/>                'S3Object': {<br/>                    'Bucket': self.bucket_name,<br/>                    'Name': file_name<br/>                }<br/>            }<br/>        )<br/><br/>        lines = []<br/>        for detection in response['TextDetections']:<br/>            if detection['Type'] == 'LINE':<br/>                lines.append({<br/>                    'text': detection['DetectedText'],<br/>                    'confidence': detection['Confidence'],<br/>                    'boundingBox': detection['Geometry']['BoundingBox']<br/>                })<br/><br/>        return lines</pre>
+<p><span>For more details on its implementation and the design choices of the Recognition Service, refer to <a href="504c5915-cf10-4cd0-8f5c-3c75466f7dc6.xhtml"/><a href="504c5915-cf10-4cd0-8f5c-3c75466f7dc6.xhtml">Chapter 3</a>, <em>Detecting and Translating Text with Amazon Rekognition and Translate</em>.</span></p>
+<div class="packt_infobox">There is a new Amazon Textract service that can automatically extract text and data from scanned documents. Amazon Textract might work just as well for extracting text from business cards, but there are a few things to consider. Even though business cards are document-like, our application is processing photos of business cards, not scanned images. <br/>
+<br/>
+Amazon Textract is generally available now; replacing AWS Rekognition because of its text extraction capability will make a good feature enhancement exercise for this hands-on project. Think about which components and interactions would be impacted by this change in our architecture.</div>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Extraction Service – contact information extraction</h1>
+                </header>
+            
+            <article>
+                
+<p>We are going to leverage Amazon Comprehend to extract the contact information from the text that's detected on the business cards. First, let's explore this service using the AWS CLI.</p>
+<p>The Contact Organizer needs to extract information from our business cards. Typically, text on business cards contains information such as the person's name, job title, organization, address, phone number, email, and so on.</p>
+<p>The following is example text from a made-up contact:</p>
+<pre>AI Enterprise Inc.<br/>John Smith<br/>Senior Software Engineer<br/>123 Main Street Washington D.C. 20001<br/>john.smith@aienterprise.com<br/>(202) 123-4567</pre>
+<p>Let's see what Amazon Comprehend can extract from this example text. Issue the following AWS CLI command:</p>
+<pre>$ aws comprehend detect-entities --language-code en --text "AI Enterprise Inc. John Smith Senior Software Engineer 123 Main Street Washington D.C. 20001 john.smith@aienterprise.com (202) 123-4567"<br/>{<br/>    "Entities": [<br/>        {<br/>            "Score": 0.8652380108833313,<br/>            "Type": "ORGANIZATION",<br/>            "Text": "AI Enterprise Inc",<br/>            ...<br/>        },<br/>        {<br/>            "Score": 0.9714182019233704,<br/>            "Type": "PERSON",<br/>            "Text": "John Smith",<br/>            ...<br/>        },<br/>        {<br/>            "Score": 0.9006084203720093,<br/>            "Type": "LOCATION",<br/>            "Text": "123 Main Street Washington D.C.",<br/>            ...<br/>        },<br/>        {<br/>            "Score": 0.48333245515823364,<br/>            "Type": "DATE",<br/>            "Text": "20001",<br/>            ...<br/>        },<br/>        {<br/>            "Score": 0.998563826084137,<br/>            "Type": "OTHER",<br/>            "Text": "john.smith@aienterprise.com",<br/>            ...<br/>        },<br/>        {<br/>            "Score": 0.9999305009841919,<br/>            "Type": "OTHER",<br/>            "Text": "(202) 123-4567",<br/>            ...<br/>        }<br/>    ]<br/>}</pre>
+<p>Amazon Comprehend extracted some pieces of information, including the organization (<kbd>ORGANIZATION</kbd>), the person's name (<kbd>PERSON</kbd>), and the address (<kbd>LOCATION</kbd>). However, AWS Comprehend extracted the email and the phone number as <kbd>OTHER</kbd>, incorrectly extracted the zip code as a <kbd>DATE</kbd>, and failed to extract the job title.</p>
+<p>Even though the extraction results are not perfect, they can still be leveraged by our Contact Organizer application to reduce manual effort on the part of users.</p>
+<p>There is a way to improve upon these information extraction results. Amazon offers another variant of the Comprehend service called AWS Comprehend Medical. This variant of the service specializes in extracting information from various medical documents.</p>
+<p>One of its features is the extraction of <strong>Protected Health Information</strong> (<strong>PHI</strong>) such as name, age, address, phone number, and email. We can leverage this feature for our business card information extraction task.</p>
+<p>Let's see how this feature performs with the same example text we looked at previously. Issue the follow AWS CLI command:</p>
+<pre>aws comprehendmedical detect-phi --text "AI Enterprise Inc. John Smith Software Engineer 123 Main Street Washington D.C. 20001 john.smith@aienterprise.com (202) 123-4567"<br/>{<br/>    "Entities": [<br/>        {<br/>            "Text": "AI Enterprise Inc",<br/>            "Category": "PROTECTED_HEALTH_INFORMATION",<br/>            "Type": "ADDRESS",<br/>            ...<br/>        },<br/>        {<br/>            "Text": "John Smith",<br/>            "Category": "PROTECTED_HEALTH_INFORMATION",<br/>            "Type": "NAME",<br/>            ...<br/>        },<br/>        {<br/>            "Text": "Software Engineer",<br/>            "Category": "PROTECTED_HEALTH_INFORMATION",<br/>            "Type": "PROFESSION",<br/>            ...<br/>        },<br/>        {<br/>            "Text": "123 Main Street Washington D.C. 20001",<br/>            "Category": "PROTECTED_HEALTH_INFORMATION",<br/>            "Type": "ADDRESS",<br/>            ...<br/>        },<br/>        {<br/>            "Text": "john.smith@aienterprise.com",<br/>            "Category": "PROTECTED_HEALTH_INFORMATION",<br/>            "Type": "EMAIL",<br/>            ...<br/>        },<br/>        {<br/>            "Text": "(202) 123-4567",<br/>            "Category": "PROTECTED_HEALTH_INFORMATION",<br/>            "Type": "PHONE_OR_FAX",<br/>            ...<br/>        }<br/>    ]<br/>}</pre>
+<p>Amazon Comprehend Medical extracted much of the same information as its non-medical counterpart. In addition, it extracted the job title (<kbd>PROFESSION</kbd>), the phone number (<kbd>PHONE_OR_FAX</kbd>), and the email (<kbd>EMAIL</kbd>). The extracted address (<kbd>ADDRESS</kbd>) also seems more accurate than the non-medical variant. When we combine the results from both variants of the Comprehend service, we are able to extract the contact information on <span>typical </span>business cards.</p>
+<p>With these insights, let's implement our Extraction Service. Let's create a Python class named <kbd>ExtractionService</kbd> in the <kbd>extraction_service.py</kbd> file located in the <kbd>chalicelib</kbd> directory:</p>
+<pre>import boto3<br/>from collections import defaultdict<br/>import usaddress<br/><br/>class ExtractionService:<br/>    def __init__(self):<br/>        self.comprehend = boto3.client('comprehend')<br/>        self.comprehend_med = boto3.client('comprehendmedical')<br/><br/>    def extract_contact_info(self, contact_string):<br/>        ...</pre>
+<p>This code excerpt shows the imports the service needs, as well as the constructor method, that instantiates two <kbd>boto3</kbd> clients for the Amazon Comprehend and the Amazon Comprehend Medical services, respectively.</p>
+<p>Now let's see how the <kbd>extract_contact_info()</kbd> method is implemented with these two services:</p>
+<pre>    def extract_contact_info(self, contact_string):<br/>        contact_info = defaultdict(list)<br/><br/>        # extract info with comprehend<br/>        response = self.comprehend.detect_entities(<br/>            Text = contact_string,<br/>            LanguageCode = 'en'<br/>        )<br/><br/>        for entity in response['Entities']:<br/>            if entity['Type'] == 'PERSON':<br/>                contact_info['name'].append(entity['Text'])<br/>            elif entity['Type'] == 'ORGANIZATION':<br/>                contact_info['organization'].append(entity['Text'])<br/><br/>        # extract info with comprehend medical<br/>        response = self.comprehend_med.detect_phi(<br/>            Text = contact_string<br/>        )<br/><br/>        for entity in response['Entities']:<br/>            if entity['Type'] == 'EMAIL':<br/>                contact_info['email'].append(entity['Text'])<br/>            elif entity['Type'] == 'PHONE_OR_FAX':<br/>                contact_info['phone'].append(entity['Text'])<br/>            elif entity['Type'] == 'PROFESSION':<br/>                contact_info['title'].append(entity['Text'])<br/>            elif entity['Type'] == 'ADDRESS':<br/>                contact_info['address'].append(entity['Text'])<br/><br/>        # additional processing for address<br/>        address_string = ' '.join(contact_info['address'])<br/>        address_parts = usaddress.parse(address_string)<br/><br/>        for part in address_parts:<br/>            if part[1] == 'PlaceName':<br/>                contact_info['city'].append(part[0])<br/>            elif part[1] == 'StateName':<br/>                contact_info['state'].append(part[0])<br/>            elif part[1] == 'ZipCode':<br/>                contact_info['zip'].append(part[0])<br/><br/>        return dict(contact_info)</pre>
+<p>In the preceding code, we can see the following:</p>
+<ul>
+<li>The <kbd>extract_contact_info()</kbd> method calls both variants of Amazon Comprehend through <kbd>boto3</kbd>. The results from both calls are processed and stored in the <kbd>contact_info</kbd> dictionary.</li>
+<li><kbd>contact_info</kbd> is declared as a <kbd>defaultdict(list)</kbd>, which is a dictionary data structure where the values are defaulted to an empty list.</li>
+</ul>
+<p>In practice, multiple results may be extracted for a given type. For example, two phone numbers can be extracted from a single business card. This can happen for three reasons, as we have observed in our use cases:</p>
+<ul>
+<li>The first reason applies when there are actually multiple pieces of information for a given type. For example, when there is a phone number and a fax number on a business card.</li>
+<li>The second reason is that the information is a composite of simpler pieces of information. For example, many job titles actually include role names, job levels, and specialties.</li>
+<li>The third reason is inaccuracies during the extraction process by the Amazon Comprehend service. For example, the zip code in the address may be mistakenly categorized as the phone number.</li>
+</ul>
+<p>The two calls to the two variants of AWS Comprehend are as follows:</p>
+<ul>
+<li>The first call is to the <kbd>detect_entities()</kbd> function of the Amazon Comprehend client. From the response, we store the name and organization in <kbd>contact_info</kbd>.</li>
+<li>The second call is to the <kbd>detect_phi()</kbd> function of the Amazon Comprehend Medical client. From the response, we store the email, phone number, job title, and address in <kbd>contact_info</kbd>.</li>
+</ul>
+<p><span>If there are multiple results for each of these types, they are appended to the corresponding list in the <kbd>defaultdict(list)</kbd> data structure.</span></p>
+<p>AWS Comprehend extracts the address as a single piece of information. However, it would be more useful to store the various pieces of the address, such as city, state, and zip code, separately. This will make organizing, searching, and displaying contact information easier. In the <kbd>extract_contact_info()</kbd> method, we also use a Python package named <kbd>usaddress</kbd> to try and parse out the subcomponents of the address and then store them separately in the <kbd>contact_info</kbd> data structure.</p>
+<p>Finally, the <kbd>extract_contact_info()</kbd> method returns <kbd>contact_info</kbd> as a standard Python dictionary.</p>
+<div class="packt_infobox">In the Contact Organizer application, the user uploads a photo of a business card. Then, the application tries to detect text with AWS Rekognition and feeds the detected text to AWS Comprehend to try to extract information. There is also a post-processing step for the address to parse out the city, state, and zip code.<br/>
+<br/>
+We can think of this process as a pipeline with multiple sequential steps; the output of a previous step feeds into the next step as input. Just like a game of telephone, the final result may be mangled by the output quality of any of the steps. The accuracy of the extraction depends on the quality of the photo, the detection accuracy of text in the photo, the extraction accuracy of information from the text, and the parsing accuracy of the post-processing.</div>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Contact Store – save and retrieve contacts</h1>
+                </header>
+            
+            <article>
+                
+<p>After the user saves the contact information in the Contact Organizer, they should be able to retrieve this information. Retrieving data requires data persistence.</p>
+<p>In Contact Organizer, we will be leveraging AWS DynamoDB, a highly scalable NoSQL database in the cloud. DynamoDB fits well with our serverless architecture because developers do not need to manage database servers. Instead, developers can create tables that scale with demand automatically. We will be storing and retrieving contact information using a DynamoDB table.</p>
+<p>Let's create a Contacts table using the AWS Web Console:</p>
+<ol>
+<li>Go to the <span class="packt_screen">DynamoDB</span> dashboard page and click on the <span class="packt_screen">Create table</span> button:</li>
+</ol>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/8490604e-d778-40d0-bb62-71b963ae07a9.png" style=""/></div>
+<ol start="2">
+<li>On the <span class="packt_screen">Create DynamoDB table</span> page, set the table name to <span class="packt_screen">Contacts</span> and set the primary key to <span class="packt_screen">name</span>. Since <span class="packt_screen">DynamoDB</span> is a NoSQL or document database, we do not need to specify the entire database table schema a priori:</li>
+</ol>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/f81c4cab-f40a-4036-b440-f93491a1303f.png" style=""/></div>
+<ol start="3">
+<li>Finish the table setup by choosing the <span class="packt_screen">Use default settings</span> option and clicking <span class="packt_screen">Create</span>.</li>
+</ol>
+<p>That's it! You just created a web-scale database that can handle more than 10 trillion requests per day. The best thing is, you don't have to manage it!</p>
+<div class="packt_tip">For this simple project, we used the AWS Web Console to create a database table. For enterprise-grade applications, we recommend following the best practices in line with <strong>Infrastructure as Code</strong> (<strong>IaC</strong>), where infrastructure should be provisioned and managed automatically through code or configuration rather than by using a manual setup such as with AWS Web Console.<br/>
+<br/>
+The benefits include fast recovery from catastrophic events, rapid experimentation of features, and documentation of the system environment setup, to name only a few. Boto3 allows you to write Python code to create and configure DynamoDB tables. AWS CloudFormation also allows for the automatic creation and configuration of DynamoDB and many more AWS services.</div>
+<p>Now with the <kbd>Contacts</kbd> table created, let's implement our <kbd>ContactStore</kbd> service. Create a Python class named <kbd>ContactStore</kbd> in the <kbd>contact_store.py</kbd> file, which is located in the <kbd>chalicelib</kbd> directory:</p>
+<pre>import boto3<br/><br/>class ContactStore:<br/>    def __init__(self, store_location):<br/>        self.table = boto3.resource('dynamodb').Table(store_location)<br/><br/>    def save_contact(self, contact_info):<br/>        response = self.table.put_item(<br/>            Item = contact_info<br/>        )<br/>        # should return values from dynamodb however,<br/>        # dynamodb does not support ReturnValues = ALL_NEW<br/>        return contact_info<br/><br/>    def get_all_contacts(self):<br/>        response = self.table.scan()<br/><br/>        contact_info_list = []<br/>        for item in response['Items']:<br/>            contact_info_list.append(item)<br/><br/>        return contact_info_list</pre>
+<p>In the preceding code, we have the following:</p>
+<ul>
+<li>The constructor, <kbd>__init__()</kbd>, creates a <kbd>boto3</kbd> source for DynamoDB in order to get our <kbd>Contacts</kbd> table. The constructor takes in a parameter for <kbd>store_location</kbd> as the table name in our implementation.</li>
+<li>The <kbd>save_contact()</kbd> method takes a Python dictionary data structure containing the contact information and stores the contact using the <kbd>put_item()</kbd> function, which takes in the item to be put into the table.</li>
+<li>In <kbd>save_contact()</kbd>, we are returning the <kbd>contact_info</kbd> data object to the caller. We are trying to conform to the RESTful API convention: when an API creates a new resource (contact), it should return the updated resource (contact):<br/>
+<ul>
+<li>The RESTful convention recommends returning the new representation of the resources' state after their creation. For example, a new ID might have been created for the resource. However, the <kbd>put_item()</kbd> function in <kbd>boto3</kbd> currently does not return the new values of the resource. This is fine for Contact Organizer, since we chose to use the "name" as the key or the ID for the contact.</li>
+</ul>
+</li>
+<li>The <kbd>get_all_contacts()</kbd> method retrieves all the contacts that have been saved in DynamoDB using the <kbd>scan()</kbd> function. With only the table name provided, the <kbd>scan()</kbd> function returns all the items in the table.</li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Storage Service – uploading and retrieving a file</h1>
+                </header>
+            
+            <article>
+                
+<p>We can reuse the exact same implementation of <kbd>StorageService</kbd> from previous projects. We are only providing the methods we need for the current project, as follows:</p>
+<pre>import boto3<br/><br/>class StorageService:<br/>    def __init__(self, storage_location):<br/>        self.client = boto3.client('s3')<br/>        self.bucket_name = storage_location<br/>    def upload_file(self, file_bytes, file_name):<br/>        self.client.put_object(Bucket = self.bucket_name,<br/>                               Body = file_bytes,<br/>                               Key = file_name,<br/>                               ACL = 'public-read')<br/><br/>        return {'fileId': file_name,<br/>                'fileUrl': "http://" + self.bucket_name + ".s3.amazonaws.com/" + file_name}</pre>
+<p><span>For more details on the implementation and design choices</span>, refer<span> to <a href="504c5915-cf10-4cd0-8f5c-3c75466f7dc6.xhtml">Chapter 3</a>, <em>Detecting and Translating Text with Amazon Rekognition and Translate</em>.</span></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Implementing RESTful endpoints</h1>
+                </header>
+            
+            <article>
+                
+<p>Let's move on to the orchestration layer so that we can stitch together the various capabilities we implemented in the services. The RESTful endpoints provide HTTP access for the user interface layer to access business capabilities.</p>
+<p>As we stated previously, the orchestration layer should be concise and easy to understand. RESTful endpoints should only be concerned with orchestrating the services to form a higher-level business logic and handling HTTP protocol specifics.</p>
+<div class="packt_tip">One way to evaluate whether the orchestration layer or RESTful endpoints are well designed in terms of separation of concerns is to check package imports. Does the orchestration layer need to import packages from the services?<br/>
+<br/>
+For example, in our projects, do the RESTful endpoints import a <kbd>boto3</kbd> that interacts with AWS? They shouldn't.<br/>
+<br/>
+Typically, RESTful endpoints will import service implementations (<kbd>storage_service</kbd> and <kbd>recognition_service</kbd>), programming framework-related packages (<kbd>chalice</kbd>), and protocol-related packages (<kbd>JSON</kbd> and <kbd>CGI</kbd>).</div>
+<p>Replace the contents of <kbd>app.py</kbd> in the Chalice project with the following code:</p>
+<pre>from chalice import Chalice<br/>from chalicelib import storage_service<br/>from chalicelib import recognition_service<br/>from chalicelib import extraction_service<br/>from chalicelib import contact_store<br/><br/>import base64<br/>import json<br/><br/><br/>#####<br/># chalice app configuration<br/>#####<br/>app = Chalice(app_name='Capabilities')<br/>app.debug = True<br/><br/>#####<br/># services initialization<br/>#####<br/>storage_location = 'contents.aws.ai'<br/>storage_service = storage_service.StorageService(storage_location)<br/>recognition_service = recognition_service.RecognitionService(storage_location)<br/>extraction_service = extraction_service.ExtractionService()<br/>store_location = 'Contacts'<br/>contact_store = contact_store.ContactStore(store_location)<br/><br/><br/>#####<br/># RESTful endpoints<br/>#####<br/>...</pre>
+<p>The preceding code excerpt handles all package imports, the Chalice app configuration, and the instantiation of our four services.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Extract Image Information endpoint</h1>
+                </header>
+            
+            <article>
+                
+<p>The <kbd>extract_image_info()</kbd> function implements the RESTful endpoint. <span>Use the following code to continue with the Python code in <kbd>app.py</kbd>:</span></p>
+<pre><span>@app.route</span>(<span>'/images/{image_id}/extract-info'</span>, <span>methods </span>= [<span>'POST'</span>], <span>cors </span>= <span>True</span>)<br/><span>def </span>extract_image_info(image_id):<br/>    <span>"""detects text in the specified image then extracts contact information from the text"""<br/></span><span>    </span>MIN_CONFIDENCE = <span>70.0<br/></span><span><br/></span><span>    </span>text_lines = recognition_service.detect_text(image_id)<br/><br/>    contact_lines = []<br/>    <span>for </span>line <span>in </span>text_lines:<br/>        <span># check confidence<br/></span><span>        </span><span>if </span><span>float</span>(line[<span>'confidence'</span>]) &gt;= MIN_CONFIDENCE:<br/>            contact_lines.append(line[<span>'text'</span>])<br/><br/>    contact_string = <span>'   '</span>.join(contact_lines)<br/>    contact_info = extraction_service.extract_contact_info(contact_string)<br/><br/>    <span>return </span>contact_info</pre>
+<p><span>The annotation right above this function describes the HTTP request that </span>can ac<span>cess this endpoint:</span></p>
+<pre>POST &lt;server url&gt;/images/{image_id}/extracted-info</pre>
+<p>In the preceding code, we have the following:</p>
+<ul>
+<li>In the <kbd>extract_image_info()</kbd> function, we call <kbd>RecognitionService</kbd> to detect text in the image and store the detected lines of text in <kbd>text_lines</kbd>.</li>
+<li>Then, we build a string, <kbd>contact_string</kbd>, that contains all of the lines of detected text with a confidence level is above <kbd>MIN_CONFIDENCE</kbd>, which is set to <kbd>70.0</kbd>:
+<ul>
+<li>This <kbd>contact_string</kbd> is built by joining the detected text with three spaces in between. We chose three spaces as the delimiter because detected lines are more likely to be related information, and we are hinting that relationship to the extraction service with the extra spaces.</li>
+</ul>
+</li>
+<li>We then call the <kbd>extract_contact_info()</kbd> method of the Extraction Service and return the contact info. Remember that <kbd>extract_contact_info()</kbd> not only calls two variants of the Amazon Comprehend service, it also uses the <kbd>usaddress</kbd> Python package to parse out the individual parts of an address.</li>
+</ul>
+<p>Let's test this endpoint out by running <kbd>chalice local</kbd> in the Python virtual environment and then issue the following <kbd>curl</kbd> command. Then, we will specify an image that has already been uploaded to our S3 bucket:</p>
+<pre>curl -X POST http://127.0.0.1:8000/images/&lt;uploaded image&gt;/extract-info<br/>{<br/>    "organization":[<br/>        "&lt;organization&gt;"<br/>    ],<br/>    "name":[<br/>        "&lt;name&gt;"<br/>    ],<br/>    "title":[<br/>        "&lt;title&gt;"<br/>    ],<br/>    "address":[<br/>        "&lt;address&gt;"<br/>    ],<br/>    "phone":[<br/>        "&lt;phone&gt;"<br/>    ],<br/>    "email":[<br/>        "&lt;email&gt;"<br/>    ]<br/>}</pre>
+<p>This is the JSON that our web user interface will receive and use to display translations to the user.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Save contact and get all contacts endpoints</h1>
+                </header>
+            
+            <article>
+                
+<p>The save contact and get all contacts endpoints deal with the saving and retrieval of contacts through the Contact Store service:</p>
+<pre><span>@app.route</span>(<span>'/contacts'</span>, <span>methods </span>= [<span>'POST'</span>], <span>cors </span>= <span>True</span>)<br/><span>def </span>save_contact():<br/>    <span>"""saves contact information to the contact store service"""<br/></span><span>    </span>request_data = json.loads(app.current_request.raw_body)<br/><br/>    contact = contact_store.save_contact(request_data)<br/><br/>    <span>return </span>contact<br/><br/><br/><span>@app.route</span>(<span>'/contacts'</span>, <span>methods </span>= [<span>'GET'</span>], <span>cors </span>= <span>True</span>)<br/><span>def </span>get_all_contacts():<br/>    <span>"""gets all saved contacts in the contact store service"""<br/></span><span>    </span>contacts = contact_store.get_all_contacts()<br/><br/>    <span>return </span>contacts</pre>
+<p>Their implementations are pretty simple:</p>
+<ul>
+<li>The <kbd>save_contact()</kbd> function gets the contact information from the JSON parameters in the request's body. This method then saves the contact using the Contact Store. The following code is the HTTP request that can access this endpoint:</li>
+</ul>
+<pre style="padding-left: 60px">POST &lt;server url&gt;/contacts<br/>{<br/>    "name": &lt;NAME&gt;,<br/>    "organization": &lt;ORGANIZATION&gt;,<br/>    "title": &lt;TITLE&gt;,<br/>    "address": &lt;ADDRESS&gt;,<br/>    "city": &lt;CITY&gt;,<br/>    "state": &lt;STATE&gt;,<br/>    "zip": &lt;ZIP&gt;,<br/>    "phone": &lt;PHONE&gt;,<br/>    "email": &lt;EMAIL&gt;<br/>}</pre>
+<ul>
+<li>The <kbd>get_all_contacts()</kbd> method retrieves all of the saved contacts using the Contact Store. <span>The following code is the HTTP request that can access this endpoint:</span></li>
+</ul>
+<pre style="padding-left: 60px">GET &lt;server url&gt;/contacts</pre>
+<p>Let's test these endpoints together with a pair of <kbd>curl</kbd> commands:</p>
+<pre>$ curl --header "Content-Type: application/json" --request POST --data '{"name": "John Smith", "organization": "AI Enterprise Inc.", "title": "Senior Software Engineer", "address": "123 Main Street", "city": "Washington D.C.", "zip": "20001", "phone": "(202) 123-4567", "email": "john.smith@aienterprise.com"}’ http://127.0.0.1:8000/contacts<br/>{<br/> "name":"John Smith",<br/> "Organization":<br/> ...<br/><br/>$ curl http://127.0.0.1:8000/contacts<br/>[<br/> {<br/> "city":"Washington D.C.",<br/> "zip":"20001",<br/> "organization":"AI Enterprise Inc.",<br/> "address":"123 Main Street",<br/> "email":"john.smith@aienterprise.com",<br/> "phone":"(202) 123-4567",<br/> "name":"John Smith",<br/> "title":"Senior Software Engineer"<br/> }<br/>]</pre>
+<p>We can see the following:</p>
+<ul>
+<li>The first <kbd>POST</kbd> command gets the contact representation back as a response to conform to the RESTful convention.</li>
+<li>The second <kbd>GET</kbd> command gets a list of contacts with the one contact we just saved.</li>
+</ul>
+<p>These are the JSON formats that are used to interact with the web user interface.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Upload image endpoint</h1>
+                </header>
+            
+            <article>
+                
+<p>We are reusing the exact same implementation of the upload image endpoint from the Pictorial Translator project. For more implementation details and design choices for this code snippet. Please refer to <a href="504c5915-cf10-4cd0-8f5c-3c75466f7dc6.xhtml">Chapter 3</a><span>, </span><em>Detecting and Translating Text with Amazon Rekognition and Translate</em>:</p>
+<pre><span>@app.route</span>(<span>'/images'</span>, <span>methods </span>= [<span>'POST'</span>], <span>cors </span>= <span>True</span>)<br/><span>def </span>upload_image():<br/>    """processes file upload and saves file to storage service"""<br/>    request_data = json.loads(app.current_request.raw_body)<br/>    file_name = request_data['filename']<br/>    file_bytes = base64.b64decode(request_data['filebytes'])<br/><br/>    image_info = storage_service.upload_file(file_bytes, file_name)<br/><br/>    <span>return </span>image_info</pre>
+<p>Now the Contact Organizer's orchestration layer is complete.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Implementing the web user interface</h1>
+                </header>
+            
+            <article>
+                
+<p>Next, we will create a simple web user interface with HTML and JavaScript in the <kbd>index.html</kbd> and <kbd>scripts.js</kbd> files in the <kbd>Website</kbd> directory.</p>
+<p>The following screenshot shows the final web user interface:</p>
+<div class="CDPAlignCenter CDPAlign"><img src="assets/06e0f314-3f85-40ee-977f-9a21290f2f70.png"/></div>
+<p>In the Contact Organizer, the user uploads a photo of a business card and the application will do its best to detect the text on the card and extract diverse information from the detected text. The application then populates the input fields with the extracted information for the user to review and modify.</p>
+<div class="packt_infobox"><span>If multiple pieces of information were extracted for a certain type, the Contact Organizer populates the input field for that type with all the available information. </span><span>For example, if multiple phone numbers were extracted, then the phone input field will be populated with all the phone numbers that are available.<br/>
+This design decision assumes that it is easier for a user to delete surp</span>lus information th<span>an to type in missing information. This assumption sounds valid; however, it should be validated with the target audience of the application through surveys or user studies. Fine-tuning these design decisions for human-in-the-loop user interfaces gives an application a slight edge over the competition.</span></div>
+<p>Even though we would like an application such as the Contact Organizer to automatically extract and save all of the information on the business card, the aim of the Contact Organizer is to reduce menial effort as much as possible, while still keeping the user in the loop to ensure information accuracy.</p>
+<div class="packt_infobox packt_tip">The human-in-the-loop user interface has another important benefit. Because a human is involved in correcting any mistakes that are made by intelligent automation, this is an opportunity to capture training data that can be used to improve the automation technology in the future. Users are essentially providing training examples to the machine learning algorithm. Remember, better data always wins!</div>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Index.html</h1>
+                </header>
+            
+            <article>
+                
+<p>We are using standard HTML tags here, so the code for the web page should be easy to follow:</p>
+<pre><span>&lt;!doctype </span><span>html</span><span>&gt;</span><br/><span>&lt;</span><span>html </span><span>lang=</span><span>"en"</span><span>/&gt;</span><br/><br/><span>&lt;</span><span>head</span><span>&gt;</span><br/>    <span>&lt;</span><span>meta </span><span>charset=</span><span>"utf-8"</span><span>/&gt;</span><br/>    <span>&lt;</span><span>meta </span><span>name=</span><span>"viewport" </span><span>content=</span><span>"width=device-width, initial-scale=1.0"</span><span>/&gt;</span><br/><br/>    <span>&lt;</span><span>title</span><span>&gt;</span>Contact Organizer<span>&lt;/</span><span>title</span><span>&gt;</span><br/><br/>    <span>&lt;</span><span>link </span><span>rel=</span><span>"stylesheet" </span><span>href=</span><span>"https://www.w3schools.com/w3css/4/w3.css"</span><span>&gt;</span><br/>    <span>&lt;</span><span>link </span><span>rel=</span><span>"stylesheet" </span><span>href=</span><span>"https://www.w3schools.com/lib/w3-theme-blue-grey.css"</span><span>&gt;</span><br/><span>&lt;/</span><span>head</span><span>&gt;</span><br/><br/><span>&lt;</span><span>body </span><span>class=</span><span>"w3-theme-14" </span><span>onload=</span><span>"</span><span>retrieveAndDisplayContacts</span>()<span>"</span><span>&gt;</span><br/>    <span>&lt;</span><span>div </span><span>style=</span><span>"</span><span>min-width</span>:<span>400</span><span>px</span><span>"</span><span>&gt;</span><br/>        <span>&lt;</span><span>div </span><span>class=</span><span>"w3-bar w3-large w3-theme-d4"</span><span>&gt;</span><br/>            <span>&lt;</span><span>span </span><span>class=</span><span>"w3-bar-item"</span><span>&gt;</span>Contact Organizer<span>&lt;/</span><span>span</span><span>&gt;</span><br/>        <span>&lt;/</span><span>div</span><span>&gt;</span><br/><br/>        ...<br/><br/>        <span>&lt;</span><span>div </span><span>class=</span><span>"w3-container w3-content"</span><span>&gt;</span><br/>            <span>&lt;</span><span>p</span><span>&gt;</span><br/>                <span>&lt;</span><span>b </span><span>class=</span><span>"w3-opacity"</span><span>&gt;</span>My Contacts<span>&lt;/</span><span>b</span><span>&gt;</span><br/>                <span>&lt;</span><span>input </span><span>class=</span><span>"w3-button w3-blue-grey" </span><span>type=</span><span>"submit"<br/></span><span>                       </span><span>value=</span><span>"Refresh" </span><span>onclick=</span><span>"</span><span>retrieveAndDisplayContacts</span>()<span>"</span><span>/&gt;</span><br/>            <span>&lt;/</span><span>p</span><span>&gt;</span><br/>            <span>&lt;</span><span>div </span><span>class=</span><span>"w3-panel w3-white w3-card w3-display-container w3-center"</span><span>&gt;</span><br/>                <span>&lt;</span><span>div </span><span>id=</span><span>"contacts"</span><span>/&gt;</span><br/>            <span>&lt;/</span><span>div</span><span>&gt;</span><br/>        <span>&lt;/</span><span>div</span><span>&gt;</span><br/><br/>    <span>&lt;/</span><span>div</span><span>&gt;</span><br/><br/>    <span>&lt;</span><span>script </span><span>src=</span><span>"scripts.js"</span><span>&gt;&lt;/</span><span>script</span><span>&gt;</span><br/><span>&lt;/</span><span>body</span><span>&gt;</span><br/><br/><span>&lt;/</span><span>html</span><span>&gt;</span></pre>
+<p>This preceding HTML code snippet includes the top and bottom portions of the web user interface:</p>
+<ul>
+<li>When the web page initially loads, it calls a JavaScript function, <kbd>retrieveAndDisplayContacts()</kbd>, to load existing contacts from the server. This is done in the <kbd>&lt;body&gt;</kbd> tag's onload attribute.</li>
+<li>After the contacts are returned from the server, the <kbd>retrieveAndDisplayContacts()</kbd> function then updates <kbd>&lt;div id="contacts"/&gt;</kbd> to display the existing contacts to the user.</li>
+<li>The application also provides a <span class="packt_screen">Refresh</span> button for the user to reload the contacts from the server at any time:</li>
+</ul>
+<pre><span>...<br/></span><span>&lt;</span><span>div </span><span>class=</span><span>"w3-container w3-content"</span><span>&gt;</span><br/>    <span>&lt;</span><span>p </span><span>class=</span><span>"w3-opacity"</span><span>&gt;&lt;</span><span>b</span><span>&gt;</span>Add Contact<span>&lt;/</span><span>b</span><span>&gt;&lt;/</span><span>p</span><span>&gt;</span><br/>    <span>&lt;</span><span>div </span><span>class=</span><span>"w3-panel w3-white w3-card w3-display-container w3-center"</span><span>&gt;</span><br/>        <span>&lt;</span><span>div</span><span>&gt;</span><br/>            <span>&lt;</span><span>input </span><span>id=</span><span>"file" </span><span>type=</span><span>"file" </span><span>name=</span><span>"file" </span><span>accept=</span><span>"image/*"</span><span>/&gt;</span><br/>            <span>&lt;</span><span>input </span><span>class=</span><span>"w3-button w3-blue-grey" </span><span>type=</span><span>"submit"<br/></span><span>                   </span><span>value=</span><span>"Extract Info" </span><span>onclick=</span><span>"</span><span>uploadAndExtract</span>()<span>"</span><span>/&gt;</span><br/>            <span>&lt;</span><span>hr</span><span>&gt;</span><br/>        <span>&lt;/</span><span>div</span><span>&gt;</span><br/>        <span>&lt;</span><span>div </span><span>id=</span><span>"view" </span><span>style=</span><span>"</span><span>display</span>: <span>none</span>;<span>"</span><span>&gt;</span><br/>            <span>&lt;</span><span>img </span><span>id=</span><span>"image" </span><span>width=</span><span>"400"</span><span>/&gt;</span><br/>            <span>&lt;</span><span>hr</span><span>&gt;</span><br/>        <span>&lt;/</span><span>div</span><span>&gt;</span><br/>        <span>&lt;</span><span>div </span><span>class=</span><span>"w3-display-container w3-left" </span><span>style=</span><span>"</span><span>width</span>:<span>45</span>%<span>"</span><span>&gt;</span><br/>            <span>&lt;</span><span>fieldset</span><span>&gt;</span><br/>                <span>&lt;</span><span>legend</span><span>&gt;</span>Information<span>&lt;/</span><span>legend</span><span>&gt;</span><br/>                <span>&lt;</span><span>p</span><span>&gt;</span><br/>                    <span>&lt;</span><span>label </span><span>for=</span><span>"name"</span><span>&gt;</span>Name<span>&lt;/</span><span>label</span><span>&gt;</span><br/>                    <span>&lt;</span><span>input </span><span>id=</span><span>"name" </span><span>type=</span><span>"text" </span><span>name=</span><span>"name"</span><span>/&gt;</span><br/>                <span>&lt;/</span><span>p</span><span>&gt;</span><br/>                <span>&lt;</span><span>p</span><span>&gt;</span><br/>                    <span>&lt;</span><span>label </span><span>for=</span><span>"title"</span><span>&gt;</span>Title<span>&lt;/</span><span>label</span><span>&gt;</span><br/>                    <span>&lt;</span><span>input </span><span>id=</span><span>"title" </span><span>type=</span><span>"text" </span><span>name=</span><span>"title"</span><span>/&gt;</span><br/>                <span>&lt;/</span><span>p</span><span>&gt;</span><br/>                <span>&lt;</span><span>p</span><span>&gt;</span><br/>                    <span>&lt;</span><span>label </span><span>for=</span><span>"email"</span><span>&gt;</span>Email<span>&lt;/</span><span>label</span><span>&gt;</span><br/>                    <span>&lt;</span><span>input </span><span>id=</span><span>"email" </span><span>type=</span><span>"email" </span><span>name=</span><span>"email"</span><span>/&gt;</span><br/>                <span>&lt;/</span><span>p</span><span>&gt;</span><br/>                <span>&lt;</span><span>p</span><span>&gt;</span><br/>                    <span>&lt;</span><span>label </span><span>for=</span><span>"phone"</span><span>&gt;</span>Phone<span>&lt;/</span><span>label</span><span>&gt;</span><br/>                    <span>&lt;</span><span>input </span><span>id=</span><span>"phone" </span><span>type=</span><span>"tel" </span><span>name=</span><span>"phone"</span><span>/&gt;</span><br/>                <span>&lt;/</span><span>p</span><span>&gt;</span><br/>            <span>&lt;/</span><span>fieldset</span><span>&gt;</span><br/>        <span>&lt;/</span><span>div</span><span>&gt;</span><br/>        <span>&lt;</span><span>div </span><span>class=</span><span>"w3-display-container w3-right" </span><span>style=</span><span>"</span><span>width</span>:<span>50</span>%<span>"</span><span>&gt;</span><br/>            <span>&lt;</span><span>fieldset</span><span>&gt;</span><br/>                <span>&lt;</span><span>legend</span><span>&gt;</span>Address<span>&lt;/</span><span>legend</span><span>&gt;</span><br/>                <span>&lt;</span><span>p</span><span>&gt;</span><br/>                    <span>&lt;</span><span>label </span><span>for=</span><span>"organization"</span><span>&gt;</span>Organization<span>&lt;/</span><span>label</span><span>&gt;</span><br/>                    <span>&lt;</span><span>input </span><span>id=</span><span>"organization" </span><span>type=</span><span>"text" <br/></span><span>                     name=</span><span>"organization"</span><span>/&gt;</span><br/>                <span>&lt;/</span><span>p</span><span>&gt;</span><br/>                <span>&lt;</span><span>p</span><span>&gt;</span><br/>                    <span>&lt;</span><span>label </span><span>for=</span><span>"address"</span><span>&gt;</span>Address<span>&lt;/</span><span>label</span><span>&gt;</span><br/>                    <span>&lt;</span><span>input </span><span>id=</span><span>"address" </span><span>type=</span><span>"text" </span><span>name=</span><span>"address" <br/></span><span>                     size=</span><span>"30"</span><span>/&gt;</span><br/>                <span>&lt;/</span><span>p</span><span>&gt;</span><br/>                <span>&lt;</span><span>p</span><span>&gt;</span><br/>                    <span>&lt;</span><span>label </span><span>for=</span><span>"city"</span><span>&gt;</span>City<span>&lt;/</span><span>label</span><span>&gt;</span><br/>                    <span>&lt;</span><span>input </span><span>id=</span><span>"city" </span><span>type=</span><span>"text" </span><span>name=</span><span>"city"</span><span>/&gt;</span><br/>                <span>&lt;/</span><span>p</span><span>&gt;</span><br/>                <span>&lt;</span><span>p</span><span>&gt;</span><br/>                    <span>&lt;</span><span>label </span><span>for=</span><span>"state"</span><span>&gt;</span>State<span>&lt;/</span><span>label</span><span>&gt;</span><br/>                    <span>&lt;</span><span>input </span><span>id=</span><span>"state" </span><span>type=</span><span>"text" </span><span>name=</span><span>"state" </span><span>size=</span><span>"3"</span><span>/&gt;</span><br/>                    <span>&lt;</span><span>label </span><span>for=</span><span>"zip"</span><span>&gt;</span>Zip<span>&lt;/</span><span>label</span><span>&gt;</span><br/>                    <span>&lt;</span><span>input </span><span>id=</span><span>"zip" </span><span>type=</span><span>"text" </span><span>name=</span><span>"zip" </span><span>size=</span><span>"6"</span><span>/&gt;</span><br/>                <span>&lt;/</span><span>p</span><span>&gt;</span><br/>            <span>&lt;/</span><span>fieldset</span><span>&gt;</span><br/>            <span>&lt;</span><span>br</span><span>&gt;</span><br/>            <span>&lt;</span><span>input </span><span>class=</span><span>"w3-button w3-blue-grey" </span><span>type=</span><span>"submit" </span><span>id=</span><span>"save"<br/></span><span>                   </span><span>value=</span><span>"Save Contact" </span><span>onclick=</span><span>"</span><span>saveContact</span>()<span>" </span><span>disabled</span><span>/&gt;</span><br/>        <span>&lt;/</span><span>div</span><span>&gt;</span><br/>    <span>&lt;/</span><span>div</span><span>&gt;</span><br/><span>&lt;/</span><span>div</span><span>&gt;<br/></span><span>...</span> </pre>
+<p>This code snippet contains the Contact Organizer's human-in-the-loop interface so that it can add new contacts.</p>
+<p>There are a few things to point out, as follows:</p>
+<ul>
+<li>We are providing an image upload interface that's similar to previous projects. We are displaying the uploaded image of a business card to the user. This way, the user can view the business card while reviewing and correcting the contact information.</li>
+<li>We are providing two columns of input fields for the various contact information types.</li>
+<li>We are providing a Save contact button for the user so that they can explicitly save contact information. The Save contact button is initially disabled until the application <span>receives the extracted information from the server.</span></li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">scripts.js</h1>
+                </header>
+            
+            <article>
+                
+<p>The first part of the Contact Organizer's <kbd>scripts.js</kbd> file is the same implementation of image upload from the Pictorial Translator project:</p>
+<pre><span>"use strict"</span>;<br/><br/><span>const </span><span>serverUrl </span>= <span>"http://127.0.0.1:8000"</span>;<br/><br/><span>class HttpError extends Error {<br/>    constructor(response) {<br/>        super(`${response.status} for ${response.url}`);<br/>        this.name = "HttpError";<br/>        this.response = response;<br/>    }<br/>}<br/><br/></span>async function uploadImage() {<br/>    // encode input file as base64 string for upload<br/>    let file = document.getElementById("file").files[0];<br/>    let converter = new Promise(function(resolve, reject) {<br/>        const reader = new FileReader();<br/>        reader.readAsDataURL(file);<br/>        reader.onload = () =&gt; resolve(reader.result<br/>            .toString().replace(/^data:(.*,)?/, ''));<br/>        reader.onerror = (error) =&gt; reject(error);<br/>    });<br/>    let encodedString = await converter;<br/><br/>    // clear file upload input field<br/>    document.getElementById("file").value = "";<br/><br/>    // make server call to upload image<br/>    // and return the server upload promise<br/>    return fetch(serverUrl + "/images", {<br/>        method: "POST",<br/>        headers: {<br/>            'Accept': 'application/json',<br/>            'Content-Type': 'application/json'<br/>        },<br/>        body: JSON.stringify({filename: file.name, filebytes: encodedString})<br/>    }).then(response =&gt; {<br/>        if (response.ok) {<br/>            return response.json();<br/>        } else {<br/>            throw new HttpError(response);<br/>        }<br/>    })<br/>}<br/><br/><span>function </span><span>updateImage</span>(image) {<br/>    <span>document</span>.<span>getElementById</span>(<span>"view"</span>).<span>style</span>.<span>display </span>= <span>"block"</span>;<br/><br/>    <span>let </span><span>imageElem </span>= <span>document</span>.<span>getElementById</span>(<span>"image"</span>);<br/>    <span>imageElem</span>.<span>src </span>= image[<span>"fileUrl"</span>];<br/>    <span>imageElem</span>.<span>alt </span>= image[<span>"fileId"</span>];<br/><br/>    <span>return </span>image;<br/>}</pre>
+<p>In the preceding code, we implemented the <kbd>uploadImage()</kbd> and <kbd>updateImage()</kbd> functions, which we will need later:</p>
+<pre><span>function </span><span>extractInformation</span>(image) {<br/>    <span>// make server call to extract information<br/></span><span>    // and return the server upload promise<br/></span><span>    </span><span>return </span><span>fetch</span>(<span>serverUrl </span>+ <span>"/images/" </span>+ image[<span>"fileId"</span>] + <span>"/extract-info"</span>, {<br/>        <span>method</span>: <span>"POST"<br/></span><span>    </span>}).<span>then</span>(response =&gt; {<br/>        <span>if </span>(response.<span>ok</span>) {<br/>            <span>return </span>response.<span>json</span>();<br/>        } <span>else </span>{<br/>            <span>throw new </span>HttpError(response);<br/>        }<br/>    })<br/>}<br/><br/><span>function </span><span>populateFields</span>(extractions) {<br/>    <span>let </span><span>fields </span>= [<span>"name"</span>, <span>"title"</span>, <span>"email"</span>, <span>"phone"</span>, <span>"organization"</span>, <span>"address"</span>, <span>"city"</span>, <span>"state"</span>, <span>"zip"</span>];<br/>    <span>fields</span>.<span>map</span>(<span>function</span>(field) {<br/>        <span>if </span>(field <span>in </span>extractions) {<br/>            <span>let </span><span>element </span>= <span>document</span>.<span>getElementById</span>(field);<br/>            <span>element</span>.<span>value </span>= extractions[field].<span>join</span>(<span>" "</span>);<br/>        }<br/>        <span>return </span>field;<br/>    });<br/>    <span>let </span><span>saveBtn </span>= <span>document</span>.<span>getElementById</span>(<span>"save"</span>);<br/>    <span>saveBtn</span>.<span>disabled </span>= <span>false</span>;<br/>}<br/><br/><span>function </span><span>uploadAndExtract</span>() {<br/>    <span>uploadImage</span>()<br/>        .<span>then</span>(image =&gt; <span>updateImage</span>(image))<br/>        .<span>then</span>(image =&gt; <span>extractInformation</span>(image))<br/>        .<span>then</span>(translations =&gt; <span>populateFields</span>(translations))<br/>        .<span>catch</span>(error =&gt; {<br/>            <span>alert</span>(<span>"Error: " </span>+ error);<br/>        })<br/>}</pre>
+<p>In the preceding code snippet, we implement the following:</p>
+<ul>
+<li>The <kbd>extractInformation()</kbd> function, which calls the Extract Information endpoint</li>
+<li>The <kbd>populateFields()</kbd> function, which fills input fields with extracted contact information</li>
+<li>The <kbd>uploadAndExtract()</kbd> function chains, along with the <kbd>uploadImage()</kbd>, <kbd>updateImage()</kbd>, <kbd>extractInformation()</kbd>, and <kbd>populateFields()</kbd> functions, to compose the business logic flow when the user clicks on the <span class="packt_screen">Extract Info</span> button:</li>
+</ul>
+<pre style="padding-left: 60px"><span>function </span><span>saveContact</span>() {<br/>    <span>let </span><span>contactInfo </span>= {};<br/><br/>    <span>let </span><span>fields </span>= [<span>"name"</span>, <span>"title"</span>, <span>"email"</span>, <span>"phone"</span>, <span>"organization"</span>, <span>"address"</span>, <span>"city"</span>, <span>"state"</span>, <span>"zip"</span>];<br/>    <span>fields</span>.<span>map</span>(<span>function</span>(field) {<br/>        <span>let </span><span>element </span>= <span>document</span>.<span>getElementById</span>(field);<br/>        <span>if </span>(<span>element </span>&amp;&amp; <span>element</span>.<span>value</span>) {<br/>            <span>contactInfo</span>[field] = <span>element</span>.<span>value</span>;<br/>        }<br/>        <span>return </span>field;<br/>    });<br/>    <span>let </span><span>imageElem </span>= <span>document</span>.<span>getElementById</span>(<span>"image"</span>);<br/>    <span>contactInfo</span>[<span>"image"</span>] = <span>imageElem</span>.<span>src</span>;<br/><br/>    <span>// make server call to save contact<br/></span><span>    </span><span>return </span><span>fetch</span>(<span>serverUrl </span>+ <span>"/contacts"</span>, {<br/>        <span>method</span>: <span>"POST"</span>,<br/>        <span>headers</span>: {<br/>            <span>'Accept'</span>: <span>'application/json'</span>,<br/>            <span>'Content-Type'</span>: <span>'application/json'<br/></span><span>        </span>},<br/>        <span>body</span>: <span>JSON</span>.<span>stringify</span>(<span>contactInfo</span>)<br/>    }).<span>then</span>(response =&gt; {<br/>        <span>if </span>(response.<span>ok</span>) {<br/>            <span>clearContact</span>();<br/>            <span>return </span>response.<span>json</span>();<br/>        } <span>else </span>{<br/>            <span>throw new </span>HttpError(response);<br/>        }<br/>    })<br/>}</pre>
+<p>In the preceding code snippet, the following things occur:</p>
+<ol>
+<li>The <kbd>saveContact()</kbd> function gets a value from every input field and then creates the <kbd>contactInfo</kbd> data structure. This function then sends the data in <kbd>contactInfo</kbd> to the server for persistence.</li>
+<li>If the response from the server is <kbd>ok</kbd>, it means the contact has been saved.</li>
+<li>Then, this function calls the <kbd>clearContact()</kbd> function to clear the values of the input fields and the image display.</li>
+</ol>
+<p><span>The following is the code for the <kbd>clearContact()</kbd> helper function:</span></p>
+<pre><span>function </span><span>clearContact</span>() {<br/>    <span>let </span><span>fields </span>= [<span>"name"</span>, <span>"title"</span>, <span>"email"</span>, <span>"phone"</span>, <span>"organization"</span>, <span>"address"</span>, <span>"city"</span>, <span>"state"</span>, <span>"zip"</span>];<br/>    <span>fields</span>.<span>map</span>(<span>function</span>(field) {<br/>        <span>let </span><span>element </span>= <span>document</span>.<span>getElementById</span>(field);<br/>        <span>element</span>.<span>value </span>= <span>""</span>;<br/>        <span>return </span>field;<br/>    });<br/><br/>    <span>let </span><span>imageElem </span>= <span>document</span>.<span>getElementById</span>(<span>"image"</span>);<br/>    <span>imageElem</span>.<span>src </span>= <span>""</span>;<br/>    <span>imageElem</span>.<span>alt </span>= <span>""</span>;<br/><br/>    <span>let </span><span>saveBtn </span>= <span>document</span>.<span>getElementById</span>(<span>"save"</span>);<br/>    <span>saveBtn</span>.<span>disabled </span>= <span>true</span>;<br/>}</pre>
+<p><span>The <kbd>clearContact()</kbd> helper function from the preceding code prepares the user interface to process another business card. Let's have a look at the following code:</span></p>
+<pre><span>function </span><span>retrieveContacts</span>() {<br/>    <span>// make server call to get all contacts<br/></span><span>    </span><span>return </span><span>fetch</span>(<span>serverUrl </span>+ <span>"/contacts"</span>, {<br/>        <span>method</span>: <span>"GET"<br/></span><span>    </span>}).<span>then</span>(response =&gt; {<br/>        <span>if </span>(response.<span>ok</span>) {<br/>            <span>return </span>response.<span>json</span>();<br/>        } <span>else </span>{<br/>            <span>throw new </span>HttpError(response);<br/>        }<br/>    })<br/>}<br/><br/><span>function </span><span>displayContacts</span>(contacts) {<br/>    ...<br/>}<br/><br/><span>function </span><span>retrieveAndDisplayContacts</span>() {<br/>    <span>retrieveContacts</span>()<br/>        .<span>then</span>(contacts =&gt; <span>displayContacts</span>(contacts))<br/>        .<span>catch</span>(error =&gt; {<br/>            <span>alert</span>(<span>"Error: " </span>+ error);<br/>        })<br/>}</pre>
+<p>In the preceding code snippet, the following occurs:</p>
+<ol>
+<li>The <kbd>retrieveContacts()</kbd> function calls the server to retrieve all existing contacts.</li>
+<li>The <kbd>displayContacts()</kbd> function takes the contacts and displays them at the bottom of the Contacts Organizer user interface.</li>
+<li>The <kbd>retrieveAndDisplayContacts()</kbd> function chains together the business logic flow when the web interface is initially loaded or when the user clicks on the <span class="packt_screen">Refresh</span> button:</li>
+</ol>
+<pre style="padding-left: 60px"><span>function </span><span>displayContacts</span>(contacts) {<br/>    <span>let </span><span>contactsElem </span>= <span>document</span>.<span>getElementById</span>(<span>"contacts"</span>)<br/>    <span>while </span>(<span>contactsElem</span>.<span>firstChild</span>) {<br/>        <span>contactsElem</span>.<span>removeChild</span>(<span>contactsElem</span>.<span>firstChild</span>);<br/>    }<br/><br/>    <span>for </span>(<span>let </span><span>i </span>= <span>0</span>; <span>i </span>&lt; contacts.<span>length</span>; <span>i</span>++) {<br/>        <span>let </span><span>contactElem </span>= <span>document</span>.<span>createElement</span>(<span>"div"</span>);<br/>        <span>contactElem</span>.<span>style </span>= <span>"float: left; width: 50%"</span>;<br/>        <span>contactElem</span>.<span>appendChild</span>(<span>document</span>.<span>createTextNode</span>(contacts[<span>i</span>][<span>"name"</span>]));<br/>        <span>contactElem</span>.<span>appendChild</span>(<span>document</span>.<span>createElement</span>(<span>"br"</span>));<br/>        <span>contactElem</span>.<span>appendChild</span>(<span>document</span>.<span>createTextNode</span>(contacts[<span>i</span>][<span>"title"</span>]));<br/>        <span>contactElem</span>.<span>appendChild</span>(<span>document</span>.<span>createElement</span>(<span>"br"</span>));<br/>        <span>contactElem</span>.<span>appendChild</span>(<span>document</span>.<span>createTextNode</span>(contacts[<span>i</span>][<span>"organization"</span>]));<br/>        <span>contactElem</span>.<span>appendChild</span>(<span>document</span>.<span>createElement</span>(<span>"br"</span>));<br/>        <span>contactElem</span>.<span>appendChild</span>(<span>document</span>.<span>createTextNode</span>(contacts[<span>i</span>][<span>"address"</span>]));<br/>        <span>contactElem</span>.<span>appendChild</span>(<span>document</span>.<span>createElement</span>(<span>"br"</span>));<br/>        <span>contactElem</span>.<span>appendChild</span>(<span>document</span>.<span>createTextNode</span>(<br/>             contacts[<span>i</span>][<span>"city"</span>] + <span>", " </span>+ contacts[<span>i</span>][<span>"state"</span>] + <span>" " </span>+ contacts[<span>i</span>][<span>"zip"</span>]<br/>        ));<br/>        <span>contactElem</span>.<span>appendChild</span>(<span>document</span>.<span>createElement</span>(<span>"br"</span>));<br/>        <span>contactElem</span>.<span>appendChild</span>(<span>document</span>.<span>createTextNode</span>(<span>"phone: " </span>+ contacts[<span>i</span>][<span>"phone"</span>]));<br/>        <span>contactElem</span>.<span>appendChild</span>(<span>document</span>.<span>createElement</span>(<span>"br"</span>));<br/>        <span>contactElem</span>.<span>appendChild</span>(<span>document</span>.<span>createTextNode</span>(<span>"email: " </span>+ contacts[<span>i</span>][<span>"email"</span>]));<br/><br/>        <span>let </span><span>cardElem </span>= <span>document</span>.<span>createElement</span>(<span>"div"</span>);<br/>        <span>cardElem</span>.<span>style </span>= <span>"float: right; width: 50%"</span>;<br/>        <span>let </span><span>imageElem </span>= <span>document</span>.<span>createElement</span>(<span>"img"</span>);<br/>        <span>imageElem</span>.<span>src </span>= contacts[<span>i</span>][<span>"image"</span>];<br/>        <span>imageElem</span>.<span>height </span>= <span>"150"</span>;<br/>        <span>cardElem</span>.<span>appendChild</span>(<span>imageElem</span>);<br/><br/>        <span>contactsElem</span>.<span>appendChild</span>(<span>document</span>.<span>createElement</span>(<span>"hr"</span>));<br/>        <span>contactsElem</span>.<span>appendChild</span>(<span>contactElem</span>);<br/>        <span>contactsElem</span>.<span>appendChild</span>(<span>imageElem</span>);<br/>        <span>contactsElem</span>.<span>appendChild</span>(<span>document</span>.<span>createElement</span>(<span>"hr"</span>));<br/>    }<br/>}</pre>
+<p>This code snippet shows the gory details of generating HTML to display a list of contacts, the contact information, and the business card image.</p>
+<div class="packt_infobox">As you can see in the <kbd>displayContacts()</kbd> function, there is a lot of JavaScript code being used to generate HTML. Using a combination of business logic and display logic is considered bad practice.<br/>
+<br/>
+We highly recommend leveraging a JavaScript framework such as Angular, <span>React, </span>or Vue to better implement the <strong>Model View Control</strong> (<strong>MVC</strong>) design pattern for the user interface. To limit the scope of this book, we had no choice but to deal with code ugliness in our hands-on projects.</div>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Deploying the Contact Organizer to AWS</h1>
+                </header>
+            
+            <article>
+                
+<p><span>The deployment steps for the Contact Organizer application are similar, but slightly different from, the deployment steps in the previous projects we covered. Let's get started:</span></p>
+<ol>
+<li>For the Contact Organizer, we need to add additional Python packages to the AWS Lambda environment. We do this by adding two packages to the <kbd>requirements.txt</kbd> file:
+<ul>
+<li>The <kbd>usaddress</kbd> package is used to parse the various parts of the address, such as city, state, zip, and so on.</li>
+<li>The <kbd>boto3</kbd> package is specified here because we need a specific version. At the time of writing, the <kbd>boto3</kbd> version in the AWS Lambda environment does not support the <kbd>comprehendmedical</kbd> service; we need a newer version for this project:</li>
+</ul>
+</li>
+</ol>
+<pre style="padding-left: 60px">usaddress==0.5.10<br/>boto3==1.9.224</pre>
+<ol start="2">
+<li>Next, let's tell Chalice to perform a policy analysis for us by setting <kbd>"autogen_policy"</kbd> to <kbd>false</kbd> in the <kbd>config.json</kbd> file in the <kbd>.chalice</kbd> directory of the project structure:</li>
+</ol>
+<pre style="padding-left: 60px">{<br/>  "version": "2.0",<br/>  "app_name": "Capabilities",<br/>  "stages": {<br/>    "dev": {<br/>      "autogen_policy": false,<br/>      "api_gateway_stage": "api"<br/>    }<br/>  }<br/>}</pre>
+<ol start="3">
+<li><span>Next, we create a new file, <kbd>policy-dev.json</kbd>, in the <kbd>.chalice</kbd> directory to manually specify the AWS services the project needs:</span></li>
+</ol>
+<pre style="padding-left: 60px">{<br/><span> "Version"</span>: <span>"2012-10-17"</span>,<br/><span> "Statement"</span>: [<br/> {<br/><span> "Effect"</span>: <span>"Allow"</span>,<br/><span> "Action"</span>: [<br/><span> "logs:CreateLogGroup"</span>,<br/><span> "logs:CreateLogStream"</span>,<br/><span> "logs:PutLogEvents"</span>,<br/><span> "s3:*"</span>,<br/><span> "rekognition:*",<br/> "comprehend:*",<br/> "comprehendmedical:*",<br/> "dynamodb:*"</span><span><br/></span> ],<br/><span> "Resource"</span>: <span>"*"<br/></span> }<br/> ]<br/>}</pre>
+<ol start="4">
+<li>Next, we deploy the Chalice backend to AWS by running the following command within the <kbd>Capabilities</kbd> directory:</li>
+</ol>
+<pre style="padding-left: 60px">$ chalice deploy<br/>Creating deployment package.<br/>Creating IAM role: Capabilities-dev<br/>Creating lambda function: Capabilities-dev<br/>Creating Rest API<br/>Resources deployed:<br/>  - Lambda ARN: arn:aws:lambda:us-east-1:&lt;UID&gt;:function:Capabilities-dev<br/>  - Rest API URL: https://&lt;UID&gt;.execute-api.us-east-1.amazonaws.com/api/</pre>
+<p style="padding-left: 60px">When the deployment is complete, Chalice will output a RESTful API URL that looks similar to <kbd>https://&lt;UID&gt;.execute-api.us-east-1.amazonaws.com/api/</kbd>, where <kbd>&lt;UID&gt;</kbd> is a unique identifier string. This is the server URL your frontend app should hit to access the application backend running on AWS.</p>
+<ol start="5">
+<li>Next, we will upload the <kbd>index.html</kbd> and <kbd>scripts.js</kbd> files to this S3 bucket<span>, then </span><span>set the permissions as <kbd>publicly readable</kbd></span>. Before we do that, we need to make a change in <kbd>scripts.js</kbd>, as follows. Remember, the website will be running in the cloud now and won't have access to our local HTTP server. Replace the local server URL with the one from our backend deployment:</li>
+</ol>
+<pre style="padding-left: 60px">"use strict";<br/><br/>const serverUrl = "https://&lt;UID&gt;.execute-api.us-east-1.amazonaws.com/api";<br/><br/>...</pre>
+<p>Now the Contact Organizer application is publicly accessible to everyone on the internet.</p>
+<div class="packt_infobox">As it is implemented in this chapter, the Contact Organizer shows anyone who has the URL for the application all of the saved contact information. We do not recommend leaving any personally identifiable information out in the open on the internet.<br/>
+One way to protect this information is to add authentication and authorization features to Contact Organizer. These features are beyond the scope of this book, but they are interesting enhancements for this project.</div>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Discussing the project enhancement ideas</h1>
+                </header>
+            
+            <article>
+                
+<p><span>At the end of each hands-on project in Part 2, we provide you with a few ideas to extend our intelligence-enabled application. The following are a couple of ideas for enhancing the Contact Organizer:</span></p>
+<ul>
+<li>Use the Amazon Textract service to create another implementation of the Recognition Service. Textract provides an <strong>Optical Character Recognition</strong> (<strong>OCR</strong>) capability that's much better suited for documents with a large amount of text. Depending on the business card's appearance, environment lighting, and photo quality, Textract might provide better text detection performance.</li>
+<li>The intelligent capabilities and the user interface we created for Contact Organizer can also be used for other use cases, such as data extraction from business documents, summarizing school notes, and categorizing customer requests. The raw text doesn't even need to come from images; other sources can include emails, phone calls, and even social media. Think about use cases where you might use a similar human-in-the-loop user interface and intelligent capabilities.</li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Summary</h1>
+                </header>
+            
+            <article>
+                
+<p>In this chapter, we built a Contact Organizer application that can extract contact information from uploaded photos of business cards. We used two variants of the Amazon Comprehend service, Amazon Comprehend and Amazon Comprehend Medical, to extract different types of contact information. The Contact Organizer has a human-in-the-loop user interface, where the user can review and correct automatically extracted information before saving it to the Contact Store. We noted that the human-in-the-loop user interface should provide business value, even if AI capabilities are not present in the solution. <span>As AI practitioners, we don't always have to provide fully automated solutions—there is value in providing intelligent assistive solutions, which can be much more feasible to build and maintain as long as they are well designed with the human component in mind.</span></p>
+<p>In the next chapter, we will build an AI solution that can communicate with us using natural conversational interfaces. We will be using AI technologies that are at the heart of the popular Alexa smart speakers.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Further reading</h1>
+                </header>
+            
+            <article>
+                
+<p>For more information on extracting information from text with Amazon Comprehend, please refer to the following links:</p>
+<ul>
+<li><a href="https://www.mckinsey.com/featured-insights/future-of-work/ai-automation-and-the-future-of-work-ten-things-to-solve-for">https://www.mckinsey.com/featured-insights/future-of-work/ai-automation-and-the-future-of-work-ten-things-to-solve-for</a></li>
+<li><a href="https://builtin.com/artificial-intelligence/examples-ai-in-industry">https://builtin.com/artificial-intelligence/examples-ai-in-industry</a></li>
+</ul>
+
+
+            </article>
+
+            
+        </section>
+    </body></html>

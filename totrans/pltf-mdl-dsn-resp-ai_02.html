@@ -1,0 +1,1013 @@
+<html><head></head><body>
+		<div id="_idContainer049">
+			<h1 id="_idParaDest-41" class="chapter-nu ber"><a id="_idTextAnchor040"/>2</h1>
+			<h1 id="_idParaDest-42"><a id="_idTextAnchor041"/>The Emergence of Risk-Averse Methodologies and Frameworks</h1>
+			<p>This chapter gives a detailed overview of defining and architecting ML defense frameworks that can protect data, ML models, and other necessary artifacts at different stages of ML training and evaluation pipelines. In this chapter, you will learn about different anonymization, encryption, and application-level privacy techniques, as well as hybrid security measures, that serve as the basis of ML model development for both centralized and distributed learning. In addition, you will also discover scenario-based defense techniques that can be applied to safeguard data and models to solve practical industry-grade ML use cases. The primary objective of this chapter is to explain the application of commonly used defense tools, libraries, and metrics available for large-scale ML <span class="No-Break">SaaS platforms.</span></p>
+			<p>In this chapter, these topics will be covered in the <span class="No-Break">following sections:</span></p>
+			<ul>
+				<li>Threat matrix and <span class="No-Break">defense techniques</span></li>
+				<li>Anonymization and <span class="No-Break">data encryption</span></li>
+				<li><strong class="bold">Differential </strong><span class="No-Break"><strong class="bold">Privacy</strong></span><span class="No-Break"> (</span><span class="No-Break"><strong class="bold">DP</strong></span><span class="No-Break">)</span></li>
+				<li>Hybrid privacy methods <span class="No-Break">and models</span></li>
+				<li>Adversarial risk <span class="No-Break">mitigation frameworks</span></li>
+			</ul>
+			<p>Further, with the use of <strong class="bold">Adversarial Robustness Toolbox</strong> (<strong class="bold">ART</strong>), <strong class="source-inline">pysft</strong>, <strong class="source-inline">Pyhfel</strong>, <strong class="source-inline">secml</strong> , <strong class="source-inline">ml_privacy_meter</strong>, <strong class="source-inline">tensorflow_privacy</strong>, <strong class="source-inline">mia</strong>, <strong class="source-inline">diffprivlib</strong>, and <strong class="source-inline">foolbox</strong>, we will see how to test model robustness against <span class="No-Break">adversarial attacks.</span></p>
+			<h1 id="_idParaDest-43"><a id="_idTextAnchor042"/>Technical requirements</h1>
+			<p>This chapter requires you to have Python 3.8 installed along with the Python packages listed here (with their installation commands), as well as Keras 2.7.0 and <span class="No-Break">TensorFlow 2.7.0:</span></p>
+			<ul>
+				<li><strong class="source-inline">pip </strong><span class="No-Break"><strong class="source-inline">install adversarial-robustness-toolbox</strong></span></li>
+				<li><strong class="source-inline">pip </strong><span class="No-Break"><strong class="source-inline">install syft==0.2.9</strong></span></li>
+				<li><strong class="source-inline">pip </strong><span class="No-Break"><strong class="source-inline">install Pyfhel</strong></span></li>
+				<li><strong class="source-inline">pip </strong><span class="No-Break"><strong class="source-inline">install secml</strong></span></li>
+				<li><strong class="source-inline">git </strong><span class="No-Break"><strong class="source-inline">clone https://github.com/privacytrustlab/ml_privacy_meter</strong></span></li>
+				<li><strong class="source-inline">pip install -r requirements.txt</strong>,<strong class="source-inline"> pip </strong><span class="No-Break"><strong class="source-inline">install -e</strong></span></li>
+				<li><strong class="source-inline">pip </strong><span class="No-Break"><strong class="source-inline">install diffprivlib</strong></span></li>
+				<li><strong class="source-inline">pip </strong><span class="No-Break"><strong class="source-inline">install tensorflow-privacy</strong></span></li>
+				<li><strong class="source-inline">pip </strong><span class="No-Break"><strong class="source-inline">install mia</strong></span></li>
+				<li><strong class="source-inline">pip </strong><span class="No-Break"><strong class="source-inline">install foolbox</strong></span></li>
+			</ul>
+			<h1 id="_idParaDest-44"><a id="_idTextAnchor043"/>Analyzing the threat matrix and defense techniques</h1>
+			<p>In this section, let's <a id="_idIndexMarker142"/>look at different defense techniques essential for <a id="_idIndexMarker143"/>enterprises to proactively manage threats related to adversarial attacks during the <span class="No-Break">following stages:</span></p>
+			<ul>
+				<li>Initial research, planning, and system and model <span class="No-Break">design/architecture phase</span></li>
+				<li>ML model training <span class="No-Break">and deployment</span></li>
+				<li>ML model live <span class="No-Break">in production</span></li>
+			</ul>
+			<p>You will also get learn additional capabilities, expertise, and infrastructure that organizations need to invest in to have a foolproof <span class="No-Break">defense system.</span></p>
+			<h2 id="_idParaDest-45"><a id="_idTextAnchor044"/>Researching and planning during the system and model design/architecture phase</h2>
+			<p>This phase (<span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.1</em>) is related to all actions taken during model design, architectural planning, and <a id="_idIndexMarker144"/>conceptualization in which the adversary carries out preliminary investigations, searching <a id="_idIndexMarker145"/>to gain knowledge of the victim’s infrastructure, datasets, and models that will enable them to set up their own capabilities for initiating attacks on ML <span class="No-Break">SaaS platforms.</span></p>
+			<div>
+				<div id="_idContainer033" class="IMG---Figure">
+					<img src="image/Figure_2.01_B18681.jpg" alt="Figure 2.1 – Relevant attack stages during ML model design and development"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 2.1 – Relevant attack stages during ML model design and development</p>
+			<p>We see here the large scope of the initial phase, where adversarial actions can be detrimental to our model and architecture conceptualization. Now, let's discuss the different steps adversaries take when trying to perform <span class="No-Break">an attack.</span></p>
+			<h3>Reconnaissance</h3>
+			<p><strong class="bold">Reconnaissance</strong> is one <a id="_idIndexMarker146"/>of the early stages where an adversary actively <a id="_idIndexMarker147"/>or passively gathers information to use in later adversarial stages to enable <strong class="bold">resource development</strong>, execute <strong class="bold">initial access</strong>, or lead to the execution of continuous reconnaissance attempts. Some of the associated risks and mitigations of this stage are described in the following list. The best way for the victim to mitigate reconnaissance attempts is to minimize the availability of sensitive information to external entities and employ network content, network flow, file creation, and application log monitoring agents to detect and raise alarms if suspicious activity (such as bots or web crawling) is detected from a single <span class="No-Break">IP source.</span></p>
+			<p>Let's now describe how reconnaissance can <span class="No-Break">take place:</span></p>
+			<ul>
+				<li><strong class="bold">Active scanning</strong>: This step involves scanning operations by adversaries to gather information for targeting. Scanning and search operations (on websites/domains or open technical databases) may be carried out on victim infrastructure via network traffic (with network protocols such as ICMP) by probing mechanisms, or by collecting information through external remote services or <span class="No-Break">public-facing applications.</span></li>
+				<li><strong class="bold">Gather victim host/identity/organization information</strong>: This step involves adversarial activity to gain information related to victims’ administrative data (e.g., name, assigned IP, functionality, IP ranges, domain names, etc.), configuration (e.g., operating system, language, etc.), names of divisions/departments, business <a id="_idIndexMarker148"/>operations, and the roles <a id="_idIndexMarker149"/>and responsibilities of <span class="No-Break">major employees.</span></li>
+				<li><strong class="bold">Phishing</strong>: This is an action that is often undertaken by an adversary in order to steal frequently used <a id="_idIndexMarker150"/>credentials to target their victims. Organizations should take the following <span class="No-Break">prompt action:</span><ul><li>Employ antivirus or antimalware along with network intrusion prevention systems (for example, to filter content based on DKIM and SPF, header, referrer, or <strong class="source-inline">User-Agent</strong> string HTTP/S fields) to automatically remove malicious links <span class="No-Break">and attachments.</span></li><li>Using anti-spoofing mechanisms, providing restricted access to websites that have attachments (<strong class="source-inline">.pdf</strong>, <strong class="source-inline">.docx</strong>, <strong class="source-inline">.exe</strong>, <strong class="source-inline">.pif</strong>, <strong class="source-inline">.cpl</strong>, and so on), and enabling email authentication can enable protection against <span class="No-Break">phishing activities.</span></li></ul></li>
+				<li><strong class="bold">Search closed sources, open technical databases, websites and domains, and victim-owned websites</strong>: These search operations by the adversary can help to retrieve confidential information from reputable private sources (such as databases, repositories, or paid subscriptions to feeds of technical/threat intelligence data). In addition, registrations of domains/certificates; network data/artifacts gathered from traffic and/or scans; business-, department-, and <a id="_idIndexMarker151"/>employee-related information <a id="_idIndexMarker152"/>from online sites; and social media can all help the attacker gather the information necessary <span class="No-Break">for targeting.</span></li>
+			</ul>
+			<h3>Resource development</h3>
+			<p><strong class="bold">Resource development</strong> is another early phase of adversarial action, where adversaries <a id="_idIndexMarker153"/>engage themselves in creating resources <a id="_idIndexMarker154"/>to use in subsequent attack stages. Resources may be created, purchased, or stolen to target victims. Let's examine this in <span class="No-Break">more detail:</span></p>
+			<ul>
+				<li><strong class="bold">Public ML artifact retrieval</strong>: This is an important action taken by adversaries to retrieve ML artifacts from public sources, cloud storage, public-facing services, and data repositories. These artifacts can reveal information related to the software stacks, libraries, algorithms, hyperparameters, and model architectures used to train, deploy, test, and evaluate ML models. Adversaries can use either the victim’s representative datasets or models to modify and craft the datasets and models and accordingly train proxy ML models tailored to offline attacks, without directly accessing the target model. The best control measures against this that can be adopted by organizations are <span class="No-Break">the following:</span><ul><li>Enabling multi-level security rules for the full protection of datasets, models, and artifacts by employing built-in multi-factor <span class="No-Break">authentication schemes</span></li><li>Using cloud security rules and ACLs to provide restricted access to ML data <span class="No-Break">and artifacts</span></li></ul></li>
+				<li><strong class="bold">Gathering adversarial ML attack implementation information</strong>: Open source implementations of ML algorithms and adversarial attack <a id="_idIndexMarker155"/>code (such as CleverHans or ART (<a href="https://researchain.net/archives/pdf/Technical-Report-On-The-Cleverhans-V2-1-0-Adversarial-Examples-Library-2906240">https://researchain.net/archives/pdf/Technical-Report-On-The-Cleverhans-V2-1-0-Adversarial-Examples-Library-2906240</a>) and Foolbox (<a href="https://arxiv.org/pdf/1707.04131.pdf">https://arxiv.org/pdf/1707.04131.pdf</a>)) can be misused by attackers. As well as facilitating research, these open source tools can be used to carry out attacks against victims’ infrastructures. In this chapter, we give examples to demonstrate how ART and Foolbox can <span class="No-Break">be used.</span></li>
+				<li><strong class="bold">Gaining adversarial ML attack implementation expertise and capabilities</strong>: After gaining information on open source attack tools, adversaries can deep dive into research papers and use their own ideas to craft their own attack models and start <span class="No-Break">using them.</span></li>
+				<li><strong class="bold">Acquiring infrastructure – attack development and staging workspaces</strong>: In this phase, adversaries rely on the free compute resources available from major cloud providers (such as AWS, Google Cloud, Google Colaboratory, and Azure) to initiate attacks. The use of multiple workspaces can help them <span class="No-Break">avoid detection.</span></li>
+				<li><strong class="bold">Publishing poisoned datasets and triggering poisoned data training</strong>: This step involves creating poisoned datasets (by modifying source datasets, data, or its labels) and publishing these to compromise victims’ ML supply chains. The vulnerabilities embedded in these ML models using poisoned data are activated later and cannot easily <span class="No-Break">be detected.</span></li>
+			</ul>
+			<p>Strategies that can be employed to protect against poison attacks include leveraging De-Pois (De-Pois: An Attack-Agnostic Defense against Data Poisoning Attacks : <a href="https://arxiv.org/pdf/2105.03592.pdf">https://arxiv.org/pdf/2105.03592.pdf</a>), an <a id="_idIndexMarker156"/>attack-agnostic defense framework <a id="_idIndexMarker157"/>used to construct mimic models. This framework uses <strong class="bold">Generative Adversarial Networks</strong> (<strong class="bold">GANs</strong>) to enable the training of data with augmentations <a id="_idIndexMarker158"/>and the creation of models that behave similarly, in terms of outcome, to the original model. This model can detect the poisoned samples by evaluating prediction differences between the target model and the mimic model.</p>
+			<p>In addition to generating defensive awareness of the aforementioned possible intrusions, enterprise-grade defense frameworks should take into consideration some of the following aspects of security bottlenecks and take appropriate <span class="No-Break">remedial measures:</span></p>
+			<ul>
+				<li><strong class="bold">Establishing accounts</strong>: In this phase, external adversaries engage themselves in creating accounts <a id="_idIndexMarker159"/>to build a persona across different social media platforms, such as LinkedIn, as well as on GitHub, to impersonate real people. These personas can be used to accumulate public information, set up email accounts, and strengthen public profiles, which will aid in stealing information over the course <span class="No-Break">of time.</span></li>
+			</ul>
+			<p>The best tactic to protect against such actions is to identify any suspicious activity of individuals who claim to work for the organization or have made connection requests to different organizational accounts.</p>
+			<ul>
+				<li><strong class="bold">Obtaining capabilities</strong>: Here, adversaries rely on stealing, purchasing, or freely downloading malware, licensed software, exploits, certificates, and information related to vulnerabilities. Mitigation actions include <span class="No-Break">the following:</span><ul><li>Carefully analyze and detect features and services that are easy to embed and can be associated with malware providers (such as compilers, debugging <a id="_idIndexMarker160"/>artifacts, code extracts, or any other offerings related to <strong class="bold">Malware as a </strong><span class="No-Break"><strong class="bold">Service</strong></span><span class="No-Break"> (</span><span class="No-Break"><strong class="bold">MaaS</strong></span><span class="No-Break">)).</span></li><li>Malware repository scanning and feature identification can help to <span class="No-Break">blacklist adversaries.</span></li></ul></li>
+			</ul>
+			<p>Now, let's discuss a defense <a id="_idIndexMarker161"/>strategy involving the use of the open source secml library (<a href="https://secml.github.io/class6/">https://secml.github.io/class6/</a>, a security evaluation framework) to build, explain, <a id="_idIndexMarker162"/>attack, and evaluate security using algorithms such as <strong class="bold">Support Vector Machine </strong>(<strong class="bold">SVM</strong>) and ClassifierRidge (a custom ML Ridge classifier). These types of classification algorithms can be <a id="_idIndexMarker163"/>used to detect malware in Android applications and explain ML classifier model's <span class="No-Break">predicted outcomes.</span></p>
+			<p>In the following <a id="_idIndexMarker164"/>code snippet, we have loaded a toy dataset of <a id="_idIndexMarker165"/>Android applications, named <strong class="source-inline">DrebinRed</strong>. The loaded dataset consists of 12,000 benign and 550 malicious samples extracted from Drebin. On training (using a 0.5:0.5 train-test split) the dataset with SVM or the Ridge classifier, we observe the model has a 2% <strong class="bold">False Positive Rate </strong>(<strong class="bold">FPR</strong>) in correctly identifying the benign and <span class="No-Break">malicious samples:</span></p>
+			<pre class="source-code">
+<strong class="bold">repo_url = 'https://gitlab.com/secml/secml-zoo'</strong>
+<strong class="bold">file_name = 'drebin-reduced.tar.gz'</strong>
+<strong class="bold">file_path = 'datasets/</strong><strong class="source-inline">DrebinRed</strong><strong class="bold">/' + file_name</strong>
+<strong class="bold">output_dir = fm.join(settings.SECML_DS_DIR, 'drebin-red')</strong>
+<strong class="bold">md5_digest = 'ecf87ddedf614dd53b89285c29cf1caf'</strong>
+<strong class="bold">dl_file_gitlab(repo_url, file_path, output_dir,</strong>
+<strong class="bold">branch='v' + min_version, md5_digest=md5_digest)</strong></pre>
+			<p>The following output snippet further illustrates the most significant components of the Android malware <a id="_idIndexMarker166"/>detector application. secml uses a <strong class="source-inline">Gradient * Input</strong> gradient-based explanation technique to explain the attributions of different points <a id="_idIndexMarker167"/>during the classification phase. The most important features (the top 5) and their relevance (in terms of percentage) help to explain each correct (not a part of the malware component) and corrupted sample, and even this approach/technique to explain attributions on <span class="No-Break">sparse datasets:</span></p>
+			<pre class="source-code">
+Explanations for sample 137 (true class: 0)
+ -7.49 suspicious_calls::android/net/Uri;-&gt;toString
+ -5.63 suspicious_calls::getSystemService
+ -5.42 api_calls::android/media/MediaPlayer;-&gt;start
+ -4.99 used_permissions::ACCESS_NETWORK_STATE
+ -4.55 req_permissions::android.permission.ACCESS_FINE_LOCATION</pre>
+			<p>As ~25% of the relevance is attributed to five features, these features have a larger impact on the classifier being susceptible to adversarial evasion attacks. Leveraging this behavior of the malware detector, a gradient-based maximum-confidence evasion attack can be employed to generate adversarial samples against the <a id="_idIndexMarker168"/>classifier. This can trigger an L1-order sparse attack by changing one feature at a time to misclassify outputs as 1 instead of 0 and vice versa. We can trigger attacks such as the one demonstrated in the following code snippet, where feature addition works better to fool the malware classifier than feature removal. Removing features may remove other important components of the model, making it more difficult to misclassify. On the <a id="_idIndexMarker169"/>contrary, feature addition is an easy way to fool the model into classifying correct (benign components of the loaded dataset) samples <span class="No-Break">as corrupted.</span></p>
+			<p>After adding the adversarial samples, we can trigger the evasion attack with <strong class="source-inline">classifier</strong>, <strong class="source-inline">distance</strong>, and other parameters, as <span class="No-Break">shown here:</span></p>
+			<pre class="console">
+params = {"classifier": clf,
+    "distance": 'l1',
+    "double_init": False,
+    "lb": 'x0', #feature addition, lb=0 for feature removal
+    "ub": 1,  #feature addition
+    "attack_classes": 'all',
+    "y_target": 0,
+    "solver_params": {'eta': 1, 'eta_min': 1, 'eta_max': None, 'eps': 1e-4}
+}
+from secml.adv.attacks.evasion import CAttackEvasionPGDLS
+evasion = CAttackEvasionPGDLS(**params)</pre>
+			<p>secml determines the model robustness using a <strong class="bold">Security Evaluation Curve </strong>(<strong class="bold">SEC</strong>) by running evasion attacks on the classifier with the L1-order perturbation <strong class="source-inline">epsvalue</strong> varying between 0 and 28 with a step size <span class="No-Break">of </span><span class="No-Break"><strong class="source-inline">4</strong></span><span class="No-Break">.</span></p>
+			<p>To test the Android malware detector against a greater number of added features, we can run the evasion attack on the security evaluation method, as detailed in the following <span class="No-Break">code snippet:</span></p>
+			<pre class="console">
+from secml.adv.seceval import CSecEval
+sec_eval = CSecEval(
+    attack=evasion,
+    param_name=param_name,
+    param_values=param_values)
+sec_eval.run_sec_eval(adv_ds)</pre>
+			<p>Now, let's <a id="_idIndexMarker170"/>plot <span class="No-Break">the SEC:</span></p>
+			<ol>
+				<li>The following code begins the process of getting <span class="No-Break">the SEC:</span><pre class="console">
+from secml.ml.peval.metrics import CMetricTHatFPR, CMetricTPRatTH</pre></li>
+				<li>Next, get the <a id="_idIndexMarker171"/>ROC threshold at which the detection rate should <a id="_idIndexMarker172"/><span class="No-Break">be computed:</span><pre class="console">
+th = CMetricTHatFPR(fpr=fpr_th).performance_score(y_true=ts.Y, score=score_pred[:, 1].ravel())</pre></li>
+				<li>Finally, use the convenience function to plot <span class="No-Break">the SEC:</span><pre class="console">
+fig.sp.plot_sec_eval(sec_eval.sec_eval_data, metric=CMetricTPRatTH(th=th),percentage=True, label='SVM', color='green', marker='o')
+fig.sp.ylabel(r'Detection Rate $(\%)$')
+fig.sp.xlabel(r"$\varepsilon$")</pre></li>
+			</ol>
+			<p>We can see how the SVM classifier is highly vulnerable to adversarial attacks, and particularly sensitive to attacks against the most impactful features. An attack can evade this classifier with a <a id="_idIndexMarker173"/>perturbation as small as eps (ε) = 0.1. When we change it <a id="_idIndexMarker174"/>to have fewer than 10 features (which are the most important ones), half of the corrupted samples are misclassified as <span class="No-Break">correct ones.</span></p>
+			<p>In the following figure, <span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.2</em>, the chart labeled <strong class="bold">A</strong> shows a detection rate of 97% with an FPR<strong class="bold"> </strong>of 20. While the detection rate falls with increasing epsilon (ε), we observe <a id="_idIndexMarker175"/>that the fall is very steep for the Ridge classifier (<strong class="bold">C</strong>), while it happens in a step fashion for SVM (<strong class="bold">B</strong>). As the fall is steeper for the Ridge classifier, it is not a better option than SVM, which will exhibit a lower FPR. Make sure to examine the <strong class="bold">SECs</strong> in the following graphs, which provide estimations <a id="_idIndexMarker176"/>of the detection rate (%) with ε. The SEC plots help us to conclude that the malware detector ceases to perform with increasing levels of <span class="No-Break">adversarial perturbations.</span></p>
+			<div>
+				<div id="_idContainer034" class="IMG---Figure">
+					<img src="image/Figure_2.02_B18681.jpg" alt="Figure 2.2 – Malware detection rate and SEC on SVM and ﻿the Ridge classifier"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 2.2 – Malware detection rate and SEC on SVM and the Ridge classifier</p>
+			<p><strong class="bold">Staging </strong>refers to actions taken by adversaries to upload, install, and set up capabilities <a id="_idIndexMarker177"/>on infrastructures that were previously compromised or rented by them, to target victim networks. Such <a id="_idIndexMarker178"/>activities might include setting up web resources to exploit the victim’s browsing website (to steal confidential information) or uploading malware tools to initiate attacks on the victim’s network. There’s no prompt detection technique to avoid this; however, internet scanning tools may reveal the date and time of <span class="No-Break">such attacks.</span></p>
+			<h3>Initial access</h3>
+			<p>Initial access helps an adversary to leverage security weaknesses on public-facing web servers and gain <a id="_idIndexMarker179"/>access to a network. This can occur in one of the early <a id="_idIndexMarker180"/>stages of development when the model design and the system architecture are still in the development phase. The primary steps to mitigate initial adversarial access include controlling the abuse of credentials via proper management of user account control, issuing valid accounts, enforcing privileged account management practices, defining organization password policies (such as the frequency of password changes), and having in place a systematic user training process and application developer guidance to restrict any illegitimate access <span class="No-Break">to systems.</span></p>
+			<p>Let's now explore the different actions that can be taken by adversaries if they are successful in acquiring <span class="No-Break">initial access:</span></p>
+			<ul>
+				<li><strong class="bold">Supply chain compromise</strong>: In this step, adversaries compromise different components of a victim’s system (such as GPU hardware, data and its annotations, parts of the ML software stack, or the model) to carry out an attack. The attacker <a id="_idIndexMarker181"/>manipulates development tools, environments, code repositories, open source dependencies, and software update/distribution mechanisms; compromises system images; and replaces legitimate software (using different versions) to successfully compromise the victim’s systems. Organizations should mitigate tampering activities by employing techniques to verify distributed binaries (hash checking), along with using tools to scan malicious signatures and engaging in physical hardware inspection. Even using patch management processes and vulnerability scanning tools to scan dependencies, unnecessary features, components, and files can help prevent adversarial access by enforcing strong testing rules prior <span class="No-Break">to deployment.</span></li>
+				<li><strong class="bold">Drive-by compromise</strong>: This involves the exploitation of the victim’s browser (where the adversary may inject malicious code with JavaScript, iFrames, and cross-site scripting, or help to serve malicious ads) and application access tokens, and can be mitigated by doing <span class="No-Break">the following:</span><ul><li>Using browser sandboxes, deploying virtualization measures, and applying micro-segmentation logic. We can limit attacks by isolating applications and web browsers by creating and defining zones in data centers and cloud environments (to isolate workloads). This is one of the strongest ways to limit network traffic and <span class="No-Break">client-side exploitation.</span></li><li>Employing defense tools such as <strong class="bold">Enhanced Mitigation Experience Toolkit</strong> (<strong class="bold">EMET</strong>), network intrusion detectors with SSL/TLS inspection, firewalls, proxies, <a id="_idIndexMarker182"/>ad blockers, and script-blocking extensions can help to control exploitation behavior, block bad domains and ads, and prevent the execution <span class="No-Break">of JavaScript.</span></li></ul></li>
+				<li><strong class="bold">Exploit public-facing applications</strong>: As this technique involves adversaries accessing, exploiting, and bringing down public-facing services such as databases, <strong class="bold">Server Message Block </strong>(<strong class="bold">SMB</strong>), and other applications with open sockets, the main remediation tasks lie with the security architects in designing and deploying application in isolation and sandboxing (limiting exploited targets’ access to other processes), web application firewalls, network segmentation (segmenting public interfaces on a demilitarized zone or a separate hosting infrastructure), and privileged account management (adhering to the principle of least privilege for accessing services) to limit attack traffic. In addition, regular software updates, patch management, vulnerability scanning tools, and application log and network flow monitoring tools (using deep packet inspection to discover artifacts of malicious traffic, such as SQL injection) can be used to detect improper input traffic and <span class="No-Break">raise alerts.</span></li>
+				<li><strong class="bold">External remote services</strong>: This method involves adversaries discovering external-facing <a id="_idIndexMarker183"/>remote services, such as VPNs or Citrix, and finding <a id="_idIndexMarker184"/>routes to connect to internal enterprise network resources from these external locations. To alleviate such risks, security teams should be <span class="No-Break">extra cautious:</span><ul><li>Disable or block unnecessary remotely available services, limit access to resources over the network (by prompting the use of managed remote access systems such as VPNs), enable multi-factor authentication, and allow network segmentation (through the use of network proxies, gateways, <span class="No-Break">and firewalls).</span></li><li>Facilitate log monitoring related to applications, session logons, and network traffic to detect authenticated sessions, discover unusual access patterns and times of operation, and assist in detecting <span class="No-Break">adversarial behavior.</span></li></ul></li>
+				<li><strong class="bold">Hardware additions</strong>: Introducing additional computer accessories or hardware components in the network can permit adversaries to undertake passive network tapping, network traffic modification through adversary/man-in-the-middle attacks, keystroke injection, or kernel memory reading via <strong class="bold">Direct Memory Access </strong>(<strong class="bold">DMA</strong>). To avoid this, asset management systems should be used to do <span class="No-Break">the following:</span><ul><li>Limit access to resources over the network, limit installation of hardware, and employ hardware <a id="_idIndexMarker185"/>detectors or endpoint sensors to discover <a id="_idIndexMarker186"/>additions of USB, Thunderbolt, and other external device communication ports in <span class="No-Break">the network.</span></li><li>Further, to safeguard adversarial copying operations on removable media, organization policies should forbid or restrict <span class="No-Break">removable media.</span></li></ul></li>
+			</ul>
+			<h3>ML model access</h3>
+			<p>Adversaries may gain access to an ML model legitimately through four different techniques that <a id="_idIndexMarker187"/>we’ll examine in this section. The best mitigation <a id="_idIndexMarker188"/>strategy is to include sufficient security rules (cloud- and token-based authorization schemes) to enable authentic access to model APIs, ML services, physical environments, and ML models, <span class="No-Break">as follows:</span></p>
+			<ul>
+				<li><strong class="bold">Model inference API access</strong>: This involves restricting adversary access through the use of APIs to discover the ML model's ontology or family. The corresponding defense action is to limit the introduction of test data into the target systems by single agents to prevent issues related to evading ML models and eroding ML model integrity. As we saw in <a href="B18681_01.xhtml#_idTextAnchor014"><span class="No-Break"><em class="italic">Chapter 1</em></span></a>, there is a possibility of an evasion attack where attackers try to evade detection by hiding the content of spam and malware code. The same kind of attack is possible by using model inference APIs to misclassify examples (individual data samples) <span class="No-Break">as legitimate.</span></li>
+				<li><strong class="bold">ML-enabled product or service limit</strong>: This method limits indirect access to ML models to hide information related to the model’s inference from its logs and metadata. Indirect access can originate from any product or service built by adversaries to gain access to the victim’s <span class="No-Break">ML model.</span></li>
+				<li><strong class="bold">Physical environment access</strong>: To eliminate the scope of adversarial attacks in data engineering pipelines, enable data validation checks across multiple layers of input data ingestion, preprocessing, and <span class="No-Break">feature engineering.</span></li>
+				<li><strong class="bold">Full ML model access</strong>: To prevent the adversary from gaining full access to the model, the best possible defense strategy is to incorporate privacy-preserving ML techniques for data aggregation and training to enable protection from adversarial white-box attacks. Otherwise, these attacks allow the adversary to gain complete <a id="_idIndexMarker189"/>information on the model's architecture, <a id="_idIndexMarker190"/>parameters, and class ontology and exfiltrate the model to execute offline attacks once the model is running live with <span class="No-Break">production data.</span></li>
+			</ul>
+			<p>One of the preferred mechanisms for defending against white-box (model parameters) and black-box (output predictions) attacks is to train the model and evaluate the accuracy of the attacks. If we use <strong class="bold">ML Privacy Meter</strong> (a Python library that helps to quantify risk in ML models) prior to <a id="_idIndexMarker191"/>releasing models, we can test the models by initiating attacks and determine the model’s tendency to leak information. This helps us to act as adversaries and detect whether each data instance actually belongs to the required dataset. Training the model against such attacks can be accomplished in <span class="No-Break">two ways:</span></p>
+			<ul>
+				<li><strong class="bold">White box</strong>: By observing the model’s parameters when the model is deployed in an untrusted cloud or takes part as one of the participating models in a <strong class="bold">Federated Learning</strong> (<span class="No-Break"><strong class="bold">FL</strong></span><span class="No-Break">) setup</span></li>
+				<li><strong class="bold">Black box</strong>: By fetching the model’s predictions from <span class="No-Break">the output</span></li>
+			</ul>
+			<p>During model training and evaluation, the attack accuracy is evaluated on a validation/test set. Moreover, the accuracy is only considered on the best-performing attack model of all attack models. In <span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.3</em>, we can see three plots that illustrate the probabilities (in the range of 0 to 1) of responses that actually respond to an attack based on <span class="No-Break">membership status.</span></p>
+			<div>
+				<div id="_idContainer035" class="IMG---Figure">
+					<img src="image/Figure_2.03_B18681.jpg" alt="Figure 2.3 – Overall privacy risk (left) and privacy risk for classes 24 and 35 (center and right)"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 2.3 – Overall privacy risk (left) and privacy risk for classes 24 and 35 (center and right)</p>
+			<p>With the following code, we are able to detect the trade-off between the model’s achieved accuracy (correct identification of members in the training dataset) and error (incorrect identification or false positives). The following code snippets show how to invoke attack models and verify the probability of each member getting discovered through an <span class="No-Break">adversarial attack:</span></p>
+			<pre class="source-code">
+import ml_privacy_meter
+import tensorflow as tf
+datahandlerA = ml_privacy_meter.utils.attack_data.attack_data(dataset_path=dataset_path,
+member_dataset_path=saved_path,
+            batch_size=100, attack_percentage=10,
+input_shape=input_shape,
+            normalization=True)</pre>
+			<p>The method for starting the attack is shown as follows, where the first two parameters specify the target <a id="_idIndexMarker192"/>training model and target attack model, the third and <a id="_idIndexMarker193"/>fourth parameters denote the training and attack datasets, while the remaining parameters are used to specify layers, gradients, model name, <span class="No-Break">and more:</span></p>
+			<pre class="source-code">
+attackobj = ml_privacy_meter.attack.meminf.initialize(
+    target_train_model=cmodelA,
+    target_attack_model=cmodelA,
+    train_datahandler=datahandlerA,
+    attack_datahandler=datahandlerA,
+    layers_to_exploit=[26],
+    gradients_to_exploit=[6],
+    device=None, epochs=10, model_name='blackbox1')
+attackobj.train_attack()
+attackobj.test_attack()</pre>
+			<p>In addition, we are also able to see the privacy risk histograms for each output class. While the first histogram shows that there is an increase in risk at every step for training data members, the privacy risk for class 24 is more uniformly distributed between 0.4 and 1.0. On the other hand, the privacy risk for class 35 is more skewed between 0.85 and 1.0 for most of the training members. The overall privacy risk histogram is an average aggregation of all privacy <span class="No-Break">risk classes.</span></p>
+			<h2 id="_idParaDest-46"><a id="_idTextAnchor045"/>Model training and development</h2>
+			<p>This phase, as shown in <span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.4</em>, pertains to all actions during model training and deployment <a id="_idIndexMarker194"/>where the adversary has started to extract model and system parameters and constraints to their advantage, evading defense frameworks in the target environment and preparing the ground for <span class="No-Break">continued attacks.</span></p>
+			<div>
+				<div id="_idContainer036" class="IMG---Figure">
+					<img src="image/Figure_2.04_B18681.jpg" alt="Figure 2.4 – Different attack stages during model training and deployment"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 2.4 – Different attack stages during model training and deployment</p>
+			<h3>Execution</h3>
+			<p>Different command and script interpreters can be used by adversaries to execute commands, scripts, <a id="_idIndexMarker195"/>or binaries by embedding them as payloads to mislead and lure victims. Container administration commands and container deployments (with or without remote execution) can help adversaries to execute commands within a container and facilitate container deployment in an environment to evade defenses. Adversaries can also be prompted to schedule jobs for the recurrent execution of malicious code or force users to undertake specific actions (for example, opening a malicious file) to execute <span class="No-Break">malicious code.</span></p>
+			<p>Execution can be accomplished in the <span class="No-Break">following ways.</span></p>
+			<ul>
+				<li><strong class="bold">User execution – unsafe ML artifacts</strong>: Adversaries may develop unsafe ML artifacts (without adhering to serialization principles) that can enable them to gain access and execute <span class="No-Break">harmful artifacts.</span></li>
+				<li><strong class="bold">Exploitation for client execution</strong>: Adversaries may exploit vulnerabilities in client software by leveraging browser-based exploitations, inter-process communication, system services, and native APIs (and their hierarchy of interfaces) in their favor to enforce the execution of <span class="No-Break">malicious content.</span></li>
+				<li><strong class="bold">Software deployment tools</strong>: After gaining access to an enterprise’s third-party software, it becomes easier for adversaries to gain access to and wipe information from hard drives at <span class="No-Break">all endpoints.</span></li>
+			</ul>
+			<p>In addition to the commonly used defense mechanisms that we examined in the first phase, defense strategies should focus on enforcing limits on harmful operations such as <span class="No-Break">the following:</span></p>
+			<ul>
+				<li>Limiting access to resources over the network (enabling authenticated local and secure port access to aid communication with APIs over TLS), privileged account management (not allowing containers or services to run as root), behavior prevention on endpoints, execution prevention (by using application control logic and tools such as Windows Defender Application Control and AppLocker, or software restriction policies), code signing, application isolation, <span class="No-Break">and sandboxing.</span></li>
+				<li>When adopting system-level security measures, DevOps and security teams should wisely use and manage the operating system's configuration management (forcing scheduled tasks to run under authenticated accounts instead of allowing them to run under <span class="No-Break">system services).</span></li>
+				<li>Active Directory <a id="_idIndexMarker196"/>configuration to reinforce Group Policy enforcement to isolate and limit access to critical <span class="No-Break">network elements.</span></li>
+			</ul>
+			<p>To further curb execution operations practiced by adversaries, the following persistence actions should be enforced by system administrators to prevent <span class="No-Break">unwanted intrusion.</span></p>
+			<h3>Persistence</h3>
+			<p>Here is a list of the actions to <span class="No-Break">prevent intrusion:</span></p>
+			<ul>
+				<li>Preventing the execution <a id="_idIndexMarker197"/>of code that has not been downloaded from legitimate repositories (which means ensuring only non-vulnerable applications are allowed to have <strong class="source-inline">setuid</strong> and <strong class="source-inline">setgid</strong> <span class="No-Break">bits set)</span></li>
+				<li>Privileged account management (don't allow users to be unnecessarily added to the <span class="No-Break">admin group)</span></li>
+				<li>Restricting file and <span class="No-Break">directory permissions</span></li>
+				<li>Restricting library loading through permissions <span class="No-Break">and audits</span></li>
+				<li>User account control (using the highest enforcement level, leaving no room for bypassing <span class="No-Break">access control)</span></li>
+			</ul>
+			<h3>Defense evasion</h3>
+			<p>Defense evasion comprises <a id="_idIndexMarker198"/>all operations used by adversaries that enable them to evade detection and the existing security <a id="_idIndexMarker199"/>controls. Adversaries are powerful enough to break through the victim’s systems with the untrusted activities listed in <em class="italic">the </em><span class="No-Break"><em class="italic">following table:</em></span><span class="No-Break">.</span></p>
+			<table id="table001-1" class="No-Table-Style _idGenTablePara-1">
+				<colgroup>
+					<col/>
+					<col/>
+				</colgroup>
+				<thead>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="bold">Item </strong><span class="No-Break"><strong class="bold">No.</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><strong class="bold">Mode of </strong><span class="No-Break"><strong class="bold">Defense Evasion</strong></span></p>
+						</td>
+					</tr>
+				</thead>
+				<tbody>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>1</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Uninstall/disable security software; elevate privilege rights; evade virtualizations/sandboxes; hide the presence of programs, files, network connections, services, and drivers; execute malicious code; practice reflective code loading into a process to conceal the execution of malicious payloads; obfuscate and encrypt code/data (use XSL files to <span class="No-Break">embed scripts).</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>2</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Trusted processes can work in the adversaries’ favor to help them hide, conceal their malware, and manipulate feature artifacts in such a manner that they appear to be legitimate actions. Bypass and impair existing signature-based defenses by either running proxying execution of malicious code or deploying a new container image that has malware without any security, firewalls, network rules, access controls, or <span class="No-Break">user limitations.</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>3</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Carry out process or template injection; execute scripts to hijack code flow; modify authentication processes, cloud compute infrastructure, registries, system images, file and directory permissions, network boundary bridging (taking control of network boundary devices and allowing the passage of prohibited traffic), and Active Directory data (including credentials and keys) in the <span class="No-Break">target environment.</span></p>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Table 2.1 – Different modes of ML model defense evasion</p>
+			<p>As defense evasion <a id="_idIndexMarker200"/>relies on the abuse of system failures, stringent security measures should be put in place to close all loopholes. Most of the defensive tactics described previously apply here. In <a id="_idIndexMarker201"/>addition, prevention techniques that need greater attention are <span class="No-Break">the following:</span></p>
+			<ul>
+				<li>Deploying network monitoring tools to filter <span class="No-Break">network traffic.</span></li>
+				<li>Deploying antivirus and antimalware detectors <span class="No-Break">for monitoring.</span></li>
+				<li>Employing endpoint behavioral anomaly detection techniques to stop the retrieval and execution of <span class="No-Break">malicious payloads.</span></li>
+				<li>Operating systems should be configured such that administrator accounts are not enumerated and do not reveal <span class="No-Break">account names.</span></li>
+				<li>When not in use, active <a id="_idIndexMarker202"/>macros and content should be removed from programs to mitigate risks arising from the execution of <span class="No-Break">malicious payloads.</span></li>
+				<li>Unnecessary scripts should be blocked, passwords should be encrypted, and boot images of network devices should always be <span class="No-Break">cryptographically signed.</span></li>
+			</ul>
+			<h3>Discovery</h3>
+			<p>The discovery phase helps <a id="_idIndexMarker203"/>adversaries gain knowledge of the victim’s account, operating system, and configuration (as listed in <em class="italic">Table 2.2</em>) for systematic planning prior to invading the <span class="No-Break">victim’s systems.</span></p>
+			<table id="table002" class="No-Table-Style _idGenTablePara-1">
+				<colgroup>
+					<col/>
+					<col/>
+				</colgroup>
+				<thead>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break"><strong class="bold">Item No.</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><span class="No-Break"><strong class="bold">Discovery Mechanisms</strong></span></p>
+						</td>
+					</tr>
+				</thead>
+				<tbody>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>1</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Browser data (for information related to banking sites, interests, and social media), a list of open application windows, network information (configuration settings, such as IP and/or MAC addresses), programs, and services (peripheral devices, remote programs, and <span class="No-Break">file folders)</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>2</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>System (location, time, and owner), cloud infrastructure (instances, virtual machines, and snapshots, as well as storage and database services), dashboards, orchestration/container services, domain trust relationships, Group Policy settings (identifying paths for privilege escalation), and other information related to connection <span class="No-Break">entry points</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>3</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Quickly altering the malware and disengaging from the victim’s system to hide the core functions of <span class="No-Break">the implant</span></p>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Table 2.2 – Different discovery mechanisms</p>
+			<p> Due to adversarial pre-planning, the foremost defense steps include <span class="No-Break">the following:</span></p>
+			<ul>
+				<li>Enable monitoring of all events together, without viewing any suspicious action in isolation. Sequential information discovery and collection are part of a larger attack plan, such <a id="_idIndexMarker204"/>as lateral data movement or <span class="No-Break">data corruption.</span></li>
+				<li>Discovery and proof collection (using screenshots and keyboard inputs), which could help in the process of reconciliation to justify acts of <span class="No-Break">data stealing.</span></li>
+			</ul>
+			<h3>Collection</h3>
+			<p>After the discovery of data sources, an adversary will be enthusiastic to collect and steal (exfiltrate) confidential <a id="_idIndexMarker205"/>sensitive information either manually or through automated means. Common target sources include various drive types, removable media, browser sessions, audio, video, emails, cloud storage, and configuration. Other sources of information include repositories, local systems, network shared drives, screenshots, audio/video captures, and <span class="No-Break">keyboard input.</span></p>
+			<h2 id="_idParaDest-47"><a id="_idTextAnchor046"/>ML model live in production</h2>
+			<p>This phase shown in <span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.5</em> relates to attacks performed on ML models and ML SaaS platforms at scale. Here, the adversary is fully equipped with full system-level information, data, and <a id="_idIndexMarker206"/>proxy models that are essential for them to execute attacks and impact the victim’s <span class="No-Break">business operations.</span></p>
+			<div>
+				<div id="_idContainer037" class="IMG---Figure">
+					<img src="image/Figure_2.05_B18681.jpg" alt="Figure 2.﻿5 – Different attack stages when ML models are live in production"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 2.5 – Different attack stages when ML models are live in production</p>
+			<p>This phase involves the manipulation, interruption, or destruction of data by adversaries to compromise system integrity and disrupt business operations. Attacks can range from data tampering <a id="_idIndexMarker207"/>activities to techniques involving crafting adversarial data, to restrict ML models from yielding the right <span class="No-Break">predicted results.</span></p>
+			<h3>Staging ML model attacks</h3>
+			<p>Once the discovery and collection phases are over, the adversary leverages their new knowledge <a id="_idIndexMarker208"/>to plan and attack the system intelligently (online or offline) by training proxy models and triggering poisoned attacks by injecting adversarial inputs into target models. Target models act as important resources in staging <span class="No-Break">attack operations:</span></p>
+			<ul>
+				<li><strong class="bold">Collecting ML artifacts</strong>: Once the adversary has successfully gathered information on the ML artifacts that exist on the network, they may exfiltrate them for immediate use in staging an ML attack. To mitigate risks involving the collection of model artifacts, note <span class="No-Break">the following:</span><ul><li>The ML model training methodology should encompass all <span class="No-Break">privacy-preserving techniques.</span></li><li>In addition, all ACL rules (of related microservices) and encryption logic should frequently be audited <span class="No-Break">and revisited.</span></li></ul></li>
+				<li><strong class="bold">Training proxy ML models</strong>: Adversaries often train ML models to create proxy models and trigger attacks on the target models in a simulated manner. This offline simulation helps them to gain information from target models and validate and initiate attacks without any need for higher-level access rights <span class="No-Break">or privileges.</span></li>
+				<li><strong class="bold">Replicating ML models</strong>: Here, an adversary replicates the target model as a separate private model, where the target model’s inferences are recorded as labels for training the offline private version of the model. This kind of operation involves repeated queries to the victim’s model inference APIs. To throttle repeated requests from the same IP, defenders can use rate limiting and blacklist source IPs to limit such queries and consequently the number of <span class="No-Break">inferences extracted.</span></li>
+				<li><strong class="bold">Poisoning ML models</strong>: Adversaries can generate poisoned models from the previous steps by injecting poisoned data for training or carefully retrieving the model inferences. In fact, poisoned models are a persistent artifact at the victim’s end that the adversary can use to their advantage to insert and trigger backdoor triggers with completely random patterns and locations to evade backdoor defense mechanisms, making it difficult for monitoring tools to detect issues and <span class="No-Break">raise alerts.</span></li>
+			</ul>
+			<p>One mechanism of defense against poison attacks is to use spectral signatures (<a href="https://proceedings.neurips.cc/paper/2018/file/280cf18baf4311c92aa5a042336587d3-Paper.pdf">https://proceedings.neurips.cc/paper/2018/file/280cf18baf4311c92aa5a042336587d3-Paper.pdf</a>), which should detect the deviations in average value created by the minority sub-population of poisoned inputs. This algorithm depends on the fact that the means of two sub-populations are fairly different in comparison <a id="_idIndexMarker209"/>to the overall variance of the populations, owing to the fact these two sub-populations show either the presence or absence of correctly labeled samples or corrupted samples. In such a scenario, one population sub-group containing mislabeled corrupted inputs can be identified using <strong class="bold">Singular Value Decomposition</strong> (<strong class="bold">SVD</strong>) and removed. This algorithm performs efficiently against back-door <a id="_idIndexMarker210"/>attacks carried out on real image samples and state-of-the-art neural network architectures. In the following snippet, you can see a <strong class="source-inline">SpectralSignature</strong> defense employed on a Keras classifier, which returns a report (a dictionary containing an index of keys and values as the outlier score of suspected poisons) and <strong class="source-inline">is_clean_lst</strong>, denoting whether each data point in the training data is clean or poisoned:</p>
+			<pre class="console">
+defence = SpectralSignatureDefense(classifier, x_train, y_train,  batch_size=128, eps_multiplier=1, expected_pp_poison=percent_poison)
+report, is_clean_lst = defence.detect_poison(nb_clusters=2,                                           nb_dims=10,reduce="PCA")
+pp = pprint.PrettyPrinter(indent=10)
+pprint.pprint(report)
+is_clean = (is_poison_train == 0)
+confusion_matrix = defence.evaluate_defence(is_clean)</pre>
+			<ul>
+				<li><strong class="bold">Verifying attack</strong>: This action helps an adversary to plan, prepare, and verify planned attacks based on the suitability of the time chosen and the availability of the victim’s physical or virtual environments. Mitigation strategies against this type of attack are difficult to implement as adversaries can leverage inference APIs with limited queries or create offline versions of the victim’s target model. This leads to increased API billing costs for the victim, as API costs are directly borne <span class="No-Break">by them.</span></li>
+				<li><strong class="bold">Crafting adversarial data</strong>: Adversarial data that serves as input to ML models can be misclassified, increase <a id="_idIndexMarker211"/>energy consumption, or make the model prone to failure. White-box optimization, black-box optimization, black-box transfer, and manual modification are population algorithms that can help adversaries to generate input data samples to evade ML architecture. The key purpose of adversaries is to disrupt the ML models by challenging <span class="No-Break">their integrity.</span></li>
+			</ul>
+			<h3>Command-and-control requests</h3>
+			<p>These operations <a id="_idIndexMarker212"/>help adversaries move one step closer to extracting useful information from the victim’s <a id="_idIndexMarker213"/>network, as listed in the <span class="No-Break">following table.</span></p>
+			<table id="table003" class="No-Table-Style">
+				<colgroup>
+					<col/>
+					<col/>
+				</colgroup>
+				<thead>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break"><strong class="bold">Item No.</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><strong class="bold">Modes of </strong><span class="No-Break"><strong class="bold">Control Operations</strong></span></p>
+						</td>
+					</tr>
+				</thead>
+				<tbody>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>1</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Use removable media (for example, by initiating communication between the host and other compromised services on the target network), utilize uncommonly used port-protocol pairs, or deploy authenticated <span class="No-Break">web services.</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>2</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Mix the commands with existing traffic, encode/obfuscate the requests over encrypted/fallback (when the primary channel is inaccessible)/multi-stage obfuscation channels to trigger commands, and dynamically establish connections with the <span class="No-Break">target infrastructures.</span></p>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Table 2.3 – Different modes of control operations</p>
+			<p>However, the <a id="_idIndexMarker214"/>adversary is clever enough to do this in such a way that the existing defense strategies on the target network will not raise an alarm. Therefore, some appropriate defense techniques are <span class="No-Break">as follows:</span></p>
+			<ul>
+				<li>Enabling the adoption of specially crafted adversarial protocol tunnels, hiding open ports through traffic signaling, and making use of proxies can help to avoid direct communication between a command-and-control server and the <span class="No-Break">victim’s network.</span></li>
+				<li>The use of different application- and network-level authentication and application sandboxing mechanisms, discussed previously, is <span class="No-Break">highly recommended.</span></li>
+				<li>Additionally, network segmentation by properly configuring firewalls for existing microservices, databases, and proxies to limit outgoing traffic <span class="No-Break">is essential.</span></li>
+				<li>Only authorized ports and network gateways should be kept open for hosts to establish communication over these <span class="No-Break">authorized interfaces.</span></li>
+			</ul>
+			<h3>Exfiltration</h3>
+			<p>Data exfiltration <a id="_idIndexMarker215"/>can be carried out by adversaries (as listed in <em class="italic">Table 2.4</em>) over the network, after data collection, encryption, compression, and packaging. Data can be packaged and compressed to different-sized blocks before being transmitted out of the network using a <a id="_idIndexMarker216"/>command-and-control channel or alternative <span class="No-Break">channel strategies.</span></p>
+			<table id="table004" class="No-Table-Style">
+				<colgroup>
+					<col/>
+					<col/>
+				</colgroup>
+				<tbody>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break"><strong class="bold">Item No.</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><strong class="bold">Modes </strong><span class="No-Break"><strong class="bold">of Exfiltration</strong></span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>1</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Automated exfiltration (unauthorized transfer of information collection), exfiltration over alternate protocols (relying on different protocols, such as FTP, SMTP, HTTP/S, DNS, or SMB instead of the existing command-and-control channel), and exfiltration over an existing command-and-control channel (over time for <span class="No-Break">defense evasion)</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>2</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Network medium (Wi-Fi connection, modem, cellular data connection, Bluetooth or another <strong class="bold">Radio Frequency</strong> (<strong class="bold">RF</strong>) <span class="No-Break">channel, etc.)</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>3</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Physical medium (removable drive) or web service (<span class="No-Break">SSL/TLS encryption)</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p>4</p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Scheduled transfers that move data to <span class="No-Break">cloud accounts</span></p>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Table 2.4 – Different modes of exfiltration</p>
+			<p>The most common and easiest ways to carry out exfiltration attacks are by doing <span class="No-Break">the following:</span></p>
+			<ul>
+				<li><strong class="bold">Inferencing ML model APIs for exfiltration</strong>: ML model inference API access is the primary means for adversaries to look for ways to exfiltrate/steal private information <a id="_idIndexMarker217"/>from the model’s <span class="No-Break">inference APIs.</span></li>
+			</ul>
+			<p>To mitigate exfiltration <a id="_idIndexMarker218"/>risks, the following defense actions are mandatory:</p>
+			<ul>
+				<li>Private data should be trained using application-level privacy techniques or by making the <a id="_idIndexMarker219"/>best use of hybrid security measures (application- and transport-level security) to protect against leakage of <strong class="bold">Personally Identifiable </strong><span class="No-Break"><strong class="bold">Information</strong></span><span class="No-Break"> (</span><span class="No-Break"><strong class="bold">PII</strong></span><span class="No-Break">).</span></li>
+				<li><strong class="bold">Data Loss Prevention </strong>(<strong class="bold">DLP</strong>) APIs can be used to detect and block the transfer <a id="_idIndexMarker220"/>of sensitive data over <span class="No-Break">unencrypted protocols.</span></li>
+				<li>Network intrusion detection and prevention systems can be used with network signatures to monitor and block <span class="No-Break">malware traffic.</span></li>
+				<li>Restricting web <a id="_idIndexMarker221"/>content access by using web proxies can help to minimize unauthorized <span class="No-Break">external access.</span></li>
+			</ul>
+			<ul>
+				<li><strong class="bold">Evading ML models</strong>: Adversaries can use traditional cyberattacks where adversarial actions can evade ML-based <span class="No-Break">virus/malware detection.</span></li>
+				<li><strong class="bold">Denial of Service (DDoS)</strong>: Here, adversaries are driven by the objective to bring down ML systems in production by issuing a flood of requests. The requests may be computationally intensive, requiring large amounts of memory, GPU resources, and processing cycles, and can overload the productionized systems, which may become too slow <span class="No-Break">to respond.</span></li>
+				<li><strong class="bold">Spamming ML systems</strong>:<em class="italic"> </em>Here, the adversaries increase the number of predictions in the output by spamming the ML system with false and arbitrary data. This impacts the ML team at the victim’s organization, who end up spending extra time deducing the correct inferences from <span class="No-Break">the data.</span></li>
+				<li><strong class="bold">Eroding ML model integrity</strong>: Adversaries may degrade the target model’s performance with adversarial data inputs to erode confidence in the system over time. This can lead to the victim organization wasting time and money attempting to fix <span class="No-Break">the system.</span></li>
+				<li><strong class="bold">Harvesting cost</strong>: This is similar to a DDoS attack, where adversaries engage themselves in targeting the victim’s ML services to increase the compute and running costs by bombarding the system with false and specially crafted queries. Sponge <a id="_idIndexMarker222"/>examples are specially crafted adversarial inputs, designed to increase processing speed and energy consumption, which can degrade the overall performance of the <span class="No-Break">victim’s systems.</span></li>
+				<li><strong class="bold">ML IP theft</strong>: Here, adversaries steal intellectual property from ML models, training and evaluation datasets, and their related artifacts with the objective of causing economic harm to the victim organization. This act enables adversaries to have unlimited access to their victim's service free of cost, avoiding the MLaaS provider’s <span class="No-Break">API charges.</span></li>
+				<li><strong class="bold">System breakdowns</strong>: Other than the commonly used mechanisms, impact strategies (the third attack strategy  shown in <span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.5)</em> are mainly targeted at systems in production and include a variety of irrecoverable data destruction mechanisms such as overwriting files and directories <a id="_idIndexMarker223"/>with random data, manipulating data, defacement, wiping data, corrupting firmware, large-scale data encryption on target systems to disrupt the availability of system and network resources, commands to stop the service, system shutdown/reboot, and resource hijacking with the objective of bringing down the victim’s <span class="No-Break">system resources.</span></li>
+			</ul>
+			<p>The ideal way to mitigate risks related to impacts is to follow these <span class="No-Break">best practices:</span></p>
+			<ul>
+				<li>Have a data <a id="_idIndexMarker224"/>backup process to protect against any data <span class="No-Break">loss/modification attempts.</span></li>
+				<li>Have model robustness test strategies in place by thoroughly testing ML models against <span class="No-Break">sponge attacks.</span></li>
+				<li>Worst-case or low threshold boundaries to validate model robustness can also aid in detecting adversarial attacks, where system-level degradations in performance are a symptom of inputs from external sources not designed for <span class="No-Break">the system.</span></li>
+			</ul>
+			<p>Up to now, we have discussed the attack threat matrix, which we first saw in <a href="B18681_01.xhtml#_idTextAnchor014"><span class="No-Break"><em class="italic">Chapter 1</em></span></a>, <span class="No-Break"><em class="italic">Figure 1</em></span><em class="italic">.13</em>, and different defense mechanisms available for different types of <span class="No-Break">adversarial attacks.</span></p>
+			<p>Now let's look into the data anonymization and encryption techniques available to protect <span class="No-Break">sensitive data.</span></p>
+			<h1 id="_idParaDest-48"><a id="_idTextAnchor047"/>Anonymization and data encryption</h1>
+			<p>Due to the possibility <a id="_idIndexMarker225"/>of different attacks and threats, organizations <a id="_idIndexMarker226"/>have become more responsible about safeguarding the data rights of their employees. The Data Breach Survey of 2019 revealed that 79% of CIOs were convinced that company data was put at risk in the previous year because of actions by their employees (<a href="https://www.grcelearning.com/blog/cios-increasingly-concerned-about-insider-threats">https://www.grcelearning.com/blog/cios-increasingly-concerned-about-insider-threats</a>). The data security practices of as many as 61% of employees put the company at risk, which led organizations to adopt best practices related to data anonymization. Some of the practices that organizations should follow to comply with GDPR and other regulations will be discussed in <span class="No-Break">this section.</span></p>
+			<p>Data anonymization <a id="_idIndexMarker227"/>or pseudo-anonymization needs to be carried out on PII, which mainly <a id="_idIndexMarker228"/>includes names, ages, <strong class="bold">Social Security Numbers</strong> (<strong class="bold">SSNs</strong>), credit card details, bank account numbers, salaries, mobile numbers, passwords, and <span class="No-Break">security questions.</span></p>
+			<p>In addition to this, company policy and database administrators can define extra processes before the application of anonymization techniques. Now, let's look at some of the most commonly used techniques for <span class="No-Break">data anonymization.</span></p>
+			<h2 id="_idParaDest-49"><a id="_idTextAnchor048"/>Data masking</h2>
+			<p>This technique hides and protects the original data by generating mirrored versions of it at random and then shuffling it with the <a id="_idIndexMarker229"/>original version of the data. There are five primary types of masking measures that make it difficult for the attacker to decipher the <span class="No-Break">original data:</span></p>
+			<ul>
+				<li><strong class="bold">Deterministic data masking</strong>: This process allows the replacement of any columnar value <a id="_idIndexMarker230"/>with a specific <a id="_idIndexMarker231"/>value in any location of the table – be it the same row, the same database/schema, or between instances/servers/database types. It takes into consideration similar settings to generate replacement global salt keys (these are cryptographic elements that hash the data for security; for example, a website’s cookies). For example, XYZ can be replaced <span class="No-Break">with ABC.</span></li>
+				<li><strong class="bold">Dynamic Data Masking </strong>(<strong class="bold">DDM</strong>): The objective of this masking technique is to mask real-time <a id="_idIndexMarker232"/>production-grade data such that live data <a id="_idIndexMarker233"/>streams are modified without the data generator/requestor having access to the sensitive data. It can be used by setting the central data masking policy to mask sensitive fields with full or partial masking functions, along with random masking for numeric data. It also finds heavy usage in simple transact SQL commands (one or more SQL commands grouped together, that can be committed to a database as a single logical unit or rollback) SQL <a id="_idIndexMarker234"/>commands (for example, on SQL Server 2016 (13.x) and Azure SQL Database). Now, let’s <a id="_idIndexMarker235"/>look at an example of how masking is done <span class="No-Break">in Azure:</span><pre class="console">
+Email varchar (100) MASKED WITH (FUNCTION = 'email ()') NULL</pre></li>
+			</ul>
+			<p>Here, the <strong class="source-inline">Email</strong> method uses masking to expose only the first letter of an email address and the constant suffix <strong class="source-inline">.com</strong>, producing the following: <a href="mailto:aXXX@XXXX.com">aXXX@XXXX.com</a>.</p>
+			<p>However, dynamic masking cannot be applied to encrypted columns, file streams, <strong class="source-inline">COLUMN_SET</strong>, or computed columns that have no dependency on any other columns with a mask.</p>
+			<ul>
+				<li><strong class="bold">On-the-fly data masking</strong>: This process is common when data from development <a id="_idIndexMarker236"/>environments is masked <a id="_idIndexMarker237"/>without the use of a staging environment due to factors including insufficient extra space, or under the constraint that the data must be migrated to the target environment. This masking technique is used in Agile development processes where <strong class="bold">Extract, Transform, Load</strong> (<strong class="bold">ETL</strong>) is directly able to load the data into the target environment <a id="_idIndexMarker238"/>without creating backups and copies. However, the general recommendation is to refrain from using this technique widely (other than in the initial stages of the project) to avoid risks related to compliance and <span class="No-Break">security issues.</span></li>
+				<li><strong class="bold">Static data masking</strong>: This method triggers data masking on the database copy with a <a id="_idIndexMarker239"/>complete replacement <a id="_idIndexMarker240"/>of the original data, without leaving any room to recover the original data. It is a recommended procedure for development, testing, analytics, and troubleshooting purposes as it allows the storage of masked data with a clear separation between production and dev/test setups, thereby enabling compliance and security conformance. For example, a username and email address can be masked from <strong class="source-inline">Julia Gee</strong> to <strong class="source-inline">NULL Fhjoweeww</strong> and <strong class="source-inline">andwb@yahoo.com</strong> to <span class="No-Break"><strong class="source-inline">yjjfd@yahoo.com</strong></span><span class="No-Break"> respectively.</span></li>
+				<li><strong class="bold">Synthetic data</strong>: Synthetic data is a data anonymization technique employed to preserve the <a id="_idIndexMarker241"/>statistical properties <a id="_idIndexMarker242"/>of the original dataset, with a considerable margin of variable privacy gain and unpredictable utility loss. The increased privacy provided by this method offers protection against privacy-related attacks and prevents the re-identification of individuals. The synthetic data generated from generative models (for example, using deep learning techniques to generate deep fakes, where synthetic data recreates fake images resembling the originals) ensures high utility by enabling similar inferences as the <span class="No-Break">original data.</span></li>
+			</ul>
+			<h2 id="_idParaDest-50"><a id="_idTextAnchor049"/>Data swapping</h2>
+			<p>This procedure <a id="_idIndexMarker243"/>shuffles and rearranges data to completely break the similarity <a id="_idIndexMarker244"/>between the original and the resultant datasets. There are three popular <span class="No-Break">data-swapping techniques:</span></p>
+			<ul>
+				<li><span class="No-Break">K-anonymity</span></li>
+				<li><span class="No-Break">L-diversity</span></li>
+				<li><span class="No-Break">T-closeness</span></li>
+			</ul>
+			<p>The techniques can all be used to make the deanonymization of data difficult for <span class="No-Break">any intruder.</span></p>
+			<h2 id="_idParaDest-51"><a id="_idTextAnchor050"/>Data perturbation</h2>
+			<p>This data <a id="_idIndexMarker245"/>anonymization principle adds noise to numerical data in databases to ensure its confidentiality. The process of adding or multiplying random noise additive, multiplicative, or random noise (used in Gaussian or Laplace distribution) helps to distort data, protecting it from being parsed by <span class="No-Break">an attacker.</span></p>
+			<h2 id="_idParaDest-52"><a id="_idTextAnchor051"/>Data generalization</h2>
+			<p>This method makes the data less identifiable by allowing you to remove certain ranges or portions <a id="_idIndexMarker246"/>of data (for example, outliers) from the database. One example is replacing <strong class="source-inline">age 45 years</strong> with <strong class="source-inline">&lt;= 45</strong>, where the value is replaced by a wider range that is still semantically consistent. Data portioning of this type or attribute assignment to specific categories serves as a measure to generalize <span class="No-Break">the data.</span></p>
+			<p>Broadly, generalization can be applied at the full domain level or to individual sub-domains. In the former, data transformation takes place for a generic domain or level of the hierarchy, while in the latter the level of generalization occurs on different subsets of the <span class="No-Break">same domain.</span></p>
+			<p>Generalization-based techniques can be further applied to categorical or discrete numeric attributes to <a id="_idIndexMarker247"/>keep them private. There are two primary means by which generalization <a id="_idIndexMarker248"/>can be applied: a <em class="italic">hierarchy-based approach</em> or a <em class="italic">partition-based approach</em> (where a structure or order of partition <a id="_idIndexMarker249"/>needs to be established on the data items, before running the partition scheme on continuous numerical attributes). The partition-based approach partitions the data items into ranges, while hierarchy-based generalization requires the existence of generalization hierarchies and can be used for categorical and discrete numeric attributes. Some of these generalization techniques are described in the <span class="No-Break">following sections.</span></p>
+			<h2 id="_idParaDest-53"><a id="_idTextAnchor052"/>K-anonymity</h2>
+			<p>Sweeney first proposed <a id="_idIndexMarker250"/>the K-anonymity principle, which can be used as a framework to evaluate algorithms that carry sensitive information (<a href="https://epic.org/wp-content/uploads/privacy/reidentification/Sweeney_Article.pdf">https://epic.org/wp-content/uploads/privacy/reidentification/Sweeney_Article.pdf</a>). In the absence of K-anonymity, sensitive attributes can leak and reveal boundary limits from the information elements. The application of K-anonymity is aimed at transforming the protected elements (either by generalization or suppression) with the objective of safeguarding the dataset from the hands of <span class="No-Break">an intruder.</span></p>
+			<p>K-anonymity ensures any generalized block consisting of an individual record cannot be differentiated from K-1 other individuals in terms of any set of quasi-identifiers (such as zip code, age, or gender). This anonymization principle helps protect against linkage attacks, as discussed in <a href="B18681_01.xhtml#_idTextAnchor014"><span class="No-Break"><em class="italic">Chapter 1</em></span></a>. We see that in a linkage attack, an attacker is able to reveal the identity of a victim (unique identification number, credit card number, or others) and combine this with other background information, such as a user's travel details like source, destination, and means of travel. This combined information can assist an adversary in tracking the user's entire whereabouts. For example, a value of 10 for K on the protected attributes of age, <strong class="bold">SSN</strong>, nationality, salary, and bank account details will produce a minimum of 10 different records for each combination of the <span class="No-Break">defined attributes.</span></p>
+			<p>As <span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.6</em> illustrates, with K = 2, there are two records listed as Asian and two as Hispanic. We can <a id="_idIndexMarker251"/>see that an equivalent number of records are distributed with respect to sensitive attributes such as age and salary across the two races. <span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.6</em> provides a complete demonstration of an end-to- end pipeline, showing risk score assessments, information recognition, pseudonymization, and anonymization, to <a id="_idIndexMarker252"/>audit and store <span class="No-Break">sensitive data.</span></p>
+			<div>
+				<div id="_idContainer038" class="IMG---Figure">
+					<img src="image/Figure_2.06_B18681.jpg" alt="Figure 2.﻿6 – Different ﻿anonymity models – K-anonymity, L-diversity, and T-closeness﻿"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 2.6 – Different anonymity models – K-anonymity, L-diversity, and T-closeness</p>
+			<p>The limitation of this system <a id="_idIndexMarker253"/>is that if an adversary has any information about the victims beforehand (say, their age), then it would be much easier for them to identify other attributes, such as salary- and disease-related information. For example, a friend of Nancy's may know the age group and race to which she belongs, which would enable her friend to guess and retrieve her salary. The presence of homogeneous salary or age groups makes it possible for the adversary to derive sensitive information by the process of elimination or negative disclosure. It becomes easier for an adversary to initiate their attacks successfully and with high confidence. As a result, improvements for K-anonymity have been suggested to prevent background knowledge and <span class="No-Break">homogeneity-based attacks.</span></p>
+			<h2 id="_idParaDest-54"><a id="_idTextAnchor053"/>L-diversity</h2>
+			<p>The L-diversity principle (defined by Machanavajjhala et al.) was designed to handle the drawbacks of <a id="_idIndexMarker254"/>the K-anonymity algorithm to reduce the probability of homogeneity and background knowledge attacks. The L-diversity principle provides privacy where the data publisher is not aware of the knowledge that is possessed by the adversary. The fundamental idea behind L-diversity is the requirement that each group sees an equivalent of the sensitive values. The known information can be modeled as a probability distribution by applying Bayesian inferencing to reduce the granularity of the base data representation. The primary objective of generalization is to obtain different values for sensitive data that is <span class="No-Break">evenly distributed.</span></p>
+			<p>The major limitation of this algorithm becomes visible when the distribution is skewed and fails to achieve <a id="_idIndexMarker255"/>an entropy of uniformly distributed L distinct sensitive values for each equivalence class. In such a case, the overall entropy level of the table drops, and the algorithm becomes non-functional and cannot offer sufficient protection. </p>
+			<p>Even though this algorithm takes into consideration the diversity of sensitive values within each group, it fails to constrain the value ranges and boundaries of the diverse groups. Given features with very close boundaries (say, salary &gt; US $20,000 versus salary &gt; US $30,000), the attacker can retrieve the salary information from the two equivalence classes (similar classes with close boundaries) that have different <span class="No-Break">age groups.</span></p>
+			<h2 id="_idParaDest-55"><a id="_idTextAnchor054"/>T-closeness</h2>
+			<p>As K-anonymity and L-diversity together cannot safeguard against skewness and similarity attacks, T-closeness came into being to offer extra robustness to the anonymization <a id="_idIndexMarker256"/>framework. This principle states that the two distributions – one of which is the sensitive value distributions of any group (say, racial groups; Asian and Hispanic in our example in <span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.6</em>) and the other is the overall sensitive value distribution – cannot differ by more than a threshold of <strong class="source-inline">t</strong>. The distance metric <a id="_idIndexMarker257"/>used to evaluate the difference between the two distributions is the <strong class="bold">Earth-Mover Distance</strong> (<strong class="bold">EMD</strong>). It is computed using the possible set of sensitive attributes by evaluating the maximum distance between them. The metric gives a measurement between 0 and 1, in the space normalized to 1, with the intention of including the semantic closeness of attribute values in addition to the generalization of quasi-identifiers and the suppression of <span class="No-Break">sensitive values.</span></p>
+			<p>Though T-closeness can resolve the shortcomings of K-anonymity and L-diversity, by offering protection from homogeneity, background knowledge, skewness, and similarity attacks, it remains vulnerable to minimality and composition attacks. In the former, the attacker deduces the boundary condition or the minimality criteria beyond which the anonymized models (K-anonymity, L-diversity, and T-closeness) cannot provide sufficient protection against external threats. Using this information, the intruder can decipher sensitive information for some of the equivalence classes. In the second category of attack, the attacker exploits the availability of all different releases of anonymized datasets to integrate them into one single unit, where the unified dataset is used to breach <span class="No-Break">individual privacy.</span></p>
+			<p>Among other, less popular anonymized models is the p-sensitive K-anonymity model, which ensures K-anonymity conditions on <strong class="bold">Masked Microdata </strong>(<strong class="bold">MM</strong>). It also fulfills the condition to limit the sensitive (confidential) attributes <a id="_idIndexMarker258"/>present within the same group. This means that it’s able to protect the model from linkage attacks by restricting the number of distinct values <a id="_idIndexMarker259"/>that each confidential attribute belonging to the same group can have to a minimal value of <strong class="source-inline">p</strong>. In addition, it also stops learning sensitive associations at the same time. We can denote an anonymity model as (<span class="P-Symbol">∊</span>, <strong class="source-inline">m</strong>) (with the frequency of sensitive attribute values <span class="P-Symbol">∊</span> remaining within the user-defined threshold in the equivalence classes). This was designed to protect sensitive numerical attributes from proximity breaches, where data boundaries are too close. This allows an attacker to gather information with high confidence that a sensitive attribute value falls in a <span class="No-Break">specified interval.</span></p>
+			<p><span class="No-Break">Encryption</span></p>
+			<p>Encryption of personal data is a methodology used to protect data from external sources and limit <a id="_idIndexMarker260"/>access to users who are not authorized to access it. Three major data encryption schemes of symmetric encryption, asymmetric encryption, and hybrid encryption can be employed for the purpose of key generation, registration, usage, storage, monitoring, rotation, <span class="No-Break">and deletion.</span></p>
+			<p><strong class="bold">Symmetric encryption</strong> techniques such as<strong class="bold"> Advanced Encryption Standard</strong> (<strong class="bold">AES</strong>) are fast and <a id="_idIndexMarker261"/>can be accelerated by processors for bulk encryption <a id="_idIndexMarker262"/>purposes. This procedure is dependent on the pre-sharing/exchange of a single key between the client and the server to be used for encryption and decryption purposes. To provide support for integrity and authentication, a message authentication code can be added on top <span class="No-Break">of this.</span></p>
+			<p><strong class="bold">Asymmetric encryption</strong> schemes <a id="_idIndexMarker263"/>such as <strong class="bold">Rivest</strong>, <strong class="bold">Shamir</strong>, <strong class="bold">Adleman</strong> (<strong class="bold">RSA</strong>), <strong class="bold">Digital Signature Algorithm</strong> (<strong class="bold">DSA</strong>), and <strong class="bold">Elliptic Curve Cryptograph</strong> (<strong class="bold">ECC</strong>) use two keys, one public and the other private, and offer strong protection <a id="_idIndexMarker264"/>against adversaries. However, the procedure <a id="_idIndexMarker265"/>is slow and has limited applications for protecting <a id="_idIndexMarker266"/>data in ML systems. The communicating parties are responsible for secretly storing their private keys, while the public keys are shared. This happens over the <span class="No-Break">following steps:</span></p>
+			<ol>
+				<li>Using <strong class="bold">Transport Layer Security</strong> (<strong class="bold">TLS</strong>), the sender and receiver finalize the symmetric key (session key) that is <a id="_idIndexMarker267"/>used to encrypt data sent by <span class="No-Break">the sender.</span></li>
+				<li>The sender is responsible <a id="_idIndexMarker268"/>for encrypting the symmetric key with the receiver’s <span class="No-Break">public key.</span></li>
+				<li>The symmetric key is decrypted by the receiver with their own <span class="No-Break">private key.</span></li>
+				<li>Using the symmetric key, the data is decrypted by <span class="No-Break">the receiver.</span></li>
+			</ol>
+			<p>Now that we’ve had <a id="_idIndexMarker269"/>an overview of some encryption techniques, let's look at another level of abstraction process with pseudonymization, which further increases the difficulty for adversaries to break the <span class="No-Break">encryption key.</span></p>
+			<h2 id="_idParaDest-56"><a id="_idTextAnchor055"/>Pseudonymization</h2>
+			<p>This method helps <a id="_idIndexMarker270"/>to anonymize data while preserving accuracy in statistics and value. Different types of encryption and hashing techniques can be used for this process. PII information (quasi-identifiers) is encoded with pseudonyms and preserved separately, which allows the easy re-identification of the original data through the use of cross-references or identifiers. In contrast to the anonymization technique, this procedure prevents permanent data replacement using a substitution principle. Pseudonymization can also be used for the encryption and decryption of PII, where the original data is translated into ciphertext, which can be reversed with the relevant <span class="No-Break">decryption key.</span></p>
+			<p>The main disadvantage of this process is that when datasets contain billions or trillions of records, human <a id="_idIndexMarker271"/>review and re-assessment or re-identification becomes impossible. Moreover, when the most sensitive fields require precise values, we may miss potential sources of re-identification attacks due to the <span class="No-Break">privacy-utility trade-off.</span></p>
+			<p>This process further <a id="_idIndexMarker272"/>allows vertical or horizontal distribution of PII (by storing it in some protected storage units) and maintaining a link between the identifiers. In a vertical data distribution system, pseudonymity is guaranteed by compartmentalizing individual data corresponding to different subsets of sensitive attributes in different sites. In a horizontal data distribution system, sites near user locations are responsible for storing data with the same sets of user attributes. One primary example of horizontal data distribution is health-related information, where data integration from different sources is a preliminary step to infer an individual’s <span class="No-Break">health-related information.</span></p>
+			<p>Some common types of pseudonymization techniques are <span class="No-Break">as follows:</span></p>
+			<ul>
+				<li><strong class="bold">Encryption with secret key</strong>: PII can be encrypted and then decrypted <a id="_idIndexMarker273"/>by the owner using any of the symmetric or asymmetric encryption methods discussed in <span class="No-Break">previous sections.</span></li>
+				<li><strong class="bold">Hash function</strong>: This function is applied to transform a dataset with variable feature attributes and data <a id="_idIndexMarker274"/>size to yield a fixed-size output. This method often runs the risk of revealing sensitive PII if the range of input values applied to the hash function is known beforehand. A better method of adding higher-order protection is to use a salted-hash function, which adds randomization and reduces the probability of an attacker retrieving the <span class="No-Break">actual values.</span></li>
+				<li><strong class="bold">Hash function with secret stored key</strong>: The hash function used for transformation is <a id="_idIndexMarker275"/>supplied with a secret key to the input, which further reduces the probability of an attacker being able to retrieve the actual data by replay attacks, where an attacker intercepts the network. The data owner will still be able to retrieve the data with the secret key, but for the attacker it becomes increasingly difficult to compute all sorts of permutations and generate the actual key used <span class="No-Break">for encryption.</span></li>
+				<li><strong class="bold">Hash function with deletion of secret key</strong>: This process involves the selection of a random <a id="_idIndexMarker276"/>number corresponding to every feature in the dataset to act as the pseudonym. Further, the correspondence table is deleted to reduce the probability of linkage attacks where an attacker can link the personal data of individuals from the dataset in question to other available datasets with other pseudonyms. It makes it even more difficult for an attacker to use all permutations for a non-existent secret key to replay the function and retrieve the <span class="No-Break">original data.</span></li>
+				<li><strong class="bold">Tokenization</strong>: This method of data encryption enables the conversion of sensitive data <a id="_idIndexMarker277"/>with a randomly generated token. It is widely prevalent in the payment card industry in credit cards, wallets, and other applications involving unique identifiers (PAN cards, driving licenses, SSNs, etc.). Organizations dealing with such secret identifiers often employ a tokenization service that is responsible for payment authorization by generating and validating a token based on users’ identities. The generated token can then be stored and mapped in the database of the third-party service provider. The storage service reduces the risk of data loss by providing <a id="_idIndexMarker278"/>unlimited data retention capacity. The involvement of third-party providers helps to reduce issues related to <strong class="bold">Payment Card Industry Data Security Standard </strong>(<strong class="bold">PCI </strong><span class="No-Break"><strong class="bold">DSS</strong></span><span class="No-Break">) compliance.</span></li>
+			</ul>
+			<h2 id="_idParaDest-57"><a id="_idTextAnchor056"/>Homomorphic encryption</h2>
+			<p><strong class="bold">Homomorphic encryption</strong> (<strong class="bold">HE</strong>) has gained a lot of prominence in the data security industry, especially in <a id="_idIndexMarker279"/>the design of high-grade cloud security applications, owing to the amount of protection guaranteed by this technique. It relies on a probabilistic asymmetric algorithm and adds an extra protective layer where parties who do not own the encryption and decryption keys are unable to decipher <a id="_idIndexMarker280"/>the encrypted data. The primary advantage of this method over traditional encryption methodologies is that it allows cloud providers to process the already encrypted data without having to decrypt it first. The processed results are available in encrypted form to the owner, who can retrieve the processed results with a <span class="No-Break">decryption key.</span></p>
+			<p>HE follows multiplicative laws of encryption and computation, where the order of encryption and computation can be interchanged. Any computation, when applied on datasets <em class="italic">a</em> and <em class="italic">b</em> after they have been encrypted individually as <em class="italic">E</em>(<em class="italic">a</em>) and <em class="italic">E</em>(<em class="italic">b</em>), yields the same result as it would have when encryption is applied to the computed result <em class="italic">E</em>(<em class="italic">a * </em><span class="No-Break"><em class="italic">b</em></span><span class="No-Break">).</span></p>
+			<p>Hence, mathematically, <em class="italic">E</em>(<em class="italic">a * b</em>) = <em class="italic">E</em>(<em class="italic">a</em>) * <em class="italic">E</em>(<em class="italic">b</em>), where <em class="italic">E</em>(<em class="italic">a</em>) and <em class="italic">E</em>(<em class="italic">b</em>) refer to the encryptions <a id="_idIndexMarker281"/>applied to datasets <em class="italic">a</em> and <em class="italic">b,</em> respectively, and <em class="italic">E</em>(<em class="italic">a * b</em>) refers to the encryption applied on the resultant computations of <em class="italic">a</em> <span class="No-Break">and </span><span class="No-Break"><em class="italic">b</em></span><span class="No-Break">.</span></p>
+			<p>As they are equal, the decrypted values of <em class="italic">E</em>(<em class="italic">a * b</em>) and <em class="italic">E</em>(<em class="italic">a</em>) * <em class="italic">E</em>(<em class="italic">b</em>) are <span class="No-Break">also equal.</span></p>
+			<p><span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.7</em> illustrates a use case of HE that helps to achieve anonymous data processing for (a) single users and (b) multiple users seeking to process their encrypted (using their public key) sensitive data on a cloud server. In the first case (a), the individuals can directly obtain decrypted results as computed, evaluated, and returned by the server. In the second case (b), the server can aggregate the individual data by stripping off the identity information, processing their encrypted data, inferring statistical information, and sending the inferred data back to a third-party source that is responsible for collecting the final derived outcome. The data received by the third-party source can then decrypt the data and obtain the <span class="No-Break">inferred results.</span></p>
+			<div>
+				<div id="_idContainer039" class="IMG---Figure">
+					<img src="image/Figure_2.07_B18681.jpg" alt="Figure 2.﻿7 – Single﻿- or multi-party ﻿HE"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 2.7 – Single- or multi-party HE</p>
+			<p>Such multi-party agents using HE can be used to efficiently run electronic voting systems. Individual voters can use their public keys to encrypt their ballots and send them to the voting server. The cloud server makes use of homomorphic evaluation to run <a id="_idIndexMarker282"/>extra validity checks on encrypted ballots and compute an aggregated encrypted result. The computed encrypted result can be sent to the organizers, who can then decrypt and deduce the overall voting results without having any knowledge of how specific individuals cast <span class="No-Break">their votes.</span></p>
+			<p><span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.8</em> demonstrates the change in approach to privacy using HE in comparison with traditional privacy approaches. In the traditional privacy mechanism, users were dependent on relevant cloud storage and its computation facility for data transmission, processing, and storage functionalities. The customers needed to establish added trust with the service provider, where the providers are not allowed to share private information with third parties without the customer’s consent. In the present day, HE-based privacy systems (for example, Microsoft’s SEAL platform) guarantee confidentiality <a id="_idIndexMarker283"/>with full protection <a id="_idIndexMarker284"/>of customer data in addition to encrypted storage and <span class="No-Break">computation capabilities.</span></p>
+			<div>
+				<div id="_idContainer040" class="IMG---Figure">
+					<img src="image/Figure_2.08_B18681.jpg" alt="Figure 2.﻿8 – A diagram showing traditional encryption versus ﻿HE"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 2.8 – A diagram showing traditional encryption versus HE</p>
+			<p>This methodology can also be efficiently used in the following areas of security involving <span class="No-Break">cloud services:</span></p>
+			<ul>
+				<li>Private storage <span class="No-Break">and computation</span></li>
+				<li>Private <span class="No-Break">prediction services</span></li>
+				<li>Hosted <span class="No-Break">private training</span></li>
+				<li>Private <span class="No-Break">set intersection</span></li>
+				<li>Secure <span class="No-Break">collaborative computation</span></li>
+			</ul>
+			<p>The following code demonstrates instantiating a <strong class="source-inline">Pyfhel</strong> object (with public and private keys) at the <a id="_idIndexMarker285"/>client end, with the generation and saving of public and private key pairs within the context. The <strong class="source-inline">contextGen</strong> function is used to generate an HE context based on input parameters. We save the public key along with <span class="No-Break">the context:</span></p>
+			<pre class="source-code">
+HE = Pyfhel()
+HE.contextGen(p=65537, m=2**12)
+HE.keyGen() # Generates both a public and a private key
+HE.savepublicKey(pk_file)
+HE.saveContext(contx_file)
+a = 1.5
+b = 2.5
+ca = HE.encryptFrac(a)
+cb = HE.encryptFrac(b)</pre>
+			<p>Then we try to decrypt the encrypted values (<strong class="source-inline">a</strong> and <strong class="source-inline">b</strong>) in the cloud using <strong class="source-inline">PyCtxt</strong>. But the decryption process fails in the cloud, as demonstrated in the output. The cloud server then applies the mean of the encrypted values and sends it back to the client. But the client successfully decrypts the results and can obtain the mean value (the mean of 1.5 and 2.5 <span class="No-Break">is 2).</span></p>
+			<p>The cloud server tries to decrypt and then apply a mathematical mean operation on the encrypted results sent by <span class="No-Break">the client:</span></p>
+			<pre class="source-code">
+c2a = PyCtxt(pyfhel=HE_Cl, fileName=sec_con / "ca.ctxt", encoding=float)
+c2b = PyCtxt(pyfhel=HE_Cl, fileName=sec_con / "cb.ctxt", encoding=float)
+try:
+    print (HE_Cl.decrypt(c2a))
+    raise Exception ("This should not be reached!")
+except RuntimeError:
+    print ("The cloud tried to decrypt but couldn't!")</pre>
+			<p>The cloud computes the mean value of the ciphertexts obtained in the <span class="No-Break">previous steps:</span></p>
+			<pre class="source-code">
+c_mean = (c2a + c2b) / 2
+c_mean.to_file(sec_con / "c_mean.ctxt")</pre>
+			<p>The client <a id="_idIndexMarker286"/>loads and decrypts <span class="No-Break">the result:</span></p>
+			<pre class="source-code">
+c_res = PyCtxt(pyfhel=HE, fileName=sec_con / "c_mean.ctxt", encoding=float)
+print ("Client decrypt results", c_res.decrypt())</pre>
+			<p>This results in the <span class="No-Break">following output:</span></p>
+			<pre class="console">
+The cloud tried to decrypt but couldn't!
+Client decrypt results 2.0</pre>
+			<p>Let’s see when this might be a <span class="No-Break">useful technique.</span></p>
+			<h3>Applications of HE</h3>
+			<p>HE finds widespread usage in scenarios where there is a demand for huge computational capacity for processing high volumes of sensitive data not available to users. Some useful practical applications are predictive and analytics use cases in genomics research, finance, healthcare, pharmaceuticals, government, insurance, manufacturing, and the oil and gas sector, as illustrated in the <span class="No-Break">following list:</span></p>
+			<ul>
+				<li>Leveraging cloud services for backtesting stock market trading strategies in such a manner that the data remains secure and private from external systems, including attackers and <span class="No-Break">cloud operators</span></li>
+			</ul>
+			<p class="callout-heading">Backtesting</p>
+			<p class="callout">Backtesting is a strategy that allows a trader to simulate a trading strategy using historical data to <a id="_idIndexMarker287"/>generate results and accordingly identify and analyze the risk and profitability before risking any <span class="No-Break">actual capital.</span></p>
+			<ul>
+				<li>ML applications related to fraud detection, automated claims processing, and <span class="No-Break">threat intelligence</span></li>
+				<li>ML-based SaaS platforms analyzing DNA with DNA sequencing classifiers to provide predictive insights to medical institutions <span class="No-Break">and hospitals</span></li>
+				<li>ML-based SaaS platforms providing medical diagnosis, medical support systems such as healthcare bots, and <span class="No-Break">preventive care</span></li>
+				<li>ML-based complex <a id="_idIndexMarker288"/>design and architectural patterns to innovate and run novel algorithms; they can also be used to run a mechanical structural analysis for the aerospace or <span class="No-Break">construction industry</span></li>
+				<li>Predictive platforms for running <span class="No-Break">secure auctions</span></li>
+			</ul>
+			<p>However, there are certain limitations on the use of HE, such as encrypted search (returning search results to the query without learning about the response) on a <a id="_idIndexMarker289"/>database or spam-filtering encrypted emails. In the former scenario, it is not feasible for the server to determine the search query content, which would entail huge processing loads and costs on the server to perform a homomorphic evaluation of the entire search operation. In the case of spam filtering, the procedure can produce a list of encrypted messages as spam, which cannot be deleted unless the client is aware of the filtering criteria (for example, keywords) that qualify a message <span class="No-Break">as spam.</span></p>
+			<h2 id="_idParaDest-58"><a id="_idTextAnchor057"/>Secure Multi-Party Computation (MPC/SMPC)</h2>
+			<p>This is a security <a id="_idIndexMarker290"/>technique used in ML to train private sensitive data and create risk-proof ML models. Here, the participating candidates are allowed to perform computations on private data and evaluate the private models of one participant with another participant’s <span class="No-Break">private data.</span></p>
+			<p>This protocol works on the principle of secret sharing, where a dealer can share a secret <em class="italic">s</em> among <em class="italic">n</em> parties. This scheme can protect the secret from <em class="italic">t</em> or fewer participating candidates, and, at the same time, a subset of <em class="italic">t + 1</em> candidates can reconstruct the secret. The participating candidates obtain their shares in the output, which helps them to reconstruct the actual outputs through interpolation. If only a few selected candidates are configured to obtain their shares, participating candidates are also allowed to send shares to only relevant individuals. Let's now investigate some practical use cases where MPC was used to protect <span class="No-Break">sensitive data.</span></p>
+			<p>Google uses MPC to evaluate advertisement conversion rates by computing the privacy-preserving set intersection between those users viewing an ad and those who go on to purchase the <a id="_idIndexMarker291"/>product. Some organizations rely on threshold cryptography instead of legacy hardware for protecting cryptographic keys. Here, organizations depend on MPC for key generation, computation, and storage, instead of allowing individuals to hold <span class="No-Break">private information.</span></p>
+			<p>This process helps organizations to protect keys from adversaries as the key shares are placed in different environments. What makes MPC most useful for big data and large-scale predictive systems is <span class="No-Break">the following:</span></p>
+			<ul>
+				<li>Easy adaptability to cross-platform <span class="No-Break">deployment models.</span></li>
+				<li>A multi-tenant <a id="_idIndexMarker292"/>MPC can run as a cloud-native <strong class="bold">Key Management </strong><span class="No-Break"><strong class="bold">Service</strong></span><span class="No-Break"> (</span><span class="No-Break"><strong class="bold">KMS</strong></span><span class="No-Break">).</span></li>
+				<li>Can be functional across multiple clouds (for example, AWS, Google, and Azure) simultaneously to maximize security <span class="No-Break">and availability.</span></li>
+				<li>Supports hybrid cloud multi-site <span class="No-Break">enterprise deployments.</span></li>
+				<li><span class="No-Break">Easy scalability.</span></li>
+				<li>Sustained <span class="No-Break">secure operations.</span></li>
+			</ul>
+			<div>
+				<div id="_idContainer041" class="IMG---Figure">
+					<img src="image/Figure_2.09_B18681.jpg" alt="Figure 2.﻿9 – SMPC – A﻿. Shamir’s secret sharing and B﻿. Threshold cryptography"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 2.9 – SMPC – A. Shamir’s secret sharing and B. Threshold cryptography</p>
+			<p>The following code snippet demonstrates how to use the <strong class="source-inline">mpyc</strong> library to determine an aircraft’s location <a id="_idIndexMarker293"/>in a private manner using five sensors. Each sensor communicates using SMPC to share secrets for encrypting confidential information such as the location and time of arrival of <span class="No-Break">the aircraft:</span></p>
+			<pre class="source-code">
+from mpyc.runtime import mpc
+secint = mpc.SecInt(l)
+scaling = 10**args.accuracy
+locations[i] = mpc.input(list(map(secint, position_i)), senders=sender_pid)
+toas[i] = mpc.input(secint(toas_i), senders=sender_pid)
+x, y, z = await schmidt_multilateration(locations, toas)</pre>
+			<p>Having understood different encryption methodologies used in multi-party communications and in the process of ML model training, let's try to understand how we can employ application-level privacy techniques during the training phase of <span class="No-Break">a model.</span></p>
+			<h1 id="_idParaDest-59"><a id="_idTextAnchor058"/>Differential Privacy (DP)</h1>
+			<p>DP is a popular application-level privacy-enabling framework used to protect private or <a id="_idIndexMarker294"/>sensitive data on large datasets. This method guarantees an almost identical output when a statistical query is executed on two nearly identical datasets that differ only by the presence or absence of <span class="No-Break">one record.</span></p>
+			<p>DP provides security against record linkage attacks by hiding the influence of any single record (for example, individual PII) or records of small groups of users in the predicted outcomes. The process of anonymization and protecting the availability of information related to the presence or absence of individual records in the data-training process is closely associated with the privacy of data against linkage attacks. The cumulative loss is defined as the <em class="italic">privacy budget </em>and is called <strong class="bold">epsilon</strong> (<strong class="bold">ε</strong>), which represents the <a id="_idIndexMarker295"/>quantifiable amount of privacy provided, where a low value signifies a high level of privacy. The loss is also associated with a decrease in utility (accuracy), and it is the task of the data scientist to arrive at an acceptable trade-off between <span class="No-Break">the two.</span></p>
+			<p><span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.10</em> illustrates a <strong class="bold">Stochastic Gradient Descent </strong>(<strong class="bold">SGD</strong>)-enabled DP training process, the computation <a id="_idIndexMarker296"/>of the loss function, the addition of random noise, and the clipping of gradients in successive iterations. When examining the diagram, note <span class="No-Break">the following:</span></p>
+			<ul>
+				<li>A randomly sampled set of data points has been used for training (from two different datasets, <em class="italic">D</em><span class="subscript">1</span> and <em class="italic">D</em><span class="subscript">2</span>, both <span class="P-Symbol">∈</span> to <em class="italic">S</em>, and differing in only <span class="No-Break">one record).</span></li>
+				<li>The training error (or training loss) is computed from the model’s predicted output and the training labels in successive steps are then differentiated with respect to the <span class="No-Break">model’s parameters.</span></li>
+				<li>The process continues iteratively where the computed gradients (using SGD) are applied to the model’s parameters, taking into consideration the impact left by every point in the <span class="No-Break">resultant gradient.</span></li>
+				<li>The impact of every gradient is controlled by clipping (or bounding) the gradients. The <a id="_idIndexMarker297"/>certainty of inferring a point’s inclusion in the dataset is diminished through the process of randomization where noise is added to every <span class="No-Break">data point.</span></li>
+				<li>Once the model converges, the final gradient is computed to derive the privacy estimate, such that <em class="italic">O</em><span class="subscript">1</span> – <em class="italic">O</em><span class="subscript">2</span> &lt; <span class="No-Break">ε.</span></li>
+			</ul>
+			<div>
+				<div id="_idContainer042" class="IMG---Figure">
+					<img src="image/Figure_2.10_B18681.jpg" alt="Figure 2.1﻿0 – Training models with ﻿DP on two input datasets﻿, D1 and D2"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 2.10 – Training models with DP on two input datasets, D1 and D2</p>
+			<p>The following code snippet illustrates the necessary imports, including IBM’s <strong class="source-inline">Diffprivlib</strong>, used for training DP-based models. The first step involves having the necessary imports of libraries <a id="_idIndexMarker298"/>and fetching the <strong class="source-inline">adult_income</strong> dataset from the web, where for <strong class="source-inline">X_train</strong> we only use columns 0, 4, 10, 11, and 12, and for <strong class="source-inline">y_train</strong> we use the column specified as income &lt;=50K <span class="No-Break">or &gt;50K:</span></p>
+			<pre class="source-code">
+<strong class="bold">import numpy as np</strong>
+<strong class="bold">import sklearn as sk</strong>
+from sklearn.pipeline import Pipeline
+from diffprivlib import models
+X_train = np.loadtxt("https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data", usecols=(0, 4, 10, 11, 12), delimiter=", ")
+y_train = np.loadtxt("https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data", usecols=14, dtype=str, delimiter=", ")</pre>
+			<p>The next code snippet illustrates how we can incorporate DP in different components of a pipeline such as <strong class="source-inline">StandardScaler</strong>, <strong class="source-inline">PCA</strong>, and <strong class="source-inline">LogisticRegression</strong>. The initial step involves scaling the feature attributes followed by dimensionality reduction and ML model classification. </p>
+			<p>The <strong class="source-inline">data_norm</strong> parameter quantifies the Laplace-distributed random noise that we added in order to yield a differentially private ML model. The <strong class="source-inline">bounds</strong> parameter defines the bounds of the data and takes in a tuple value as <em class="italic">min, max,</em> where these two entries represent scalars after being aggregated at a feature level. From <span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.11</em>, it is further <a id="_idIndexMarker299"/>evident that accuracy is oscillating, with ε ranging from 10-3 to 10-1.5, after which accuracy becomes stable. This observation reinforces our discovery that selecting an acceptable trade-off value between accuracy and utility is needed to add a higher privacy margin without <span class="No-Break">compromising accuracy:</span></p>
+			<pre class="source-code">
+dp_pipe = Pipeline([
+    ('scaler', models.StandardScaler(bounds=([17, 1, 0, 0, 1], [90, 160, 10000, 4356, 99]))),
+    ('pca', models.PCA(2, data_norm=5, centered=True)),
+    ('lr', models.LogisticRegression(data_norm=5))])
+dp_pipe.fit(X_train, y_train)
+for epsilon in epsilons:
+    _eps = epsilon / 3
+    dp_pipe.set_params(scaler__epsilon=_eps, pca__epsilon=_eps, lr__epsilon=_eps)
+    dp_pipe.fit(X_train, y_train)</pre>
+			<p>Now, when we plot the results, we get the following graph demonstrating the variation of accuracy <span class="No-Break">with ε:</span></p>
+			<div>
+				<div id="_idContainer043" class="IMG---Figure">
+					<img src="image/Figure_2.11_B18681.jpg" alt=" Figure 2.1﻿1 – A DP-enabled pipeline exhibiting ﻿the accuracy and privacy-budget (ε) trade-off"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US"> Figure 2.11 – A DP-enabled pipeline exhibiting the accuracy and privacy-budget (ε) trade-off</p>
+			<p>By now, we have <a id="_idIndexMarker300"/>understood how ε serves as an important metric to measure the expected privacy of a DP model. Now, let's try to understand the second most important <span class="No-Break">metric, sensitivity.</span></p>
+			<h2 id="_idParaDest-60"><a id="_idTextAnchor059"/>Sensitivity</h2>
+			<p>Sensitivity is deﬁned as <a id="_idIndexMarker301"/>the maximum inﬂuence exerted by <a id="_idIndexMarker302"/>a single data record on the differential private result in response to a numeric query. For any arbitrary function <em class="italic">f</em>, the sensitivity <em class="italic">∆f</em> of <em class="italic">f</em>, on <em class="italic">x</em> and <em class="italic">y</em>, two neighboring datasets, can be given <span class="No-Break">as follows:</span></p>
+			<p>Δ<em class="italic">f</em> = <em class="italic">max</em> { || <em class="italic">f</em>(<em class="italic">x</em>) – <em class="italic">f</em>(<em class="italic">y</em>) ||<span class="subscript">1</span> }, where ||.||<span class="subscript">1</span> represents the L1 norm of <span class="No-Break">a vector</span></p>
+			<h2 id="_idParaDest-61"><a id="_idTextAnchor060"/>Properties of DP</h2>
+			<p>DP solutions possess <a id="_idIndexMarker303"/>essential properties <span class="No-Break">of postprocessing:</span></p>
+			<ul>
+				<li><span class="No-Break">Invariance/robustness</span></li>
+				<li><span class="No-Break">Quantifiability</span></li>
+				<li>Composition </li>
+			</ul>
+			<p>The invariance/robustness of DP ensures additional computations executed on ε-DP solutions are also ε-DP. Additionally, the quantifiability property of DP allows the flexibility of being transparent (to the data scientist). Transparency reveals the exact quantity of noise/perturbation caused by the randomization process. This characteristic feature of DP algorithms gives them an extra edge over other traditional de-identification algorithms. The traditional algorithms hide the process by which the data was transformed, so <a id="_idIndexMarker304"/>data scientists cannot interpret and analyze the accuracy of such models. Further, with the composition property, it is possible to derive the amount of degradation in privacy by executing different DP algorithms on overlapping datasets. For example, two DP algorithms executed on ε1-DP and ε2-DP that overlap are DP private and given <span class="No-Break">by (ε1+ε2)-DP.</span></p>
+			<p>We have now become familiar with different privacy- and security-enabled measures that can be used during model training and inference. However, each of these methods has its own specific advantages, and the entire system can only get the full benefit from a hybrid <span class="No-Break">security-enabled system.</span></p>
+			<h1 id="_idParaDest-62"><a id="_idTextAnchor061"/>Hybrid privacy methods and models</h1>
+			<p><span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.12</em> illustrates <a id="_idIndexMarker305"/>the integration of varying levels of the privacy <a id="_idIndexMarker306"/>components discussed in the previous sections to create a fully proofed privacy-preserving AI system. There are two different labels associated with <strong class="bold">2</strong> and <strong class="bold">5</strong>, where <strong class="bold">2</strong> and <strong class="bold">5 </strong>denote access by model owners, while <strong class="bold">2’</strong> and <strong class="bold">5’</strong> denote access by adversaries where they craft adversarial data to steal important <span class="No-Break">model information.</span></p>
+			<p>The system can ingest data from multiple heterogeneous devices (<strong class="bold">1</strong> and <strong class="bold">2</strong>) before triggering different algorithmic training (<strong class="bold">3</strong>, <strong class="bold">6</strong>, and <strong class="bold">8</strong>). Such a hybrid system can ensure data and algorithm sovereignty, in addition to adhering to ethics, compliance, transparency, and the trustworthiness of applications. The main objective is to have a robust ethical defense framework in place that can protect a single data record from identity or <strong class="bold">Membership Inference Attacks (MIAs)</strong> by identifying its presence in the dataset (<strong class="bold">2’</strong>). </p>
+			<p>This is addressed by having a private AI unit that encompasses the task of adding application-level privacy through DP (during model training or post-model convergence), anonymization, and pseudonymization (<span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.12</em>) to protect the data. Here, the random noise and regularization added by DP algorithms (trained with SGD or private aggregation of teacher ensembles) can increase resilience against <span class="No-Break">inversion attacks.</span></p>
+			<p>As we studied previously, anonymization and pseudonymization still leave room for de-identification processes through feature re-derivation and re-identification (<strong class="bold">2’</strong>) where an attacker is able to break into look-up tables. Therefore, additional security measures need to be adopted to safeguard <span class="No-Break">insecure storage.</span></p>
+			<div>
+				<div id="_idContainer044" class="IMG---Figure">
+					<img src="image/Figure_2.12_B18681.jpg" alt="Figure 2.1﻿2 – Application of different privacy measures in a hybrid privacy framework"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 2.12 – Application of different privacy measures in a hybrid privacy framework</p>
+			<p>To safeguard lookup-table-related risks, AI research has concentrated on decentralization where <a id="_idIndexMarker307"/>remote execution becomes the central <a id="_idIndexMarker308"/>mechanism to train a global model. Locally trained ML models with their weights, parameters, and data (from mobile, <strong class="bold">Internet of Things</strong> (<strong class="bold">IoT</strong>), and <strong class="bold">Internet of Medical Things</strong> (<strong class="bold">IoMT</strong>) devices) are updated to a central repository to aggregate the model at a global level. However, the local model’s <a id="_idIndexMarker309"/>weights still run the risk of being corrupted by adversaries <a id="_idIndexMarker310"/>either by the modification of transmitted parameters through poisoning or model-inversion/reconstruction attacks (<strong class="bold">5’</strong>) where SMPC and HE can be employed to best tackle the <span class="No-Break">existing threats.</span></p>
+			<p>The decentralized approach to data training in a federation topology is revolutionizing the privacy landscape in the AI industry as devices are able to retain their sovereignty while participating in the gossip strategy. The flexibility of joining in the training process (by limiting their continuous availability) to share model parameters with peer nodes helps devices to sustain battery life for longer durations. It gives a broader scope of application to this federated mode of training in addition to data and model governance capabilities, where the tracking/auditing of the times that each device sends model parameters, convergence, and performance metrics can <span class="No-Break">be monitored.</span></p>
+			<p><strong class="bold">FL</strong> carries the underlying risk of model parameters and PII being stolen <a id="_idIndexMarker311"/>or reconstructed by adversaries in the absence of encryption techniques, from the nodes and communicating interfaces. Hence, local algorithms need to be encrypted and securely aggregated where HE can be employed (with or without DP) to securely aggregate encrypted algorithms. Another viable risk arising from neural networks is their compressed representation. Such compressed formats are achieved by applying either one of the following mechanisms: pruning the convolutional layers, quantization, tensor decomposition, knowledge distillation, or a combination of all the stated methods.Without encryption, attackers will find it easy to execute model inversion or reconstruction attacks and retrieve confidential model parameters with <span class="No-Break">high accuracy.</span></p>
+			<p>You can read more on knowledge distillation at <em class="italic">Knowledge Distillation: Principles, Algorithms, Applications</em>: <a href="https://neptune.ai/blog/knowledge-distillation">https://neptune.ai/blog/knowledge-distillation</a> and about quantization at <em class="italic">Pruning and Quantization for Deep Neural Network Acceleration</em>: A <span class="No-Break">Survey, </span><a href="https://arxiv.org/pdf/2101.09671.pdf"><span class="No-Break">https://arxiv.org/pdf/2101.09671.pdf</span></a></p>
+			<p>The solution is further <a id="_idIndexMarker312"/>extended to include secure multi-party computation to <a id="_idIndexMarker313"/>multiple participating entities where each of them receives a split of encrypted data to proceed with further processing. This decentralization approach removes the risk of complete data exposure or leakage to participating candidates, allowing data recovery only through the method of mutual consensus. SMC also works in semi-trusted and low-trust environments, but one of the requirements of this method is continuous data transfer between parties and the continuous online availability of devices, leading to additional communication overheads. This acts as a limitation on the reliability, redundancy, and scalability of the system, but can be overcome by designing appropriate sleep and wake cycles for devices, discussed more in <a href="B18681_11.xhtml#_idTextAnchor232"><span class="No-Break"><em class="italic">Chapter 11</em></span></a>. Data scientists should employ a holistic approach, incorporating all the privacy measures discussed to validate the integrity and quality of predicted <span class="No-Break">ML results.</span></p>
+			<h1 id="_idParaDest-63"><a id="_idTextAnchor062"/>Adversarial risk mitigation frameworks</h1>
+			<p>In this section, let's walk <a id="_idIndexMarker314"/>through some of the newly evolving risk mitigation frameworks concerning specific scenarios of input data distribution or model architecture when the model is used for training and serving. These frameworks are highly successful in curbing real-world attacks. One example is the identification of diseases where clinical datasets have been used to train the associated model. In such cases, an attacker can infer from a clinical record that a given patient has a specific disease with a high probability <span class="No-Break">of success.</span></p>
+			<p>Let's now discuss how we can evaluate model risk for <strong class="bold">MIAs</strong>, where <a id="_idIndexMarker315"/>adversaries are able to copy the principal model functionality and trigger adversarial attacks. MIAs can be either black box or white box. In black-box attacks, the attacker knows only the model inputs and can only query the model’s predicted output label, whereas in white-box attacks, the attacker has knowledge of the model inputs, architecture, and model internals such as weights, biases, and other <span class="No-Break">coefficient values.</span></p>
+			<p>The goal of MIAs is to infer <a id="_idIndexMarker316"/>whether a given data record is in the target dataset. To construct the MIA model, a shadow training technique is applied to generate the ground truth for membership inference. <span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.13</em> shows an overview <span class="No-Break">of MIAs.</span></p>
+			<p>MIAs enable an attacker to determine the presence of a specific data point <em class="italic">z</em> in the training set of a target model <em class="italic">a</em>. When this attack takes place on a model trained with sensitive data, evaluating an individual’s presence in the dataset will expose confidential information to <a id="_idIndexMarker317"/>an attacker. MIAs achieve high performance on <strong class="bold">Independent and</strong> <strong class="bold">Identically Distributed </strong>data<strong class="bold"> </strong>(<strong class="bold">IID</strong>), thereby completely ignoring the fact that data dependencies in training samples underestimate the attack performance. This suggests a new direction of research to evaluate vulnerabilities and devise defense techniques for correlated data to protect <span class="No-Break">sensitive information.</span></p>
+			<p>Hence, there is a need for a risk mitigation technique that can evaluate and label ML models where such <a id="_idIndexMarker318"/>data dependencies exist (such as, for example, the effect of all members being from a specific health region (or hospital) and non-members from all other regions, or when both originate from the same source). To evaluate such associated risks, this framework could be used to access/test the model’s behavior under MIAs when data dependencies exist, and models are prone to correct membership inference outcomes. For example, with MIAs, the model is able predict whether people of the same racial background are likely to suffer from <span class="No-Break">a disease.</span></p>
+			<p>This risk assessment framework first uses public data to train a set of shadow models that can emulate/mimic the target model’s functionality. In the next step, an attack model is trained to reveal the membership status of a sample using outputs from the shadow models. Before the identification phase begins, the dataset can be split between members and non-members (for example, through a <span class="No-Break">clustering algorithm).</span></p>
+			<p>In the following code snippet, we have used the <strong class="source-inline">adult_income</strong> dataset to train a shadow model (80% training and 20% test data split) with a CNN. The shadow and attack models are trained using the same dataset after dividing the dataset equally between the two <a id="_idIndexMarker319"/>halves. The purpose of this framework is to measure the effectiveness of DP against MIAs. We can conduct MIAs on the best target models and evaluate the protection offered by DP for different values of privacy budget, noise multiple, <span class="No-Break">and regularization.</span></p>
+			<div>
+				<div id="_idContainer045" class="IMG---Figure">
+					<img src="image/Figure_2.13_B18681.jpg" alt="Figure 2.13﻿ – Measuring model robustness against MIAs with DP-enabled training"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 2.13 – Measuring model robustness against MIAs with DP-enabled training</p>
+			<p>As illustrated in <span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.13</em>, the shadow model we employed here depends on the target model’s architecture and weights. Hence, having a white-box model attack in place makes our job easy, as the same architecture and hyperparameters can be reused from the target <a id="_idIndexMarker320"/>model. The shadow model is trained on the shadow dataset to follow the target model and generate the ground truth data required to train the attack model. The shadow model’s probability output is aggregated with the true labels to generate the attack dataset, where input to the attack dataset is labeled as <strong class="source-inline">in</strong> or <strong class="source-inline">out</strong> based on the condition of whether it is used to train the <span class="No-Break">shadow model.</span></p>
+			<p>We get approximately 50% attack accuracy since the data source of the train and test sets remains the same. However, the attack accuracy would decrease if the private training dataset <a id="_idIndexMarker321"/>for the target model were not overlapping with the public dataset that trains the shadow model. This MIA attack model has been trained using <strong class="source-inline">RandomForestClassifier</strong>. Attack models could be executed to perform attacks <span class="No-Break"><em class="italic">n</em></span><span class="No-Break"> times:</span></p>
+			<ol>
+				<li>Our first step is to create an instance of a shadow model using the <span class="No-Break">shadow dataset:</span><pre class="console">
+SHADOW_DATASET_SIZE = int(shadow_X.shape[0] / 2)
+smb = ShadowModelBundle(
+    shadow_model,
+    shadow_dataset_size=SHADOW_DATASET_SIZE,
+    num_models=)</pre></li>
+				<li>In the next step, we train the shadow models with the same parameters as the target model and generate the <span class="No-Break">attack data:</span><pre class="console">
+attacker_X, attacker_y = smb.fit_transform(shadow_X, shadow_y.values,                                         fit_kwargs=dict(epochs=epochs,
+batch_size=batch_size,verbose=1))</pre></li>
+				<li>After training the shadow models, we train the attack model <span class="No-Break">using </span><span class="No-Break"><strong class="source-inline">RandomForestClassifer</strong></span><span class="No-Break">:</span><pre class="console">
+clf = RandomForestClassifier(max_depth=2)
+clf.fit(attacker_X, attacker_y</pre></li>
+				<li>The next step involves evaluating the success of the attack. To do so, we segregate the data points used in the training and those that were not present during training for both independent and <span class="No-Break">target variables:</span><pre class="console">
+<strong class="bold">ATTACK_TEST_DATASET_SIZE = unused_X.shape[0]</strong>
+<strong class="bold">data_in = target_X_train[:ATTACK_TEST_DATASET_SIZE], target_y_train[:ATTACK_TEST_DATASET_SIZE]</strong>
+<strong class="bold">unused_X1 = unused_X.values.reshape((unused_X.shape[0],</strong>
+<strong class="bold">unused_X.shape[1], 1))</strong>
+<strong class="bold">data_out = unused_X1[:ATTACK_TEST_DATASET_SIZE], unused_y[:ATTACK_TEST_DATASET_SIZE]</strong></pre></li>
+				<li>The final <a id="_idIndexMarker322"/>step involves computing the attack accuracy of the attack test data by comparing the predicted outcomes of the attack model with the membership labels. The attack data is prepared in the expected format <span class="No-Break">for </span><span class="No-Break"><strong class="source-inline">AttackModelBundle</strong></span><span class="No-Break">:</span><pre class="console">
+<strong class="bold">attack_test_data, real_membership_labels = prepare_attack_data(tm, data_in, data_out)</strong>
+<strong class="bold">attack_guesses = clf.predict(attack_test_data)</strong>
+<strong class="bold">attack_accuracy = np.mean(attack_guesses == real_membership_labels)</strong>
+<strong class="bold">print('attack accuracy: {}'.format(attack_accuracy))</strong>
+<strong class="bold">acc = accuracy_score(real_membership_labels, attack_guesses)</strong>
+<strong class="bold">print('attack acc: {}'.format(acc))</strong></pre></li>
+			</ol>
+			<p>Both the models are trained with DP, with <strong class="source-inline">DPKerasSGDOptimizer</strong>, which is an optimizer built over <strong class="source-inline">SGDOptimizer</strong> for DP. <strong class="source-inline">noise_multiplier</strong> is a parameter supplied to the optimizer to control how much noise is sampled and added to gradients. The <strong class="source-inline">steps</strong> parameter represents the number of steps/epochs the optimizer takes over the training data, whereas the <strong class="source-inline">l2_norm_clip</strong> parameter provides a mechanism to tune the optimizer’s sensitivity to individual training points, by considering the maximum Euclidean norm of each individual gradient from the mini-batch:</p>
+			<pre class="console">
+optimizer = DPKerasSGDOptimizer(
+    l2_norm_clip=l2_norm_clip,
+    noise_multiplier=noise_multiplier,
+    num_microbatches=int(microbatches_perc * batch_size),
+    learning_rate=learning_rate)</pre>
+			<ol>
+				<li value="6">The first step <a id="_idIndexMarker323"/>is to set the optimizer as shown in the previous code snippet. The next step is to compute a vector of per-example loss rather than its mean over a mini-batch. As demonstrated in the next code snippet, we compile the model loss with the model classifier <span class="No-Break">using Keras:</span><pre class="console">
+loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction=tf.compat.v2.losses.Reduction.NONE)
+classifier.compile(optimizer=optimizer, loss=loss, metrics=['accuracy'])</pre></li>
+			</ol>
+			<p>The computation of epsilon is given in the next code snippet. The sampling probability is computed using <strong class="source-inline">batch_size</strong> and the inverse of the input data size (which is the delta) and is approximately 50,000 in the input dataset. The probability metric represents the probability of an individual training point being included in a mini-batch, which is then used with the noise multiplier to evaluate <strong class="source-inline">rdp</strong> and finally in the computation of epsilon. This is the final model metric that can be used to judge the privacy guarantee by considering how much the probability of a particular model output can vary by including (or removing) a single training record <a id="_idIndexMarker324"/>sample. The concept of micro-batches was introduced in <strong class="source-inline">tensorflow_privacy</strong> (<a href="https://github.com/tensorflow/privacy">https://github.com/tensorflow/privacy</a>) to facilitate faster processing by providing a degree of parallelism where gradients no longer remain to be clipped on a per-sample basis, but rather clipped at a micro-batch granularity. </p>
+			<p>This process can clip 32 gradients averaged over micro-batches, with each micro-batch having 8 <span class="No-Break">data samples:</span></p>
+			<pre class="source-code">
+sampling_probability = batch_size / 50000
+steps = epochs * 50000 // batch_size
+orders = [1 + x / 10. for x in range(1, 100)] + list(range(12, 64))
+rdp = compute_rdp(q=sampling_probability,
+                  noise_multiplier=noise_multiplier,
+                  steps=steps,
+                  orders=orders)
+epsilon = get_privacy_spent(orders, rdp, target_delta=1e-5)[0]
+print("Privacy Budget Epsilon", epsilon)</pre>
+			<p><em class="italic">Table 2.5 </em>represents a study on epsilon, noise multipliers, and metrics from attack models. When the <a id="_idIndexMarker325"/>value of the noise multiplier increases, epsilon decreases, which means there is an increase in the privacy budget. Though most of the attack model metrics remain constant, a decrease of 1% in attack accuracy is noticed when epsilon decreases from 1.2203 to 0.3283, which reinforces the fact that higher privacy increases the robustness of the model to attacks (at least to some extent). The attack metrics also exhibit low precision and high recall, signifying the presence of more false positives (records that are identified to be coming from the training dataset, but they are not) and correct identification of the relevant record’s presence in the training dataset. However, models trained with DP are not strong enough to provide protection from MIAs, particularly when the data <span class="No-Break">is correlated.</span></p>
+			<table id="table005" class="No-Table-Style _idGenTablePara-1">
+				<colgroup>
+					<col/>
+					<col/>
+					<col/>
+				</colgroup>
+				<tbody>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break"><strong class="bold">Epsilon</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><span class="No-Break"><strong class="bold">Noise Multiplier</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><span class="No-Break"><strong class="bold">Attack Metrics</strong></span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break">1.2203</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><span class="No-Break">0.8</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Attack <span class="No-Break">accuracy: 0.5023300438596491</span></p>
+							<p><span class="No-Break">Precision: 0.5012701733413031</span></p>
+							<p><span class="No-Break">Recall: 0.9195449561403509</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break">0.6952</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><span class="No-Break">1.0</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Attack <span class="No-Break">accuracy: 0.5006167763157895</span></p>
+							<p><span class="No-Break">Precision: 0.5004499550044995</span></p>
+							<p><span class="No-Break">Recall: 0.6859923245614035</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break">1.2203</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><span class="No-Break">1.2</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Attack <span class="No-Break">accuracy: 0.5023300438596491</span></p>
+							<p><span class="No-Break">Precision: 0.5012701733413031</span></p>
+							<p><span class="No-Break">Recall: 0.9195449561403509</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break">0.3283</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><span class="No-Break">1.4</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Attack <span class="No-Break">accuracy: 0.49828673245614036</span></p>
+							<p><span class="No-Break">Precision: 0.4988314480695522</span></p>
+							<p><span class="No-Break">Recall: 0.731359649122807</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break">0.2523</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><span class="No-Break">1.6</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Attack <span class="No-Break">accuracy: 0.49828673245614036</span></p>
+							<p><span class="No-Break">Precision: 0.49885352655232507</span></p>
+							<p><span class="No-Break">Recall: 0.7454769736842105</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break">0.20230</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><span class="No-Break">1.8</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Attack <span class="No-Break">accuracy: 0.49897203947368424</span></p>
+							<p><span class="No-Break">Precision: 0.49929158401813545</span></p>
+							<p><span class="No-Break">Recall: 0.7245065789473685</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break">0.16715</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><span class="No-Break">2.0</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Attack <span class="No-Break">accuracy: 0.49780701754385964</span></p>
+							<p><span class="No-Break">Precision: 0.49852643212377973</span></p>
+							<p><span class="No-Break">Recall: 0.7419133771929824</span></p>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Table 2.5 – A table showing variation of epsilon and noise multiplier</p>
+			<h2 id="_idParaDest-64"><a id="_idTextAnchor063"/>Model robustness</h2>
+			<p>Model robustness is a <a id="_idIndexMarker326"/>measure of the model performance taking into account indistinguishable changes in the model inputs. Different perturbation techniques help us to compare and benchmark the ML models against their robustness metrics. The Python package <strong class="bold">Foolbox</strong> (<a href="https://arxiv.org/pdf/1907.06291.pdf">https://arxiv.org/pdf/1907.06291.pdf</a>) helps to determine model robustness by generating <a id="_idIndexMarker327"/>adversarial perturbations. This is built on the fact that the minimal perturbation that generates an adversarial sample when applied to any model input (such as an image) helps to quantify a model’s robustness to the pre-fed adversarial samples, and demonstrates a model’s susceptibility to adversarial attacks. The flexibility provided by the framework to apply hyperparameter tuning helps to evaluate the minimal adversarial perturbation, resulting in misclassification in the predicted class probabilities in the output. </p>
+			<p>To run different attacks using this toolbox, we need an input, its label, a model, the adversarial criterion, and a distance parameter that measures the length of a perturbation, called the <em class="italic">L</em><span class="subscript">1</span> norm. We can also mix <a id="_idIndexMarker328"/>and match using the composite model feature, where the predictions of one <a id="_idIndexMarker329"/>model can be combined with the gradient of another model, allowing us to initiate non-differentiable models by leveraging gradient-based attacks. The tool provides several criteria outlined in the following list to initiate attacks where a given input and label can be <span class="No-Break">considered adversarial:</span></p>
+			<ul>
+				<li><strong class="bold">Misclassification</strong>: Wrong predicted class at <span class="No-Break">model output</span></li>
+				<li><strong class="bold">TopKMisclassification</strong>: Modification of adversarial inputs in such a way as to alter the original class so it is different from one of the top-k <span class="No-Break">predicted classes</span></li>
+				<li><strong class="bold">OriginalClassProbability</strong>: Modification of adversarial inputs to alter the probability of the original class being below a <span class="No-Break">specified threshold</span></li>
+				<li><strong class="bold">TargetedMisclassification</strong>: Modification of adversarial inputs to make the predicted class appear as the <span class="No-Break">target class</span></li>
+				<li><strong class="bold">TargetClassProbability</strong>: Modification of adversarial inputs to increase the probability of a target class beyond a <span class="No-Break">threshold value</span></li>
+			</ul>
+			<p>Now let's study, with the following code snippet, the necessary imports that can trigger an adversarial attack on a PyTorch <span class="No-Break">reset model:</span></p>
+			<pre class="source-code">
+import torchvision.models as models
+import eagerpy as ep
+from foolbox import PyTorchModel, accuracy, samples
+import foolbox.attacks as fa
+import numpy as np</pre>
+			<p>After doing the <a id="_idIndexMarker330"/>necessary imports, let's trigger the attack <span class="No-Break">as follows:</span></p>
+			<pre class="source-code">
+model = models.resnet18(pretrained=True).eval()
+preprocessing = dict(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], axis=-3)
+fmodel = PyTorchModel(model, bounds=(0, 1), preprocessing=preprocessing)
+images, labels = ep.astensors(*samples(fmodel, dataset="imagenet", batchsize=16))
+clean_acc = accuracy(fmodel, images, labels)
+print(f"clean accuracy:  {clean_acc * 100:.1f} %")
+attacks = [fa.FGSM(),fa.LinfPGD(),fa.LinfBasicIterativeAttack(),
+fa.LinfAdditiveUniformNoiseAttack(), fa.LinfDeepFoolAttack()]
+epsilons = [0.0,0.0005,0.001,0.0015,0.002,0.003,0.005, 0.01, 0.02, 0.03, 0.1, 0.3, 0.5, 1.0]</pre>
+			<p>Here, in the preceding example, we observe <span class="No-Break">the following:</span></p>
+			<ul>
+				<li>We demonstrate a few attacks including <a id="_idIndexMarker331"/><strong class="bold">Fast Gradient Sign Method</strong> (<strong class="bold">FGSM</strong>) (added noise for <a id="_idIndexMarker332"/>perturbation is on the same side as the gradient of the <span class="No-Break">cost function)</span></li>
+				<li><strong class="bold">Linf projected gradient descent</strong> (of the white-box variety with <a id="_idIndexMarker333"/>the attacker having access to the model gradient and being able to alter the code to evade ML-based <span class="No-Break">detection systems)</span></li>
+				<li><strong class="bold">L-infinity basic iterative method</strong> (where adversarial samples are generated by evaluating the <a id="_idIndexMarker334"/>absolute value difference between two images, returning the <a id="_idIndexMarker335"/>maximum distance over <span class="No-Break">all pixels)</span></li>
+				<li><strong class="bold">AdditiveUniformNoiseAttack</strong> and <strong class="bold">DeepFoolAttack</strong> (a fast gradient-based adversarial attack that considers the minimum distance to arrive at the class boundary by modifying the model classifier with a linear classifier) on a pre-trained ResNet model by varying the number of steps to perform the attack (as denoted <span class="No-Break">by epsilon)</span></li>
+			</ul>
+			<p>Then, the preceding attacks are executed on a pre-trained ResNet model by varying the number of steps to perform <span class="No-Break">the attack:</span></p>
+			<pre class="source-code">
+for i, attack in enumerate(attacks):
+    _, _, success = attack (fmodel, images, labels, epsilons=epsilons)
+    assert success.shape == (len(epsilons), len(images))
+    success_ = success.numpy()
+    assert success_.dtype == np.bool
+    attack_success[i] = success_
+    print("  ", 1.0 - success_.mean(axis=-1).round(2))</pre>
+			<p>The robust accuracy <a id="_idIndexMarker336"/>of the model can be evaluated as follows. This metric signifies the model's accuracy when the attack is triggered on the best sample of <span class="No-Break">the model:</span></p>
+			<pre class="source-code">
+robust_accuracy = 1.0 - attack_success.max(axis=0). mean(axis=-1)</pre>
+			<p>The results are printed <span class="No-Break">as follows:</span></p>
+			<div>
+				<div id="_idContainer046" class="IMG---Figure">
+					<img src="image/Figure_2.14_B18681.jpg" alt="Figure 2.1﻿4 – Variation of the robust accuracy metric with different attacks"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 2.14 – Variation of the robust accuracy metric with different attacks</p>
+			<h3>Model robustness with constraints</h3>
+			<p>Model robustness can be increased by training the model with adversarial perturbations and constraints. Adding <a id="_idIndexMarker337"/>domain constraints (just as in designing AI solutions of the network, such as intrusion detection systems) imposes extra restrictions and challenges on the adversary to maintain complex relationships between input features in order to trigger and realize an attack. Even though domain constraints limit adversarial capabilities to trigger an attack by generating perturbed samples, creating realistic (constraint-compliant) examples is often possible for adversaries. Research results suggest models gain robustness on being enforced with constraints (where the set of constrained variables is solved for optimization with a tractable linear program) that can cause the model accuracy to increase by 34%. Threat models designed with constraints properly assess realistic attack vectors and succeed in optimizing defensive performance. </p>
+			<p>One such relevant example is the defensive performance of AdvGAN- and FGSM-based mitigation (<a href="https://www.hindawi.com/journals/scn/2021/9924684/">https://www.hindawi.com/journals/scn/2021/9924684/</a>), as shown in <span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.15</em>, where <strong class="bold">A</strong> has been trained without constraints and <strong class="bold">B</strong> has been trained <span class="No-Break">with constraints.</span></p>
+			<div>
+				<div id="_idContainer047" class="IMG---Figure">
+					<img src="image/Figure_2.15_B18681.jpg" alt="Figure 2.﻿15 – Model accuracy when trained with adversarial perturbations A) without constraints and B) with constraints"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 2.15 – Model accuracy when trained with adversarial perturbations A) without constraints and B) with constraints</p>
+			<h3>Model robustness metric</h3>
+			<p>FGSM, JSMA, DeepFool, and <strong class="bold">Carlini and Wagner</strong> (<strong class="bold">CW</strong>) attacks have been useful in generating adversarial <a id="_idIndexMarker338"/>examples and triggering adversarial attacks, causing <a id="_idIndexMarker339"/>the misclassification of predicted outputs. There has been rigorous research in the field of devising metrics to evaluate model robustness by feeding in adversarial inputs to train the <span class="No-Break">neural network.</span></p>
+			<p>This research led to suggestions for improved robustness metrics, and one metric called <strong class="bold">Cross Lipschitz Extreme Value for nEtwork Robustness </strong>(<strong class="bold">CLEVER</strong>) was proposed, which <a id="_idIndexMarker340"/>defines an approximate lower bound on the minimum distortion needed for an attack to succeed. This robustness metric is attack-agnostic (successful against powerful attacks on different types of classifiers and neural networks such as ResNet, Inceptionv3, and MobileNet). This was also found to work on continuously differentiable functions to a special class of non-differentiable functions – neural networks with ReLU activations. The CLEVER metric serves as a comparative technique for comparing different network designs and <span class="No-Break">training procedures.</span></p>
+			<p>This algorithm at first generates <em class="italic">N</em> samples in a sphere around a given sample in an independent and uniform manner in each batch, out of a fixed total batch size. Then the gradient norm of each sample is computed and the maximum value of the gradient over those <em class="italic">N</em> samples is evaluated. The minimum value is used to determine the maximum likelihood, which is in turn used to retrieve the distributional parameters (reverse Weibull distribution) and maximizing the probability of <span class="No-Break">these gradients.</span></p>
+			<p>The average CLEVER scores are obtained for different target classes. A high CLEVER score means networks have better network robustness, in which minimal adversarial perturbation increases the <em class="italic">L</em><span class="subscript">p</span> norm to a higher value. This framework from IBM lays the foundation to build reliable systems without invoking specific <span class="No-Break">adversarial attacks.</span></p>
+			<p>This CLEVER score can be used to evaluate the effectiveness of CNNs and help us to certify a neural network’s attack-resistance level. For example, in mission-critical applications (such as autonomous vehicles), the evaluation of classification robustness could increase human confidence and would serve as an important metric for compliance <span class="No-Break">and ethics.</span></p>
+			<p>If introducing adversarial perturbation impacted the accuracy of the recognition of traffic signs and led to a speed limit being misclassified, it would have a disastrous impact on humans. Hence, it becomes mandatory to evaluate the ML model against the right robustness metric before launching the model at scale. This metric introduced by IBM considers the network architectures of CNNs, including convolutional layers, max-pooling layers, batch <a id="_idIndexMarker341"/>normalization layers, and residual blocks, as well as general activation functions, and limits the perturbation of each pixel within a threshold margin to guarantee the network classification is not changed by any external attack. IBM research further assures that this metric derived from the input and output relations of each layer generates a matrix that is efficient to compute. <span class="No-Break"><em class="italic">Figure 2</em></span><em class="italic">.16</em> illustrates the trade-offs associated with model robustness (as determined by the CLEVER score) and accuracy for 18 different ImageNet models.Recent research produced a new defense framework named TRADES (<a href="http://proceedings.mlr.press/v97/zhang19p/zhang19p.pdf">http://proceedings.mlr.press/v97/zhang19p/zhang19p.pdf</a>) that optimizes the adversarial robustness to achieve a trade-off between accuracy and robustness, providing strong resilience against both black-box and <span class="No-Break">white-box attacks.</span></p>
+			<p>It has been found that deep neural networks when trained with regularized input gradients become more robust, and interpretable. By gradient regularization, we mean how the addition of constraints controls the change in the gradient of the input features with respect to the loss function.Hence in addition to looking for the right trade-off between model accuracy and CLEVER score, we should also look for the right trade-off between model accuracy and interpretability. We should also be aware that the accuracy or predictive power of deep learning models is high, whereas interpretability orders of linear and generalized additive models are higher. In descending orders of magnitude, we can say this is the order of interpretability of models: linear models, generalized additive models, decision trees, SVMs, random forests, and <span class="No-Break">neural networks.</span></p>
+			<div>
+				<div id="_idContainer048" class="IMG---Figure">
+					<img src="image/Figure_2.16_B18681.jpg" alt="Figure 2.﻿16 – Trade-off between a model’s CLEVER score (robustness) and accuracy"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 2.16 – Trade-off between a model’s CLEVER score (robustness) and accuracy</p>
+			<h1 id="_idParaDest-65"><a id="_idTextAnchor064"/>Summary</h1>
+			<p>In this chapter, we have learned about different defense practices for mitigating attacks in different stages of data and model life cycle management. We have talked about different cloud components, techniques, and measures that can be adopted for data anonymization, deanonymization, training ML algorithms with DP, and encrypted transfer methodologies. In reference to this, we took a deep dive into adversarial risk mitigation frameworks (especially open source deep learning-based frameworks) that can be used to test the robustness of ML models before deployment and exposing the ML model to public APIs. Leveraging the use of existing frameworks and designing new ones can offer resilience against semi-honest or dishonest participants/adversaries attempting to undermine AI models, systems, and services. In addition, we have also seen how decentralized data storage, FL, and efficient cryptographic and privacy measures serve as design choices for next-generation, high-potential, <span class="No-Break">privacy-enabled systems.</span></p>
+			<p>In the following chapters, we will explore some of the defense pipeline creation methodologies, optimization strategies, and metrics, along with their ability to deduce trade-offs between accuracy, interpretability, fairness, bias, and privacy (the privacy-utility trade-off). All these important parameters serve as prerequisites to productionizing secure, private, auditable, and objectively designed trustworthy AI systems, enabling universal acceptance by both consumers <span class="No-Break">and policy-makers.</span></p>
+			<p>In the next chapter, we will understand the different laws and policies put in place that enforce the correct standards and best practices to build a fully <span class="No-Break">ethics-compliant system.</span></p>
+			<h1 id="_idParaDest-66"><a id="_idTextAnchor065"/>Further reading</h1>
+			<ul>
+				<li><em class="italic">Data masking</em>:<em class="italic"> what it is, how it works, types, and best practices</em>, Cem <span class="No-Break">Dilmegani:</span><span class="No-Break"><em class="italic"> </em></span><a href="https://research.aimultiple.com/data-masking/"><span class="No-Break">https://research.aimultiple.com/data-masking/</span></a></li>
+				<li><em class="italic">A Defense Framework for Privacy Risks in Remote Machine Learning Service, </em>Yang Bai, Yu Li, Mingchuang Xie, and Mingyu <span class="No-Break">Fan:</span><span class="No-Break"><em class="italic"> </em></span><a href="https://www.hindawi.com/journals/scn/2021/9924684/"><span class="No-Break">https://www.hindawi.com/journals/scn/2021/9924684/</span></a></li>
+				<li><em class="italic">A Study on k-anonymity, l-diversity, and t-closeness Techniques focusing Medical Data. 17, </em>Rajendran, Keerthana, Jayabalan, Manoj, and Rana, Muhammad Ehsan. (<span class="No-Break">2017):</span><span class="No-Break"><em class="italic"> </em></span><a href="https://www.researchgate.net/publication/322330948_A_Study_on_k-anonymity_l-diversity_and_t-closeness_Techniques_focusing_Medical_Data"><span class="No-Break">https://www.researchgate.net/publication/322330948_A_Study_on_k-anonymity_l-diversity_and_t-closeness_Techniques_focusing_Medical_Data</span></a></li>
+				<li><em class="italic">Dataprof - deterministic data </em><span class="No-Break"><em class="italic">masking</em></span><span class="No-Break">:</span><span class="No-Break"><em class="italic"> </em></span><a href="https://www.datprof.com/solutions/deterministic-data-masking/."><span class="No-Break">https://www.datprof.com/solutions/deterministic-data-masking/</span></a></li>
+				<li><em class="italic">Study Of The Use Of Anonymity Models, </em>Carmen <span class="No-Break">Marcano:</span><span class="No-Break"><em class="italic"> </em></span><a href="https://education.dellemc.com/content/dam/dell-emc/documents/en-us/2020KS_Marcano-Study_of_the_Use_of_Anonymity_Models.pdf"><span class="No-Break">https://education.dellemc.com/content/dam/dell-emc/documents/en-us/2020KS_Marcano-Study_of_the_Use_of_Anonymity_Models.pdf</span></a></li>
+				<li><em class="italic">Privacy Protection</em>:<em class="italic"> p-Sensitive k-Anonymity Property. IEEE Computer Society. 2006. 94 - 94. 10.1109/ICDEW.2006.116. </em>Truta, T. M. &amp; Vinay, Bindu. (<span class="No-Break">2006):</span><span class="No-Break"><em class="italic"> </em></span><a href="https://www.researchgate.net/publication/4238176_Privacy_Protection_p-Sensitive_k-Anonymity_Property"><span class="No-Break">https://www.researchgate.net/publication/4238176_Privacy_Protection_p-Sensitive_k-Anonymity_Property</span></a></li>
+				<li>MITRE <span class="No-Break">ATT&amp;CK: </span><a href="https://attack.mitre.org/#"><span class="No-Break">https://attack.mitre.org/#</span></a></li>
+				<li><em class="italic">De-Pois</em>:<em class="italic"> An Attack-Agnostic Defense against Data Poisoning Attacks. C</em>hen, J., Zhang, X., Zhang, R., Wang, C., &amp; Liu, L. (<span class="No-Break">2021):</span><span class="No-Break"><em class="italic"> </em></span><a href="https://arxiv.org/pdf/2105.03592.pdf"><span class="No-Break">https://arxiv.org/pdf/2105.03592.pdf</span></a></li>
+				<li><em class="italic">Designing Access with Differential Privacy</em>, Wood, Alexandra, Micah Altman, Kobbi Nissim, and Salil Vadhan. (<span class="No-Break">2020): </span><a href="https://admindatahandbook.mit.edu/book/v1.0/diffpriv.html"><span class="No-Break">https://admindatahandbook.mit.edu/book/v1.0/diffpriv.html</span></a></li>
+				<li><em class="italic">Machine Learning with Differential Privacy in </em><span class="No-Break"><em class="italic">TensorFlow</em></span><span class="No-Break">:</span><span class="No-Break"><em class="italic"> </em></span><a href="http://www.cleverhans.io/privacy/2019/03/26/machine-learning-with-differential-privacy-in-tensorflow.html"><span class="No-Break">http://www.cleverhans.io/privacy/2019/03/26/machine-learning-with-differential-privacy-in-tensorflow.html</span></a></li>
+				<li><em class="italic">Guidelines for Anonymization &amp; </em><span class="No-Break"><em class="italic">Pseudonymization</em></span><span class="No-Break">:</span><span class="No-Break"><em class="italic"> </em></span><a href="https://ispo.newschool.edu/guidelines/anonymization-pseudonymization/"><span class="No-Break">https://ispo.newschool.edu/guidelines/anonymization-pseudonymization/</span></a></li>
+				<li><em class="italic">A Python Library for Secure and Explainable ML, </em>Melis, M. Demontis, A., Pintor, M. Sotgiu, A., Biggio, B.<em class="italic"> </em><span class="No-Break"><em class="italic">secml</em></span><span class="No-Break">:</span><a href=" https://arxiv.org/pdf/1912.10013.pdf"><span class="No-Break"> </span><span class="No-Break">https://arxiv.org/pdf/1912.10013.pdf</span></a></li>
+				<li><em class="italic">Evaluating the Robustness of Neural Networks</em>:<em class="italic"> An Extreme Value Theory Approach, </em>Weng, Tsui-Wei et <span class="No-Break">al.: </span><a href="https://openreview.net/pdf?id=BkUHlMZ0b"><span class="No-Break">https://openreview.net/pdf?id=BkUHlMZ0b</span></a></li>
+				<li><em class="italic">Foolbox</em>:<em class="italic"> A Python toolbox to benchmark the robustness of machine learning models. Reliable ML in the Wild Workshop, 34th International Conference on ML, </em>J. Rauber, W. Brendel, and M. <span class="No-Break">Bethge:</span><span class="No-Break"><em class="italic"> </em></span><a href="https://arxiv.org/pdf/1707.04131.pdf"><span class="No-Break">https://arxiv.org/pdf/1707.04131.pdf</span></a></li>
+				<li><em class="italic">On the Robustness of Domain Constraints. CCS ‘21</em>:<em class="italic"> Proceedings of the 2021 ACM SIGSAC Conference on Computer and Communications Security, </em>Ryan Sheatsley, Blaine Hoak, Eric Pauley, Yohan Beugin, Michael J. Weisman, and Patrick <span class="No-Break">McDaniel:</span><span class="No-Break"><em class="italic"> </em></span><a href="https://arxiv.org/pdf/2105.08619.pdf"><span class="No-Break">https://arxiv.org/pdf/2105.08619.pdf</span></a></li>
+				<li>L-Diversity: Privacy Beyond k-Anonymity, ASHWIN MACHANAVAJJHALA DANIEL KIFER JOHANNES <span class="No-Break">GEHRKE, https://www.cs.rochester.edu/u/muthuv/ldiversity-TKDD.pdf</span></li>
+			</ul>
+		</div>
+		<div>
+			<div id="_idContainer050" class="IMG---Figure">
+			</div>
+		</div>
+	</body></html>

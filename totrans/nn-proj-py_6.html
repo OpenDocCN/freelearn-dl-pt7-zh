@@ -1,0 +1,991 @@
+<html><head></head><body>
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Sentiment Analysis of Movie Reviews Using LSTM</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">In previous chapters, we looked at neural network architectures, such as the basic MLP and feedforward neural networks, for classification and regression tasks. We then looked at CNNs, and we saw how they are used for image recognition tasks. In this chapter, we will turn our attention to <strong class="calibre4">recurrent neural networks</strong> (<strong class="calibre4">RNNs</strong>) (in particular, to <strong class="calibre4">long short-term memory</strong> (<strong class="calibre4">LSTM</strong>) networks) and how they can be used in sequential problems, such as <strong class="calibre4">Natural Language Processing</strong> (<strong class="calibre4">NLP</strong>). We will develop and train a LSTM<span class="calibre5"> network to predict the sentiment of movie reviews on IMDb. </span></p>
+<p class="calibre2">In this chapter, we'll cover the following topics:</p>
+<ul class="calibre11">
+<li class="calibre12">Sequential problems in machine learning</li>
+<li class="calibre12">NLP and sentiment analysis</li>
+<li class="calibre12">Introduction to RNNs and LSTM networks</li>
+<li class="calibre12">Analysis of the IMDb movie reviews dataset</li>
+<li class="calibre12">Word embeddings</li>
+<li class="calibre12">A step-by-step guide to building and training an LSTM network in Keras</li>
+<li class="calibre12">Analysis of our results</li>
+</ul>
+<p class="calibre2"/>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Technical requirements</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">The Python libraries required for this chapter are as follows:</p>
+<ul class="calibre11">
+<li class="calibre12">matplotlib 3.0.2</li>
+<li class="calibre12">Keras 2.2.4</li>
+<li class="calibre12">seaborn 0.9.0</li>
+<li class="calibre12">scikit-learn 0.20.2</li>
+</ul>
+<p class="calibre2">The code for this chapter can be found in the GitHub repository for the book.</p>
+<p class="calibre2">To download the code onto your computer, you may run the following <kbd class="calibre13">git clone</kbd> command:</p>
+<pre class="calibre17"><strong class="calibre1">$ git clone https://github.com/PacktPublishing/Neural-Network-Projects-with-Python.git</strong></pre>
+<p class="calibre2">After the process is complete, there will be a folder entitled <kbd class="calibre13">Neural-Network-Projects-with-Python</kbd><span class="calibre5">. Enter the folder by running the following:</span></p>
+<pre class="calibre17"><strong class="calibre1">$ cd Neural-Network-Projects-with-Python</strong></pre>
+<p class="calibre2">To install the required Python libraries in a virtual environment, run the following command:</p>
+<div class="title-page-name">
+<div class="title-page-name">
+<pre class="calibre17"><strong class="calibre1"><span>$ conda</span> <span>env</span> <span>create</span> <span>-</span><span>f</span> <span>environment</span><span>.</span><span>yml</span></strong></pre></div>
+</div>
+<p class="calibre2">Note that you should have installed Anaconda on your computer first, before running this command. To enter the virtual environment, run the following command:</p>
+<pre class="calibre17"><strong class="calibre1">$ conda activate neural-network-projects-python</strong></pre>
+<p class="calibre2">Navigate to the<span class="calibre5"> </span><kbd class="calibre13">Chapter06</kbd><span class="calibre5"> folder </span>by running the following command:</p>
+<pre class="calibre17"><strong class="calibre1">$ cd Chapter06</strong></pre>
+<p class="calibre2">The following file is located in the folder:</p>
+<ul class="calibre11">
+<li class="calibre12"><kbd class="calibre13">lstm.py</kbd><span>: This is the main code for this chapter</span></li>
+</ul>
+<p class="calibre2">To run the code, simply execute the <kbd class="calibre13">lstm.py</kbd> file:</p>
+<pre class="calibre17"><strong class="calibre1">$ python lstm.py</strong></pre>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Sequential problems in machine learning</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2"><strong class="calibre4">Sequential problems</strong> are a class of problem in machine learning in which the order of the features presented to the model is important for making predictions. Sequential problems are commonly encountered in the following scenarios:</p>
+<ul class="calibre11">
+<li class="calibre12">NLP, including sentiment analysis, language translation, and text prediction</li>
+<li class="calibre12">Time series predictions</li>
+</ul>
+<p class="calibre2">For example, let's consider the text prediction problem, as shown in the following screenshot, which falls under NLP:</p>
+<p class="mce-root"><img class="alignnone77" src="assets/a095e669-07db-4705-b0df-32802fff8f36.png"/></p>
+<p class="calibre2">Human beings have an innate ability for this, and it is trivial for us to know that the word in the blank is probably the word <em class="calibre8">Japanese</em>. The reason for this is that as we read the sentence, we process the words as a sequence. The sequence of the words captures the information required to make the prediction. By contrast, if we discard the sequential information and only consider the words individually, we get a <em class="calibre8">bag of words,</em> as shown in the following diagram:</p>
+<p class="mce-root"><img class="alignnone78" src="assets/342284d6-22cd-487b-8f5e-e4adf78c8dca.png"/></p>
+<p class="calibre2">We can see that our ability to predict the word in the blank is now severely impacted. Without knowing the sequence of words, it is impossible to predict the word in the blank.</p>
+<p class="calibre2">Besides text predictions, sentiment analysis and language translation are also sequential problems. In fact, many NLP problems are sequential problems, because the languages that we speak are sequential in nature, and the sequence conveys context and other subtle nuances. </p>
+<p class="calibre2">Sequential problems also occur naturally in time series problems. Time series problems are common in stock markets. Often, we wish to know whether a particular stock will rise or fall on a certain day. This problem is accurately defined as a time series problem, because knowing the movement of the stocks in the preceding hours or minutes is often crucial to predicting whether the stock will rise or fall. Today, machine learning methods are being heavily applied in this domain, with algorithmic trading strategies driving the buying and selling of stocks.</p>
+<p class="calibre2">In this chapter, we will focus on NLP problems. In particular, we will create a neural network for sentiment analysis.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">NLP and sentiment analysis</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">NLP is a subfield in <strong class="calibre4">artificial intelligence</strong> (<strong class="calibre4">AI</strong>) that is concerned with the interaction of computers and human languages. As early as the 1950s, scientists were interested in designing intelligent machines that could understand human languages. Early efforts to create a language translator focused on the rule-based approach, where a group of linguistic experts handcrafted a set of rules to be encoded in machines. However, this rule-based approach produced results that were sub-optimal, and, often, it was impossible to convert these rules from one language to another, which meant that scaling up was difficult. For many decades, not much progress was made in NLP, and human language was a goal that AI couldn't reach—until the resurgence of deep learning.</p>
+<p class="calibre2">With the proliferation of deep learning and neural networks in the image classification domain, scientists began to wonder whether the powers of neural networks could be applied to NLP. In the late '00s, tech giants, including Apple, Amazon, and Google, applied LSTM networks to NLP problems, and the results were astonishing. The ability of AI assistants, such as Siri and Alexa, to understand multiple languages spoken in different accents was the result of deep learning and LSTM networks. In recent years, we have also seen a massive improvement in the abilities of text translation software, such as Google Translate, which is capable of producing translations as good as human language experts.</p>
+<p class="calibre2"><strong class="calibre4">Sentiment analysis</strong> is also an area of NLP that benefited from the resurgence of deep learning. Sentiment analysis is defined as the prediction of the positivity of a text. Most sentiment analysis problems are classification problems (positive/neutral/negative) and not regression problems.</p>
+<p class="calibre2">There are many practical applications of sentiment analysis. For example, modern customer service centers use sentiment analysis to predict the satisfaction of customers through the reviews they provide on platforms such as Yelp or Facebook. This allows businesses to step in immediately whenever customers are dissatisfied, allowing the problem to be addressed as soon as possible, and preventing customer churn.</p>
+<p class="calibre2">Sentiment analysis has also been applied in the domain of stocks trading. In 2010, scientists showed that by sampling the sentiment in Twitter (positive versus negative tweets), we can predict whether the stock market will rise. Similarly, high-frequency trading firms use sentiment analysis to sample the sentiment of news related to certain companies, and execute trades automatically, based on the positivity of the news.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Why sentiment analysis is difficult</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">Early efforts in sentiment analysis faced many hurdles, due to the presence of subtle nuances in human languages. The same word can often covey a different meaning, depending on the context. Take for example the following two sentences:</p>
+<p class="mce-root"><img class="alignnone79" src="assets/5060c2e1-acc7-4763-a93f-5a2630eba114.png"/></p>
+<p class="calibre2">We know that the sentiment of the first sentence is negative, as it probably means that the building is literally on fire. On the other hand, we know that the sentiment of the second sentence is positive, since it is unlikely that the person is literally on fire. Instead, it probably means that the person is on a <em class="calibre8">hot streak</em>, and this is positive. The rule-based approach toward sentiment analysis suffers because of these subtle nuances, and it is incredibly complex to encode this knowledge in a rule-based manner. </p>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<p class="calibre2">Another reason sentiment analysis is difficult is because of sarcasm. Sarcasm is commonly used in many cultures, especially in an online medium. Sarcasm is difficult for computers to understand. In fact, even humans fail to detect sarcasm at times. Take for example the following sentence:</p>
+<p class="mce-root"><img class="alignnone80" src="assets/fa2c5812-d49e-49ee-8dd2-c9cf0b647c02.png"/></p>
+<p class="calibre2">You can probably detect sarcasm in the preceding sentence, and come to the conclusion that the sentiment is negative. However, it is not easy for a program to understand that. </p>
+<p class="calibre2">In the next section, we will look at RNNs and LSTM nets, and how they have been used to tackle sentiment analysis.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">RNN</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">Up until now, we have used neural networks such as the MLP, feedforward neural network, and CNN in our projects. The constraint faced by these neural networks is that they only accept a fixed input vector such as an image, and output another vector. The high-level architecture of these neural networks can be summarized by the following diagram:</p>
+<p class="mce-root"><img class="alignnone81" src="assets/8f373841-27d5-4ef7-aee5-75cd6eca7761.png"/></p>
+<p class="calibre2">This restrictive <span class="calibre5">architecture</span> makes it difficult for CNNs to work with sequential data. To work with sequential data, the neural network needs to take in specific bits of the data at each time step, in the sequence that it appears. This provides the idea for an RNN. An RNN has high-level architecture, as shown in the following diagram:</p>
+<p class="mce-root"><img class="alignnone82" src="assets/afa90262-19e2-491e-8c06-6076e52cce9b.png"/></p>
+<p class="calibre2">From the previous diagram, we can see that an RNN is a multi-layered neural network. We can break up the raw input, splitting it into time steps. For example, if the raw input is a sentence, we can break up the sentence into individual words (in this case, every word represents a time step). Each word will then be provided in the corresponding layer in the RNN as <strong class="calibre4">Input</strong>. More importantly, each layer in an RNN passes its output to the next layer. The intermediate output passed from layer to layer is known as the hidden state. Essentially, the hidden state allows an RNN to maintain a memory of the intermediate states from the sequential data.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">What's inside an RNN?</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">Let's now take a closer look at what goes on inside each layer of an RNN. The following diagram depicts the mathematical function inside each layer of an RNN:</p>
+<p class="mce-root"><img class="alignnone83" src="assets/94651e9b-3a1d-4ffa-b914-830c5b8e82d7.png"/></p>
+<p class="calibre2">The mathematical function of an RNN is simple. Each layer <em class="calibre8">t </em>within an RNN has two inputs:</p>
+<ul class="calibre11">
+<li class="calibre12">The input from the time step <em class="calibre18">t</em></li>
+<li class="calibre12">The hidden state passed from the previous layer <em class="calibre18">t-1</em></li>
+</ul>
+<p class="calibre2">Each layer in an RNN simply sums up the two inputs and applies a <em class="calibre8">tanh</em> function to the sum. It then outputs the result, to be passed as a hidden state to the next layer. It's that simple! More formally, the output hidden state of layer <em class="calibre8">t</em> is this:</p>
+<p class="mce-root"><img class="fm-editor-equation22" src="assets/1077d130-7e09-41e7-8909-2feb6bae8f02.png"/></p>
+<p class="calibre2">But what exactly is the <em class="calibre8">tanh</em> function? The <em class="calibre8">tanh </em>function is the hyperbolic tangent function, and it simply squashes a value between <strong class="calibre4">1</strong> and <strong class="calibre4">-1</strong>. The following graph illustrates this:</p>
+<p class="mce-root"><img class="alignnone84" src="assets/97058633-3829-4297-b6e8-c11d927ad0ab.png"/></p>
+<p class="calibre2">The tanh function is a good choice as a non-linear transformation of the combination of the current input and the previous hidden state, because it ensures that the weights don't diverge too rapidly. It has also other nice mathematical properties, such as being easily differentiable. </p>
+<p class="calibre2">Finally, to get the final output from the last layer in the RNN, we simply apply a <em class="calibre8">sigmoid</em> function to it:</p>
+<p class="mce-root"><img class="fm-editor-equation23" src="assets/278c8e5e-8dcd-450e-b2eb-bf90e5ff7aa4.png"/></p>
+<p class="calibre2">In the previous equation, <em class="calibre8">n </em>is the index of the last layer in the RNN. Recall from previous chapters that the <em class="calibre8">sigmoid</em> function produces an output between 0 and 1, hence providing the probabilities for each class as a prediction.</p>
+<p class="calibre2">We can see that if we stack these layers together, the final output from an RNN depends on the non-linear combination of the inputs at different time steps.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Long- and short-term dependencies in RNNs</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">The architecture of an RNN makes it ideal for handling sequential data. Let's take a look at some concrete examples, to understand how an RNN handles different lengths of sequential data. </p>
+<p class="calibre2">Let's first take a look at a short piece of text as our sequential data:</p>
+<p class="mce-root"><img class="alignnone85" src="assets/c28bc829-1bc6-4cc4-891b-2822035d7491.png"/></p>
+<p class="calibre2">We can treat this short sentence as sequential data by breaking it down into five different inputs, with each word at each time step. This is illustrated in the following diagram:</p>
+<p class="mce-root"><img class="alignnone86" src="assets/080f8b94-57ff-458f-bc19-468b7a905241.png"/></p>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<p class="calibre2">Now, suppose that we are building a simple RNN to predict whether is it snowing based on this sequential data. The RNN would look something like this:</p>
+<p class="mce-root"><img class="alignnone87" src="assets/f1694093-ef42-428a-aa8d-bab48e18164b.png"/></p>
+<p class="calibre2">The critical piece of information in the sequence is the word <strong class="calibre4">HOT</strong>, at time step 4 (<strong class="calibre4">t<sub class="calibre21">4</sub></strong><sub class="calibre21">,</sub><strong class="calibre4"><sub class="calibre21"> </sub></strong>circled in red). With this piece of information, the RNN is able to easily predict that it is not snowing today. Notice that the critical piece of information came just shortly before the final output. In other words, we would say that there is a short-term dependency in this sequence.</p>
+<p class="calibre2">Clearly, RNNs have no problems with short-term dependencies. But what about long-term dependencies? Let's take a look now at a longer sequence of text. Let's use the following paragraph as an example:</p>
+<p class="mce-root"><img class="alignnone88" src="assets/febffd6f-8a0e-41b8-bece-f47008b67a48.png"/></p>
+<p class="calibre2">Our goal is to predict whether the customer liked the movie. Clearly, the customer liked the movie but not the cinema, which was the main complaint in the paragraph. Let's break up the paragraph into a sequence of inputs, with each word at each time step (32 time steps for 32 words in the paragraph). The RNN would look this:</p>
+<p class="mce-root"><img class="alignnone89" src="assets/a2e3ea44-bff6-448e-9913-13426c6cb967.png"/></p>
+<p class="calibre2">The critical words <strong class="calibre4">liked the movie</strong> appeared between time steps 3 and 5. Notice that there is a significant gap between the critical time steps and the output time step, as the rest of the text was largely irrelevant to the prediction problem (whether the customer liked the movie). In other words, we say that there is a long-term dependency in this sequence. Unfortunately, RNNs do not work well with long-term dependency sequences. RNNs have a good short-term memory, but a bad long-term memory. To understand why this is so, we need to understand the <strong class="calibre4">vanishing gradient problem</strong> when training neural networks.</p>
+<p class="calibre2"/>
+<p class="calibre2"/>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">The vanishing gradient problem</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">The vanishing gradient problem is a problem when training deep neural networks using gradient-based methods such as backpropagation. Recall in previous chapters, we discussed the backpropagation algorithm in training neural networks. In particular, the <kbd class="calibre13">loss</kbd> function provides information on the accuracy of our predictions, and allows us to adjust the weights in each layer, to reduce the loss.</p>
+<p class="calibre2">So far, we have assumed that backpropagation works perfectly. Unfortunately, that is not true. When the loss is propagated backward, the loss tends to decrease with each successive layer:</p>
+<p class="mce-root"><img class="alignnone90" src="assets/b4f16081-a20b-45b3-bd17-1f0491d6404e.png"/></p>
+<p class="calibre2">As a result, by the time the loss is propagated back toward the first few layers, the loss has already diminished so much that the weights do not change much at all. With such a small loss being propagated backward, it is impossible to adjust and train the weights of the first few layers. This phenomenon is known as the vanishing gradient problem in machine learning.</p>
+<p class="calibre2">Interestingly, the vanishing gradient problem does not affect CNNs in computer vision problems. However, when it comes to sequential data and RNNs, the vanishing gradient can have a significant impact. The vanishing gradient problem means that RNNs are unable to learn from early layers (early time steps), which causes it to have poor long-term memory.</p>
+<p class="calibre2">To address this problem, Hochreiter and others proposed a clever variation of the RNN, known as the <strong class="calibre4">long short-term memory</strong> (<strong class="calibre4">LSTM</strong>) network.</p>
+<p class="calibre2"/>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">The LSTM network</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">LSTMs are a variation of RNNs, and they solve the long-term dependency problem faced by conventional RNNs. Before we dive into the technicalities of LSTMs, it is useful to understand the intuition behind them.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">LSTMs – the intuition</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">As we explained in the previous section, LSTMs were designed to overcome the problem with long-term dependencies. Let's assume we have this movie review:</p>
+<p class="mce-root"><img class="alignnone91" src="assets/5025b4a0-5ce9-46b6-b1b8-2cfaa5cfe2c9.png"/></p>
+<p class="calibre2">Our task is to predict whether the reviewer liked the movie. As we read this review, we immediately understand that this review is positive. In particular, the following words (highlighted) are the most important:</p>
+<p class="mce-root"><img class="alignnone92" src="assets/bc8f9769-2b2a-425c-b41b-421a64229f4f.png"/></p>
+<p class="CDPAlignLeft1">If we think about it, only the highlighted words are important, and we can ignore the rest of the words. This is an important strategy. By selectively remembering certain words, we can ensure that our neural network does not get bogged down by too many unnecessary words that do not provide much predictive power. This is an important distinction of LSTMs over conventional RNNs. Conventional RNNs have a tendency to remember everything (even unnecessary inputs) that results in the inability to learn from long sequences. By contrast, LSTMs selectively remember important inputs (such as the preceding highlighted text), and this allows them to handle both short- and long-term dependencies. </p>
+<p class="calibre2">The ability of LSTMs to learn from both short- and long-term dependencies gives it its name, <strong class="calibre4">long short-term memory</strong> (<strong class="calibre4">LSTM</strong>).</p>
+<p class="calibre2"/>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">What's inside an LSTM network?</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">LSTMs have the same repeating structure of RNNs that we have seen previously. However, LSTMs differ in their internal structure.</p>
+<p class="calibre2">The following diagram shows a high-level overview of the repeating unit of an LSTM:</p>
+<p class="mce-root"><img class="alignnone93" src="assets/c496ae83-c098-434f-984e-5019fb236cc2.png"/></p>
+<p class="calibre2">The preceding diagram might look complicated to you now, but, don't worry, as we'll go through everything step by step. <span class="calibre5">As we mentioned in the previous section, LSTMs have the ability to selectively remember important inputs and to forget the rest. The internal structure of an LSTM allows it to do that. </span></p>
+<p class="calibre2">An LSTM differs from a conventional RNN in that it has a cell state, in addition to the hidden state. You can think of the cell state as the current memory of the LSTM. It flows from one repeating structure to the next, conveying important information that has to be retained at the moment. In contrast, the hidden state is the overall memory of the entire LSTM. It contains everything that we have seen so far, both important and unimportant information. </p>
+<p class="calibre2">How does the LSTM release information between the hidden state and the cell state? It does so via three important gates:</p>
+<ul class="calibre11">
+<li class="calibre12">Forget gate</li>
+<li class="calibre12">Input gate</li>
+<li class="calibre12">Output gate</li>
+</ul>
+<p class="calibre2"/>
+<p class="calibre2">Just like physical gates, the three gates restrict the flow of information from the hidden state to the cell state.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Forget gate</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">The <strong class="calibre4">Forget gate (f)</strong> of an LSTM is highlighted in the following diagram:</p>
+<p class="mce-root"><img class="alignnone94" src="assets/4818dad7-3ddd-49ec-b302-1e64e9f340f0.png"/></p>
+<p class="calibre2">The <strong class="calibre4">Forget gate (f)</strong> forms the first part of the LSTM repeating unit, and its role is to decide how much data we should forget or remember from the previous cell state. It does so by first <span class="calibre5">concatenating the <strong class="calibre4">Previous Hidden State</strong> <strong class="calibre4">(</strong><strong class="calibre4">h<sub class="calibre21">t−1</sub></strong></span><span class="calibre5"><strong class="calibre4">)</strong> and the current <strong class="calibre4">Input</strong> <strong class="calibre4">(x<sub class="calibre21">t</sub></strong></span><span class="calibre5"><strong class="calibre4">)</strong>, then passing the concatenated vector through a sigmoid function. Recall that the sigmoid function outputs a vector with values between 0 and 1. A value of 0 means to stop the information from passing through (forget), and a value of 1 means to pass the information through (remember).</span></p>
+<p class="calibre2">The output of the forget gate, <em class="calibre8">f,</em> is as follows:</p>
+<p class="mce-root"><img class="fm-editor-equation24" src="assets/70b53f38-c533-4e23-9ab4-3daa49b7117b.png"/></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Input gate</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">The next gate is the <strong class="calibre4">Input gate (i)</strong>. The <strong class="calibre4">Input gate (i)</strong> controls how much information to pass to the current cell state. The input gate of an LSTM is highlighted in the following diagram:</p>
+<p class="mce-root"><img class="alignnone95" src="assets/99ef8fca-77fd-4ab4-b03e-bdb4a516ee90.png"/></p>
+<p class="calibre2">Just like the forget gate, the <strong class="calibre4">Input gate (i)</strong> takes as input the concatenation of the <strong class="calibre4">P<span class="calibre5">revious Hidden State (h<sub class="calibre21">t-1</sub></span></strong><span class="calibre5"><strong class="calibre4">)</strong> and the current <strong class="calibre4">Input (x<sub class="calibre21">t</sub></strong></span><span class="calibre5"><strong class="calibre4">)</strong>. It then passes two copies of the concatenated vector through a sigmoid function and a tanh function, before multiplying them together.</span></p>
+<p class="calibre2"><span class="calibre5">The output of the input gate, <em class="calibre8">i, </em>is as follows:</span></p>
+<p class="mce-root"><img class="fm-editor-equation25" src="assets/2c50b499-d1cd-4f90-ada2-8ce9a399d8dd.png"/></p>
+<p class="calibre2">At this point, we have what is required to compute the current cell state (<strong class="calibre4">C<sub class="calibre21">t</sub></strong>) to be output. This is illustrated in the following diagram:</p>
+<p class="mce-root"><img class="alignnone96" src="assets/a735add6-042e-447c-a3e8-eec2751d1ff3.png"/></p>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<p class="calibre2">The current cell state <em class="calibre8">C<sub class="calibre21">t</sub></em> is as follows:</p>
+<p class="mce-root"><img class="fm-editor-equation26" src="assets/924d4067-4019-49cf-bf2c-df5f5320dfd0.png"/></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Output gate</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">Finally, the output gate controls how much information is to be retained in the hidden state. The output gate is highlighted in the following diagram:</p>
+<p class="mce-root"><img class="alignnone97" src="assets/d4ab5c42-4c8c-41e6-bd1d-9079314aafa3.png"/></p>
+<p class="calibre2">First, we concatenate the <strong class="calibre4"><span class="calibre5">Previous Hidden State (</span>h<sub class="calibre21">t−1</sub></strong><span class="calibre5"><strong class="calibre4">)</strong> and the current</span> <strong class="calibre4">Input (x<sub class="calibre21">t</sub>)</strong>, <span class="calibre5">and pass it through a sigmoid function. Then, we take the current cell state (</span><em class="calibre8">C<sub class="calibre21">t</sub></em><span class="calibre5">) and pass it through a tanh function. Finally, we take the multiplication of the two, which is passed to the next repeating unit as the hidden state (</span><em class="calibre8">h<sub class="calibre21">t</sub></em><span class="calibre5">). This process is summarized by the following equation:</span></p>
+<p class="mce-root"><img class="fm-editor-equation27" src="assets/92ecd107-228b-434f-85ee-54dd723b56af.png"/></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Making sense of this</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">Many beginners to LSTMs often get intimidated by the mathematical formulas involved. Although it is useful to understand the mathematical functions behind LSTMs, it is often difficult (and not very useful) to try to relate the intuition behind LSTMs and the mathematical formulas. Instead, it is more useful to understand LSTMs at a high level, and then to apply a black box algorithm, as we shall see in the later sections.</p>
+<p class="calibre2"/>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">The IMDb movie reviews dataset</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">At this point, let's take a quick look at the IMDb movie reviews dataset before we start building our model. It is always a good practice to understand our data before we build our model.</p>
+<p class="calibre2">The IMDb movie reviews dataset is a corpus of movie reviews posted on the popular movie reviews website <a href="https://www.imdb.com/" target="_blank" class="calibre10">https://www.imdb.com/</a>. Each movie review has a label indicating whether the review is positive (1) or negative (0).</p>
+<p class="calibre2">The IMDb movie reviews dataset is provided in Keras, and we can import it by simply calling the following code:</p>
+<pre class="calibre17">from keras.datasets import imdb<br class="title-page-name"/>training_set, testing_set = imdb.load_data(index_from = 3)<br class="title-page-name"/>X_train, y_train = training_set<br class="title-page-name"/>X_test, y_test = testing_set</pre>
+<p class="calibre2">We can print out the first movie review as follows:</p>
+<pre class="calibre17">print(X_train[0])</pre>
+<p class="calibre2">We'll see the following output:</p>
+<pre class="calibre17"><span>[1, 14, 22, 16, 43, 530, 973, 1622, 1385, 65, 458, 4468, 66, 3941, 4, 173, 36, 256, 5, 25, 100, 43, 838, 112, 50, 670, 22665, 9, 35, 480, 284, 5, 150, 4, 172, 112, 167, 21631, 336, 385, 39, 4, 172, 4536, 1111, 17, 546, 38, 13, 447, 4, 192, 50, 16, 6, 147, 2025, 19, 14, 22, 4, 1920, 4613, 469, 4, 22, 71, 87, 12, 16, 43, 530, 38, 76, 15, 13, 1247, 4, 22, 17, 515, 17, 12, 16, 626, 18, 19193, 5, 62, 386, 12, 8, 316, 8, 106, 5, 4, 2223, 5244, 16, 480, 66, 3785, 33, 4, 130, 12, 16, 38, 619, 5, 25, 124, 51, 36, 135, 48, 25, 1415, 33, 6, 22, 12, 215, 28, 77, 52, 5, 14, 407, 16, 82, 10311, 8, 4, 107, 117, 5952, 15, 256, 4, 31050, 7, 3766, 5, 723, 36, 71, 43, 530, 476, 26, 400, 317, 46, 7, 4, 12118, 1029, 13, 104, 88, 4, 381, 15, 297, 98, 32, 2071, 56, 26, 141, 6, 194, 7486, 18, 4, 226, 22, 21, 134, 476, 26, 480, 5, 144, 30, 5535, 18, 51, 36, 28, 224, 92, 25, 104, 4, 226, 65, 16, 38, 1334, 88, 12, 16, 283, 5, 16, 4472, 113, 103, 32, 15, 16, 5345, 19, 178, 32]</span></pre>
+<p class="calibre2">We see a sequence of numbers, because Keras has already encoded the words as numbers as part of the preprocessing. We can convert the review back to words, using the built-in word-to-index dictionary provided by Keras as part of the dataset:</p>
+<pre class="calibre17">word_to_id = imdb.get_word_index()<br class="title-page-name"/>word_to_id = {key:(value+3) for key,value in word_to_id.items()}<br class="title-page-name"/>word_to_id["&lt;PAD&gt;"] = 0<br class="title-page-name"/>word_to_id["&lt;START&gt;"] = 1<br class="title-page-name"/>id_to_word = {value:key for key,value in word_to_id.items()}</pre>
+<p class="calibre2"/>
+<p class="calibre2">Now, we can show the original review in words:</p>
+<pre class="calibre17">print(' '.join(id_to_word[id] for id in X_train[159] ))</pre>
+<p class="calibre2">We'll see the following output:</p>
+<pre class="calibre17"><span>&lt;START&gt; a rating of 1 does not begin to express how dull depressing and relentlessly bad this movie is</span></pre>
+<p class="calibre2">Clearly, the sentiment of this review is negative! Let's make sure by printing the <kbd class="calibre13">y</kbd> value:</p>
+<pre class="calibre17">print(y_train[159])</pre>
+<p class="calibre2">We'll see the following output:</p>
+<pre class="calibre17">0</pre>
+<p class="calibre2">A <kbd class="calibre13">y</kbd> value of <kbd class="calibre13">0</kbd> refers to a negative review and a <kbd class="calibre13">y</kbd> value of <kbd class="calibre13">1</kbd> refers to a positive review. Let's take a look at an example of a positive review:</p>
+<pre class="calibre17">print(' '.join(id_to_word[id] for id in X_train[6]))</pre>
+<p class="calibre2">We'll get the following output:</p>
+<pre class="calibre17"><span>&lt;START&gt; lavish production values and solid performances in this straightforward adaption of jane austen's satirical classic about the marriage game within and between the classes in provincial 18th century england northam and paltrow are a salutory mixture as friends who must pass through jealousies and lies to discover that they love each other good humor is a sustaining virtue which goes a long way towards explaining the accessability of the aged source material which has been toned down a bit in its harsh scepticism i liked the look of the film and how shots were set up and i thought it didn't rely too much on successions of head shots like most other films of the 80s and 90s do very good results</span></pre>
+<p class="calibre2">To check the sentiment of the review, try this:</p>
+<pre class="calibre17">print(y_train[6])</pre>
+<p class="calibre2">We get the following output:</p>
+<pre class="calibre17">1</pre>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Representing words as vectors</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">So far, we have looked at what RNNs and LSTM networks represent. There remains an important question we need to address: how do we represent words as input data for our neural network? In the case of CNNs, we saw how images are essentially three-dimensional vectors/matrixes, with dimensions represented by the image width, height, and the number of channels (three channels for color images). The values in the vectors represent the intensity of each individual pixel. </p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">One-hot encoding</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">How do we create a similar vector/matrix for words so that they can be used as input to our neural network? In earlier chapters, we saw how categorical variables such as the day of week can be one-hot encoded to numerical variables by creating a new feature for each variable. It may be tempting to think that we can also one-hot encode our sentences in this manner, but such a method has significant disadvantages.</p>
+<p class="calibre2">Let's consider phrases such as the following:</p>
+<ul class="calibre11">
+<li class="calibre12">Happy, excited</li>
+<li class="calibre12">Happy</li>
+<li class="calibre12">Excited</li>
+</ul>
+<p class="calibre2"><span class="calibre5">The following diagram shows a one-hot encoded two-dimensional representation of these phrases:</span></p>
+<p class="mce-root"><img class="alignnone98" src="assets/d146e4e6-ee6c-4319-9fe7-73f6885b8b6b.png"/></p>
+<p class="calibre2">In this vector representation, the phrase <strong class="calibre4">"Happy<em class="calibre8">,</em></strong> <strong class="calibre4">excited"</strong> has a value of <strong class="calibre4">1</strong> for both axes, because both the words <strong class="calibre4">"Happy"</strong> and <strong class="calibre4">"Excited"</strong> are present in the phrase. Similarly, the phrase <strong class="calibre4">Happy</strong> has a value of <strong class="calibre4">1</strong> for the <strong class="calibre4">Happy</strong> axis and a value of <strong class="calibre4">0</strong> for the <strong class="calibre4">Excited</strong> axis, because it only contains the word <strong class="calibre4">Happy</strong>.</p>
+<p class="calibre2">The full two-dimensional vector representation is shown in the following table:</p>
+<table border="1" class="calibre22">
+<tbody class="calibre23">
+<tr class="calibre24">
+<td class="CDPAlignCenter4"><strong class="calibre1">Happy</strong></td>
+<td class="CDPAlignCenter5"><strong class="calibre1">Excited</strong></td>
+</tr>
+<tr class="calibre24">
+<td class="CDPAlignCenter4">1</td>
+<td class="CDPAlignCenter5">1</td>
+</tr>
+<tr class="calibre24">
+<td class="CDPAlignCenter4">1</td>
+<td class="CDPAlignCenter5">0</td>
+</tr>
+<tr class="calibre24">
+<td class="CDPAlignCenter4">0</td>
+<td class="CDPAlignCenter5">1</td>
+</tr>
+</tbody>
+</table>
+<p class="calibre2"> </p>
+<p class="calibre2">There are several problems with this one-hot encoded representation. Firstly, the number of axes depends on the number of unique words in our dataset. As we can imagine, there are tens of thousands of unique words in the English dictionary. If we were to create an axis for each word, then the size of our vector would quickly grow out of hand. Secondly, such a vector representation would be extremely sparse (full of zeros). This is because most words appear only once in each sentence/paragraph. It is difficult to train a neural network on such a sparse vector.</p>
+<p class="calibre2">Finally, and perhaps most importantly, such a vector representation does not take into consideration the similarity of words. In our preceding example, <strong class="calibre4">Happy</strong> and <strong class="calibre4">Excited</strong> are both words that convey positive emotions. However, this one-hot encoded representation does not take this similarity into consideration. Thus, important information is lost when words are represented in this form.</p>
+<p class="calibre2">As we can see, there are significant disadvantages associated with one-hot encoded vectors. In the next section, we'll look at <strong class="calibre4">word embeddings</strong>, which overcome these disadvantages.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Word embeddings</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">Word embeddings are a learned form of vector representation for words. The main advantage of word embeddings is that they have fewer dimensions than the one-hot encoded representation, and they place similar words close to one another.</p>
+<p class="calibre2">The following diagram shows an example of a word embedding:</p>
+<p class="mce-root"><img class="alignnone99" src="assets/66dd6536-a7c8-4cc8-8852-d88aac6101d1.png"/></p>
+<p class="calibre2">Notice that the learned word embedding knows that the words <strong class="calibre4">"Elated"</strong>, <strong class="calibre4">"Happy"</strong>, and <strong class="calibre4">"Excited"</strong> are similar words, and hence should be placed near each other. Similarly, the words <strong class="calibre4">"Sad"</strong>, <strong class="calibre4">"Disappointed"</strong>, <strong class="calibre4">"Angry"</strong>, and <strong class="calibre4">"Furious"</strong> are on the opposite ends of the spectrum, and should be placed far away.</p>
+<p class="calibre2">We won't go into detail regarding the creation of the word embeddings, but essentially they are trained using supervised learning algorithms. Keras also provides a convenient API for training our own word embeddings. In this project, we will train our word embeddings on the IMDb movie reviews dataset.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Model architecture</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">Let's take a look at the model architecture of our IMDb movie review sentiment analyzer, shown in the following diagram:</p>
+<p class="mce-root"><img class="alignnone100" src="assets/c6ceb135-9662-4be0-9145-2b4411613192.png"/></p>
+<p class="calibre2">This should be fairly familiar to you by now! Let's go through each component briefly. </p>
+<p class="calibre2"/>
+<p class="calibre2"/>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Input</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">The input to our neural network shall be IMDb movie reviews. The reviews will be in the form of English sentences. As we've seen, the dataset provided in Keras has already encoded the English words into numbers, as neural networks require numerical inputs. However, there remains a problem we need to address. As we know, movie reviews have different lengths. If we were to represent the reviews as a vector, then different reviews would have different vector lengths, which is not acceptable for a neural network. Let's keep this in mind for now, and we'll see how we can address this issue as we build our neural network.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Word embedding layer</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">The first layer in our neural network is the word embedding layer. As we've seen earlier, w<span class="calibre5">ord embeddings are a</span> learned <span class="calibre5">form of vector representation for words. The word embedding layer takes in words as input, and then outputs a vector representation of these words. The vector representation should place similar words close to one another, and dissimilar words distant from one another. The word embedding layer learns this vector representation during training. </span></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">LSTM layer</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">The LSTM layer takes as input the vector representation of the words from the word embedding layer, and learns how to classify the vector representation as positive or negative. As we've seen earlier, LSTMs are a variation of RNNs, which we can think of as multiple neural networks stacked on top of one another.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Dense layer</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">The next layer is the dense layer (fully connected layer). The dense layer takes as input the output from the LSTM layer, and transforms it into a fully connected manner. Then, we apply a sigmoid activation on the dense layer, so that the final output is between 0 and 1.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Output</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">The output is a probability between 0 and 1, representing the probability that the movie review is positive or negative. A probability near to 1 means that the movie review is positive, while a probability near to 0 means that the movie review is negative.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Model building in Keras</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">We're finally ready to start building our model in Keras. As a reminder, the model architecture that we're going to use is shown in the previous section.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Importing data</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">First, let's import the dataset. The IMDb movie reviews dataset is already provided in Keras, so we can import it directly:</p>
+<pre class="calibre17">from keras.datasets import imdb</pre>
+<p class="calibre2">The <kbd class="calibre13">imdb</kbd> <span class="calibre5">class </span>has a <kbd class="calibre13">load_data</kbd> main function, which takes in the following important argument:</p>
+<ul class="calibre11">
+<li class="calibre12"><kbd class="calibre13">num_words</kbd>: This is defined as the maximum number of unique words to be loaded. Only the <em class="calibre18">n </em>most common unique words (as they appear in the dataset) will be loaded. If <em class="calibre18">n </em>is small, the training time will be faster at the expense of accuracy. Let's set <kbd class="calibre13">num_words = 10000</kbd>.</li>
+</ul>
+<p class="calibre2">The <kbd class="calibre13">load_data</kbd> <span class="calibre5">function returns two tuples as the output. The first tuple holds the training set, while the second tuple holds the testing set. Note that the</span> <kbd class="calibre13">load_data</kbd> <span class="calibre5">function splits the data equally and randomly into training and testing sets.</span></p>
+<p class="calibre2">The following code imports the data, with the previously mentioned parameters:</p>
+<pre class="calibre17">training_set, testing_set = imdb.load_data(num_words = 10000)<br class="title-page-name"/>X_train, y_train = training_set<br class="title-page-name"/>X_test, y_test = testing_set</pre>
+<p class="calibre2">Let's do a quick check to see the amount of data we have:</p>
+<pre class="calibre17">print("Number of training samples = {}".format(X_train.shape[0]))<br class="title-page-name"/>print("Number of testing samples = {}".format(X_test.shape[0]))</pre>
+<p class="calibre2">We'll see the following output:</p>
+<p class="mce-root"><img class="alignnone101" src="assets/f6e43246-75a5-45ca-a83c-7928975691e4.png"/></p>
+<p class="calibre2">We can see that we have <kbd class="calibre13">25000</kbd> training and testing samples each.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Zero padding</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">Before we can use the data as input to our neural network, we need to address an issue. Recall that in the previous section, we mentioned that movie reviews have different lengths, and therefore the input vectors have different sizes. This is an issue, as neural networks only accept fixed-size vectors.</p>
+<p class="calibre2">To address this issue, we are going to define a <kbd class="calibre13"><span>maxlen</span></kbd> parameter. The <kbd class="calibre13">maxlen</kbd> parameter shall be the maximum length of each movie review. Reviews that are longer than <kbd class="calibre13">maxlen</kbd> will be truncated, and reviews that are shorter than <kbd class="calibre13">maxlen</kbd> will be padded with zeros.</p>
+<p class="calibre2">The following diagram illustrates the zero padding process:</p>
+<p class="mce-root"><img class="alignnone102" src="assets/cd494e9a-92be-4cfc-9c9b-5558270af72a.png"/></p>
+<p class="calibre2">Using zero padding, we ensure that the input will have a fixed vector length.</p>
+<p class="calibre2">As always, Keras provides a handy function to perform zero padding. Under the Keras <kbd class="calibre13">preprocessing</kbd> module, there's a <kbd class="calibre13">sequence</kbd> class that allows us to perform preprocessing for sequential data. Let's import the <kbd class="calibre13">sequence</kbd> class:</p>
+<pre class="calibre17">from keras.preprocessing import sequence</pre>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<p class="calibre2">The <kbd class="calibre13">sequence</kbd> class has a <kbd class="calibre13">pad_sequences</kbd> function that allows us to perform zero padding on our sequential data. Let's truncate and pad our training and testing data using a <kbd class="calibre13">maxlen</kbd> of <kbd class="calibre13">100</kbd>. The following code shows how we can do this:</p>
+<pre class="calibre17">X_train_padded = sequence.pad_sequences(X_train, maxlen= 100)<br class="title-page-name"/>X_test_padded = sequence.pad_sequences(X_test, maxlen= 100)</pre>
+<p class="calibre2">Now, let's verify the vector length after zero padding:</p>
+<pre class="calibre17">print("X_train vector shape = {}".format(X_train_padded.shape))<br class="title-page-name"/>print("X_test vector shape = {}".format(X_test_padded.shape))</pre>
+<p class="calibre2">We'll see the following output:</p>
+<p class="mce-root"><img class="alignnone103" src="assets/bd7a4488-6528-492b-88d7-2c21a2bdb401.png"/></p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Word embedding and LSTM layers</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">With our input preprocessed, we can now turn our attention to model building. As always, we will use the <kbd class="calibre13">Sequential</kbd> class in Keras to build our model. Recall that the <kbd class="calibre13">Sequential</kbd> class allows us to stack layers on top of one another, making it really easy to build complex models layer by layer.</p>
+<p class="calibre2">As always, let's define a new <kbd class="calibre13">Sequential</kbd> class:</p>
+<pre class="calibre17">from keras.models import Sequential<br class="title-page-name"/>model = Sequential()</pre>
+<p class="calibre2">We can now add the word embedding layer to our model. The word embedding layer can be constructed directly from the <kbd class="calibre13">keras.layers</kbd> as follows:</p>
+<pre class="calibre17">from keras.layers import Embedding</pre>
+<p class="calibre2">The <kbd class="calibre13">Embedding</kbd> class takes the following important arguments:</p>
+<ul class="calibre11">
+<li class="calibre12"><strong class="calibre1"><kbd class="calibre13">input_dim</kbd>: </strong>The input dimensions of the word embedding layer. This should be the same as the <kbd class="calibre13">num_words</kbd> parameter that we used when we loaded in our data. Essentially, this is the maximum number of unique words in our dataset.</li>
+<li class="calibre12"><kbd class="calibre13">output_dim</kbd>: The output dimensions of the word embedding layer. This should be a hyperparameter to be fine-tuned. For now, let's use a value of <kbd class="calibre13">128</kbd>.</li>
+</ul>
+<p class="calibre2">We can add an embedding layer with the previously mentioned parameters to our sequential model as follows:</p>
+<pre class="calibre17">model.add(Embedding(input_dim = 10000, output_dim = 128))</pre>
+<p class="calibre2">Similarly, we can add a <kbd class="calibre13">LSTM</kbd> layer directly from <kbd class="calibre13">keras.layers</kbd> as follows:</p>
+<pre class="calibre17">from keras.layers import LSTM</pre>
+<p class="calibre2">The <kbd class="calibre13">LSTM</kbd> class takes the following important arguments:</p>
+<ul class="calibre11">
+<li class="calibre12"><kbd class="calibre13">units</kbd>: This refers to the number of recurring units in the <kbd class="calibre13">LSTM</kbd> layer. A larger number of units results in a more complex model, at the expense of training time and overfitting. For now, let's use a typical value of <kbd class="calibre13">128</kbd> for the number of units.</li>
+<li class="calibre12"><kbd class="calibre13">activation</kbd>: This refers to the type of activation function applied to the cell state and the hidden state. The default value is the tanh function.</li>
+<li class="calibre12"><kbd class="calibre13">recurrent_activation</kbd>: This refers to the type of activation function applied to the forget, input, and output gates. The default value is the <kbd class="calibre13">sigmoid</kbd> function.</li>
+</ul>
+<p class="calibre2">You might notice that the kind of activation function is rather limited in Keras. Instead of selecting individual activations for the forget, input, and output gates, we are limited to choosing a single activation function for all three gates. This is unfortunately a limitation that we need to work with. However, the good news is that this deviation from theory does not significantly affect our results. The LSTM that we build in Keras is perfectly able to learn from the sequential data. </p>
+<p class="calibre2">We can add an <kbd class="calibre13">LSTM</kbd> layer <span class="calibre5">with the previously mentioned parameters to our sequential model as follows:</span></p>
+<pre class="calibre17">model.add(LSTM(units=128))</pre>
+<p class="calibre2">Finally, we add a <kbd class="calibre13">Dense</kbd> layer with <kbd class="calibre13">sigmoid</kbd> as the <kbd class="calibre13">activation</kbd> function. Recall that the purpose of this layer is to ensure that the output of our model has a value between <kbd class="calibre13">0</kbd> and <kbd class="calibre13">1</kbd>, representing the probability that the movie review is positive. We can add a <kbd class="calibre13">Dense</kbd> layer as follows:</p>
+<pre class="calibre17">from keras.layers import Dense<br class="title-page-name"/>model.add(Dense(units=1, activation='sigmoid'))</pre>
+<p class="calibre2">The <kbd class="calibre13">Dense</kbd> layer is the final layer in our neural network. Let's verify the structure of our model by calling the <kbd class="calibre13">summary()</kbd> function:</p>
+<pre class="calibre17">model.summary()</pre>
+<p class="calibre2">We get the following output:</p>
+<p class="mce-root"><img class="alignnone104" src="assets/46b595da-5c3a-43ee-8d10-1d99999d405c.png"/></p>
+<p class="calibre2">Nice! We can see that the structure of our Keras model matches the model architecture in the diagram that we introduced at the start of the previous section.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Compiling and training models</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">With the model building complete, we're ready to compile and train our model. By now, you should be familiar with the model compilation in Keras. As always, there are certain parameters we need to decide when we compile our model. They are as follows:</p>
+<ul class="calibre11">
+<li class="calibre12"><strong class="calibre1">Loss function</strong>: We use a <kbd class="calibre13">binary_crossentropy</kbd> loss function when the target output is binary and a <kbd class="calibre13">categorical_crossentropy</kbd> loss function when the target output is multi-class. Since the sentiment of movie reviews in this project is <strong class="calibre1">binary</strong> (that is, positive or negative), we will use a <kbd class="calibre13">binary_crossentropy</kbd> loss function.</li>
+<li class="calibre12"><strong class="calibre1">Optimizer</strong>: The choice of optimizer is an interesting problem in LSTMs. Without getting into the technicalities, certain optimizers may not work for certain datasets, due to the vanishing gradient and the <strong class="calibre1">exploding gradient problem</strong> (the opposite of the vanishing gradient problem). It is often impossible to know beforehand which optimizer works better for the dataset. Therefore, the best way to know is to train different models using different optimizers, and to use the optimizer that gives the best results. Let's try the <kbd class="calibre13">SGD</kbd>, <kbd class="calibre13">RMSprop</kbd>, and the <kbd class="calibre13">adam</kbd> optimizer.</li>
+</ul>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<p class="calibre2">We can compile our model as follows:</p>
+<pre class="calibre17"># try the SGD optimizer first<br class="title-page-name"/>Optimizer = 'SGD'<br class="title-page-name"/><br class="title-page-name"/>model.compile(loss='binary_crossentropy', optimizer = Optimizer)</pre>
+<p class="calibre2">Now, let's train our model for <kbd class="calibre13">10</kbd> epochs, using the testing set as the validation data. We can do so as follows:</p>
+<pre class="calibre17">scores = model.fit(x=X_train_padded, y=y_train,<br class="title-page-name"/>                   batch_size = 128, epochs=10, <br class="title-page-name"/>                   validation_data=(X_test_padded, y_test))</pre>
+<p class="calibre2">The <kbd class="calibre13">scores</kbd> object returned is a Python dictionary that provides the training and validation accuracy and the loss per epoch.</p>
+<p class="calibre2">Before we go on to analyze our results, let's put all our code into a single function. This allows us to easily test and compare the performance of different optimizers. </p>
+<p class="calibre2">We define a <kbd class="calibre13">train_model()</kbd> function that takes in an <kbd class="calibre13">Optimizer</kbd> as an argument:</p>
+<pre class="calibre17">def train_model(Optimizer, X_train, y_train, X_val, y_val):<br class="title-page-name"/>    model = Sequential()<br class="title-page-name"/>    model.add(Embedding(input_dim = 10000, output_dim = 128))<br class="title-page-name"/>    model.add(LSTM(units=128))<br class="title-page-name"/>    model.add(Dense(units=1, activation='sigmoid'))<br class="title-page-name"/>    model.compile(loss='binary_crossentropy', optimizer = Optimizer, <br class="title-page-name"/>                  metrics=['accuracy'])<br class="title-page-name"/>    scores = model.fit(X_train, y_train, batch_size=128, <br class="title-page-name"/>                       epochs=10, <br class="title-page-name"/>                       validation_data=(X_val, y_val), <br class="title-page-name"/>                       verbose=0)<br class="title-page-name"/>    return scores, model</pre>
+<p class="calibre2">Using this function, let's train three different models using three different optimizers, the <kbd class="calibre13">SGD</kbd>, <kbd class="calibre13">RMSprop</kbd>, and the <kbd class="calibre13">adam</kbd> optimizer:</p>
+<pre class="calibre17">SGD_score, SGD_model = train_model(Optimizer = 'sgd',<br class="title-page-name"/>                                   X_train=X_train_padded, <br class="title-page-name"/>                                   y_train=y_train, <br class="title-page-name"/>                                   X_val=X_test_padded,<br class="title-page-name"/>                                   y_val=y_test)<br class="title-page-name"/><br class="title-page-name"/>RMSprop_score, RMSprop_model = train_model(Optimizer = 'RMSprop',<br class="title-page-name"/>                                           X_train=X_train_padded,<br class="title-page-name"/>                                           y_train=y_train,<br class="title-page-name"/>                                           X_val=X_test_padded,<br class="title-page-name"/>                                           y_val=y_test)<br class="title-page-name"/><br class="title-page-name"/>Adam_score, Adam_model = train_model(Optimizer = 'adam',<br class="title-page-name"/>                                     X_train=X_train_padded,<br class="title-page-name"/>                                     y_train=y_train,<br class="title-page-name"/>                                     X_val=X_test_padded,<br class="title-page-name"/>                                     y_val=y_test)</pre>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Analyzing the results</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">Let's plot the validation accuracy per epoch for the three different models. First, we plot for the model trained using the <kbd class="calibre13">sgd</kbd> optimizer:</p>
+<pre class="calibre17">from matplotlib import pyplot as plt<br class="title-page-name"/><br class="title-page-name"/>plt.plot(range(1,11), SGD_score.history['acc'], label='Training Accuracy')<br class="title-page-name"/>plt.plot(range(1,11), SGD_score.history['val_acc'], <br class="title-page-name"/>         label='Validation Accuracy')<br class="title-page-name"/>plt.axis([1, 10, 0, 1])<br class="title-page-name"/>plt.xlabel('Epoch')<br class="title-page-name"/>plt.ylabel('Accuracy')<br class="title-page-name"/>plt.title('Train and Validation Accuracy using SGD Optimizer')<br class="title-page-name"/>plt.legend()<br class="title-page-name"/>plt.show()</pre>
+<p class="calibre2">We get the following output:</p>
+<p class="mce-root"><img class="alignnone105" src="assets/7f1825b8-fcce-41c9-9eb9-b9f9abd20cac.png"/></p>
+<p class="calibre2"/>
+<p class="calibre2">Did you notice anything wrong? The training and validation accuracy is stuck at 50%! Essentially, this shows that the training has failed and our neural network performs no better than a random coin toss for this binary classification task. Clearly, the <kbd class="calibre13">sgd</kbd> optimizer is not suitable for this dataset and this LSTM network. Can we do better if we use another optimizer? Let's try the <kbd class="calibre13">RMSprop</kbd> optimizer.</p>
+<p class="calibre2">We plot the training and validation accuracy for the model trained using the <kbd class="calibre13">RMSprop</kbd> optimizer, as shown in the following code:</p>
+<pre class="calibre17">plt.plot(range(1,11), RMSprop_score.history['acc'], <br class="title-page-name"/>         label='Training Accuracy')<br class="title-page-name"/>plt.plot(range(1,11), RMSprop_score.history['val_acc'], <br class="title-page-name"/>         label='Validation Accuracy')<br class="title-page-name"/>plt.axis([1, 10, 0, 1])<br class="title-page-name"/>plt.xlabel('Epoch')<br class="title-page-name"/>plt.ylabel('Accuracy')<br class="title-page-name"/>plt.title('Train and Validation Accuracy using RMSprop Optimizer')<br class="title-page-name"/>plt.legend()<br class="title-page-name"/>plt.show()</pre>
+<p class="calibre2">We get the following output:</p>
+<p class="mce-root"><img class="alignnone106" src="assets/2cc437e5-ae37-4787-a4ce-02b21068f538.png"/></p>
+<p class="calibre2"/>
+<p class="calibre2">That's much better! Within 10 epochs, our model is able to achieve a training accuracy of more than 95% and a validation accuracy of around 85%. That's not bad at all. Clearly, the <kbd class="calibre13">RMSprop</kbd> optimizer performs better than the <kbd class="calibre13">sgd</kbd> optimizer for this task.</p>
+<p class="calibre2">Finally, let's try the <kbd class="calibre13">adam</kbd> optimizer and see how it performs. We plot the training and validation accuracy for the model trained using the <kbd class="calibre13">adam</kbd> optimizer, as shown in the following code:</p>
+<pre class="calibre17">plt.plot(range(1,11), Adam_score.history['acc'], label='Training Accuracy')<br class="title-page-name"/>plt.plot(range(1,11), Adam_score.history['val_acc'], <br class="title-page-name"/>         label='Validation Accuracy')<br class="title-page-name"/>plt.axis([1, 10, 0, 1])<br class="title-page-name"/>plt.xlabel('Epoch')<br class="title-page-name"/>plt.ylabel('Accuracy')<br class="title-page-name"/>plt.title('Train and Validation Accuracy using Adam Optimizer')<br class="title-page-name"/>plt.legend()<br class="title-page-name"/>plt.show()</pre>
+<p class="calibre2">We get the following output:</p>
+<p class="mce-root"><img class="alignnone107" src="assets/342e8c75-01db-4fa2-ac2a-737051be217f.png"/></p>
+<p class="calibre2">The <kbd class="calibre13">adam</kbd> optimizer does pretty well. From the preceding graph, we can see that the <kbd class="calibre13">Training Accuracy</kbd> is almost 100% after <kbd class="calibre13">10</kbd> epochs, while the <kbd class="calibre13">Validation Accuracy</kbd> is around 80%. This gap of 20% suggests that overfitting is happening when the <kbd class="calibre13">adam</kbd> optimizer is used.</p>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<p class="calibre2">By contrast, the gap between training and validation accuracy is smaller for the <kbd class="calibre13">RMSprop</kbd> optimizer. Hence, we conclude that the <kbd class="calibre13">RMSprop</kbd> optimizer is the most optimal for this dataset and the LSTM network, and we shall use the model built using the <kbd class="calibre13">RMSprop</kbd> optimizer from this point onward.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Confusion matrix</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">In <a href="81c9304f-2e96-4a6d-8ece-d972006f3180.xhtml" target="_blank" class="calibre10">Chapter 2</a>, <em class="calibre8">Diabetes Prediction with Multilayer Perceptrons</em>, we saw how the confusion matrix is a useful visualization tool to evaluate the performance of our model. Let's also use the confusion matrix to evaluate the performance of our model in this project.</p>
+<p class="calibre2">To recap, these are the definitions of the terms in the confusion matrix:</p>
+<ul class="calibre11">
+<li class="calibre12"><strong class="calibre1">True negative</strong>: The actual class is negative (negative sentiment), and the model also predicted negative</li>
+<li class="calibre12"><strong class="calibre1">False positive</strong>: The actual class is negative (negative sentiment), but the model predicted positive</li>
+<li class="calibre12"><strong class="calibre1">False negative</strong>: The actual class is positive (positive sentiment), but the model predicted negative</li>
+<li class="calibre12"><strong class="calibre1">True positive</strong>: The actual class is positive (positive sentiment), and the model predicted positive</li>
+</ul>
+<p class="calibre2">We want our false positive and false negative numbers to be as low as possible, and for the true negative and true positive numbers to be as high as possible.</p>
+<p class="calibre2">We can construct a confusion matrix using the <kbd class="calibre13">confusion_matrix</kbd> class from <kbd class="calibre13">sklearn</kbd>, using <kbd class="calibre13">seaborn</kbd> for visualization:</p>
+<pre class="calibre17">from sklearn.metrics import confusion_matrix<br class="title-page-name"/>import seaborn as sns<br class="title-page-name"/><br class="title-page-name"/>plt.figure(figsize=(10,7))<br class="title-page-name"/>sns.set(font_scale=2)<br class="title-page-name"/>y_test_pred = RMSprop_model.predict_classes(X_test_padded)<br class="title-page-name"/>c_matrix = confusion_matrix(y_test, y_test_pred)<br class="title-page-name"/>ax = sns.heatmap(c_matrix, annot=True, xticklabels=['Negative Sentiment', <br class="title-page-name"/>                 'Positive Sentiment'], yticklabels=['Negative Sentiment', <br class="title-page-name"/>                 'Positive Sentiment'], cbar=False, cmap='Blues', fmt='g')<br class="title-page-name"/>ax.set_xlabel("Prediction")<br class="title-page-name"/>ax.set_ylabel("Actual")</pre>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<p class="calibre2">We get the following output:</p>
+<p class="mce-root"><img class="alignnone108" src="assets/f968623a-9280-45d6-b958-9c3851e9f407.png"/></p>
+<p class="calibre2">From the preceding confusion matrix, we can see that most of the testing data was classified correctly, with the number of true negatives and true positives at around 85%. In other words, our model is 85% accurate at predicting sentiment for movie reviews. That's pretty impressive!</p>
+<p class="calibre2">Let's take a look at some of the wrongly classified samples, and see where the model got it wrong. The following code captures the index of the wrongly classified samples:</p>
+<pre class="calibre17">false_negatives = []<br class="title-page-name"/>false_positives = []<br class="title-page-name"/><br class="title-page-name"/>for i in range(len(y_test_pred)):<br class="title-page-name"/>    if y_test_pred[i][0] != y_test[i]:<br class="title-page-name"/>        if y_test[i] == 0: # False Positive<br class="title-page-name"/>            false_positives.append(i)<br class="title-page-name"/>        else:<br class="title-page-name"/>            false_negatives.append(i)</pre>
+<p class="calibre2">Let's first take a look at the false positives. As a reminder, false positives refer to movie reviews that were negative but that our model wrongly classified as positive.</p>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<p class="calibre2">We have selected an interesting false positive; this is shown as follows:</p>
+<pre class="calibre17">"The sweet is never as sweet without the sour". This quote was essentially the theme for the movie in my opinion ..... It is a movie that really makes you step back and look at your life and how you live it. You cannot really appreciate the better things in life (the sweet) like love until you have experienced the bad (the sour). ..... Only complaint is that the movie gets very twisted at points and is hard to really understand...... I recommend you watch it and see for yourself.</pre>
+<p class="calibre2">Even as a human, it is hard to predict the sentiment of this movie review! The first sentence of the movie probably sets the tone of the reviewer. However, it is written in a really subtle manner, and it is difficult for our model to pick out the intention of the sentence. Furthermore, the middle of the review praises the movie, before ending with the conclusion that the <kbd class="calibre13">movie gets very twisted at points and is hard to really understand</kbd>.</p>
+<p class="calibre2">Now, let's take a look at some false negatives:</p>
+<pre class="calibre17">I hate reading reviews that say something like 'don't waste your time this film stinks on ice'. It does to that reviewer yet for me it may have some sort of naïve charm ..... This film is not as good in my opinion as any of the earlier series entries ... But the acting is good and so is the lighting and the dialog. It's just lacking in energy and you'll likely figure out exactly what's going on and how it's all going to come out in the end not more than a quarter of the way through ..... But still I'll recommend this one for at least a single viewing. I've watched it at least twice myself and got a reasonable amount of enjoyment out of it both times</pre>
+<p class="calibre2">This review is definitely on the fence, and it looked pretty neutral, with the reviewer presenting the good and bad of the movie. Another point to note is that, at the start of the review, the reviewer quoted another reviewer (<kbd class="calibre13">I hate reading reviews that say something like 'don't waste your time this film stinks on ice'</kbd>). Our model probably didn't understand that this quote is not the opinion of this reviewer. Quoted text is definitely a challenge for most NLP models.</p>
+<p class="calibre2">Let's take a look at another false negative:</p>
+<pre class="calibre17">I just don't understand why this movie is getting beat up in here jeez. It is mindless, it isn't polished ..... I just don't get it. The jokes work on more then one level. If you didn't get it, I know what level you're at.</pre>
+<p class="calibre2"/>
+<p class="calibre2">This movie review can be considered a <em class="calibre8">rant</em> against other movie reviews, similar to the previous review that we showed. The presence of multiple negative words in the movie probably misled our model, and our model did not understand that the review was ranting against all the other negative reviews. Statistically speaking, such reviews are relatively rare, and it is difficult for our model to learn the true sentiment of such reviews.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Putting it all together</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">We have covered a lot in this chapter. Let's consolidate all our code here:</p>
+<pre class="calibre17">from keras.datasets import imdb<br class="title-page-name"/>from keras.preprocessing import sequence<br class="title-page-name"/>from keras.models import Sequential<br class="title-page-name"/>from keras.layers import Embedding<br class="title-page-name"/>from keras.layers import Dense, Embedding<br class="title-page-name"/>from keras.layers import LSTM<br class="title-page-name"/>from matplotlib import pyplot as plt<br class="title-page-name"/>from sklearn.metrics import confusion_matrix<br class="title-page-name"/>import seaborn as sns<br class="title-page-name"/><br class="title-page-name"/># Import IMDB dataset<br class="title-page-name"/>training_set, testing_set = imdb.load_data(num_words = 10000)<br class="title-page-name"/>X_train, y_train = training_set<br class="title-page-name"/>X_test, y_test = testing_set<br class="title-page-name"/><br class="title-page-name"/>print("Number of training samples = {}".format(X_train.shape[0]))<br class="title-page-name"/>print("Number of testing samples = {}".format(X_test.shape[0]))<br class="title-page-name"/><br class="title-page-name"/># Zero-Padding<br class="title-page-name"/>X_train_padded = sequence.pad_sequences(X_train, maxlen= 100)<br class="title-page-name"/>X_test_padded = sequence.pad_sequences(X_test, maxlen= 100)<br class="title-page-name"/><br class="title-page-name"/>print("X_train vector shape = {}".format(X_train_padded.shape))<br class="title-page-name"/>print("X_test vector shape = {}".format(X_test_padded.shape))<br class="title-page-name"/><br class="title-page-name"/># Model Building<br class="title-page-name"/>def train_model(Optimizer, X_train, y_train, X_val, y_val):<br class="title-page-name"/>    model = Sequential()<br class="title-page-name"/>    model.add(Embedding(input_dim = 10000, output_dim = 128))<br class="title-page-name"/>    model.add(LSTM(units=128))<br class="title-page-name"/>    model.add(Dense(units=1, activation='sigmoid'))<br class="title-page-name"/>    model.compile(loss='binary_crossentropy', optimizer = Optimizer, <br class="title-page-name"/>                  metrics=['accuracy'])<br class="title-page-name"/>    scores = model.fit(X_train, y_train, batch_size=128, epochs=10, <br class="title-page-name"/>                       validation_data=(X_val, y_val))<br class="title-page-name"/>    return scores, model<br class="title-page-name"/><br class="title-page-name"/># Train Model<br class="title-page-name"/>RMSprop_score, RMSprop_model = train_model(Optimizer = 'RMSprop', X_train=X_train_padded, y_train=y_train, X_val=X_test_padded, y_val=y_test)<br class="title-page-name"/><br class="title-page-name"/># Plot accuracy per epoch<br class="title-page-name"/>plt.plot(range(1,11), RMSprop_score.history['acc'], <br class="title-page-name"/>         label='Training Accuracy') <br class="title-page-name"/>plt.plot(range(1,11), RMSprop_score.history['val_acc'], <br class="title-page-name"/>         label='Validation Accuracy')<br class="title-page-name"/>plt.axis([1, 10, 0, 1])<br class="title-page-name"/>plt.xlabel('Epoch')<br class="title-page-name"/>plt.ylabel('Accuracy')<br class="title-page-name"/>plt.title('Train and Validation Accuracy using RMSprop Optimizer')<br class="title-page-name"/>plt.legend()<br class="title-page-name"/>plt.show()<br class="title-page-name"/><br class="title-page-name"/># Plot confusion matrix<br class="title-page-name"/>y_test_pred = RMSprop_model.predict_classes(X_test_padded) <br class="title-page-name"/>c_matrix = confusion_matrix(y_test, y_test_pred)<br class="title-page-name"/>ax = sns.heatmap(c_matrix, annot=True, xticklabels=['Negative Sentiment', <br class="title-page-name"/>                'Positive Sentiment'], yticklabels=['Negative Sentiment', <br class="title-page-name"/>                'Positive Sentiment'], cbar=False, cmap='Blues', fmt='g')<br class="title-page-name"/>ax.set_xlabel("Prediction")<br class="title-page-name"/>ax.set_ylabel("Actual")<br class="title-page-name"/>plt.show()</pre>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Summary</h1>
+                </header>
+            
+            <article>
+                
+<p class="calibre2">In this chapter, we created an LSTM-based neural network that can predict the sentiment of movie reviews with 85% accuracy. We first looked at the theory behind recurrent neural networks and LSTMs, and we understood that they are a special class of neural network designed to handle sequential data, where the order of the data matters. </p>
+<p class="calibre2">We also looked at how we can convert sequential data such as a paragraph of text into a numerical vector, as input for neural networks. We saw how word embeddings can reduce the dimensionality of such a numerical vector into something more manageable for training neural networks, without necessarily losing information. A word embedding layer does this by learning which words are similar to one another, and it places such words in a cluster, in the transformed vector.</p>
+<p class="calibre2"/>
+<p class="calibre2">We also looked at how we can easily construct a LSTM neural network in Keras, using the <kbd class="calibre13">Sequential</kbd> model. We also investigated the effect of different optimizers on the LSTM, and we saw how the LSTM is unable to learn from the data when certain optimizers are used. More importantly, we saw that tuning and experimenting is an essential part of the machine learning process, in order to maximize our results.</p>
+<p class="calibre2">Lastly, we analyzed our results, and we saw how LSTM-based neural networks fail to detect sarcasm and other subtleties in our language. NLP is an extremely challenging subfield of machine learning that researchers are still working on today.</p>
+<p class="calibre2">In the next chapter, <a href="9223bc03-bd68-42df-93ff-32c5d0f7e246.xhtml" target="_blank" class="calibre10">Chapter 7</a>, <em class="calibre8">Implementing a Facial Recognition System with Neural Networks,</em> we'll look at <strong class="calibre4">Siamese neural networks</strong>, and how they can be used to create a face recognition system.</p>
+
+
+            </article>
+
+            
+        </section>
+    
+
+        <section>
+
+                            <header>
+                    <h1 class="header-title">Questions</h1>
+                </header>
+            
+            <article>
+                
+<ol class="calibre14">
+<li class="calibre12">What are sequential problems in machine learning?</li>
+</ol>
+<p class="calibre26">Sequential problems are a class of problem in machine learning in which the order of the features presented to the model is important for making predictions. Examples of sequential problems include NLP problems (for example, speech and text) and time series problems.</p>
+<ol start="2" class="calibre14">
+<li class="calibre12"> What are some reasons that make it challenging for AI to solve sentiment analysis problems?</li>
+</ol>
+<p class="calibre26">Human languages often contain words that have different meanings, depending on the context. It is therefore important for a machine learning model to fully understand the context before making a prediction. Furthermore, sarcasm is common in human languages, which is difficult for an AI-based model to comprehend.</p>
+<ol start="3" class="calibre14">
+<li class="calibre12">How is an RNN different than a CNN?</li>
+</ol>
+<p class="calibre26">RNNs can be thought of as multiple, recursive copies of a single neural network. Each layer in an RNN passes its output to the next layer as input. This allows an RNN to use sequential data as input.</p>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<ol start="4" class="calibre14">
+<li class="calibre12">What is the hidden state of an RNN?</li>
+</ol>
+<p class="calibre26">The intermediate output passed from layer to layer in an RNN is known as the hidden state. The hidden state allows an RNN to maintain a memory of the intermediate states from the sequential data.</p>
+<ol start="5" class="calibre14">
+<li class="calibre12">What are the disadvantages of using an RNN for sequential problems?</li>
+</ol>
+<p class="calibre26">RNNs suffer from the vanishing gradient problem, which results in features early on in the sequence being "forgotten" due to the small weights assigned to them. Therefore, we say that RNNs have a long-term dependency problem.</p>
+<ol start="6" class="calibre14">
+<li class="calibre12">How is an LSTM network different than a conventional RNN?</li>
+</ol>
+<p class="calibre26">LSTM networks are designed to overcome the long-term dependency problem in conventional RNNs. An LSTM network contains three gates (input, output, and forget gates), which allows it to place emphasis on certain features (that is, words), regardless of when the feature appears in the sequence.</p>
+<ol start="7" class="calibre14">
+<li class="calibre12">What is the disadvantage of one-hot encoding words to transform them to numerical inputs?</li>
+</ol>
+<p class="calibre26">The dimensionality of a one-hot encoded word vector tends to be huge (due to the amount of different words in a language), which makes it difficult for the neural network to learn from the vector. Furthermore, a one-hot encoded vector does not take into consideration the relationships between similar words in a language.</p>
+<ol start="8" class="calibre14">
+<li class="calibre12">What are word embeddings?</li>
+</ol>
+<p class="calibre26">Word embeddings are a learned formed of vector representation for words. The main advantage of word embeddings is that they have smaller dimensions than the one-hot encoded representation, and they place similar words close to one another. Word embeddings are usually the first layer in an LSTM-based neural network.</p>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<ol start="9" class="calibre14">
+<li class="calibre12">What important preprocessing step is required when working with textual data?</li>
+</ol>
+<p class="calibre26">Textual data often has uneven lengths, which results in vectors of different sizes. Neural networks are unable to accept vectors of different sizes as input. Therefore, we apply zero padding as a preprocessing step, to truncate and pad vectors evenly.</p>
+<ol start="10" class="calibre14">
+<li class="calibre12">Tuning and experimenting is often an essential part of the machine learning process. What experimenting have we done in this project?</li>
+</ol>
+<p class="calibre26">In this project, we experimented with different optimizers (the <kbd class="calibre13">SGD</kbd>, <kbd class="calibre13">RMSprop</kbd>, and <kbd class="calibre13">adam</kbd> optimizers) for training our neural network. We found that the <kbd class="calibre13">SGD</kbd> optimizer was unable to train the LSTM network, while the <kbd class="calibre13">RMSprop</kbd> optimizer had the best accuracy.</p>
+
+
+            </article>
+
+            
+        </section>
+    </body></html>
