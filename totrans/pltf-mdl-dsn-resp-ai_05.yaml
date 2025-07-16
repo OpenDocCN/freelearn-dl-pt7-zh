@@ -949,17 +949,21 @@
   id: totrans-127
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们可以看到，在左下角，由于某些故障，存在较高的随机不确定性。同时，也有一些较大的空白区域，那里没有观察到训练数据，这可能导致该输入范围内的较高的知识性不确定性。
 - en: Before we talk about measuring these uncertainties, let us build a model and
     train it on the training data.
   id: totrans-128
   prefs: []
   type: TYPE_NORMAL
+  zh: 在讨论如何衡量这些不确定性之前，让我们先建立一个模型并在训练数据上进行训练。
 - en: 'We use TensorFlow Dense layers to build the model. We start with an input layer
     and then add the hidden layers using the `for` loop, along with the `Dropout`
     layer after each hidden layer, finally followed by a `Dense` output layer:'
   id: totrans-129
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们使用 TensorFlow 的 Dense 层来构建模型。我们从输入层开始，然后使用 `for` 循环添加隐藏层，每个隐藏层后跟一个 `Dropout`
+    层，最后跟一个 `Dense` 输出层：
 - en: '[PRE2]'
   id: totrans-130
   prefs: []
@@ -972,6 +976,7 @@
   id: totrans-131
   prefs: []
   type: TYPE_NORMAL
+  zh: 这里需要注意的一个重要点是，Dropout 层的`training`参数被设置为`True`。这意味着即使在推理过程中也会应用 Dropout，因此，我们将会得到预测结果的变化。模型摘要如下：
 - en: '[PRE3]'
   id: totrans-132
   prefs: []
@@ -981,6 +986,7 @@
   id: totrans-133
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们使用 `rmsprop` 优化器，并使用均方误差作为损失函数：
 - en: '[PRE4]'
   id: totrans-134
   prefs: []
@@ -990,6 +996,7 @@
   id: totrans-135
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们使用在*图 5.5*中绘制的训练数据（红点）对其进行训练：
 - en: '[PRE5]'
   id: totrans-136
   prefs: []
@@ -1001,19 +1008,23 @@
   id: totrans-137
   prefs: []
   type: TYPE_NORMAL
+  zh: 以下图表（*图 5.6*）展示了随着训练的进行，损失的变化情况。我们可以看到，模型很早就学会了，并且在大约 25 个周期后，损失函数没有显著下降：
 - en: "![Figure 5.6 – Training loss as the model learn\uFEFF](img/Figure_5.6_B18681.jpg)"
   id: totrans-138
   prefs: []
   type: TYPE_IMG
+  zh: '![图 5.6 – 模型学习过程中的训练损失](img/Figure_5.6_B18681.jpg)'
 - en: Figure 5.6 – Training loss as the model learn
   id: totrans-139
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 5.6 – 模型学习过程中的训练损失
 - en: 'Let us now see how this model performs on test data. We take input as varying
     in the range `[-``10, 10]`:'
   id: totrans-140
   prefs: []
   type: TYPE_NORMAL
+  zh: 现在让我们看看这个模型在测试数据上的表现。我们将输入范围设置为`[-10, 10]`：
 - en: '[PRE6]'
   id: totrans-141
   prefs: []
@@ -1023,6 +1034,7 @@
   id: totrans-142
   prefs: []
   type: TYPE_NORMAL
+  zh: 让我们绘制数据：
 - en: '[PRE7]'
   id: totrans-143
   prefs: []
@@ -1032,20 +1044,24 @@
   id: totrans-144
   prefs: []
   type: TYPE_NORMAL
+  zh: 以下图表展示了模型在测试数据集上的表现：
 - en: '![Figure 5.7 – Model performance on test dataset](img/Figure_5.7_B18681.jpg)'
   id: totrans-145
   prefs: []
   type: TYPE_IMG
+  zh: '![图 5.7 – 模型在测试数据集上的表现](img/Figure_5.7_B18681.jpg)'
 - en: Figure 5.7 – Model performance on test dataset
   id: totrans-146
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 5.7 – 模型在测试数据集上的表现
 - en: We can see that on the test data, the R2 score is 0.98\. For the most part,
     this is a great model. However, as we said earlier, there are regions of high
     epistemic and high aleatory uncertainty in the data.
   id: totrans-147
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们可以看到，在测试数据上，R2 分数为 0.98。大部分情况下，这是一个很棒的模型。然而，正如我们之前所说，数据中确实存在知识性和随机性不确定性较高的区域。
 - en: 'Let us first explore epistemic uncertainty. We evaluate our model on the test
     dataset about 500 times, meaning that we predict 500 times using our trained model
     on the same test data. This is equivalent to simulating a Gaussian process. Each
@@ -1055,6 +1071,7 @@
   id: totrans-148
   prefs: []
   type: TYPE_NORMAL
+  zh: 让我们首先探讨知识性不确定性。我们对测试数据集进行大约 500 次评估，这意味着我们使用训练好的模型对相同的测试数据进行 500 次预测。这相当于模拟一个高斯过程。每次，我们都会得到测试数据中每个输入标量的输出值范围。因此，我们可以计算后验分布的标准差，并将其作为知识性不确定性的度量：
 - en: '[PRE8]'
   id: totrans-149
   prefs: []
@@ -1064,14 +1081,17 @@
   id: totrans-150
   prefs: []
   type: TYPE_NORMAL
+  zh: '*图 5.8*展示了我们模型的知识性不确定性：'
 - en: '![Figure 5.8 – Epistemic uncertainty on test dataset](img/Figure_5.8_B18681.jpg)'
   id: totrans-151
   prefs: []
   type: TYPE_IMG
+  zh: '![图 5.8 – 测试数据集上的知识性不确定性](img/Figure_5.8_B18681.jpg)'
 - en: Figure 5.8 – Epistemic uncertainty on test dataset
   id: totrans-152
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 5.8 – 测试数据集上的知识性不确定性
 - en: We can see from the figure that epistemic uncertainty is high in the regions
     where we do not have sufficient training data. We would like to mention here that,
     normally, to access epistemic uncertainty one has to build a Bayesian approximation
@@ -1081,6 +1101,9 @@
   id: totrans-153
   prefs: []
   type: TYPE_NORMAL
+  zh: 从图中可以看出，认知不确定性在我们没有足够训练数据的区域较高。在这里我们想提到，通常，要访问认知不确定性，必须构建一个贝叶斯近似模型，以便捕获权重的变化。可以使用
+    TensorFlow Probability 中的 `VariableLayer` 实现这一点。然而，在这里，我们利用了 Dropout 层可以作为贝叶斯近似（Gal
+    和 Ghahramani，2017）的事实。
 - en: Epistemic uncertainty is a property of the model. Aleatoric uncertainty, on
     the other hand, is a property of data. There are two types of aleatoric uncertainty.
     One is `y`, but also its variance. The same can be achieved using the `DistributionLambda`
@@ -1088,15 +1111,19 @@
   id: totrans-154
   prefs: []
   type: TYPE_NORMAL
+  zh: 认知不确定性是模型的属性。而随机不确定性则是数据的属性。随机不确定性有两种类型。一种是`y`，还有它的方差。使用 TensorFlow Probability
+    的`DistributionLambda`层也可以实现相同的效果。
 - en: 'We use the same data as before, and define the heteroscedastic aleatoric loss
     function (Kendal and Gal, 2017):'
   id: totrans-155
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们使用与之前相同的数据，并定义异方差随机损失函数（Kendal 和 Gal，2017）：
 - en: '![](img/Formula_05_004.jpg)'
   id: totrans-156
   prefs: []
   type: TYPE_IMG
+  zh: '![](img/Formula_05_004.jpg)'
 - en: Here, *N* is the number of data samples, *y*i is the ground truth, and ŷi is
     the predicted output. Variance in input is σ2\. Now, if you see this function,
     the first term is a scaled version of the mean square error and ensures that the
@@ -1107,15 +1134,18 @@
   id: totrans-157
   prefs: []
   type: TYPE_NORMAL
+  zh: 这里，*N* 是数据样本的数量，*y*i 是真实值，ŷi 是预测输出。输入的方差是 σ²。现在，如果你查看这个函数，第一个项是均方误差的缩放版本，确保模型预测接近真实值。然而，如果预测不准确，分母中的方差项（不确定性）会增大，从而减少第一个项的贡献。第二个项确保模型不会不断增加不确定性。
 - en: 'Let us see how regressive uncertainty works:'
   id: totrans-158
   prefs: []
   type: TYPE_NORMAL
+  zh: 让我们看看回归不确定性是如何工作的：
 - en: 'The following Python code implements the preceding loss function:'
   id: totrans-159
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 以下 Python 代码实现了前述的损失函数：
 - en: '[PRE9]'
   id: totrans-160
   prefs:
@@ -1129,6 +1159,7 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 接下来，我们构建模型。之前，输出层只有一个神经元。现在，我们将有两个神经元，一个对应预测输出`y`，另一个对应方差：
 - en: '[PRE10]'
   id: totrans-162
   prefs:
@@ -1139,6 +1170,7 @@
   id: totrans-163
   prefs: []
   type: TYPE_NORMAL
+  zh: 这是模型摘要：
 - en: '[PRE11]'
   id: totrans-164
   prefs: []
@@ -1150,6 +1182,7 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 现在，为了训练模型，我们需要重新调整数据的形状，以适应模型的变化：
 - en: '[PRE12]'
   id: totrans-166
   prefs:
@@ -1162,6 +1195,7 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 现在让我们定义优化器。我们将它保持为与第一次相同的`rmsprop`，并将损失函数更改为我们定制的损失函数：
 - en: '[PRE13]'
   id: totrans-168
   prefs:
@@ -1173,6 +1207,7 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 最后，进行训练：
 - en: '[PRE14]'
   id: totrans-170
   prefs:
@@ -1184,6 +1219,7 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 现在让我们绘制随机不确定性：
 - en: '[PRE15]'
   id: totrans-172
   prefs:
@@ -1194,14 +1230,17 @@
   id: totrans-173
   prefs: []
   type: TYPE_NORMAL
+  zh: 随机不确定性的图如下所示：
 - en: '![Figure 5.9 – Aleatoric uncertainty on the test dataset](img/Figure_5.9_B18681.jpg)'
   id: totrans-174
   prefs: []
   type: TYPE_IMG
+  zh: '![图 5.9 – 测试数据集上的随机不确定性](img/Figure_5.9_B18681.jpg)'
 - en: Figure 5.9 – Aleatoric uncertainty on the test dataset
   id: totrans-175
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 5.9 – 测试数据集上的随机不确定性
 - en: From the figure, we can see that at around **-2.5**, the aleatoric uncertainty
     is high, since this was the place in our original training data where there was
     more noise in the data itself. This type of uncertainty can be problematic for
@@ -1212,16 +1251,19 @@
   id: totrans-176
   prefs: []
   type: TYPE_NORMAL
+  zh: 从图中可以看出，在 **-2.5** 附近，随机不确定性较高，因为这是我们原始训练数据中数据本身噪声较多的地方。这种类型的不确定性在一些需要做出可能关系到生死的决策的应用中可能会带来问题，例如自动驾驶汽车的情况。因此，需要构建能够不仅做出预测，而且在预测时还能评估认知不确定性和随机不确定性（不确定性评分）的模型。
 - en: Now that we have seen how to model uncertainty in a regression task, let us
     move on to quantifying uncertainty in a classification task.
   id: totrans-177
   prefs: []
   type: TYPE_NORMAL
+  zh: 既然我们已经看到如何在回归任务中建模不确定性，现在让我们转向在分类任务中量化不确定性。
 - en: Uncertainty in classification tasks
   id: totrans-178
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 分类任务中的不确定性
 - en: In classification tasks, the standard procedure is to use **SoftMax activation**
     in the final layer. This SoftMax activation, by default, already has a measure
     of confidence (*Figure 5**.10*). However, SoftMax is not very reliable. Consider,
@@ -1231,23 +1273,30 @@
   id: totrans-179
   prefs: []
   type: TYPE_NORMAL
+  zh: 在分类任务中，标准做法是在最后一层使用**SoftMax 激活**函数。默认情况下，这个 SoftMax 激活已经包含了一定的置信度测量（*图 5.10*）。然而，SoftMax
+    并不是非常可靠。例如，考虑一个训练用来分类马和斑马的模型，当它看到一只狗时，它不会说 50% 是马，50% 是斑马，而是会假设它是一只黑色的狗。它可能会认为它更像一匹马，并以
+    60% 的概率将其分类为马。
 - en: '![Figure 5.10 – Image from MNIST data and its SoftMax confidence](img/Figure_5.10_B18681.jpg)'
   id: totrans-180
   prefs: []
   type: TYPE_IMG
+  zh: '![图 5.10 – 来自 MNIST 数据的图像及其 SoftMax 置信度](img/Figure_5.10_B18681.jpg)'
 - en: Figure 5.10 – Image from MNIST data and its SoftMax confidence
   id: totrans-181
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 5.10 – 来自 MNIST 数据的图像及其 SoftMax 置信度
 - en: 'Mathematically, classification tasks use maximal class probability to determine
     the class:'
   id: totrans-182
   prefs: []
   type: TYPE_NORMAL
+  zh: 从数学上讲，分类任务使用最大类概率来确定类别：
 - en: '![](img/Formula_05_008.jpg)'
   id: totrans-183
   prefs: []
   type: TYPE_IMG
+  zh: '![](img/Formula_05_008.jpg)'
 - en: Here, *K* is the total number of classes, and pk is the SoftMax value for class
     *k* for that prediction. Some researchers have also tried to use entropy ![](img/Formula_05_010.png)
     of the SoftMax prediction. The maximal probability represents a direct representation
@@ -1256,20 +1305,24 @@
   id: totrans-184
   prefs: []
   type: TYPE_NORMAL
+  zh: 这里，*K* 是类别的总数，pk 是该预测中类别 *k* 的 SoftMax 值。一些研究人员也尝试使用 SoftMax 预测的熵 ![](img/Formula_05_010.png)。最大概率直接表示了确定性，而熵则描述了随机变量中的平均信息量。
 - en: Despite being simple and straightforward to use, these approaches are unreliable,
     especially when we are dealing with a critical decision AI model such as medical
     diagnosis.
   id: totrans-185
   prefs: []
   type: TYPE_NORMAL
+  zh: 尽管这些方法简单且直接使用，但它们并不可靠，尤其是当我们面对像医学诊断这样的关键决策 AI 模型时。
 - en: '![Figure 5.11 – Deep ensemble architecture](img/Figure_5.11_B18681.jpg)'
   id: totrans-186
   prefs: []
   type: TYPE_IMG
+  zh: '![图 5.11 – 深度集成架构](img/Figure_5.11_B18681.jpg)'
 - en: Figure 5.11 – Deep ensemble architecture
   id: totrans-187
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 5.11 – 深度集成架构
 - en: 'One of the ways to quantify uncertainty in classification tasks is by using
     ensemble methods. Lakshminarayanan et al., show in their paper that using ensemble
     methods is better than other approaches when the model is presented with out-of-domain
@@ -1279,10 +1332,13 @@
   id: totrans-188
   prefs: []
   type: TYPE_NORMAL
+  zh: 量化分类任务中的不确定性的一种方法是使用集成方法。Lakshminarayanan 等人在他们的论文中表明，当模型面对域外数据时，使用集成方法比其他方法更有效。他们训练了一个深度神经网络的集成（*图
+    5.11*），并使用了整个 MNIST 训练数据集。经过训练的模型的预测结果被如下方式结合：
 - en: '![](img/Formula_05_011.jpg)'
   id: totrans-189
   prefs: []
   type: TYPE_IMG
+  zh: '![](img/Formula_05_011.jpg)'
 - en: 'Here, *M* is the number of ensembled models. In the paper, *M=5*, *y* is the
     prediction for input *x*, and the θm instances are the network parameters. As
     you can see, for classification, this corresponds to averaging the prediction
@@ -1292,16 +1348,20 @@
   id: totrans-190
   prefs: []
   type: TYPE_NORMAL
+  zh: 这里，*M* 是集成模型的数量。在论文中，*M=5*，*y* 是输入 *x* 的预测结果，θm 实例是网络参数。如你所见，对于分类任务，这对应于平均预测概率。此外，他们还生成了对抗性样本，并对集成中的每个网络进行了对抗训练。*图
+    5.12* 显示了 MNIST 和 NotMNIST 数据集的结果：
 - en: '![ Figure 5.12 – Entropy values for the MNIST dataset (blue) and the NotMNIST
     dataset (red)](img/Figure_5.12_B18681.jpg)'
   id: totrans-191
   prefs: []
   type: TYPE_IMG
+  zh: '![ 图 5.12 – MNIST 数据集（蓝色）和 NotMNIST 数据集（红色）的熵值](img/Figure_5.12_B18681.jpg)'
 - en: Figure 5.12 – Entropy values for the MNIST dataset (blue) and the NotMNIST dataset
     (red)
   id: totrans-192
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 5.12 – MNIST 数据集（蓝色）和 NotMNIST 数据集（红色）的熵值
 - en: As you can see in the figure, the ensembles work better when presented with
     the NotMNIST dataset, since the entropy value for NotMNIST spreads over a bigger
     range and the peak is reduced. They also compared their approach with the Bayesian
@@ -1313,11 +1373,13 @@
   id: totrans-193
   prefs: []
   type: TYPE_NORMAL
+  zh: 正如图中所示，集成方法在面对NotMNIST数据集时表现更好，因为NotMNIST的熵值分布范围更广，且峰值降低了。他们还将他们的方法与贝叶斯方法（加入蒙特卡洛丢弃）进行了比较。图中显示集成方法给出了更好的结果。因此，他们表明，深度集成方法为分布外数据生成了低置信度的输出。一般来说，对于数据集偏移和跨领域分布，深度集成方法相比其他方法表现出一致的更好性能。
 - en: Tools for benchmarking and quantifying uncertainty
   id: totrans-194
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 用于基准测试和量化不确定性的工具
 - en: A lot of work has been done to quantify uncertainty and create benchmarks for
     uncertainty and robustness. In this section, we will cover some of the prominent
     ones. Please remember that the standards are still in the nascent stage, and as
@@ -1325,11 +1387,13 @@
   id: totrans-195
   prefs: []
   type: TYPE_NORMAL
+  zh: 已经有很多工作致力于量化不确定性并为不确定性和鲁棒性创建基准。在本节中，我们将介绍一些突出的工作。请记住，这些标准仍处于初期阶段，因此，许多工具和GitHub仓库可能存在一定的局限性。
 - en: The Uncertainty Baselines library
   id: totrans-196
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
+  zh: 不确定性基准库
 - en: Developed by researchers from the Google Brain research team, the University
     of Oxford, the University of Cambridge, Harvard University, and the University
     of Texas, the **Uncertainty Baselines library** contains a set of baselines that
@@ -1340,48 +1404,57 @@
   id: totrans-197
   prefs: []
   type: TYPE_NORMAL
+  zh: 由Google Brain研究团队、牛津大学、剑桥大学、哈佛大学和德克萨斯大学的研究人员开发的**不确定性基准库**包含一组基准，您可以使用这些基准来比较不同深度学习方法的性能。这些基准是使用高质量方法实现的，并且适用于多种任务。您可以使用这些基准来开始自己的实验。完整的工作可以通过GitHub仓库访问，网址为[https://github.com/google/uncertainty-baselines](https://github.com/google/uncertainty-baselines)。
 - en: At present, there is no stable version. However, users can install it and experiment
     directly via Git. The library aims to provide users with a modular, framework-agnostic,
     hardware-agnostic tool.
   id: totrans-198
   prefs: []
   type: TYPE_NORMAL
+  zh: 目前没有稳定版本。然而，用户可以通过Git直接安装并进行实验。该库旨在为用户提供一个模块化、框架无关、硬件无关的工具。
 - en: Keras-Uncertainty
   id: totrans-199
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
+  zh: Keras-Uncertainty
 - en: '`make_moon` method from scikit-learn to create synthetic classification data.
     We trained five models and plotted the respective uncertainty using the Keras-Uncertainty
     library.'
   id: totrans-200
   prefs: []
   type: TYPE_NORMAL
+  zh: 使用scikit-learn中的`make_moon`方法创建合成分类数据。我们训练了五个模型，并使用Keras-Uncertainty库绘制了各自的不确定性。
 - en: '![Figure 5.13 – Uncertainty for binary classification problem](img/Figure_5.13_B18681.jpg)'
   id: totrans-201
   prefs: []
   type: TYPE_IMG
+  zh: '![图5.13 – 二分类问题的不确定性](img/Figure_5.13_B18681.jpg)'
 - en: Figure 5.13 – Uncertainty for binary classification problem
   id: totrans-202
   prefs: []
   type: TYPE_NORMAL
+  zh: 图5.13 – 二分类问题的不确定性
 - en: Robustness metrics
   id: totrans-203
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
+  zh: 鲁棒性指标
 - en: 'Developed by Google Research, the Robustness Metrics library provides functions
     and methods that can help in the evaluation of classification models. It defines
     three sets of metrics:'
   id: totrans-204
   prefs: []
   type: TYPE_NORMAL
+  zh: 由Google Research开发的鲁棒性指标库提供了可以帮助评估分类模型的函数和方法。它定义了三组指标：
 - en: '**Out-of-distribution generalization**: This measure assesses the model’s ability
     to accurately classify objects that share similarities but may have varying perspectives.'
   id: totrans-205
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '**分布外泛化**：该指标评估模型准确分类具有相似性但可能具有不同视角的物体的能力。'
 - en: '**Stability**: This measure evaluates the stability of predictions made by
     the model when there are changes in the input, and how effectively the model performs
     with natural disturbances.'
@@ -1389,12 +1462,14 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '**稳定性**：该指标评估模型在输入发生变化时预测的稳定性，以及模型在自然干扰下的表现效果。'
 - en: '**Uncertainty**: This measure gauges the proximity of the probabilities estimated
     by a model to the actual probabilities.'
   id: totrans-207
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '**不确定性**：该指标衡量模型估计的概率与实际概率之间的接近度。'
 - en: The Robustness Metrics library can be used even for non-vision models. Essentially,
     if you have a classification task, you can try this library. It depends on TensorFlow
     and TensorFlow Probability, therefore, before you use it you should install them
@@ -1402,17 +1477,20 @@
   id: totrans-208
   prefs: []
   type: TYPE_NORMAL
+  zh: 鲁棒性度量库甚至可以用于非视觉模型。实际上，如果你有分类任务，可以尝试使用这个库。它依赖于TensorFlow和TensorFlow Probability，因此在使用之前，您需要先在系统上安装它们。
 - en: Summary
   id: totrans-209
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 总结
 - en: This chapter started by introducing the different components of ML pipelines.
     Then we discussed various ML tasks and different algorithms that are used for
     those tasks.
   id: totrans-210
   prefs: []
   type: TYPE_NORMAL
+  zh: 本章首先介绍了机器学习管道的不同组成部分。接着我们讨论了各种机器学习任务以及为这些任务使用的不同算法。
 - en: The main theme of the chapter was uncertainty in deep learning. This uncertainty
     can be due to the data or the model – or both. We discussed the two types of uncertainty,
     aleatory and epistemic. The chapter also discussed various methods that have been
@@ -1426,16 +1504,19 @@
   id: totrans-211
   prefs: []
   type: TYPE_NORMAL
+  zh: 本章的主要主题是深度学习中的不确定性。这种不确定性可能来自数据、模型，或者两者兼而有之。我们讨论了两种不确定性类型：随机不确定性和认知不确定性。本章还讨论了文献中用来量化不确定性的各种方法，并深入探讨了不确定性的原因。接着，我们实现了用于回归任务的量化不确定性的算法。最后，本章讨论了用于量化分类任务不确定性的方法。在深度学习中，需要开发不确定性和鲁棒性的基准和基线。尽管该领域正在进行大量研究，但不确定性和鲁棒性仍然是人工智能和机器学习中的关键研究问题。
 - en: In the next chapter, we will delve into the concept of hyperparameters, and
     how to use AutoML and MLOps to streamline your ML workflow.
   id: totrans-212
   prefs: []
   type: TYPE_NORMAL
+  zh: 在下一章中，我们将深入探讨超参数的概念，以及如何使用AutoML和MLOps来简化机器学习工作流。
 - en: References
   id: totrans-213
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 参考文献
 - en: '*Efficientnet: Rethinking model scaling for convolutional neural networks*.
     In *International conference on ML,* Tan, M., & Le, Q. (2019, May). (pp. 6105-6114).
     PMLR. [http://proceedings.mlr.press/v97/tan19a/tan19a.pdf](http://proceedings.mlr.press/v97/tan19a/tan19a.pdf))'
@@ -1443,12 +1524,15 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*EfficientNet: 重新思考卷积神经网络的模型缩放*。在*国际机器学习会议*上，Tan, M., & Le, Q.（2019年5月）。（第6105-6114页）。PMLR.
+    [http://proceedings.mlr.press/v97/tan19a/tan19a.pdf](http://proceedings.mlr.press/v97/tan19a/tan19a.pdf)'
 - en: '*Uncertainty characterization in risk analysis for decision-making practice*,
     Zio, E., & Pedroni, N. (2012). FonCSI. [https://www.researchgate.net/publication/266391086_Uncertainty_characterization_in_risk_analysis_for_decision-making_practice](https://www.researchgate.net/publication/266391086_Uncertainty_characterization_in_risk_analysis_for_decision-making_practice)'
   id: totrans-215
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*决策分析中的不确定性表征*，Zio, E., & Pedroni, N.（2012年）。FonCSI. [https://www.researchgate.net/publication/266391086_Uncertainty_characterization_in_risk_analysis_for_decision-making_practice](https://www.researchgate.net/publication/266391086_Uncertainty_characterization_in_risk_analysis_for_decision-making_practice)'
 - en: '*Attention is all you need. Advances in neural information processing systems*,
     Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N.,
     ... & Polosukhin, I. (2017). 30\. [https://proceedings.neurips.cc/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf](https://proceedings.neurips.cc/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf)'
@@ -1456,6 +1540,8 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*Attention is all you need. 神经信息处理系统的进展*，Vaswani, A., Shazeer, N., Parmar,
+    N., Uszkoreit, J., Jones, L., Gomez, A. N., ... & Polosukhin, I.（2017年）。30\. [https://proceedings.neurips.cc/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf](https://proceedings.neurips.cc/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf)'
 - en: '*Dropout as a Bayesian approximation: Representing model uncertainty in deep
     learning*. In *International conference on ML,* Gal, Y., & Ghahramani, Z. (2016,
     June). (pp. 1050-1059). PMLR. [http://proceedings.mlr.press/v48/gal16.pdf](http://proceedings.mlr.press/v48/gal16.pdf)'
@@ -1463,6 +1549,8 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*Dropout作为贝叶斯近似：在深度学习中表示模型的不确定性*。在*国际机器学习会议*上，Gal, Y., & Ghahramani, Z.（2016年6月）。（第1050-1059页）。PMLR.
+    [http://proceedings.mlr.press/v48/gal16.pdf](http://proceedings.mlr.press/v48/gal16.pdf)'
 - en: '*What uncertainties do we need in Bayesian deep learning for computer vision?*
     In *Advances in neural information processing systems*, Kendall, A., & Gal, Y.
     (2017). 30\. [https://arxiv.org/pdf/1703.04977.pdf](https://arxiv.org/pdf/1703.04977.pdf)'
@@ -1470,6 +1558,8 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*我们在贝叶斯深度学习中需要哪些不确定性用于计算机视觉？* 在*神经信息处理系统的进展*中，Kendall, A., & Gal, Y.（2017年）。30\.
+    [https://arxiv.org/pdf/1703.04977.pdf](https://arxiv.org/pdf/1703.04977.pdf)'
 - en: '*A survey of uncertainty in deep neural networks,* Gawlikowski, J., Tassi,
     C. R. N., Ali, M., Lee, J., Humt, M., Feng, J., ... & Zhu, X. X. (2021). arXiv
     preprint arXiv:2107.03342\. [https://arxiv.org/pdf/2107.03342.pdf](https://arxiv.org/pdf/2107.03342.pdf)'
@@ -1477,6 +1567,8 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*深度神经网络中的不确定性调查*，Gawlikowski, J., Tassi, C. R. N., Ali, M., Lee, J., Humt,
+    M., Feng, J., ... & Zhu, X. X. (2021)。arXiv预印本arXiv:2107.03342\。 [https://arxiv.org/pdf/2107.03342.pdf](https://arxiv.org/pdf/2107.03342.pdf)'
 - en: '*A review of uncertainty quantification in deep learning: Techniques, applications
     and challenges,* Abdar, M., Pourpanah, F., Hussain, S., Rezazadegan, D., Liu,
     L., Ghavamzadeh, M., ... & Nahavandi, S. (2021). In *Information Fusion*, 76,
@@ -1485,6 +1577,8 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*深度学习中的不确定性量化综述：技术、应用与挑战*，Abdar, M., Pourpanah, F., Hussain, S., Rezazadegan,
+    D., Liu, L., Ghavamzadeh, M., ... & Nahavandi, S. (2021)。发表于 *信息融合*，76，243-297页。[https://arxiv.org/pdf/2011.06225.pdf](https://arxiv.org/pdf/2011.06225.pdf)'
 - en: '*Simple and scalable predictive uncertainty estimation using deep ensembles*.
     In *Advances in neural information processing systems*, Lakshminarayanan, B.,
     Pritzel, A., & Blundell, C. (2017). 30\. [https://arxiv.org/pdf/1612.01474.pdf](https://arxiv.org/pdf/1612.01474.pdf)'
@@ -1492,12 +1586,16 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*使用深度集成方法进行简单且可扩展的预测不确定性估计*。发表于 *神经信息处理系统进展*，Lakshminarayanan, B., Pritzel,
+    A., & Blundell, C. (2017)。第30页。[https://arxiv.org/pdf/1612.01474.pdf](https://arxiv.org/pdf/1612.01474.pdf)'
 - en: '*Robustness Metrics*, J. Djolonga, F. Hubis, M. Minderer, Z. Nado, J. Nixon,
     R. Romijnders, D. Tran, and M. Lucic. 2020\. [https://github.com/google-research/robustness_metrics](https://github.com/google-research/robustness_metrics)'
   id: totrans-222
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*鲁棒性指标*，J. Djolonga, F. Hubis, M. Minderer, Z. Nado, J. Nixon, R. Romijnders,
+    D. Tran, 和 M. Lucic. 2020年。[https://github.com/google-research/robustness_metrics](https://github.com/google-research/robustness_metrics)'
 - en: '*Uncertainty Baselines: Benchmarks for uncertainty & robustness in deep learning*,
     Nado, Z., Band, N., Collier, M., Djolonga, J., Dusenberry, M. W., Farquhar, S.,
     ... & Tran, D. (2021). arXiv preprint arXiv:2106.04015\. [https://arxiv.org/pdf/2106.04015](https://arxiv.org/pdf/2106.04015)'
@@ -1505,6 +1603,8 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*不确定性基准：深度学习中不确定性与鲁棒性的基准测试*，Nado, Z., Band, N., Collier, M., Djolonga, J.,
+    Dusenberry, M. W., Farquhar, S., ... & Tran, D. (2021)。arXiv预印本arXiv:2106.04015\。[https://arxiv.org/pdf/2106.04015](https://arxiv.org/pdf/2106.04015)'
 - en: '*On robustness and transferability of convolutional neural networks,* Djolonga,
     J., Yung, J., Tschannen, M., Romijnders, R., Beyer, L., Kolesnikov, A., ... &
     Lucic, M. (2021). In *Proceedings of the IEEE/CVF Conference on Computer Vision
@@ -1513,3 +1613,5 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*卷积神经网络的鲁棒性与可转移性*，Djolonga, J., Yung, J., Tschannen, M., Romijnders, R., Beyer,
+    L., Kolesnikov, A., ... & Lucic, M. (2021)。发表于 *IEEE/CVF计算机视觉与模式识别会议论文集*（第16458-16468页）。[https://arxiv.org/pdf/2007.08558.pdf](https://arxiv.org/pdf/2007.08558.pdf)'
