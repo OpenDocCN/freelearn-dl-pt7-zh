@@ -3,11 +3,13 @@
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: '10'
 - en: Ethics and Model Governance
   id: totrans-1
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 道德与模型治理
 - en: This chapter provides a detailed overview of **Model Risk Management** (**MRM**)
     and the best practices for governance in organizations to reduce costs and increase
     efficiency. The primary objective of this chapter is to demonstrate MRM techniques
@@ -19,6 +21,7 @@
   id: totrans-2
   prefs: []
   type: TYPE_NORMAL
+  zh: 本章提供了**模型风险管理**（**MRM**）的详细概述，并介绍了最佳的治理实践，以帮助组织降低成本并提高效率。本章的主要目标是通过确保遵循正确的模型指标，展示MRM技巧，同时使用来自模型和数据两个角度的工具，帮助我们培养正确的风险缓解和治理实践。你将学习如何设计和制定风险管理记分卡，以帮助防止企业损失额外的资金。
 - en: In addition, this chapter highlights how the right tactics and knowledge of
     data or model change patterns are effective in identifying a model’s risks. This
     enables us to quantify the risks of models deployed in production and that reside
@@ -27,78 +30,94 @@
   id: totrans-3
   prefs: []
   type: TYPE_NORMAL
+  zh: 此外，本章还强调了正确的策略和对数据或模型变化模式的了解在识别模型风险方面的有效性。这使我们能够量化部署在生产中的模型及其在模型库存中的风险。本章还解释了如何更好地管理和共享大量运行多个实验的模型库存，以便团队间可以协作共享。
 - en: 'In this chapter, these topics will be covered in the following sections:'
   id: totrans-4
   prefs: []
   type: TYPE_NORMAL
+  zh: 在本章中，以下主题将在接下来的章节中进行讲解：
 - en: '**Model Risk** **Management (MRM)**'
   id: totrans-5
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '**模型风险** **管理（MRM）**'
 - en: Model version control
   id: totrans-6
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 模型版本控制
 - en: Introduction to feature stores
   id: totrans-7
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 特征存储简介
 - en: Technical requirements
   id: totrans-8
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 技术要求
 - en: 'This chapter requires you to have Python 3.8, along with installing the following:'
   id: totrans-9
   prefs: []
   type: TYPE_NORMAL
+  zh: 本章要求你安装Python 3.8，并安装以下内容：
 - en: '`pip` `install wandb`'
   id: totrans-10
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '`pip` `install wandb`'
 - en: Install Docker from [https://docs.docker.com/desktop](https://docs.docker.com/desktop)
   id: totrans-11
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 从[https://docs.docker.com/desktop](https://docs.docker.com/desktop)安装Docker
 - en: '`git` `clone` ([https://github.com/VertaAI/modeldb.git](https://github.com/VertaAI/modeldb.git)):'
   id: totrans-12
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '`git` `clone` ([https://github.com/VertaAI/modeldb.git](https://github.com/VertaAI/modeldb.git)):'
 - en: '`docker-compose -f` `docker-compose-all.yaml up`'
   id: totrans-13
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '`docker-compose -f` `docker-compose-all.yaml up`'
 - en: '`pip` `install verta`'
   id: totrans-14
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '`pip` `install verta`'
 - en: '`pip` `install feast`'
   id: totrans-15
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '`pip` `install feast`'
 - en: '`pip` `install wandb`'
   id: totrans-16
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '`pip` `install wandb`'
 - en: 'The code for this chapter can be found on GitHub: [https://github.com/PacktPublishing/Designing-Models-for-Responsible-AI/tree/main/Chapter10](https://github.com/PacktPublishing/Designing-Models-for-Responsible-AI/tree/main/Chapter10).'
   id: totrans-17
   prefs: []
   type: TYPE_NORMAL
+  zh: 本章的代码可以在GitHub上找到：[https://github.com/PacktPublishing/Designing-Models-for-Responsible-AI/tree/main/Chapter10](https://github.com/PacktPublishing/Designing-Models-for-Responsible-AI/tree/main/Chapter10)。
 - en: Model Risk Management (MRM)
   id: totrans-18
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 模型风险管理（MRM）
 - en: In this section, let us first discuss why it is necessary to develop a concrete
     framework for risk in models, which was first proposed by top institutions and
     the financial industry. This has enabled additional controls to be applied for
@@ -112,17 +131,20 @@
   id: totrans-19
   prefs: []
   type: TYPE_NORMAL
+  zh: 在本节中，我们首先讨论为什么有必要为模型中的风险开发一个具体的框架，这一框架最早由顶级机构和金融行业提出。这使得银行和保险公司能够对MRM施加额外的控制。然而，这一框架可以扩展并应用到其他行业（如零售、媒体和娱乐），这些行业由于每天发生大量交易，已广泛采用持续监控和模型重训练管道。尽管我们将审视来自金融行业的一个真实案例，组织和领导层应该努力在任何AI产品和服务中采纳这些建议，因为AI的指南、法律和法规变得越来越严格。
 - en: Now that we understand how important model inventory risk management is, let
     us take a brief look at how model inventories can be managed. Model inventory
     management is a subsection of MRM. So let us learn about its types.
   id: totrans-20
   prefs: []
   type: TYPE_NORMAL
+  zh: 现在我们已经了解了模型库存风险管理的重要性，接下来简要看看模型库存如何管理。模型库存管理是MRM的一个子部分。让我们了解它的类型。
 - en: Types of model inventory management
   id: totrans-21
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
+  zh: 模型库存管理的类型
 - en: 'Model cataloging and versioning for production are provided by AWS, which supports
     model inventory management, as detailed here. The model registry associates metadata
     with a model, along with its training metrics, owner name, and approval status:'
@@ -706,6 +728,7 @@
   id: totrans-87
   prefs: []
   type: TYPE_NORMAL
+  zh: 在树的第一层，维度评估模型是否量化风险、延迟、时机、价格或任何其他值——一个指定模型领域覆盖范围整体风险的指标。这为进一步的分类类别铺平了道路。回答“*否*”得出结论，模型属于低风险层级，而回答“*是*”则推动进入下一阶段。下一个评估指标尝试确定模型的使用维度，以判断模型是用于关键决策还是用于监管或财务报告。如果答案是“*是*”，则该模型被标记为高风险或中等风险层级，而“*否*”则将模型标记为低风险到中等风险层级。如果模型属于中等风险到高风险层级，则需要对相对于阈值的暴露水平进行测试。如果暴露水平较高，监管或财务决策模型将被归类为高风险，而暴露有限的相同类别模型则被标记为中等风险。未参与关键决策过程的模型将再次根据暴露水平进行测试，并被分类为低风险或中等风险。这种MRT完全依赖于判断输入，并且结果只有二元分类，没有空间容纳多于两种答案。
 - en: One of the main challenges involved in a decision tree-based risk tree is when
     multi-level categorical variables are involved, as it makes the decision trees
     very complex quickly, making them biased and more difficult to represent and interpret.
@@ -714,25 +737,30 @@
   id: totrans-88
   prefs: []
   type: TYPE_NORMAL
+  zh: 基于决策树的风险树面临的主要挑战之一是当涉及多级分类变量时，它会迅速使决策树变得非常复杂，导致其偏倚，且更难以表示和解释。它还未能充分区分模型的重要性（相关风险），这导致更多的模型被分配到更高的层级（聚类）。
 - en: '![Figure 10.3 – Model risk classification](img/Figure_10.03_B18681.jpg)'
   id: totrans-89
   prefs: []
   type: TYPE_IMG
+  zh: '![图10.3 – 模型风险分类](img/Figure_10.03_B18681.jpg)'
 - en: Figure 10.3 – Model risk classification
   id: totrans-90
   prefs: []
   type: TYPE_NORMAL
+  zh: 图10.3 – 模型风险分类
 - en: With visual representations becoming more challenging with multiple variables,
     the best way to address this is to use a simpler scorecard-based approach, as
     illustrated in *Figure 10**.4*.
   id: totrans-91
   prefs: []
   type: TYPE_NORMAL
+  zh: 随着多变量的可视化表示变得越来越具有挑战性，解决这一问题的最佳方式是使用更简单的基于评分卡的方法，如*图10.4*所示。
 - en: Model risk scorecards
   id: totrans-92
   prefs:
   - PREF_H3
   type: TYPE_NORMAL
+  zh: 模型风险评分卡
 - en: '*Figure 10**.4* demonstrates an example **Model Risk Scorecard** (**MRS**)
     that effectively categorizes the model into different risk classes. This scorecard
     works on the principle of a factor/element approach, which has four associated
@@ -741,6 +769,7 @@
   id: totrans-93
   prefs: []
   type: TYPE_NORMAL
+  zh: '*图10.4*展示了一个有效地将模型分类为不同风险类别的**模型风险评分卡**（**MRS**）。该评分卡基于因子/元素方法原理，其中包含四个相关因子。因子可以通过单一元素表示，也可以通过多个元素表示：'
 - en: The **Value range** column includes the possible range of values that can be
     served as model inputs. Some of the variables are directly ingested from the model
     profile, while some other variables are obtained after preprocessing. The data
@@ -752,6 +781,7 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '**值范围**列包括可以作为模型输入的值的可能范围。其中一些变量直接从模型配置文件中获取，而另一些则是在预处理后获得。数据转换步骤帮助我们将变量转化为连续、离散或多个级别或类别。这些包括美元影响或暴露、使用模型的用户数量以及广泛的输入变量类型和数量。'
 - en: The **Weight** column denotes the relative importance of each contributing factor
     (marked in yellow) to the final score. By quantifying it as a percentage, we can
     represent the significance of each element to the overall scoring structure (in
@@ -760,6 +790,7 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '**权重**列表示每个贡献因素（以黄色标注）对最终得分的相对重要性。通过将其量化为百分比，我们可以表示每个元素对整体评分结构（以粉色标注）的重要性。'
 - en: There are two adjustments, one of which is a **Capital stress testing** indicator,
     which plays an important role in the model classification process. It explains
     the model’s presence in a specific category irrespective of its score and its
@@ -768,6 +799,7 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 有两个调整，其中之一是**资本压力测试**指标，在模型分类过程中起着重要作用。它解释了模型在特定类别中的存在，无论其得分如何，以及它对其他因素的影响。
 - en: '**MRM adjustment** is a score override metric that overrides the base result
     and allows the addition of the configured value to the base metric. In this example,
     the flexibility provided to the head of the MRM group has been fixed at 50% of
@@ -776,6 +808,7 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '**MRM调整**是一种得分覆盖度量，它覆盖基础结果并允许将配置的值添加到基础度量中。在这个例子中，赋予MRM小组负责人灵活性的值已固定为总体可能值的50%。'
 - en: The MRS produces a computed risk score to derive the final risk category to
     which the model belongs. As demonstrated in the risk tier assignment at the bottom
     of *Figure 10**.4*, it also contains the current risk rating of the model.
@@ -783,20 +816,24 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: MRS会生成一个计算的风险分数，以得出模型所属的最终风险类别。如在*图10.4*的风险等级分配中所示，它还包含模型的当前风险评级。
 - en: The process of assigning preprocessing threshold boundaries and the importance
     of certain elements, factor weights, and overall risk score classification thresholds
     is reflected in the evaluation matrix.
   id: totrans-99
   prefs: []
   type: TYPE_NORMAL
+  zh: 分配预处理阈值边界的过程，以及某些元素、因素权重和总体风险评分分类阈值的重要性，反映在评估矩阵中。
 - en: '![Figure 10.4 – Model scorecard matrix](img/Figure_10.04_B18681.jpg)'
   id: totrans-100
   prefs: []
   type: TYPE_IMG
+  zh: '![图10.4 – 模型评分矩阵](img/Figure_10.04_B18681.jpg)'
 - en: Figure 10.4 – Model scorecard matrix
   id: totrans-101
   prefs: []
   type: TYPE_NORMAL
+  zh: 图10.4 – 模型评分矩阵
 - en: The sample MRS mixes binary variables with multiple-level categorical variables.
     It also takes into consideration a weighting scheme, helping to ascertain different
     parameters of importance. An MRS comes with clear advantages, especially for organizations
@@ -806,6 +843,7 @@
   id: totrans-102
   prefs: []
   type: TYPE_NORMAL
+  zh: 样本MRS将二元变量与多级分类变量混合使用。它还考虑了加权方案，帮助确定不同重要性的参数。MRS有明显的优势，特别适用于那些希望在不同类别中包含多个分类变量的组织。MRS具有清晰的表示风格，使得团队更容易解读计划并考虑使用错误模型的影响。
 - en: The **Materiality factor** score measures the estimated financial impact in
     currency (in the range of 1 to 4) and the **Regulatory exposure factor** score
     incorporates the exposure factor related to AI/ML and financial reporting (scoring
@@ -817,30 +855,36 @@
   id: totrans-103
   prefs: []
   type: TYPE_NORMAL
+  zh: '**重要性因素**得分衡量货币单位中的估计财务影响（范围从1到4），而**监管曝光因素**得分则涵盖与AI/ML和财务报告相关的曝光因素（得分为0或1）。**操作因素**得分对模型风险分级过程的总体贡献为10%，其中50%由**最终用户计算**（**EUC**）实施贡献（得分因素为0或1），50%由**用户数量**（得分范围为1到4）贡献，后者是一个多层次的分类变量。'
 - en: 'The formula to compute the overall value of this operational risk element to
     evaluate its contribution to the final score for **Model** **1** is:'
   id: totrans-104
   prefs: []
   type: TYPE_NORMAL
+  zh: 计算此操作风险元素的总体值，以评估其对**模型1**最终得分贡献的公式是：
 - en: (1 × 50% + 2/4 × 50%) ×10% = 7.5%
   id: totrans-105
   prefs: []
   type: TYPE_NORMAL
+  zh: (1 × 50% + 2/4 × 50%) × 10% = 7.5%
 - en: We know that the overall score before adjustments is 100, and the **operational
     factor** contributes 7.5 points to the overall score for **Model 1** (the third
     row in the model scores for *Model 1*).
   id: totrans-106
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们知道，调整前的总体得分是100，而**操作因素**为**模型1**（*模型1*得分表中的第三行）贡献了7.5分。
 - en: 'The formula to compute the overall score for this model’s complexity, which
     influences the risk element in the final score, for **Model** **1** is:'
   id: totrans-107
   prefs: []
   type: TYPE_NORMAL
+  zh: 计算该模型复杂度的总体得分的公式，复杂度会影响最终得分中的风险元素，对于**模型1**的公式是：
 - en: (1 × 40% + 2/4 × 20%) × 30% = 15%
   id: totrans-108
   prefs: []
   type: TYPE_NORMAL
+  zh: (1 × 40% + 2/4 × 20%) × 30% = 15%
 - en: We can also see that the final model tier is recorded in the highlighted boxes
     in three different colors (green, pink, and orange). **Model 1**, with a score
     of 69, has been classified as **Tier 2**, whereas **Model 2**, with a score of
@@ -851,6 +895,9 @@
   id: totrans-109
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们还可以看到，最终的模型层级记录在三种不同颜色（绿色、粉色和橙色）的高亮框中。**模型1**得分为69，已被归类为**Tier 2**，而**模型2**得分为66.5，已被归类为**Tier
+    1**，其中**Tier 2**的阈值设定为48分，**Tier 1**的阈值为78分。此外，**模型1**和**模型2**当前的风险级别分别记录为**Tier
+    1**和**Tier 3**。
 - en: We also observe exceptions with respect to **Model 2** and **Model 3**. **Model
     2**’s overall evaluated score of 66.5 points would make its classification fall
     inside **Tier 2**, but the model has been assigned to **Tier 1**. The **Capital
@@ -863,6 +910,9 @@
   id: totrans-110
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们还观察到有关**模型2**和**模型3**的例外情况。**模型2**的整体评分为66.5分，这本应将其归类为**Tier 2**，但该模型被分配到了**Tier
+    1**。**资本压力测试**的覆盖度量设置为1，这会自动将所有用于资本压力测试的模型分配到最上层类别，在我们的案例中即为最高风险层级。对于**模型3**，整体得分为22.5
+    + 8.75 + 3 = 34.75分。MRM团队的风险量化人员为其增加了10分，将得分提升到44.75分。然而，这个得分仍不足以影响最终的模型层级分配，因为它未达到48分的阈值。
 - en: In this example, an operational factor has a definite role to play in explaining
     the risk of model failure. It considers problems in the restrained environment
     within which the model gives unexpected outcomes and explores the things that
@@ -870,11 +920,13 @@
   id: totrans-111
   prefs: []
   type: TYPE_NORMAL
+  zh: 在这个例子中，一个操作因素在解释模型失败风险方面起着明确的作用。它考虑了在受限环境中，模型给出意外结果时可能出现的问题，并探讨了生产环境中可能导致模型失败的因素。
 - en: Model risk calibration
   id: totrans-112
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
+  zh: 模型风险校准
 - en: Organizations often end up classifying too many models as high risk, but this
     does not serve the intended purpose and means the MRS tool needs calibration.
     One way to calibrate it is to maintain the pre-existing relative ranking of models
@@ -887,14 +939,17 @@
   id: totrans-113
   prefs: []
   type: TYPE_NORMAL
+  zh: 组织通常会把太多的模型归类为高风险，但这样做并不符合预期目的，也意味着MRS工具需要校准。校准的一种方法是保持模型的相对排名不变，从而最小化模型风险分配的变化。当风险层级的变化得到系统控制时，这减少了额外的工作，并使得可以在过程中使用已有的与风险相关的信息。校准通常是通过彻底的试错、对模型档案元素的迭代调整以及判断性过程来进行的，目的是对比、对照并评估不同风险类别中模型分布与库存的差异。
 - en: '![Figure 10.5 – Important factors involved in model risk score calibration](img/Figure_10.05_B18681.jpg)'
   id: totrans-114
   prefs: []
   type: TYPE_IMG
+  zh: '![图 10.5 – 模型风险评分校准中的重要因素](img/Figure_10.05_B18681.jpg)'
 - en: Figure 10.5 – Important factors involved in model risk score calibration
   id: totrans-115
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 10.5 – 模型风险评分校准中的重要因素
 - en: In model recalibration, the changes in model placements across tiers are recorded,
     and primary factors leading to shifts are also recorded. Some of the factors,
     as illustrated in *Figure 10**.5*, include the extent to which individual models
@@ -911,17 +966,20 @@
   id: totrans-116
   prefs: []
   type: TYPE_NORMAL
+  zh: 在模型重新校准中，模型在各层级之间的变动被记录下来，导致这些变动的主要因素也被记录。一些因素，如*图10.5*所示，包括单个模型在多种产品或应用中重用的程度；模型库存的综合总结，其中缺失的模型被放置在低风险层级；帮助对齐模型的层级特定MRM要求；以及由于监管压力或承受压力测试而应被分类为高风险的库存比例。经过与业务和模型拥有者的审查后，组织可能仍然需要设置覆盖规则，以便MRS尽可能谨慎地将模型分配到各层级。这个多层级分类过程有助于解释由于合规要求、财务影响或其他业务因素，与某些类型或某些用途的模型相关的影响因素。
 - en: In this section, we learned about important concepts related to model risk tiering.
     Now, let's learn about a model’s adaptability and resilience, which lay the foundation
     for a strong MRM framework.
   id: totrans-117
   prefs: []
   type: TYPE_NORMAL
+  zh: 在本节中，我们学习了与模型风险分层相关的重要概念。现在，让我们学习模型的适应性和韧性，它们为强大的MRM框架奠定基础。
 - en: Model version control
   id: totrans-118
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 模型版本控制
 - en: Model management is an important element of tracking the ad hoc building of
     ML models. It facilitates the versioning, storing, and indexing of a growing repository
     of ML models to aid in the process of sharing, querying, and analysis. When managing
@@ -932,16 +990,19 @@
   id: totrans-119
   prefs: []
   type: TYPE_NORMAL
+  zh: 模型管理是跟踪机器学习模型临时构建的重要环节。它促进了机器学习模型版本的管理、存储和索引，帮助在共享、查询和分析过程中发挥作用。在管理模型时，重新运行建模工作流变得越来越昂贵，这会消耗大量的CPU/GPU处理能力。为了使模型结果持久化，开发和部署能够自动构建、跟踪和负责模型开发生命周期中模型管理任务的工具是至关重要的。
 - en: 'Model management helps to reduce development and tracking efforts by generating
     insights from each of the ML models with authentic versioning:'
   id: totrans-120
   prefs: []
   type: TYPE_NORMAL
+  zh: 模型管理通过生成每个机器学习模型的洞察，结合真实的版本控制，帮助减少开发和跟踪的工作量：
 - en: Data scientists get a broad overview of and insights into models built so far.
   id: totrans-121
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 数据科学家能够全面了解和洞察迄今为止构建的模型。
 - en: It helps us to consolidate and infer important information from the predicted
     outcomes of versioned models. Examining versioned model metrics allows data scientists
     to make use of the current model’s impacts on the business.
@@ -949,33 +1010,39 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 它帮助我们通过版本化模型的预测结果来巩固和推断重要信息。检查版本化模型的指标使数据科学家能够利用当前模型对业务的影响。
 - en: It helps us to discover trends and insights into various customer and market
     segments and speeds up meta-analysis across models.
   id: totrans-123
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 它帮助我们发现不同客户和市场细分的趋势与洞察，并加速跨模型的元分析。
 - en: The indexing process enables data scientists to quickly search through the model
     repositories to identify proper or improper use of features.
   id: totrans-124
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 索引过程使数据科学家能够快速搜索模型库，以识别特征的正确或不当使用。
 - en: It also facilitates easy collaboration between data scientists.
   id: totrans-125
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 它还促进了数据科学家之间的轻松协作。
 - en: Now, let us discuss how to automatically track ML models in their native environment
     with a model management tool called **ModelDB**.
   id: totrans-126
   prefs: []
   type: TYPE_NORMAL
+  zh: 现在，让我们讨论如何使用一种名为**ModelDB**的模型管理工具，在其本地环境中自动跟踪机器学习模型。
 - en: ModelDB
   id: totrans-127
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
+  zh: ModelDB
 - en: ModelDB paves the way with built-in intelligence to support indexing and model
     exploration, with SQL queries and a visual interface. ModelDB comes with different
     native client learning environments (currently `spark.ml1` and `scikit-learn2`),
@@ -988,6 +1055,7 @@
   id: totrans-128
   prefs: []
   type: TYPE_NORMAL
+  zh: ModelDB通过内置智能技术支持索引和模型探索，提供SQL查询和可视化界面。ModelDB配备了不同的原生客户端学习环境（目前有`spark.ml1`和`scikit-learn2`），一个优化存储模型的存储层，以及一个基于Web的可视化界面，可以在多个模型之间进行元分析。它可以记录涉及预处理、训练和测试步骤的多阶段流水线，通过管理与元数据（如预处理步骤的参数和模型超参数）、质量指标（如AUC和准确度）以及每个模型的训练和测试数据相关的信息。
 - en: 'As illustrated in *Figure 10**.6*, ModelDB has four principal components: native
     client libraries for different ML stacks (such as Spark ML, scikit-learn, and
     R), a backend that defines major abstractions, broker access to the storage layer,
@@ -999,19 +1067,23 @@
   id: totrans-129
   prefs: []
   type: TYPE_NORMAL
+  zh: 如*图10.6*所示，ModelDB有四个主要组件：适用于不同机器学习框架（如Spark ML、scikit-learn和R）的原生客户端库，一个定义主要抽象的后台，作为存储层的中介访问器，以及一个用于可视化探索模型性能指标和元数据的Web用户界面。模型工件（数据样本、参数、属性、超参数、工件、模型指标以及所有涉及训练模型的元数据和参数的变更版本）通过ModelDB客户端提取，并通过Thrift接口存储在后台数据库中。
 - en: The relational database can execute fast search operations to retrieve model
     artifacts by using model indexes.
   id: totrans-130
   prefs: []
   type: TYPE_NORMAL
+  zh: 关系型数据库能够通过使用模型索引快速执行搜索操作，以检索模型工件。
 - en: '![Figure 10.6 – ModelDB architecture](img/Figure_10.06_B18681.jpg)'
   id: totrans-131
   prefs: []
   type: TYPE_IMG
+  zh: '![图10.6 – ModelDB架构](img/Figure_10.06_B18681.jpg)'
 - en: Figure 10.6 – ModelDB architecture
   id: totrans-132
   prefs: []
   type: TYPE_NORMAL
+  zh: 图10.6 – ModelDB架构
 - en: 'All models and pipelines are stored as a sequence of actions with a branching
     model that stores the history to record the changes happening in models over time.
     A relational database at the backend stores pipeline information while a custom
@@ -1021,11 +1093,13 @@
   id: totrans-133
   prefs: []
   type: TYPE_NORMAL
+  zh: 所有模型和流水线都作为一系列动作存储，并通过一个分支模型来存储历史记录，以记录模型随时间发生的变化。后台的关系型数据库存储流水线信息，而一个自定义引擎则用于存储和索引模型。前端配备了一个易于导航的基于Web的可视化界面，允许进行模型和流水线的可视化探索和分析。我们来使用ModelDB进行一个实验：
 - en: 'To run a ModelDB experiment, we need to have the following imports first:'
   id: totrans-134
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 要运行ModelDB实验，我们首先需要进行以下导入：
 - en: '[PRE0]'
   id: totrans-135
   prefs:
@@ -1039,6 +1113,7 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 接下来，我们连接到ModelDB客户端，设置第一次实验，启动实验编号和数据集版本，以便记录与之相关的所有结果。我们还加载了用于训练和测试的scikit-learn糖尿病数据集：
 - en: '[PRE1]'
   id: totrans-137
   prefs:
@@ -1051,6 +1126,7 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 加载数据集后，我们运行`GradientBoostingRegressor`（来自集成模型库），并使用交叉验证执行网格搜索：
 - en: '[PRE2]'
   id: totrans-139
   prefs:
@@ -1063,6 +1139,7 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 在下一步中，我们记录最佳模型得分、损失值以及使用网格搜索结果优化模型时使用的不同超参数：
 - en: '[PRE3]'
   id: totrans-141
   prefs:
@@ -1076,6 +1153,7 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 在获得训练和测试指标后，我们将它们记录在ModelDB中。此外，我们还会记录最佳的超参数和实际的模型文件（保存为`joblib`格式）：
 - en: '[PRE4]'
   id: totrans-143
   prefs:
@@ -1089,6 +1167,7 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 我们可以绘制涉及的估计器与训练/测试得分的关系图（使用网格搜索结果返回的最佳参数）。该图会作为工件记录在ModelDB中：
 - en: '[PRE5]'
   id: totrans-145
   prefs:
@@ -1101,51 +1180,63 @@
   id: totrans-146
   prefs: []
   type: TYPE_NORMAL
+  zh: '*图 10.7* 展示了 ModelDB 仪表板，识别模型的单个运行 ID，以及数据集版本、记录的工件、观察、指标和超参数：'
 - en: '![Figure 10.7 – ModelDB experimental run dashboard](img/Figure_10.07_B18681.jpg)'
   id: totrans-147
   prefs: []
   type: TYPE_IMG
+  zh: '![图 10.7 – ModelDB 实验运行仪表板](img/Figure_10.07_B18681.jpg)'
 - en: Figure 10.7 – ModelDB experimental run dashboard
   id: totrans-148
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 10.7 – ModelDB 实验运行仪表板
 - en: 'The following figure helps us to determine whether we want to study any of
     the model metrics with an increasing number of epochs:'
   id: totrans-149
   prefs: []
   type: TYPE_NORMAL
+  zh: 以下图表帮助我们确定是否要研究随着训练轮次增加的任何模型指标：
 - en: '![Figure 10.8 – Performance metrics with increasing epochs on a ModelDB dashboard](img/Figure_10.08_B18681.jpg)'
   id: totrans-150
   prefs: []
   type: TYPE_IMG
+  zh: '![图 10.8 – 随着训练轮次增加，ModelDB 仪表板上的性能指标](img/Figure_10.08_B18681.jpg)'
 - en: Figure 10.8 – Performance metrics with increasing epochs on a ModelDB dashboard
   id: totrans-151
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 10.8 – 随着训练轮次增加，ModelDB 仪表板上的性能指标
 - en: Having understood ModelDB's architecture and usage, now let us study Weights
     & Biases, which is another very popular tool for tracking ML models.
   id: totrans-152
   prefs: []
   type: TYPE_NORMAL
+  zh: 在理解了 ModelDB 的架构和使用方式后，让我们来学习一下权重与偏差（Weights & Biases），它是另一个非常流行的用于跟踪机器学习模型的工具。
 - en: Weights & Biases
   id: totrans-153
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
+  zh: 权重与偏差（Weights & Biases）
 - en: Weights & Biases is another experimental tracking tool in MLOps that helps to
     version both traditional and deep learning models.
   id: totrans-154
   prefs: []
   type: TYPE_NORMAL
+  zh: 权重与偏差（Weights & Biases）是 MLOps 中的另一个实验跟踪工具，帮助对传统和深度学习模型进行版本管理。
 - en: 'Let us see an example to understand how we can track and visualize the results:'
   id: totrans-155
   prefs: []
   type: TYPE_NORMAL
+  zh: 让我们通过一个例子来了解如何跟踪和可视化结果：
 - en: 'First, we import the library and provide the login key, created using [https://wandb.ai/authorize](https://wandb.ai/authorize):'
   id: totrans-156
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 首先，我们导入库并提供登录密钥，该密钥可以通过 [https://wandb.ai/authorize](https://wandb.ai/authorize)
+    创建：
 - en: '[PRE6]'
   id: totrans-157
   prefs:
@@ -1159,6 +1250,7 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 在下一步中，我们通过为神经网络提供随机丢弃率来初始化一些实验。随机率在初始化 `wandb` 运行时作为参数提供：
 - en: '[PRE7]'
   id: totrans-159
   prefs:
@@ -1171,6 +1263,7 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 在接下来的步骤中，我们通过定义损失函数和优化器来训练我们的模型：
 - en: '[PRE8]'
   id: totrans-161
   prefs:
@@ -1183,6 +1276,7 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 在最后一步，我们将训练和验证指标记录到 `wandb` 并结束 `wandb` 运行：
 - en: '[PRE9]'
   id: totrans-163
   prefs:
@@ -1195,6 +1289,7 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 它生成了以下汇总表，如*图 10.9*所示，包含来自 MNIST 数据集的每个数字。该表格可以通过以下代码获得：
 - en: '[PRE10]'
   id: totrans-165
   prefs:
@@ -1205,10 +1300,12 @@
   id: totrans-166
   prefs: []
   type: TYPE_IMG
+  zh: '![图 10.9 – wandb 跟踪数字 1-10 的预测概率](img/Figure_10.09_B18681.jpg)'
 - en: Figure 10.9 – wandb tracking prediction probabilities for digits 1-10
   id: totrans-167
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 10.9 – wandb 跟踪数字 1-10 的预测概率
 - en: Now that all the model experiments have been logged and tracked with ModelDB,
     the model lineage can be maintained. For enterprise AI applications, we can also
     establish cascading lineage information with the help of a lineage tool such as
@@ -1216,17 +1313,21 @@
   id: totrans-168
   prefs: []
   type: TYPE_NORMAL
+  zh: 现在，所有模型实验都已经记录并通过 ModelDB 跟踪，模型的血缘信息可以得以维护。对于企业级 AI 应用程序，我们还可以借助数据血缘工具（如 Apache
+    Atlas）建立级联血缘信息。
 - en: Data lineage with Apache Atlas
   id: totrans-169
   prefs:
   - PREF_H3
   type: TYPE_NORMAL
+  zh: 使用 Apache Atlas 的数据血缘
 - en: Atlas can be integrated with Hive or Cassandra and other databases in which
     we store predicted model outcomes. Atlas is a scalable framework that meets compliance
     requirements within Hadoop and seamlessly integrates with enterprise data ecosystems.
   id: totrans-170
   prefs: []
   type: TYPE_NORMAL
+  zh: Atlas 可以与 Hive、Cassandra 及其他我们存储预测模型结果的数据库进行集成。Atlas 是一个可扩展的框架，满足 Hadoop 中的合规性要求，并与企业数据生态系统无缝集成。
 - en: Atlas allows us to create new types of metadata with primitive attributes, complex
     attributes, and object references. Instance types called entities, which capture
     metadata object details and their relationships, can be created, composed, and
@@ -1236,6 +1337,9 @@
   id: totrans-171
   prefs: []
   type: TYPE_NORMAL
+  zh: Atlas 允许我们创建具有原始属性、复杂属性和对象引用的新类型的元数据。可以创建、组合和检索称为实体的实例类型，实体捕获元数据对象的详细信息及其关系。Atlas
+    提供了在动态创建分类时的极大灵活性，例如 `PII`、`EXPIRES_ON`、`DATA_QUALITY` 和 `SENSITIVE`，并支持 `EXPIRES_ON`
+    分类中的 `expiry_date` 属性。
 - en: 'Lineage and search/discovery operations are freely supported by REST APIs using
     SQL. All the features of Atlas have embedded security, allowing its entities to
     be associated with multiple classifications without causing data breaches. *Figure
@@ -1245,19 +1349,25 @@
   id: totrans-172
   prefs: []
   type: TYPE_NORMAL
+  zh: 谱系和搜索/发现操作可以通过 REST API 使用 SQL 自由支持。Atlas 的所有功能都具有内嵌安全性，允许其实体与多个分类相关联，而不会导致数据泄露。*图
+    10.10* 显示了当输出表 `ML_O` 被创建为两个输入表的联合时，谱系图的样子，`ML_O` 表示为 `(select * from ML_I2) UNION
+    ALL (select * from ML_I1)`：
 - en: '![Figure 10.10 – Model lineage with Apache Atlas](img/Figure_10.10_B18681.jpg)'
   id: totrans-173
   prefs: []
   type: TYPE_IMG
+  zh: '![图 10.10 – 使用 Apache Atlas 的模型谱系](img/Figure_10.10_B18681.jpg)'
 - en: Figure 10.10 – Model lineage with Apache Atlas
   id: totrans-174
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 10.10 – 使用 Apache Atlas 的模型谱系
 - en: 'Here we are able to see the lineage of an output table, created from two tables,
     fed into the input. Now let us see how we can execute the same with commands:'
   id: totrans-175
   prefs: []
   type: TYPE_NORMAL
+  zh: 在这里，我们能够看到由两个输入表生成的输出表的谱系。接下来，让我们看看如何通过命令来执行相同的操作：
 - en: The following `curl` command illustrates how lineage helps to define a structure
     in which data sources can be aggregated to create a new aggregated source, inspect
     a source, or delete a source.
@@ -1265,11 +1375,13 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 以下 `curl` 命令演示了谱系如何帮助定义一种结构，使得数据源可以被聚合，创建新的聚合源，检查源，或删除源。
 - en: 'The JSON structure defined within `lineage.json` creates two input Hive tables,
     which can then be combined to yield the output table:'
   id: totrans-177
   prefs: []
   type: TYPE_NORMAL
+  zh: '`lineage.json` 中定义的 JSON 结构创建了两个输入 Hive 表，这些表可以组合成输出表：'
 - en: '[PRE11]'
   id: totrans-178
   prefs: []
@@ -1281,6 +1393,7 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 可以通过点击实体找到 GUID，发现所有实体后，调用 API 如下：
 - en: '[PRE12]'
   id: totrans-180
   prefs:
@@ -1292,6 +1405,7 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 在谱系中创建的任何实体都可以通过以下方式删除：
 - en: '[PRE13]'
   id: totrans-182
   prefs:
@@ -1305,10 +1419,12 @@
   id: totrans-183
   prefs: []
   type: TYPE_NORMAL
+  zh: 在检查了一些用于模型和数据治理的框架后，让我们简要了解特征库是什么，它们如何以可重用的方式连接数据和模型治理管道，从而在开发生产级 ML 模型时促进协作。
 - en: Introduction to feature stores
   id: totrans-184
   prefs: []
   type: TYPE_NORMAL
+  zh: 特征库简介
 - en: Organizations driven by data, and even legacy organizations, have become aware
     of the role and importance of **feature stores** in deriving real-time insights.
     These insights are valuable for any industry domain, as they convey meaningful
@@ -1325,16 +1441,19 @@
   id: totrans-185
   prefs: []
   type: TYPE_NORMAL
+  zh: 以数据驱动的组织，甚至是传统的组织，都已经意识到**特征库**在获取实时洞察中的作用和重要性。这些洞察对任何行业领域都非常有价值，因为它们传达了驱动业务的客户指标的有意义信息。这些洞察的实现得益于快速开发和使用预测微服务，能够处理批量数据和实时数据。云端可扩展特征库的主要目的是通过将业务利益相关者、架构师、数据科学家、大数据专业人士和分析专业人士汇聚到一个统一的基础构件下，节省精力和时间。这一特征库促进了数据、模型、特征、结果和报告的共享，从而实现了跨团队的协作，增强了模型部署生命周期。通过允许信息的重用、创建结构化文档、进行必要的版本分析和评估模型性能，特征库能够提升跨团队的协作效果。
 - en: 'Feature stores primarily aim to do the following:'
   id: totrans-186
   prefs: []
   type: TYPE_NORMAL
+  zh: 特征库的主要目标是：
 - en: Remove the development and maintenance of customized systems by individual teams,
     and instead encourage a space for coordination with any kind of data across departments.
   id: totrans-187
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 移除各个团队定制系统的开发和维护，转而鼓励跨部门的协调空间，支持任何类型的数据共享。
 - en: Create an access-driven collaborative space for discovering and sharing features
     for similar types of ML models. This saves time, effort, and the development cost
     of building new models when data is from the same business and predictions are
@@ -1343,11 +1462,13 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 创建一个基于访问驱动的协作空间，便于发现和共享类似类型 ML 模型的特征。当数据来自相同的业务且预测面向相似的客户群体时，这可以节省时间、精力和构建新模型的开发成本。
 - en: Reuse data by leveraging existing microservices in scalable big data systems.
   id: totrans-189
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 通过利用现有的微服务，在可扩展的大数据系统中复用数据。
 - en: Allow easy integration and communication within microservices with a greater
     capacity for model feature analysis, retraining, metric comparisons, model governance,
     and traceability, limiting the time spent on each round of the Agile development
@@ -1356,6 +1477,7 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 允许在微服务内部进行轻松集成和通信，具备更强的模型特征分析、再训练、度量比较、模型治理和可追溯性的能力，从而减少每一轮敏捷开发生命周期中所花费的时间。
 - en: Facilitate the easy tracking, versioning, and retraining of models that exhibit
     seasonality without the recurring non-linear/exponential costs involved in feature
     engineering and model training.
@@ -1363,12 +1485,14 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 便于轻松跟踪、版本控制和重新训练具有季节性特征的模型，而无需重复进行特征工程和模型训练时涉及的非线性/指数成本。
 - en: Track the addition and/or removal of features in model training by setting alerts
     and triggers.
   id: totrans-192
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 通过设置警报和触发器，跟踪模型训练中特征的添加和/或删除。
 - en: Derive features and insights based on incoming new data, which can be used to
     impute features and precompute and automatically backfill features. This includes
     online computation and offline aggregation so that consistency is enabled between
@@ -1377,6 +1501,7 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 基于传入的新数据推导特征和洞察，这些数据可以用来推算特征、预计算并自动填充特征。这包括在线计算和离线聚合，以确保训练和服务之间的一致性。
 - en: Ensure the privacy and confidentiality of PII (in databases, caches, or disks)
     and comply with the design of ethical feature stores by measuring privacy and
     fairness metrics, along with the interpretability of the predicted model.
@@ -1384,19 +1509,23 @@
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 确保个人身份信息（PII）的隐私和机密性（无论是在数据库、缓存还是磁盘中），并通过衡量隐私和公平度指标，以及预测模型的可解释性，确保遵循伦理特征存储设计。
 - en: 'Now, let us illustrate a feature store framework as developed by Comcast in
     *Figure 10**.11*:'
   id: totrans-195
   prefs: []
   type: TYPE_NORMAL
+  zh: 现在，让我们通过*图 10.11*来说明 Comcast 开发的特征存储框架：
 - en: '![Figure 10.11 – Online and offline feature stores](img/Figure_10.11_B18681.jpg)'
   id: totrans-196
   prefs: []
   type: TYPE_IMG
+  zh: '![图 10.11 – 在线与离线特征存储](img/Figure_10.11_B18681.jpg)'
 - en: Figure 10.11 – Online and offline feature stores
   id: totrans-197
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 10.11 – 在线与离线特征存储
 - en: The feature store architecture shown in *Figure 10**.11* allows continuous feature
     aggregation for streaming data and on-demand features. It can help data scientists
     to reuse versioned features, upload online (real-time)/streaming data, and review
@@ -1410,6 +1539,7 @@
   id: totrans-198
   prefs: []
   type: TYPE_NORMAL
+  zh: 如*图 10.11*所示的特征存储架构允许对流数据和按需特征进行持续的特征聚合。它可以帮助数据科学家复用版本化特征，上传在线（实时）/流数据，并按模型查看特征度量。特征存储是一个动态灵活的单元，能够支持多个可插拔单元。传入特征组装的负载（一个包含模型执行所需特征的仓库，其中包含模型名称和账户号）会被加入，使得特征存储能够持续刷新新数据和新特征，基于模型度量进行再训练，并验证伦理性与合规性。模型的元数据可以解释哪些特征对于哪些团队是必要的，并显著有助于推导模型的洞察。
 - en: The built-in model repository (as shown in *Figure 10**.12*) contains artifacts
     relating to data preprocessing (normalization and scaling), displaying the required
     mapping to the features needed to execute the model. The architecture is built
@@ -1419,6 +1549,9 @@
   id: totrans-199
   prefs: []
   type: TYPE_NORMAL
+  zh: 内置的模型仓库（如*图 10.12*所示）包含与数据预处理（归一化和缩放）相关的工件，展示了执行模型所需特征的映射。该架构使用 Spark 在 Alluxio
+    上构建（Alluxio 是一个开源的数据编排层，将数据带到计算近处，以支持云中大数据和 AI/ML 工作负载），并结合了 S3、HDFS、RDBMS、Kafka
+    和 Kinesis。
 - en: This kind of feature store can provide scalable, fault-tolerant, distributed
     capabilities to an organization to share, process, trace, and store use cases,
     models, features, model-to-feature mappings, versioned models, and datasets. When
@@ -1428,28 +1561,35 @@
   id: totrans-200
   prefs: []
   type: TYPE_NORMAL
+  zh: 这种特征存储可以为组织提供可扩展的、容错的、分布式的功能，帮助共享、处理、追踪和存储用例、模型、特征、模型与特征的映射、版本化模型和数据集。当与定义良好的编排服务（如
+    Kubeflow）集成时，它可以使模型部署容器、预测/结果接收器、容器仓库和 Git 集成数据、代码和运行时工件，以实现 CI/CD 集成。
 - en: '![Figure 10.12 – Feature processing in a feature store for online and streaming
     data](img/Figure_10.12_B18681.jpg)'
   id: totrans-201
   prefs: []
   type: TYPE_IMG
+  zh: '![图 10.12 – 在线和流数据的特征存储中的特征处理](img/Figure_10.12_B18681.jpg)'
 - en: Figure 10.12 – Feature processing in a feature store for online and streaming
     data
   id: totrans-202
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 10.12 – 在线和流数据的特征存储中的特征处理
 - en: 'Now, let us see with sample code how to retrieve historical data from a feature
     store and train a model. Here, we have used Google’s feature store, Feast, and
     driver ranking data from the BigQuery dataset, `feast_driver_ranking_tutorial`:'
   id: totrans-203
   prefs: []
   type: TYPE_NORMAL
+  zh: 现在，让我们通过示例代码来看如何从特征存储中检索历史数据并训练模型。在这里，我们使用了 Google 的特征存储 Feast，以及来自 BigQuery
+    数据集 `feast_driver_ranking_tutorial` 的司机排名数据：
 - en: 'In the initial step, we have the necessary Python library imports and we load
     the driver order data from the disk:'
   id: totrans-204
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 在初始步骤中，我们导入必要的 Python 库，并从磁盘加载司机订单数据：
 - en: '[PRE14]'
   id: totrans-205
   prefs:
@@ -1462,6 +1602,7 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 在下一步，我们连接到特征存储提供商并从 BigQuery 检索训练数据：
 - en: '[PRE15]'
   id: totrans-207
   prefs:
@@ -1472,19 +1613,23 @@
   id: totrans-208
   prefs: []
   type: TYPE_NORMAL
+  zh: 这将输出以下结果：
 - en: '![Figure 10.13 – Historical data retrieval with a feature store](img/Figure_10.13_B18681.jpg)'
   id: totrans-209
   prefs: []
   type: TYPE_IMG
+  zh: '![图 10.13 – 使用特征存储进行历史数据检索](img/Figure_10.13_B18681.jpg)'
 - en: Figure 10.13 – Historical data retrieval with a feature store
   id: totrans-210
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 10.13 – 使用特征存储进行历史数据检索
 - en: 'Now, we train and save our model using the following code snippet:'
   id: totrans-211
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 现在，我们使用以下代码片段来训练并保存我们的模型：
 - en: '[PRE16]'
   id: totrans-212
   prefs:
@@ -1498,6 +1643,7 @@
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 训练后，我们需要通过以下命令将在线存储物化到 Firestore 中，数据科学家负责访问特征存储并选择将更新到在线存储的日期：
 - en: '[PRE17]'
   id: totrans-214
   prefs:
@@ -1508,20 +1654,24 @@
   id: totrans-215
   prefs: []
   type: TYPE_NORMAL
+  zh: 这将输出以下结果：
 - en: "![Figure 10.14 – Saving data to \uFEFFthe online feature stor\uFEFFe](img/Figure_10.14_B18681.jpg)"
   id: totrans-216
   prefs: []
   type: TYPE_IMG
+  zh: '![图 10.14 – 将数据保存到在线特征存储](img/Figure_10.14_B18681.jpg)'
 - en: Figure 10.14 – Saving data to the online feature store
   id: totrans-217
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 10.14 – 将数据保存到在线特征存储
 - en: 'In the last step, we choose the same feature store again to make a prediction
     and choose the best driver:'
   id: totrans-218
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 在最后一步，我们再次选择相同的特征存储来进行预测，并选择最佳的司机：
 - en: '[PRE18]'
   id: totrans-219
   prefs:
@@ -1535,10 +1685,13 @@
   id: totrans-220
   prefs: []
   type: TYPE_NORMAL
+  zh: 在这个示例中，我们学习了在线特征存储如何在训练和预测任务中发挥作用。在 [*第 13 章*](B18681_13.xhtml#_idTextAnchor267)
+    中，我们将进一步了解如何使用特征存储的高级概念，促进团队间的合作并推动可持续的训练。
 - en: Summary
   id: totrans-221
   prefs: []
   type: TYPE_NORMAL
+  zh: 总结
 - en: In this chapter, we learned about the MRM guidelines and how organizations can
     use these guidelines to save money. We explored the processes, functionalities,
     and checklists involved in mitigating business losses by looking at different
@@ -1552,53 +1705,65 @@
   id: totrans-222
   prefs: []
   type: TYPE_NORMAL
+  zh: 本章中，我们学习了 MRM 指导方针以及组织如何使用这些指导方针节省成本。我们探讨了通过研究与 MRM 相关的不同概念（如模型风险分层、MRT、MRS
+    和模型风险校准）来减轻业务损失的过程、功能和清单。我们还了解了如何确保正确的目标、假设、限制、量级、政策、控制、角色与职责、文档、测量程序、报告、通知、风险量化和评估方法得以实施。
+    本章还深入探讨了如何监控模型指标以及理解为什么这很重要，因为模型会受到漂移和模型重训练的影响。
 - en: Toward the end of the chapter, we also learned about feature stores. In the
     next chapter, we will learn about more detailed concepts related to model drift
     and model calibration.
   id: totrans-223
   prefs: []
   type: TYPE_NORMAL
+  zh: 在本章的结尾，我们还学习了特征库。在下一章，我们将学习更多与模型漂移和模型校准相关的详细概念。
 - en: Further reading
   id: totrans-224
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 进一步阅读
 - en: '*The evolution of model risk* *management*: [https://www.mckinsey.com/business-functions/risk-and-resilience/our-insights/the-evolution-of-model-risk-management](https://www.mckinsey.com/business-functions/risk-and-resilience/our-insights/the-evolution-of-model-risk-management)'
   id: totrans-225
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*模型风险* *管理* 的演变：[https://www.mckinsey.com/business-functions/risk-and-resilience/our-insights/the-evolution-of-model-risk-management](https://www.mckinsey.com/business-functions/risk-and-resilience/our-insights/the-evolution-of-model-risk-management)'
 - en: '*Model Risk* *Management*: [https://www2.deloitte.com/content/dam/Deloitte/fr/Documents/risk/deloitte_model-risk-management_plaquette.pdf](https://www2.deloitte.com/content/dam/Deloitte/fr/Documents/risk/deloitte_model-risk-management_plaquette.pdf)'
   id: totrans-226
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*模型风险* *管理*：[https://www2.deloitte.com/content/dam/Deloitte/fr/Documents/risk/deloitte_model-risk-management_plaquette.pdf](https://www2.deloitte.com/content/dam/Deloitte/fr/Documents/risk/deloitte_model-risk-management_plaquette.pdf)'
 - en: '*Model risk tiering: an exploration of industry practices and* *principles*:
     [https://www.risk.net/journal-of-risk-model-validation/6710566/model-risk-tiering-an-exploration-of-industry-practices-and-principles](https://www.risk.net/journal-of-risk-model-validation/6710566/model-risk-tiering-an-exploration-of-industry-practices-and-principles)'
   id: totrans-227
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*模型风险分层：行业实践与* *原则* 的探索：[https://www.risk.net/journal-of-risk-model-validation/6710566/model-risk-tiering-an-exploration-of-industry-practices-and-principles](https://www.risk.net/journal-of-risk-model-validation/6710566/model-risk-tiering-an-exploration-of-industry-practices-and-principles)'
 - en: '*Model Governance and Model Risk* *Management:* [https://www.afponline.org/ideas-inspiration/topics/articles/Details/model-governance-and-model-risk-management/](https://www.afponline.org/ideas-inspiration/topics/articles/Details/model-governance-and-model-risk-management/)'
   id: totrans-228
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*模型治理与模型风险* *管理*：[https://www.afponline.org/ideas-inspiration/topics/articles/Details/model-governance-and-model-risk-management/](https://www.afponline.org/ideas-inspiration/topics/articles/Details/model-governance-and-model-risk-management/)'
 - en: '*ModelDB: A System for Machine Learning Model* *Management:* [https://cs.stanford.edu/~matei/papers/2016/hilda_modeldb.pdf](https://cs.stanford.edu/~matei/papers/2016/hilda_modeldb.pdf)'
   id: totrans-229
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*ModelDB：机器学习模型* *管理* 系统：[https://cs.stanford.edu/~matei/papers/2016/hilda_modeldb.pdf](https://cs.stanford.edu/~matei/papers/2016/hilda_modeldb.pdf)'
 - en: '*Weights &* *Biases:* [https://github.com/wandb/wandb](https://github.com/wandb/wandb)'
   id: totrans-230
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '*Weights &* *Biases*：[https://github.com/wandb/wandb](https://github.com/wandb/wandb)'
 - en: 'Part 4: Implementing an Organization Strategy, Best Practices, and Use Cases'
   id: totrans-231
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 第4部分：实施组织战略、最佳实践和应用案例
 - en: This part provides a comprehensive overview of the organizational strategy,
     sustainable techniques, and best practices to be adopted to fit the wide-scale
     adoption of Ethical AI at scale in organizations and governments. This part highlights
@@ -1611,29 +1776,35 @@
   id: totrans-232
   prefs: []
   type: TYPE_NORMAL
+  zh: 本部分提供了组织战略、可持续技术和最佳实践的全面概述，这些都是为了适应伦理AI在组织和政府大规模采用而应采纳的。本部分强调了如何设计稳健的机器学习模型，使其能够适应输入数据的各种变化。还介绍了不同专家小组和工作组织的倡议和行动计划，用于衡量和量化AI解决方案对客户、国家或环境可能产生的负面影响。此外，本部分还突出了实际的行业广泛应用案例，旨在加速伦理AI解决方案的使用，无论解决方案的规模和大小如何。
 - en: 'This part is made up of the following chapters:'
   id: totrans-233
   prefs: []
   type: TYPE_NORMAL
+  zh: 本部分由以下章节组成：
 - en: '[*Chapter 11*](B18681_11.xhtml#_idTextAnchor232), *The Ethics of Model Adaptability*'
   id: totrans-234
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '[*第11章*](B18681_11.xhtml#_idTextAnchor232)，*模型适应性的伦理问题*'
 - en: '[*Chapter 12*](B18681_12.xhtml#_idTextAnchor243), *Building Sustainable Enterprise-Grade
     AI Platforms*'
   id: totrans-235
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '[*第12章*](B18681_12.xhtml#_idTextAnchor243)，*构建可持续的企业级AI平台*'
 - en: '[*Chapter 13*](B18681_13.xhtml#_idTextAnchor267), *Sustainable Model Life Cycle
     Management, Feature Stores, and Model Calibration*'
   id: totrans-236
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '[*第13章*](B18681_13.xhtml#_idTextAnchor267)，*可持续模型生命周期管理、特征库和模型校准*'
 - en: '[*Chapter 14*](B18681_14.xhtml#_idTextAnchor292), *Industry-Wide Use Cases*'
   id: totrans-237
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '[*第14章*](B18681_14.xhtml#_idTextAnchor292)，*行业广泛应用案例*'
