@@ -3,11 +3,13 @@
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: '9'
 - en: Advanced Training Concepts
   id: totrans-1
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 高级训练概念
 - en: In this chapter, we will cover advanced training concepts at scale, such as
     evaluating throughput, calculating model **teraFLOPS** (**TFLOPS**) per device,
     compiling, and using the scaling laws to determine the right length of training
@@ -19,45 +21,55 @@
   id: totrans-2
   prefs: []
   type: TYPE_NORMAL
+  zh: 本章将涵盖大规模训练的高级概念，例如评估吞吐量、计算每个设备的模型**teraFLOPS**(**TFLOPS**)、编译以及使用缩放法则来确定合适的训练时间长度。在上一章中，你学习了如何在
+    SageMaker 上进行大规模训练的基本知识。在本章中，你将学习一些复杂且先进的技术，帮助你降低作业的总体成本。较低的成本直接转化为更高的模型性能，因为你可以在相同的预算下进行更长时间的训练。
 - en: 'We will cover the following topics in this chapter:'
   id: totrans-3
   prefs: []
   type: TYPE_NORMAL
+  zh: 本章将涵盖以下主题：
 - en: Evaluating and improving throughput with model TFLOPS
   id: totrans-4
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 使用模型 TFLOPS 评估和提升吞吐量
 - en: Using FlashAttention to speed up your training runs
   id: totrans-5
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 使用 FlashAttention 加速训练过程
 - en: Speeding up your jobs with compilation
   id: totrans-6
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 通过编译加速作业
 - en: Amazon SageMaker Training Compiler and Neo
   id: totrans-7
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: Amazon SageMaker 训练编译器和 Neo
 - en: Running compiled models on Amazon’s Trainium and Inferentia custom hardware
   id: totrans-8
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 在 Amazon 的 Trainium 和 Inferentia 定制硬件上运行编译后的模型
 - en: Solving for an optimal training time
   id: totrans-9
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 解决最优训练时间的问题
 - en: Evaluating and improving throughput
   id: totrans-10
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 评估和提升吞吐量
 - en: As we’ve previously covered in the book, total job throughput is an important
     metric to track. On the one hand, you want to keep a batch size small enough to
     ensure your model is trained appropriately. On the other hand, you want to max
@@ -70,6 +82,7 @@
   id: totrans-11
   prefs: []
   type: TYPE_NORMAL
+  zh: 正如我们在本书中之前提到的，总作业吞吐量是一个重要的指标。 一方面，你需要保持小的批处理大小，以确保模型得到适当训练。另一方面，你希望最大化整体作业性能，以获得尽可能准确的模型。我们在[*第七章*](B18942_07.xhtml#_idTextAnchor116)中学习了如何使用超参数调整来解决这两个问题。我们还在[*第五章*](B18942_05.xhtml#_idTextAnchor085)和[*第八章*](B18942_08.xhtml#_idTextAnchor127)中介绍了减少**图形处理单元**(**GPU**)内存占用的其他技巧。现在，让我们进一步解决这一领域的一些问题。
 - en: First, it’s important to consider how you measure throughput in general terms.
     You have probably used some logging packages in PyTorch that handily report iterations
     per second during the training loop. Obviously, this is extremely useful in clocking
@@ -79,6 +92,7 @@
   id: totrans-12
   prefs: []
   type: TYPE_NORMAL
+  zh: 首先，重要的是要考虑如何在一般情况下衡量吞吐量。你可能已经在 PyTorch 中使用过一些日志包，它们方便地报告训练循环中的每秒迭代次数。显然，这对于监控训练速度非常有用，但你如何考虑模型的大小呢？如果你想与他人比较你的速度，以确定是否处于相同的水平，该怎么办呢？
 - en: To solve this problem, many research teams calculate an aggregate term that
     combines both indicators for the model’s size with operations completed. Commonly,
     this is called **model TFLOPS**. These calculations will vary based on individual
@@ -89,11 +103,14 @@
   id: totrans-13
   prefs: []
   type: TYPE_NORMAL
+  zh: 为了解决这个问题，许多研究团队计算一个聚合指标，将模型大小和完成的操作结合在一起。通常，这被称为**模型 TFLOPS**。这些计算会根据不同团队的偏好有所变化，但我们将探讨来自近期
+    Chinchilla *(11)* 论文的设置，这篇论文刚刚获得了**神经信息处理系统**(**NeurIPS**)最佳论文奖。你会发现，这个短语在评估大规模分布式训练系统时非常常见。
 - en: Calculating model TFLOPS
   id: totrans-14
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
+  zh: 计算模型的 TFLOPS
 - en: You’ve heard of **floating operations per second** (**FLOPS**). This is a simple
     way of presenting how many computations a given machine can perform. Higher is
     better because this means your machine can complete more tasks given the same
@@ -666,59 +683,74 @@
   id: totrans-79
   prefs: []
   type: TYPE_NORMAL
+  zh: 在这里，Hoffman 等人提出了一个优雅的建议，认为*训练数据和模型大小应该线性增加*。也就是说，如果你把模型的大小加倍，训练数据的大小也应该加倍。我很欣赏这种自然的对称性，并且觉得它非常直观。幸运的是，这些预测得到了跨越至少
+    400 个模型、150 个下游任务和 6 个领域的广泛实证证据的验证，其中包括语言建模、阅读理解、问答、常识推理等。根据作者的说法，“Chinchilla
+    在大量下游评估任务上统一且显著地超越了**Gopher (280 B)**、**GPT-3 (175 B)**、**Jurassic-1 (178 B)**
+    和 **Megatron-Turing NLG (530B)**。”这意味着这些模型训练不足，实际上需要更大的数据集来验证它们的参数大小。
 - en: 'Using these equations and a massive set of experimental results, the authors
     suggest the following set of values for parameters, FLOPS, and tokens:'
   id: totrans-80
   prefs: []
   type: TYPE_NORMAL
+  zh: 使用这些方程式和大量的实验结果，作者建议了以下一组参数、FLOPS 和 tokens 的值：
 - en: '![Figure 9.5 – Suggested FLOPS and tokens per model size](img/B18942_image_09_05.jpg)'
   id: totrans-81
   prefs: []
   type: TYPE_IMG
+  zh: '![图 9.5 – 每个模型大小建议的 FLOPS 和 tokens](img/B18942_image_09_05.jpg)'
 - en: Figure 9.5 – Suggested FLOPS and tokens per model size
   id: totrans-82
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 9.5 – 每个模型大小建议的 FLOPS 和 tokens
 - en: 'Remember that when we look at this FLOPS value, we need to consider the following:'
   id: totrans-83
   prefs: []
   type: TYPE_NORMAL
+  zh: 记住，当我们查看这个 FLOPS 值时，我们需要考虑以下几点：
 - en: What value do I expect this model to bring to my organization?
   id: totrans-84
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 我期望这个模型为我的组织带来什么价值？
 - en: From this, what total compute budget can I plan for?
   id: totrans-85
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 根据这些，我可以规划多少总的计算预算？
 - en: How large is my training data?
   id: totrans-86
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 我的训练数据有多大？
 - en: What size of a model should I use based on this?
   id: totrans-87
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 基于这些，应该使用多大规模的模型？
 - en: How efficient are my training loop and distributed system? Said another way,
     how many TFLOPS per GPU am I able to eke out?
   id: totrans-88
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 我的训练循环和分布式系统有多高效？换句话说，我每个 GPU 能挤出多少 TFLOPS？
 - en: How many GPUs can I get from my cloud provider?
   id: totrans-89
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 我能从我的云服务提供商那里获取多少个 GPU？
 - en: How long will I need to run my entire training loop to train to convergence?
   id: totrans-90
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 我需要多长时间才能运行整个训练循环，直到训练收敛？
 - en: The answers to questions (*1*), (*2*), (*3*), and (*5*) can only come from you.
     The answers to questions (*4*) and (*7*) are functional derivatives of the previous
     answers. The answer to question (*6*), I would say is halfway between a functional
@@ -728,16 +760,20 @@
   id: totrans-91
   prefs: []
   type: TYPE_NORMAL
+  zh: 对于问题（*1*）、（*2*）、（*3*）和（*5*）的答案只能由你来提供。问题（*4*）和（*7*）的答案是前面答案的函数导数。至于问题（*6*），我认为它是问题（*1*）的函数导数与当时市场的一个简单事实之间的中间值。如果电子产品出现全球供应链问题，那么获取
+    GPU 将变得困难。
 - en: 'Whew, you made it through the advanced chapter! Now let’s do a quick concept
     recap, and then we’ll move into *Part Four: Evaluate* *your model*.'
   id: totrans-92
   prefs: []
   type: TYPE_NORMAL
+  zh: 呼，您已经完成了高级章节！现在让我们快速回顾一下概念，然后进入*第四部分：评估* *您的模型*。
 - en: Summary
   id: totrans-93
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 总结
 - en: In this chapter, we covered some advanced concepts in training large-scale vision
     and language models. First, you learned how to evaluate and improve throughput
     by computing model TFLOPS per GPU, and using this as one of a number of metrics
@@ -751,106 +787,129 @@
   id: totrans-94
   prefs: []
   type: TYPE_NORMAL
+  zh: 在本章中，我们介绍了一些训练大规模视觉和语言模型的高级概念。首先，你学习了如何通过计算每个 GPU 上的模型 TFLOPS 来评估和提高吞吐量，并使用这一指标与其他多个指标来比较实验结果。你了解了
+    FlashAttention，以及它的 I/O 感知优化二次循环如何将 Transformer 自注意力机制的速度提高 3-5 倍。你学习了如何使用 PyTorch
+    内置和 AWS 管理的方法进行编译。你还了解了几种不同类型的编译方法。你学会了如何更新你的编译超参数，以及在某些情况下编译是否能提供提升（或没有提升）。
 - en: You also learned about how to use compilers to run on Amazon’s custom hardware
     for machine learning, Trainium, and Inferentia. Lastly, we used the scaling laws
     to solve for an optimal train time.
   id: totrans-95
   prefs: []
   type: TYPE_NORMAL
+  zh: 你还学到了如何使用编译器在亚马逊的机器学习定制硬件 Trainium 和 Inferentia 上运行。最后，我们使用缩放定律来解决最优训练时间问题。
 - en: In the next chapter, you’ll learn how to fine-tune your model and compare it
     with open source alternatives.
   id: totrans-96
   prefs: []
   type: TYPE_NORMAL
+  zh: 在下一章，你将学习如何微调你的模型，并将其与开源替代方案进行比较。
 - en: References
   id: totrans-97
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 参考文献
 - en: 'FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness:
     [https://arxiv.org/pdf/2205.14135.pdf](https://arxiv.org/pdf/2205.14135.pdf)'
   id: totrans-98
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: FlashAttention：快速且内存高效的精确注意力机制，具备 I/O 感知：[https://arxiv.org/pdf/2205.14135.pdf](https://arxiv.org/pdf/2205.14135.pdf)
 - en: 'HazyResearch/flash-attention: [https://github.com/HazyResearch/flash-attention](https://github.com/HazyResearch/flash-attention)'
   id: totrans-99
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: HazyResearch/flash-attention：[https://github.com/HazyResearch/flash-attention](https://github.com/HazyResearch/flash-attention)
 - en: 'New performance improvements in Amazon SageMaker model parallel library: [https://aws.amazon.com/blogs/machine-learning/new-performance-improvements-in-amazon-sagemaker-model-parallel-library/](https://aws.amazon.com/blogs/machine-learning/new-performance-improvements-in-amazon-sagemaker-model-parallel-library/)'
   id: totrans-100
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 亚马逊 SageMaker 模型并行库的新性能改进：[https://aws.amazon.com/blogs/machine-learning/new-performance-improvements-in-amazon-sagemaker-model-parallel-library/](https://aws.amazon.com/blogs/machine-learning/new-performance-improvements-in-amazon-sagemaker-model-parallel-library/)
 - en: 'The Deep Learning Compiler: A Comprehensive Survey: [https://arxiv.org/pdf/2002.03794.pdf](https://arxiv.org/pdf/2002.03794.pdf)'
   id: totrans-101
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 深度学习编译器：综合调查：[https://arxiv.org/pdf/2002.03794.pdf](https://arxiv.org/pdf/2002.03794.pdf)
 - en: 'TORCH.COMPILE TUTORIAL: [https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html](https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html)'
   id: totrans-102
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: TORCH.COMPILE 教程：[https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html](https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html)
 - en: 'Enterprise Customers: [https://aws.amazon.com/pricing/enterprise/](https://aws.amazon.com/pricing/enterprise/)'
   id: totrans-103
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 企业客户：[https://aws.amazon.com/pricing/enterprise/](https://aws.amazon.com/pricing/enterprise/)
 - en: 'Welcome to AWS Neuron: [https://awsdocs-neuron.readthedocs-hosted.com/en/latest/](https://awsdocs-neuron.readthedocs-hosted.com/en/latest/)'
   id: totrans-104
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 欢迎使用 AWS Neuron：[https://awsdocs-neuron.readthedocs-hosted.com/en/latest/](https://awsdocs-neuron.readthedocs-hosted.com/en/latest/)
 - en: 'How Amazon Search reduced ML inference costs by 85% with AWS Inferentia: [https://aws.amazon.com/blogs/machine-learning/how-amazon-search-reduced-ml-inference-costs-by-85-with-aws-inferentia/](https://aws.amazon.com/blogs/machine-learning/how-amazon-search-reduced-ml-inference-costs-by-85-with-aws-inferentia/)'
   id: totrans-105
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 亚马逊搜索如何通过 AWS Inferentia 将 ML 推理成本降低 85%：[https://aws.amazon.com/blogs/machine-learning/how-amazon-search-reduced-ml-inference-costs-by-85-with-aws-inferentia/](https://aws.amazon.com/blogs/machine-learning/how-amazon-search-reduced-ml-inference-costs-by-85-with-aws-inferentia/)
 - en: 'Scaling Laws for Neural Language Models: [https://arxiv.org/abs/2001.08361](https://arxiv.org/abs/2001.08361)'
   id: totrans-106
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 神经语言模型的缩放定律：[https://arxiv.org/abs/2001.08361](https://arxiv.org/abs/2001.08361)
 - en: 'Training Compute-Optimal Large Language Models: [https://arxiv.org/pdf/2203.15556.pdf](https://arxiv.org/pdf/2203.15556.pdf)'
   id: totrans-107
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 训练计算最优的大型语言模型：[https://arxiv.org/pdf/2203.15556.pdf](https://arxiv.org/pdf/2203.15556.pdf)
 - en: 'Training Compute-Optimal Large Language Models: [https://openreview.net/pdf?id=iBBcRUlOAPR](https://openreview.net/pdf?id=iBBcRUlOAPR)'
   id: totrans-108
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 训练计算最优的大型语言模型：[https://openreview.net/pdf?id=iBBcRUlOAPR](https://openreview.net/pdf?id=iBBcRUlOAPR)
 - en: 'Part 4: Evaluate Your Model'
   id: totrans-109
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 第四部分：评估你的模型
 - en: In part 4, you’ll learn how to evaluate your model. You’ll use the scaling laws
     to identify the shortest possible training time, fine-tune your model to compare
     with public benchmarks, and identify and mitigate bias.
   id: totrans-110
   prefs: []
   type: TYPE_NORMAL
+  zh: 在第4部分，你将学习如何评估你的模型。你将使用扩展规律来确定最短的训练时间，微调你的模型并与公共基准进行比较，同时识别并缓解偏差。
 - en: 'This section has the following chapters:'
   id: totrans-111
   prefs: []
   type: TYPE_NORMAL
+  zh: 本节包含以下章节：
 - en: '[*Chapter 10*](B18942_10.xhtml#_idTextAnchor152), *Fine-Tuning and Evaluating*'
   id: totrans-112
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '[*第10章*](B18942_10.xhtml#_idTextAnchor152)，*微调与评估*'
 - en: '[*Chapter 11*](B18942_11.xhtml#_idTextAnchor167), *Detecting, Mitigating, and
     Monitoring Bias*'
   id: totrans-113
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '[*第11章*](B18942_11.xhtml#_idTextAnchor167)，*检测、缓解与监控偏差*'
 - en: '[*Chapter 12*](B18942_12.xhtml#_idTextAnchor178), *How to Deploy Your Model*'
   id: totrans-114
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: '[*第12章*](B18942_12.xhtml#_idTextAnchor178)，*如何部署你的模型*'
