@@ -1,10 +1,14 @@
 - en: 7\. Temporal Difference Learning
+  id: totrans-0
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 7. 时序差分学习
 - en: Overview
+  id: totrans-1
   prefs: []
   type: TYPE_NORMAL
+  zh: 概览
 - en: In this chapter, we will be introduced to **Temporal Difference** (**TD**) learning
     and focus on how it develops the ideas of the Monte Carlo methods and dynamic
     programming. TD learning is one of the key topics in the field and studying it
@@ -14,12 +18,16 @@
     to non-episodic problems. By the end of this chapter, you will be able to implement
     the **TD(0)**, **SARSA**, **Q-learning**, and **TD(λ)** algorithms and use them
     to solve environments with both stochastic and deterministic transition dynamics.
+  id: totrans-2
   prefs: []
   type: TYPE_NORMAL
+  zh: 在本章中，我们将介绍**时序差分**（**TD**）学习，并重点讨论它如何发展蒙特卡罗方法和动态规划的思想。时序差分学习是该领域的关键主题之一，研究它使我们能够深入理解强化学习及其在最基本层面上的工作原理。新的视角将使我们看到蒙特卡罗方法是时序差分方法的一个特例，从而统一了这种方法，并将其适用性扩展到非情节性问题。在本章结束时，你将能够实现**TD(0)**、**SARSA**、**Q-learning**和**TD(λ)**算法，并用它们来解决具有随机和确定性转移动态的环境。
 - en: Introduction to TD Learning
+  id: totrans-3
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 时序差分学习简介
 - en: After having studied dynamic programming and Monte Carlo methods in the previous
     chapters, in this chapter, we will focus on temporal difference learning, one
     of the main stepping stones of reinforcement learning. We will start with their
@@ -31,8 +39,11 @@
     them to the FrozenLake-v0 environment under both the deterministic and the stochastic
     environment dynamics. Finally, we will solve the stochastic version of FrozenLake-v0
     with an off-policy TD method known as Q-learning.
+  id: totrans-4
   prefs: []
   type: TYPE_NORMAL
+  zh: 在前几章学习了动态规划和蒙特卡罗方法之后，本章我们将重点讨论时序差分学习，这是强化学习的主要基石之一。我们将从它们最简单的形式——单步方法开始，然后在此基础上构建出它们最先进的形式，基于资格迹（eligibility
+    traces）概念。我们将看到这种新方法如何使我们能够将时序差分和蒙特卡罗方法框架在相同的推导思想下，从而能够对比这两者。在本章中，我们将实现多种不同的时序差分方法，并将它们应用于FrozenLake-v0环境，涵盖确定性和随机环境动态。最后，我们将通过一种名为Q-learning的离策略时序差分方法解决FrozenLake-v0的随机版本。
 - en: Temporal difference learning, whose name derives from the fact that it uses
     differences in state (or state-actions pairs) values between subsequent timesteps
     to learn, can be considered a central idea in the field of reinforcement learning
@@ -41,8 +52,10 @@
     no need to have a model (like Monte Carlo methods do), and it "bootstraps," meaning
     it learns how to use information it's acquired before reaching the end of the
     episode (like dynamic programming methods do).
+  id: totrans-5
   prefs: []
   type: TYPE_NORMAL
+  zh: 时序差分学习，其名称来源于它通过在后续时间步之间比较状态（或状态-动作对）值的差异来进行学习，可以被视为强化学习算法领域的一个核心思想。它与我们在前几章中学习的方法有一些重要相似之处——事实上，就像那些方法一样，它通过经验进行学习，无需模型（像蒙特卡罗方法那样），并且它是“自举”的，意味着它能够在达到情节结束之前，利用已经获得的信息进行学习（就像动态规划方法那样）。
 - en: 'These differences are strictly related to the advantages that TD methods offer
     with respect to MC and DP ones: it doesn''t need a model of the environment and
     it can be applied with a greater generality with respect to DP methods. Its ability
@@ -53,8 +66,10 @@
     time the first user in the queue is assigned to a resource and receiving zero
     reward if user access is not granted. The queue typically never ends, so this
     is a continuing task that has no episodes.'
+  id: totrans-6
   prefs: []
   type: TYPE_NORMAL
+  zh: 这些差异与时序差分方法相对于蒙特卡洛（MC）和动态规划（DP）方法的优势紧密相关：它不需要环境模型，并且相对于DP方法，它可以更广泛地应用。另一方面，它的引导能力使得时序差分方法更适合处理非常长的任务回合，并且是非回合任务的唯一解决方案——蒙特卡洛方法无法应用于这种任务。以长期或非回合任务为例，想象一个算法，它用于授予用户访问服务器的权限，每次将排队中的第一个用户分配到资源时会获得奖励，如果没有授予用户访问权限，则没有奖励。这个队列通常永远不会结束，因此这是一个没有回合的持续任务。
 - en: 'As seen in previous chapters, the exploration versus exploitation trade-off
     is a very important subject, and again also in the case of temporal difference
     algorithms. They fall into two main classes: on-policy and off-policy methods.
@@ -65,15 +80,21 @@
     of estimating the state value function for a given policy. Then, we will see how,
     by building upon it, we can obtain a complete RL algorithm to train both on-policy
     and off-policy methods to find the optimal policy for a given problem.'
+  id: totrans-7
   prefs: []
   type: TYPE_NORMAL
+  zh: 正如前几章所见，探索与利用的权衡是一个非常重要的话题，在时序差分算法中同样如此。它们分为两大类：在政策方法和脱离政策方法。正如我们在前面章节中所看到的，在在政策方法中，所学习的政策用于探索环境，而在脱离政策方法中，二者可以不同：一个用于探索，另一个是目标政策，旨在学习。在接下来的部分中，我们将讨论为给定政策估计状态价值函数的通用问题。然后，我们将看到如何基于它构建一个完整的强化学习算法，训练在政策和脱离政策方法，以找到给定问题的最优策略。
 - en: Let's start with our first steps in the temporal difference methods world.
+  id: totrans-8
   prefs: []
   type: TYPE_NORMAL
+  zh: 让我们从时序差分方法的世界开始第一步。
 - en: TD(0) – SARSA and Q-Learning
+  id: totrans-9
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: TD(0) – SARSA 和 Q-Learning
 - en: 'TD methods are model-free, meaning they do not need a model of the environment
     to learn a state value representation. For a given policy, ![1](img/B16182_07_00a.png),
     they accumulate experience associated with it and update their estimate of the
@@ -91,26 +112,33 @@
     build a complete and meaningful value map of all states (or state-action pairs)
     so that it will exploit this acquired knowledge to select the best actions, thereby
     leading to states associated with a reward.'
+  id: totrans-10
   prefs: []
   type: TYPE_NORMAL
+  zh: 时序差分方法是无模型的，这意味着它们不需要环境模型来学习状态值表示。对于给定的策略，![1](img/B16182_07_00a.png)，它们累积与之相关的经验，并更新在相应经验中遇到的每个状态的值函数估计。在这个过程中，时序差分方法使用在接下来的时间步骤中遇到的状态（或状态）来更新给定状态值，状态是在时间`t`访问的，因此是`t+1`、`t+2`、...、`t+n`。一个抽象的例子如下：一个智能体在环境中初始化并开始通过遵循给定的策略与环境互动，而没有任何关于哪个动作会生成哪些结果的知识。经过一定数量的步骤，智能体最终会到达一个与奖励相关的状态。该奖励信号用于通过时序差分学习规则增加先前访问的状态（或动作-状态对）的值。实际上，这些状态帮助智能体达到了目标，因此应该与较高的值相关联。重复这个过程将使得智能体构建一个完整且有意义的所有状态（或状态-动作对）的价值图，以便它利用所获得的知识选择最佳动作，从而达到与奖励相关的状态。
 - en: This means that TD methods do not have to wait until the end of the episode
     to improve their policy; instead, they can build upon values of states they encounter,
     and the learning process can start right after initialization.
+  id: totrans-11
   prefs: []
   type: TYPE_NORMAL
 - en: 'In this section, we will focus on the so-called one-step method, also named
     TD(0). In this method, the only value considered to build the update for a given
     state value function is the one found at the next time step, nothing else. So,
     for example, the value function update for a state at time `t` looks as follows:'
+  id: totrans-12
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.1: Value function update for a state at time ''t'''
+  id: totrans-13
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_01.jpg)'
+  id: totrans-14
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.1: Value function update for a state at time ''t'''
+  id: totrans-15
   prefs: []
   type: TYPE_NORMAL
 - en: 'Here, ![2](img/B16182_07_01a.png) is the next state where the environment transitioned,
@@ -123,20 +151,25 @@
     term. This error term measures the difference between the estimated value of state
     St and the new, better estimate, ![e](img/B16182_07_01e.png) . This quantity is
     called the TD error, and we will encounter it many times in RL theory:'
+  id: totrans-16
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.2: TD error at time ''t'''
+  id: totrans-17
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_02.jpg)'
+  id: totrans-18
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.2: TD error at time ''t'''
+  id: totrans-19
   prefs: []
   type: TYPE_NORMAL
 - en: This error is specific for the given time it has been calculated at, and it
     depends on the values at the next time step (that is, the error at time t depends
     on the values at time `t+1`).
+  id: totrans-20
   prefs: []
   type: TYPE_NORMAL
 - en: 'One important theory result for TD methods is their proof of convergence: in
@@ -150,6 +183,7 @@
     used for RL theory introduction and understanding. These deal with problems in
     which states and actions spaces are of limited dimensions so that they can be
     exhaustively represented by a finite combination of variables.'
+  id: totrans-21
   prefs: []
   type: TYPE_NORMAL
 - en: However, the majority of these proofs can be easily extended to algorithm versions
@@ -157,6 +191,7 @@
     These approximated versions are used when states and actions spaces are so large
     that they cannot be represented by a finite combination of variables (for example,
     when the state space is the space of RGB images).
+  id: totrans-22
   prefs: []
   type: TYPE_NORMAL
 - en: So far, we have been dealing with state value functions. In order to approach
@@ -167,9 +202,11 @@
     depends on the method class. First, let's take a look at the on-policy approach,
     which is implemented by the so-called SARSA algorithm, and then the off-policy
     one, which is implemented by the so-called Q-learning algorithm.
+  id: totrans-23
   prefs: []
   type: TYPE_NORMAL
 - en: SARSA – On-Policy Control
+  id: totrans-24
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
@@ -182,15 +219,19 @@
     the optimal policy (and so, solving the problem of finding the optimal policy)
     are valid in this new setting, where the value function regards state-action pairs.
     The update equation takes the following form:'
+  id: totrans-25
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.3: State-action value function at time ''t'''
+  id: totrans-26
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_03.jpg)'
+  id: totrans-27
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.3: State-action value function at time ''t'''
+  id: totrans-28
   prefs: []
   type: TYPE_NORMAL
 - en: This update is supposedly performed after every transition from a non-terminal
@@ -200,6 +241,7 @@
     which explains the transition from one state-action pair to the next, with the
     reward associated with the transition. This quintuple, written in this form, is
     the reason why the name **SARSA** was given to this algorithm.
+  id: totrans-29
   prefs: []
   type: TYPE_NORMAL
 - en: 'Using these elements, it is straightforward to design an on-policy control
@@ -207,6 +249,7 @@
     ![g](img/B16182_07_03e.png) for the behavior policy, ![h](img/B16182_07_03f.png),
     and at the same time, update ![formula](img/B16182_07_03g.png) based on ![formula](img/B16182_07_03h.png).
     A scheme for the SARSA control algorithm can be depicted as follows:'
+  id: totrans-30
   prefs: []
   type: TYPE_NORMAL
 - en: 'Choose the algorithm parameters; that is, the step size, ![formula](img/B16182_07_03i.png),
@@ -214,36 +257,49 @@
     ε-greedy policy, which has to be small and greater than 0, since it represents
     the probability of choosing the non-optimal action to favor exploration. This
     can be done with the following code:'
+  id: totrans-31
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 选择算法参数；即步长，![公式](img/B16182_07_03i.png)，该值必须在区间`(0, 1]`内，并且ε-贪心策略的`ε`参数必须小且大于0，因为它表示选择非最优动作的概率，以便进行探索。这可以通过以下代码实现：
 - en: '[PRE0]'
+  id: totrans-32
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE0]'
 - en: 'Initialize ![formula](img/B16182_07_03j.png), for all values of ![formula](img/B16182_07_03k.png),
     ![formula](img/B16182_07_03l.png), arbitrarily, except that Q(terminal, ·) = 0,
     as shown by the following code snippet, in the case of an environment with `16`
     states and `4` actions:'
+  id: totrans-33
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 初始化![公式](img/B16182_07_03j.png)，对于所有的![公式](img/B16182_07_03k.png)，![公式](img/B16182_07_03l.png)，随意设置，唯一例外是Q(terminal,
+    ·) = 0，如以下代码片段所示，在一个有`16`个状态和`4`个动作的环境中：
 - en: '[PRE1]'
+  id: totrans-34
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE1]'
 - en: 'Create a loop for each episode. Initialize ![formula](img/B16182_07_03m.png)
     and choose ![formula](img/B16182_07_03n.png) from ![formula](img/B16182_07_03o.png)
     using the policy derived from Q (for example, ε-greedy). This can be done using
     the following snippet, where the initial state is provided by the environment
     `reset` function and the action is selected using a dedicated ε-greedy function:'
+  id: totrans-35
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 为每个回合创建一个循环。初始化![公式](img/B16182_07_03m.png)，并使用从Q导出的策略（例如，ε-贪心）从![公式](img/B16182_07_03o.png)中选择![公式](img/B16182_07_03n.png)。这可以通过以下代码片段实现，其中初始状态由环境的`reset`函数提供，动作通过专门的ε-贪心函数选择：
 - en: '[PRE2]'
+  id: totrans-36
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE2]'
 - en: 'Create a loop for each step of the episode. Take action ![formula](img/B16182_07_03p.png)
     and observe ![formula](img/B16182_07_03q.png). Choose ![formula](img/B16182_07_03r.png)
     from ![formula](img/B16182_07_03s.png) using the policy derived from Q (for example,
@@ -252,46 +308,67 @@
     one, plus the TD error multiplied by the step size, ![formula](img/B16182_07_03t.png),
     as depicted in the following expression:![Figure 7.4: Updating the state-action
     value function using the SARSA rule'
+  id: totrans-37
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 为每个步骤创建一个循环。执行动作![公式](img/B16182_07_03p.png)并观察![公式](img/B16182_07_03q.png)。从![公式](img/B16182_07_03s.png)中选择![公式](img/B16182_07_03r.png)，使用从Q导出的策略（例如，ε-贪心）。使用SARSA规则更新选定状态-动作对的状态-动作值函数，该规则将新值定义为当前值与TD误差乘以步长的和，![公式](img/B16182_07_03t.png)，如以下表达式所示：![图
+    7.4：使用SARSA规则更新状态-动作值函数]
 - en: '](img/B16182_07_04.jpg)'
+  id: totrans-38
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: '](img/B16182_07_04.jpg)'
 - en: 'Figure 7.4: Updating the state-action value function using the SARSA rule'
+  id: totrans-39
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 7.4：使用SARSA规则更新状态-动作值函数
 - en: 'Then, update the state-action pair with the new one using ![formula](img/B16182_07_04a.png)
     until ![formula](img/B16182_07_04b.png) is a terminal state. All of this is done
     using the following code:'
+  id: totrans-40
   prefs: []
   type: TYPE_NORMAL
+  zh: 然后，使用![公式](img/B16182_07_04a.png)将新状态-动作对更新至旧状态-动作对，直到![公式](img/B16182_07_04b.png)是一个终止状态。所有这些都通过以下代码实现：
 - en: '[PRE3]'
+  id: totrans-41
   prefs: []
   type: TYPE_PRE
+  zh: '[PRE3]'
 - en: Note
+  id: totrans-42
   prefs: []
   type: TYPE_NORMAL
+  zh: 注意
 - en: 'The steps and code for this algorithm were originally developed and outlined
     by *Sutton, Richard S. Introduction to Reinforcement Learning. Cambridge, Mass:
     MIT Press, 2015*.'
+  id: totrans-43
   prefs: []
   type: TYPE_NORMAL
+  zh: 该算法的步骤和代码最初由*Sutton, Richard S. 《强化学习导论》。剑桥，马萨诸塞州：麻省理工学院出版社，2015年*开发并概述。
 - en: 'The SARSA algorithm can converge to an optimal policy and an optimal action-value
     function with probability equal to `1` under the following conditions:'
+  id: totrans-44
   prefs: []
   type: TYPE_NORMAL
+  zh: 在以下条件下，SARSA算法可以以概率`1`收敛到最优策略和最优动作值函数：
 - en: All the state-action pairs need to be visited an infinite number of times.
+  id: totrans-45
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 所有的状态-动作对需要被访问无限多次。
 - en: The policy converges in the limit to the greedy policy, which can be achieved
     with ε-greedy policies where `ε` vanishes in time (this can be done by setting
     `ε = 1/t`).
+  id: totrans-46
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
+  zh: 在极限情况下，该策略会收敛为贪心策略，这可以通过ε-贪心策略实现，其中`ε`随时间消失（这可以通过设置`ε = 1/t`来完成）。
 - en: 'This algorithm makes use of the ε-greedy algorithm. We will explain this in
     more detail in the next chapter, so we will only briefly recall what it is here.
     When learning policies by means of state-action value functions, the value associated
@@ -305,36 +382,53 @@
     in the other cases, a random action is selected. By making `ε` diminishing, the
     ε-greedy approach becomes the greedy one in the limit as the number of steps approaches
     infinity.'
+  id: totrans-47
   prefs: []
   type: TYPE_NORMAL
+  zh: 本算法使用了 ε-greedy 算法。我们将在下一章详细解释这一点，因此这里只做简要回顾。当通过状态-动作值函数学习策略时，状态-动作对的值被用来决定采取哪个最佳动作。在收敛时，给定状态下会从可用的动作中选择最佳的那个，并选择具有最高值的动作：这就是贪婪策略。这意味着对于每个给定的状态，始终会选择相同的动作（如果没有动作具有相同的值）。这种策略对于探索来说并不是一个好选择，尤其是在训练的初期。因此，在这个阶段，优先采用
+    ε-greedy 策略：最佳动作的选择概率为 `1-ε`，而其他情况下则选择一个随机动作。随着 `ε` 渐变为 0，ε-greedy 策略最终会变成贪婪策略，且当步数趋近于无穷大时，ε-greedy
+    策略会趋近于贪婪策略。
 - en: In order to consolidate these concepts, let's apply the SARSA control algorithm
     right away. The following exercise will show you how to implement TD(0) SARSA
     to solve the FrozenLake-v0 environment, using its deterministic version first.
+  id: totrans-48
   prefs: []
   type: TYPE_NORMAL
+  zh: 为了巩固这些概念，让我们立即应用 SARSA 控制算法。以下练习将展示如何实现 TD(0) SARSA 来解决 FrozenLake-v0 环境，首先使用其确定性版本。
 - en: The goal here is to see how the SARSA algorithm is able to recover the optimal
     policy, which we humans can estimate in advance, for a given configuration of
     the problem. Before jumping into it, let's quickly recap what the frozen lake
     problem is and the optimal policy we aim to make the agent find. The agent sees
     a grid world whose dimension is 4 x 4\.
+  id: totrans-49
   prefs: []
   type: TYPE_NORMAL
+  zh: 这里的目标是观察 SARSA 算法如何恢复最优策略，而我们人类可以提前估算出这一策略，针对给定的问题配置。在深入之前，我们先快速回顾一下冰湖问题是什么，以及我们希望代理人找到的最优策略。代理人看到的是一个
+    4 x 4 的网格世界。
 - en: 'The grid has a starting position, `S` (upper left-hand side), frozen tiles,
     `F`, holes, `H`, and a goal, `G` (lower right). The agent is rewarded with +1
     when it reaches the terminal goal state, while the episode ends without a reward
     if it reaches the terminal states constituted by the holes. The following table
     represents the environment:'
+  id: totrans-50
   prefs: []
   type: TYPE_NORMAL
+  zh: 该网格包含一个起始位置 `S`（左上角），冰冻的方块 `F`，洞 `H`，以及一个目标 `G`（右下角）。当代理人到达终极目标状态时，它会获得 +1 的奖励，而如果它到达由洞构成的终极状态，则该回合结束且没有奖励。下表表示了环境：
 - en: '![Figure 7.5: The FrozenLake-v0 environment'
+  id: totrans-51
   prefs: []
   type: TYPE_NORMAL
+  zh: '![图 7.5：FrozenLake-v0 环境'
 - en: '](img/B16182_07_05.jpg)'
+  id: totrans-52
   prefs: []
   type: TYPE_NORMAL
+  zh: '](img/B16182_07_05.jpg)'
 - en: 'Figure 7.5: The FrozenLake-v0 environment'
+  id: totrans-53
   prefs: []
   type: TYPE_NORMAL
+  zh: 图 7.5：FrozenLake-v0 环境
 - en: 'As you can see in the preceding diagram, `S` is the starting position, `F`
     indicates frozen tiles, `H` means holes, and `G` is the goal. For the deterministic
     environment, the optimal policy is the one that allows the agent to reach the
@@ -348,26 +442,38 @@
     of the four moves (Down, Right, Left, and Up) are represented by their initial
     letter. There are two tiles for which two actions would result in the same optimal
     path:'
+  id: totrans-54
   prefs: []
   type: TYPE_NORMAL
+  zh: 如前图所示，`S`是起始位置，`F`表示冰冻的方块，`H`表示空洞，`G`是目标。在确定性环境中，最优策略是能够让智能体在最短时间内到达目标的策略。严格来说，在这个特定环境中，由于没有对中间步骤的惩罚，因此最优路径不一定是最短的。每一条最终能够到达目标的路径在累计期望奖励方面都是同样最优的。然而，我们将看到，通过适当使用折扣因子，我们将能够恢复最优策略，而该策略也考虑了最短路径。在这种情况下，最优策略在下图中有所表示，其中每个四个动作（向下、向右、向左、向上）都由其首字母表示。有两个方块，对于它们来说，两个动作将导致相同的最优路径：
 - en: '![Figure 7.6: Optimal policy'
+  id: totrans-55
   prefs: []
   type: TYPE_NORMAL
+  zh: '![图 7.6: 最优策略'
 - en: '](img/B16182_07_06.jpg)'
+  id: totrans-56
   prefs: []
   type: TYPE_NORMAL
+  zh: '](img/B16182_07_06.jpg)'
 - en: 'Figure 7.6: Optimal policy'
+  id: totrans-57
   prefs: []
   type: TYPE_NORMAL
+  zh: '图 7.6: 最优策略'
 - en: In the preceding diagram, `D` denotes Down, `R` denotes Right, `U` denotes Up,
     and `L` denotes Left.`!` stands for the goal, and `–` refers to the holes in the
     environment.
+  id: totrans-58
   prefs: []
   type: TYPE_NORMAL
+  zh: 在上面的图示中，`D`表示向下，`R`表示向右，`U`表示向上，`L`表示向左。`!`代表目标，而`–`表示环境中的空洞。
 - en: We will use a decreasing `ε` value in order to anneal the exploration from large
     to small, thereby making it become, in the limit, greedy.
+  id: totrans-59
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们将使用一个递减的`ε`值来逐步减少探索的范围，从而使其在极限时变为贪婪的。
 - en: This type of exercise is very useful when learning about classic reinforcement
     learning algorithms. Being tabular (this is a grid world example, meaning it can
     be represented by a 4x4 grid) allows us to keep track of everything that's happening
@@ -376,105 +482,155 @@
     to the optimal policy. In this chapter, you will learn how to code a reference
     algorithm in the RL landscape and get deep hands-on experience with all these
     fundamental aspects.
+  id: totrans-60
   prefs: []
   type: TYPE_NORMAL
+  zh: 这种类型的练习在学习经典强化学习算法时非常有用。由于是表格化的（这是一个网格世界示例，意味着它可以用一个 4x4 的网格表示），我们可以跟踪领域中发生的所有事情，轻松跟随在算法迭代过程中状态-动作对的值的更新，查看根据选定策略的动作选择，并收敛到最优策略。在本章中，你将学习如何在强化学习的背景下编写一个参考算法，并深入实践所有这些基本方面。
 - en: Let's now move on to the implementation.
+  id: totrans-61
   prefs: []
   type: TYPE_NORMAL
+  zh: 现在让我们继续进行实现。
 - en: 'Exercise 7.01: Using TD(0) SARSA to Solve FrozenLake-v0 Deterministic Transitions'
+  id: totrans-62
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
+  zh: '练习 7.01: 使用 TD(0) SARSA 解决 FrozenLake-v0 确定性过渡'
 - en: In this exercise, we will implement the SARSA algorithm and use it to solve
     the FrozenLake-v0 environment, where only deterministic transitions are allowed.
     This means we will look for (and actually find) the optimal policy to retrieve
     the frisbee in this environment.
+  id: totrans-63
   prefs: []
   type: TYPE_NORMAL
+  zh: 在这个练习中，我们将实现SARSA算法，并用它来解决FrozenLake-v0环境，在该环境中仅允许确定性过渡。这意味着我们将寻找（并实际找到）一个最优策略，以便在这个环境中取回飞盘。
 - en: 'The following steps will help you to complete this exercise:'
+  id: totrans-64
   prefs: []
   type: TYPE_NORMAL
+  zh: 以下步骤将帮助你完成这个练习：
 - en: 'Import the required modules:'
+  id: totrans-65
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 导入所需的模块：
 - en: '[PRE4]'
+  id: totrans-66
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE4]'
 - en: 'Instantiate the `gym` environment called `FrozenLake-v0`. Set the `is_slippery`
     flag to `False` to disable its stochasticity:'
+  id: totrans-67
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 实例化一个名为`FrozenLake-v0`的`gym`环境。将`is_slippery`标志设置为`False`以禁用其随机性：
 - en: '[PRE5]'
+  id: totrans-68
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE5]'
 - en: 'Take a look at the action and the observation spaces:'
+  id: totrans-69
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 看一下动作空间和观察空间：
 - en: '[PRE6]'
+  id: totrans-70
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE6]'
 - en: 'This will print out the following:'
+  id: totrans-71
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: 这将打印出以下内容：
 - en: '[PRE7]'
+  id: totrans-72
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE7]'
 - en: 'Create two dictionaries to easily translate action numbers into moves:'
+  id: totrans-73
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 创建两个字典，以便轻松将动作编号转换为动作：
 - en: '[PRE8]'
+  id: totrans-74
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE8]'
 - en: 'Reset the environment and render it to be able to take a look at the grid problem:'
+  id: totrans-75
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 重置环境并渲染它，以便能够查看网格问题：
 - en: '[PRE9]'
+  id: totrans-76
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE9]'
 - en: 'The output will be as follows:'
+  id: totrans-77
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: 输出将如下所示：
 - en: '![Figure 7.7: Environment''s initial state'
+  id: totrans-78
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: '![图 7.7: 环境的初始状态'
 - en: '](img/B16182_07_07.jpg)'
+  id: totrans-79
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: '](img/B16182_07_07.jpg)'
 - en: 'Figure 7.7: Environment''s initial state'
+  id: totrans-80
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: '图 7.7: 环境的初始状态'
 - en: 'Visualize the optimal policy for this environment:'
+  id: totrans-81
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 可视化该环境的最优策略：
 - en: '[PRE10]'
+  id: totrans-82
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE10]'
 - en: 'The output will be as follows:'
+  id: totrans-83
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: 输出将如下所示：
 - en: '[PRE11]'
+  id: totrans-84
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE11]'
 - en: 'This represents the optimal policy for this environment, showing, for each
     of the environment states represented in the 4x4 grid, the optimal action among
     the four available: *move Up*, *move Down*, *move Right*, and *move Left*. Except
@@ -482,29 +638,39 @@
     In fact, as described previously, optimal actions here are those that bring the
     agent to the goal using the shortest possible path. Two different possibilities
     result in the same path length for two states, so they are both equally optimal.'
+  id: totrans-85
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
+  zh: 这表示该环境的最优策略，显示在4x4网格中表示的每个环境状态下，在四个可用动作中选择的最优动作：*向上移动*，*向下移动*，*向右移动*，和*向左移动*。除了两个状态外，所有其他状态都有唯一的最优动作。实际上，如前所述，最优动作是那些通过最短路径将智能体带到目标的动作。两个不同的可能性为两个状态产生相同的路径长度，因此它们是同样的最优解。
 - en: 'Define functions to take ε-greedy actions. The first function implements the
     ε-greedy policy with a probability of `1 - ε`. The chosen action is the one with
     the highest value associated with the state-action pair; otherwise, a random action
     is returned. The second function simply makes the first callable when it''s passed
     as an argument by using a `lambda` function:'
+  id: totrans-86
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 定义函数来执行ε-贪心动作。第一个函数实现了一个具有`1 - ε`概率的ε-贪心策略。选择的动作是与状态-动作对关联的最大值所对应的动作；否则，返回一个随机动作。第二个函数仅通过`lambda`函数在传递时调用第一个函数：
 - en: '[PRE12]'
+  id: totrans-87
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE12]'
 - en: 'Define a function to take greedy actions:'
+  id: totrans-88
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 定义一个函数来执行贪婪动作：
 - en: '[PRE13]'
+  id: totrans-89
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE13]'
 - en: 'Now, define a function that will calculate the mean of the agent''s performances.
     First, we''ll define the number of episodes used to calculate the average performance
     (in this case, `500`), and then execute all these episodes in a loop. We''ll reset
@@ -512,142 +678,196 @@
     according to the policy that we want to measure the performance of, step through
     the environment with the chosen action, and finally add the reward to the accumulated
     returns. We repeat these environment steps until the episode is complete:'
+  id: totrans-90
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 现在，定义一个函数来计算智能体表现的平均值。首先，我们将定义用于计算平均表现的集数（在此例中为`500`），然后在循环中执行所有这些集数。我们将重置环境并开始该集中的循环以进行此操作。接着，我们根据要衡量表现的策略选择一个动作，使用所选动作推进环境，最后将奖励添加到累积回报中。我们重复这些环境步骤，直到集数完成：
 - en: '[PRE14]'
+  id: totrans-91
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE14]'
 - en: 'Set the number of total episodes and number of steps specifying how often the
     agent''s average performance is estimated, as well as the `ε` parameters, which
     determine its decrease. Use the starting value, minimum value, and range (in terms
     of the number of episodes) over which the decrease is spread:'
+  id: totrans-92
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 设置总集数和步骤数，指定估算智能体的平均表现的频率，并设置`ε`参数，该参数决定其衰减方式。使用初始值、最小值和衰减范围（以集数为单位）：
 - en: '[PRE15]'
+  id: totrans-93
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE15]'
 - en: 'Define the SARSA training algorithm as a function. In this step, the Q-table
     is initialized. All the values are equal to `1`, but the values at terminal states
     are set equal to `0`:'
+  id: totrans-94
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 将SARSA训练算法定义为一个函数。在此步骤中，Q表被初始化。所有的值都等于`1`，但终止状态的值被设置为`0`：
 - en: '[PRE16]'
+  id: totrans-95
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE16]'
 - en: 'Start a `for` loop among all the episodes:'
+  id: totrans-96
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 在所有集数中开始一个`for`循环：
 - en: '[PRE17]'
+  id: totrans-97
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE17]'
 - en: 'Inside the loop, first, the epsilon value is defined, depending on the current
     episode number:'
+  id: totrans-98
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 在循环内，首先根据当前集数定义epsilon值：
 - en: '[PRE18]'
+  id: totrans-99
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE18]'
 - en: 'Next, the environment is reset, and the first action is chosen with an ε-greedy
     policy:'
+  id: totrans-100
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 接下来，重置环境，并使用ε-贪心策略选择第一个动作：
 - en: '[PRE19]'
+  id: totrans-101
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE19]'
 - en: 'Then, we start an in-episode loop:'
+  id: totrans-102
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 然后，我们开始一个集内循环：
 - en: '[PRE20]'
+  id: totrans-103
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE20]'
 - en: 'Inside the loop, the environment is stepped throughout using the selected action
     and the new state and the reward, and the done conditions are retrieved:'
+  id: totrans-104
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 在循环内，环境通过所选动作和新状态以及奖励进行推进，并获取done条件：
 - en: '[PRE21]'
+  id: totrans-105
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE21]'
 - en: 'Select a new action with the ε-greedy policy, update the Q-table with the SARSA
     TD(0) rule, and update the state and action with their new values:'
+  id: totrans-106
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 选择一个新的动作，使用ε-贪心策略，通过SARSA TD(0)规则更新Q表，并更新状态和动作的值：
 - en: '[PRE22]'
+  id: totrans-107
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE22]'
 - en: 'Finally, the agent''s average performance is estimated:'
+  id: totrans-108
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
+  zh: 最后，估算智能体的平均表现：
 - en: '[PRE23]'
+  id: totrans-109
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE23]'
 - en: 'It may be useful to provide a brief description of the `ε` parameter''s decrease.
     This is determined by three parameters: the starting value, minimum value, and
     decrease range (called `epsilon_annealing_stop`). They are used in the following
     way: `ε` starts at the starting value, and then it is decreased linearly across
     the number of episodes defined by the parameter''s "range" until it reaches the
     minimum value, which is then kept constant.'
+  id: totrans-110
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Define an array that will collect all agent performance evaluations during
     training and the execution of SARSA TD(0) training:'
+  id: totrans-111
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE24]'
+  id: totrans-112
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE24]'
 - en: 'Plot the SARSA agent''s average reward history during training:'
+  id: totrans-113
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE25]'
+  id: totrans-114
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE25]'
 - en: 'This generates the following output:'
+  id: totrans-115
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE26]'
+  id: totrans-116
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE26]'
 - en: 'The plot for this can be visualized as follows. This shows the learning progress
     of the SARSA algorithm:'
+  id: totrans-117
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '![Figure 7.8: Average reward of an epoch trend over training epochs'
+  id: totrans-118
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '](img/B16182_07_08.jpg)'
+  id: totrans-119
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Figure 7.8: Average reward of an epoch trend over training epochs'
+  id: totrans-120
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
@@ -655,44 +875,58 @@
     thus reaching the value of `0` in the limit, thereby obtaining the greedy policy.
     This also demonstrates that the algorithm is capable of reaching 100% success
     after learning.
+  id: totrans-121
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Evaluate the greedy policy''s performance of the trained agent (Q-table):'
+  id: totrans-122
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE27]'
+  id: totrans-123
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE27]'
 - en: 'The output will be as follows:'
+  id: totrans-124
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE28]'
+  id: totrans-125
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE28]'
 - en: 'Display the Q-table values:'
+  id: totrans-126
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE29]'
+  id: totrans-127
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE29]'
 - en: 'The output will be as follows:'
+  id: totrans-128
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE30]'
+  id: totrans-129
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE30]'
 - en: This output shows the values of the complete state-action value function for
     our problem. These values are then used to generate the optimal policy by means
     of the greedy selection rule.
+  id: totrans-130
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
@@ -705,21 +939,27 @@
     (from 0 to 3) with the highest associated value for that state. Here, we also
     directly output the label associated with the action index using the pre-built
     dictionary:'
+  id: totrans-131
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE31]'
+  id: totrans-132
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE31]'
 - en: 'The output is as follows:'
+  id: totrans-133
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE32]'
+  id: totrans-134
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE32]'
 - en: As the preceding output shows, the TD(0) SARSA algorithm we implemented has
     been able to successfully learn the optimal policy for this task just by interacting
     with the environment and collecting experience of it through episodes and then
@@ -730,18 +970,23 @@
     optimal policy that was defined for analyzing the environment problem. As we already
     saw, there are two states in which there are two equally optimal actions and the
     agent correctly implements one of them.
+  id: totrans-135
   prefs: []
   type: TYPE_NORMAL
 - en: Note
+  id: totrans-136
   prefs: []
   type: TYPE_NORMAL
 - en: To access the source code for this specific section, please refer to [https://packt.live/3fJBLBh](https://packt.live/3fJBLBh).
+  id: totrans-137
   prefs: []
   type: TYPE_NORMAL
 - en: You can also run this example online at [https://packt.live/30XeOXj](https://packt.live/30XeOXj).
+  id: totrans-138
   prefs: []
   type: TYPE_NORMAL
 - en: The Stochasticity Test
+  id: totrans-139
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
@@ -754,34 +999,43 @@
     opposite direction. So, for example, if the Down action is set, the agent will
     move down 1/3 of the time, move right 1/3 of the time, and move left the remaining
     1/3 of the time, never going up, as shown in the following diagram:'
+  id: totrans-140
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.9: Percentages for the resulting states if the Down action'
+  id: totrans-141
   prefs: []
   type: TYPE_NORMAL
 - en: is taken from the central tile
+  id: totrans-142
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_09.jpg)'
+  id: totrans-143
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.9: Percentages for the resulting states if the Down action is taken
     from the central tile'
+  id: totrans-144
   prefs: []
   type: TYPE_NORMAL
 - en: 'The environment setting is the very same as it was for the FrozenLake-v0 deterministic
     case we saw previously. Again, we want the SARSA algorithm to recover the optimal
     policy. This can be estimated in advance in this case as well. Just to make the
     reasoning for this easier, here''s the table representing this environment:'
+  id: totrans-145
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.10: Problem setting'
+  id: totrans-146
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_10.jpg)'
+  id: totrans-147
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.10: Problem setting'
+  id: totrans-148
   prefs: []
   type: TYPE_NORMAL
 - en: 'In the preceding diagram, `S` is the starting position, `F` indicates frozen
@@ -792,27 +1046,33 @@
     chance is to avoid falling into the holes. Since there is no penalty for intermediate
     steps, we can keep going around for as long as we need to. And the only certain
     way to do so is as follows:'
+  id: totrans-149
   prefs: []
   type: TYPE_NORMAL
 - en: Move in the opposite direction of the hole we find next to us, even if this
     means moving away from the goal.
+  id: totrans-150
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: 'Avoid, in every possible way, falling into those tiles where there is a chance
     greater than 0 of falling into a hole:'
+  id: totrans-151
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '![Figure 7.11: Environment setup (A), action executed by the agent (B), and
     chances of ending near the starting state in each position (C)'
+  id: totrans-152
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_11.jpg)'
+  id: totrans-153
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.11: Environment setup (A), action executed by the agent (B), and chances
     of ending near the starting state in each position (C)'
+  id: totrans-154
   prefs: []
   type: TYPE_NORMAL
 - en: For example, let's consider the first tile on the left, in the second row from
@@ -823,9 +1083,11 @@
     moving left is the only action that won't make us fall into the hole. In addition,
     there is a 33% probability that we will end up in the tile on the third row from
     above, thereby getting closer to the goal.
+  id: totrans-155
   prefs: []
   type: TYPE_NORMAL
 - en: Note
+  id: totrans-156
   prefs: []
   type: TYPE_NORMAL
 - en: The preceding behavior follows a standard boundary implementation. In that tile,
@@ -833,24 +1095,29 @@
     environment will understand that this results in "bouncing." The algorithm simply
     sends a "move left" action to the environment, which, in turn, will take the prescribed
     action into account.
+  id: totrans-157
   prefs: []
   type: TYPE_NORMAL
 - en: 'Similar reasoning can be applied to all the other tiles while keeping the key
     point mentioned previously in mind. However, it is worth discussing a very peculiar
     case – one that''s the only reason why we cannot achieve 100% success, even with
     the optimal policy:'
+  id: totrans-158
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.12: Environment setup (A), "Move to the Left" action executed by
     the agent (B), and chances of ending near the starting state in each position
     (C)'
+  id: totrans-159
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_12.jpg)'
+  id: totrans-160
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.12: Environment setup (A), "Move to the Left" action executed by the
     agent (B), and chances of ending near the starting state in each position (C)'
+  id: totrans-161
   prefs: []
   type: TYPE_NORMAL
 - en: Now, let's take a look at the third tile from the left in the second row from
@@ -865,6 +1132,7 @@
     is to avoid reaching that tile. In order to do so, optimal actions of the very
     first row, apart from the starting tile, are all pointing up so that it is not
     possible to land on the problematic tile.
+  id: totrans-162
   prefs: []
   type: TYPE_NORMAL
 - en: 'All other values are constrained by the hole''s proximity, except for the tile
@@ -873,20 +1141,25 @@
     landing in the tile above it, where, in turn, the agent would be forced to move
     left to avoid the hole, thus risking landing on the tile between the two holes.
     The optimal policy is summarized in the following diagram:'
+  id: totrans-163
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.13: Optimal policy'
+  id: totrans-164
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_13.jpg)'
+  id: totrans-165
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.13: Optimal policy'
+  id: totrans-166
   prefs: []
   type: TYPE_NORMAL
 - en: The preceding diagram displays the optimal policy of the environment explained
     previously, where `D` denotes a Down move, `R` denotes a Right move, `U` denotes
     an Up move, and `L` denotes a Left move.
+  id: totrans-167
   prefs: []
   type: TYPE_NORMAL
 - en: In the following example, we will use the SARSA algorithm to solve this new
@@ -898,12 +1171,15 @@
     goal will benefit from it, even if those trajectories are not the shortest ones.
     For this reason, we will use a discount factor equal (or very close) to `1`. In
     code, this means that instead of using `gamma = 0.9,` we will use `gamma = 1`.
+  id: totrans-168
   prefs: []
   type: TYPE_NORMAL
 - en: Now, let's see our SARSA algorithm working in this stochastic environment.
+  id: totrans-169
   prefs: []
   type: TYPE_NORMAL
 - en: 'Exercise 7.02: Using TD(0) SARSA to Solve FrozenLake-v0 Stochastic Transitions'
+  id: totrans-170
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
@@ -914,253 +1190,332 @@
     for the SARSA algorithm, and we will see how it will still be able to solve this
     task. This exercise will show us how these sound TD methods are able to deal with
     different challenges, demonstrating a notable robustness.
+  id: totrans-171
   prefs: []
   type: TYPE_NORMAL
 - en: 'Follow these steps to complete this exercise:'
+  id: totrans-172
   prefs: []
   type: TYPE_NORMAL
 - en: 'Import the required modules:'
+  id: totrans-173
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE33]'
+  id: totrans-174
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE33]'
 - en: 'Instantiate the `gym` environment called `FrozenLake-v0` using the `is_slippery`
     flag set to `True` in order to enable stochasticity:'
+  id: totrans-175
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE34]'
+  id: totrans-176
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE34]'
 - en: 'Take a look at the action and the observation spaces:'
+  id: totrans-177
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE35]'
+  id: totrans-178
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE35]'
 - en: 'The output will be as follows:'
+  id: totrans-179
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE36]'
+  id: totrans-180
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE36]'
 - en: 'Create two dictionaries to easily map the `actions` indices (from `0` to `3`)
     to the labels (Left, Down, Right, and Up):'
+  id: totrans-181
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE37]'
+  id: totrans-182
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE37]'
 - en: 'Reset the environment and render it to take a look at the grid problem:'
+  id: totrans-183
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE38]'
+  id: totrans-184
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE38]'
 - en: 'The output will be as follows:'
+  id: totrans-185
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '![Figure 7.14: Environment''s initial state'
+  id: totrans-186
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '](img/B16182_07_14.jpg)'
+  id: totrans-187
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Figure 7.14: Environment''s initial state'
+  id: totrans-188
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Visualize the optimal policy for this environment:'
+  id: totrans-189
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE39]'
+  id: totrans-190
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE39]'
 - en: 'The output will be as follows:'
+  id: totrans-191
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE40]'
+  id: totrans-192
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE40]'
 - en: This represents the optimal policy for this environment. Except from two states,
     all the other ones have a single optimal action associated with them. In fact,
     as described previously, optimal actions here are those that bring the agent away
     from the holes or from tiles that have a chance greater than zero of leading the
     agent to tiles placed near holes. Two states have multiple optimal actions associated
     with them that are all equally optimal, as intended for this task.
+  id: totrans-193
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Define functions that will take ε-greedy actions:'
+  id: totrans-194
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE41]'
+  id: totrans-195
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE41]'
 - en: 'The first function implements the ε-greedy policy: with a probability of `1
     – ε`, the chosen action is the one with the highest value associated with the
     state-action pair; otherwise, a random action is returned. The second function
     simply makes the first callable when passed as an argument using a `lambda` function.'
+  id: totrans-196
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Define a function that will take greedy actions:'
+  id: totrans-197
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE42]'
+  id: totrans-198
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE42]'
 - en: 'Define a function that will calculate average agent performance:'
+  id: totrans-199
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE43]'
+  id: totrans-200
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE43]'
 - en: 'Set the number of total episodes, the number of steps representing the interval
     by which the agent''s average performance is evaluated and the `ε` parameters,
     ruling its decrease, that is, the starting value, minimum value, and range (in
     terms of the number of episodes) over which the decrease is spread:'
+  id: totrans-201
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE44]'
+  id: totrans-202
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE44]'
 - en: 'Define the SARSA training algorithm as a function. Initialize the Q-table with
     all the values equal to `1`, but with the values at terminal states set equal
     to `0`:'
+  id: totrans-203
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE45]'
+  id: totrans-204
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE45]'
 - en: 'Start a loop among all episodes:'
+  id: totrans-205
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE46]'
+  id: totrans-206
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE46]'
 - en: 'Inside the loop, first, define the epsilon value, depending on the current
     episode number. Reset the environment and make sure that the first action is chosen
     with an ε-greedy policy:'
+  id: totrans-207
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE47]'
+  id: totrans-208
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE47]'
 - en: 'Then, start an in-episode loop:'
+  id: totrans-209
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE48]'
+  id: totrans-210
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE48]'
 - en: 'Inside the loop, step throughout the environment using the selected action
     and ensure that the new state, the reward, and the done conditions are retrieved:'
+  id: totrans-211
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE49]'
+  id: totrans-212
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE49]'
 - en: 'Select a new action with the ε-greedy policy, update the Q-table with the SARSA
     TD(0) rule, and ensure that the state and action are updated with their new values:'
+  id: totrans-213
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE50]'
+  id: totrans-214
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE50]'
 - en: 'Finally, estimate the agent''s average performance:'
+  id: totrans-215
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE51]'
+  id: totrans-216
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE51]'
 - en: 'It may be useful to provide a brief description of the `ε` parameter''s decrease.
     It is ruled by three parameters: starting value, minimum value, and decrease range.
     They are used in the following way: `ε` starts at the starting value, and then
     it is decreased linearly across the number of episodes defined by the parameter''s
     "range" until it reaches the minimum value, which is then kept constant.'
+  id: totrans-217
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Define an array that will collect all agent performance evaluations during
     training and the execution of SARSA TD(0) training:'
+  id: totrans-218
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE52]'
+  id: totrans-219
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE52]'
 - en: 'Plot the SARSA agent''s mean reward history during training:'
+  id: totrans-220
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE53]'
+  id: totrans-221
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE53]'
 - en: 'This generates the following output, showing the learning progress for the
     SARSA algorithm:'
+  id: totrans-222
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE54]'
+  id: totrans-223
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE54]'
 - en: 'The plot will be as follows:'
+  id: totrans-224
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '![Figure 7.15: Average reward of an epoch trend over training epochs'
+  id: totrans-225
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '](img/B16182_07_15.jpg)'
+  id: totrans-226
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Figure 7.15: Average reward of an epoch trend over training epochs'
+  id: totrans-227
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
@@ -1169,44 +1524,58 @@
     drop around 60k epochs is completely normal when dealing with methods in which
     random exploration plays a major role, and especially when random transition dynamics
     are part of the environment, as in this case.
+  id: totrans-228
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Evaluate the greedy policy''s performance regarding the trained agent (Q-table):'
+  id: totrans-229
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE55]'
+  id: totrans-230
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE55]'
 - en: 'The output will be as follows:'
+  id: totrans-231
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE56]'
+  id: totrans-232
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE56]'
 - en: 'Display the Q-table values:'
+  id: totrans-233
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE57]'
+  id: totrans-234
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE57]'
 - en: 'The following output will be generated:'
+  id: totrans-235
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE58]'
+  id: totrans-236
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE58]'
 - en: This output shows the values of the complete state-action value function for
     our problem. These values are then used to generate the optimal policy by means
     of the greedy selection rule.
+  id: totrans-237
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
@@ -1219,21 +1588,27 @@
     among the four available (from 0 to 3), has the highest associated value for that
     state. Here, we also directly output the label associated with the action index
     using the pre-built dictionary:'
+  id: totrans-238
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE59]'
+  id: totrans-239
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE59]'
 - en: 'The output will be as follows:'
+  id: totrans-240
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE60]'
+  id: totrans-241
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE60]'
 - en: As you can see, as in the previous exercise, our algorithm has been able to
     find the optimal policy by simply exploring the environment, and even in the context
     of stochastic environment transitions. As anticipated, for this setting, it is
@@ -1243,32 +1618,40 @@
     with the optimal policy that was defined by analyzing the environment problem.
     As we already saw, there are two states in which there are many different actions
     that are equally optimal, and the agent correctly implements one of them.
+  id: totrans-242
   prefs: []
   type: TYPE_NORMAL
 - en: Note
+  id: totrans-243
   prefs: []
   type: TYPE_NORMAL
 - en: To access the source code for this specific section, please refer to [https://packt.live/3eicsGr](https://packt.live/3eicsGr).
+  id: totrans-244
   prefs: []
   type: TYPE_NORMAL
 - en: You can also run this example online at [https://packt.live/2Z4L1JV](https://packt.live/2Z4L1JV).
+  id: totrans-245
   prefs: []
   type: TYPE_NORMAL
 - en: Now that we've become familiar with on-policy control, it is time for us to
     change track and look at off-policy control, an early breakthrough in reinforcement
     learning dating back to 1989 known as Q-learning.
+  id: totrans-246
   prefs: []
   type: TYPE_NORMAL
 - en: Note
+  id: totrans-247
   prefs: []
   type: TYPE_NORMAL
 - en: The Q-learning algorithm was first formulated by *Watkins in Mach Learn 8, 279–292
     (1992)*. Here, we are presenting only an intuitive understanding, along with a
     brief mathematical description of it. For a much more detailed mathematical discussion,
     please refer to the original paper at [https://link.springer.com/article/10.1007/BF00992698](https://link.springer.com/article/10.1007/BF00992698).
+  id: totrans-248
   prefs: []
   type: TYPE_NORMAL
 - en: Q-Learning – Off-Policy Control
+  id: totrans-249
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
@@ -1276,15 +1659,19 @@
     difference algorithms. From a mathematical/implementation point of view, the only
     difference compared with on-policy algorithms is in the rule used to update the
     Q-table (or function for approximated methods), which is defined as follows:'
+  id: totrans-250
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.16: Function for approximated methods'
+  id: totrans-251
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_16.jpg)'
+  id: totrans-252
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.16: Function for approximated methods'
+  id: totrans-253
   prefs: []
   type: TYPE_NORMAL
 - en: The key point regards how the action for the next state, ![a](img/B16182_07_16a.png),
@@ -1295,83 +1682,105 @@
     different to the optimal one; for example, it can be an ε-greedy policy to encourage
     exploration, and, under some easy-to-satisfy assumptions, it has been proven that
     Q converges to the optimal values.
+  id: totrans-254
   prefs: []
   type: TYPE_NORMAL
 - en: 'In *Chapter 9, What Is Deep Q-Learning?*, you will look at the extension of
     this approach to non-tabular methods where we use deep neural networks as function
     approximators. This method is called deep Q-learning. A scheme for the Q-learning
     control algorithm can be depicted as follows:'
+  id: totrans-255
   prefs: []
   type: TYPE_NORMAL
 - en: 'Choose the algorithm parameters: the step size, ![d](img/B16182_07_16b.png),
     which has to be contained in the interval (0, 1], and the `ε` parameter of the
     ε-greedy policy, which has to be small and greater than `0` since it represents
     the probability of choosing the non-optimal action in order to favor exploration:'
+  id: totrans-256
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE61]'
+  id: totrans-257
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE61]'
 - en: 'Initialize ![b](img/B16182_07_16c.png), for all ![c](img/B16182_07_16d.png),
     ![e](img/B16182_07_16e.png), arbitrarily, except that Q(terminal, *) = 0:'
+  id: totrans-258
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE62]'
+  id: totrans-259
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE62]'
 - en: 'Create a loop among all episodes. In the loop, initialize `s`:'
+  id: totrans-260
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE63]'
+  id: totrans-261
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE63]'
 - en: 'Create a loop for each step of the episode. Within that loop, choose ![g](img/B16182_07_16f.png)
     from ![f](img/B16182_07_16g.png) using the policy derived from Q (for example,
     ε-greedy):'
+  id: totrans-262
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE64]'
+  id: totrans-263
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE64]'
 - en: 'Taking action, ![h](img/B16182_07_16h.png), observe ![i](img/B16182_07_16i.png).
     Update the state-action value function for the selected state-action pair using
     the Q-learning rule, which defines the new value as the sum of the current one,
     plus the off-policy-specific TD error multiplied by the step size, ![j](img/B16182_07_16j.png).
     This can be expressed as follows:![Figure 7.17: Expression for the updated state-action
     value function'
+  id: totrans-264
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '](img/B16182_07_17.jpg)'
+  id: totrans-265
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Figure 7.17: Expression for the updated state-action value function'
+  id: totrans-266
   prefs: []
   type: TYPE_NORMAL
 - en: 'The preceding explanation translates into code as follows:'
+  id: totrans-267
   prefs: []
   type: TYPE_NORMAL
 - en: '[PRE65]'
+  id: totrans-268
   prefs: []
   type: TYPE_PRE
+  zh: '[PRE65]'
 - en: As we can see, we just substituted the random choice of the action to be taken
     on the new state with the action associated with the maximum q-value. This (apparently)
     minor change, which can be easily implemented by adapting the SARSA algorithm,
     has a relevant impact on the nature of the method. We'll see it at work in the
     following exercise.
+  id: totrans-269
   prefs: []
   type: TYPE_NORMAL
 - en: 'Exercise 7.03: Using TD(0) Q-Learning to Solve FrozenLake-v0 Deterministic
     Transitions'
+  id: totrans-270
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
@@ -1383,92 +1792,122 @@
     (on-policy), we will implement Q-learning (off-policy). We will see how this algorithm
     behaves and train ourselves in implementing a new approach to estimate a q-value
     table by means of recovering an optimal policy for our agent.
+  id: totrans-271
   prefs: []
   type: TYPE_NORMAL
 - en: 'Follow these steps to complete this exercise:'
+  id: totrans-272
   prefs: []
   type: TYPE_NORMAL
 - en: 'Import the required modules, as follows:'
+  id: totrans-273
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE66]'
+  id: totrans-274
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE66]'
 - en: 'Instantiate the `gym` environment called `FrozenLake-v0` using the `is_slippery`
     flag set to `False` in order to disable stochasticity:'
+  id: totrans-275
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE67]'
+  id: totrans-276
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE67]'
 - en: 'Take a look at the action and the observation spaces:'
+  id: totrans-277
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE68]'
+  id: totrans-278
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE68]'
 - en: 'The output will be as follows:'
+  id: totrans-279
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE69]'
+  id: totrans-280
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE69]'
 - en: 'Create two dictionaries to easily translate the `actions` numbers into moves:'
+  id: totrans-281
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE70]'
+  id: totrans-282
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE70]'
 - en: 'Reset the environment and render it to take a look at the grid problem:'
+  id: totrans-283
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE71]'
+  id: totrans-284
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE71]'
 - en: 'The output will be as follows:'
+  id: totrans-285
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '![Figure 7.18: Environment''s initial state'
+  id: totrans-286
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '](img/B16182_07_18.jpg)'
+  id: totrans-287
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Figure 7.18: Environment''s initial state'
+  id: totrans-288
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Visualize the optimal policy for this environment:'
+  id: totrans-289
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE72]'
+  id: totrans-290
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE72]'
 - en: 'The output will be as follows:'
+  id: totrans-291
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE73]'
+  id: totrans-292
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE73]'
 - en: 'This represents the optimal policy for this environment and shows, for each
     of the environment states represented in the 4x4 grid, the optimal action among
     the four available: move Up, move Down, move Right, and move Left. Except for
@@ -1476,53 +1915,69 @@
     In fact, as described previously, optimal actions here are those that bring the
     agent to the goal in the shortest possible path. Two different possibilities result
     in the same path length for two states, so they are both equally optimal.'
+  id: totrans-293
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Next, define functions that will take ε-greedy actions:'
+  id: totrans-294
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE74]'
+  id: totrans-295
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE74]'
 - en: 'Define a function that will take greedy actions:'
+  id: totrans-296
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE75]'
+  id: totrans-297
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE75]'
 - en: 'Define a function that will calculate the mean of the agent''s performance:'
+  id: totrans-298
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE76]'
+  id: totrans-299
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE76]'
 - en: 'Initialize the Q-table so that all the values equal `1`, except for the values
     at terminal states:'
+  id: totrans-300
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE77]'
+  id: totrans-301
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE77]'
 - en: 'Set the number of total episodes, the number of steps representing the interval
     by which we evaluate the agent''s average performance, the learning rate, the
     discounting factor, and the `ε` value for the exploration policy and define an
     array to collect all agent performance evaluations during training:'
+  id: totrans-302
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE78]'
+  id: totrans-303
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE78]'
 - en: 'Train the agent using the Q-learning algorithm: the external loop takes care
     of generating the desired number of episodes. Then, the in-episode loop completes
     the following steps: first, it selects an exploration action with an ε-greedy
@@ -1531,43 +1986,56 @@
     for the new state is selected with the greedy policy, the Q-table is updated with
     the Q-learning TD(0) rule, and the state is updated with the new value. Every
     predefined number of steps, the agent''s average performance is estimated:'
+  id: totrans-304
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE79]'
+  id: totrans-305
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE79]'
 - en: 'Plot the Q-learning agent''s mean reward history during training:'
+  id: totrans-306
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE80]'
+  id: totrans-307
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE80]'
 - en: 'This generates the following output, showing the learning progress of the Q-learning
     algorithm:'
+  id: totrans-308
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE81]'
+  id: totrans-309
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE81]'
 - en: 'The plot will be as follows:'
+  id: totrans-310
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '![Figure 7.19: Average reward of an epoch trend over training epochs'
+  id: totrans-311
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '](img/B16182_07_19.jpg)'
+  id: totrans-312
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Figure 7.19: Average reward of an epoch trend over training epochs'
+  id: totrans-313
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
@@ -1576,68 +2044,89 @@
     the algorithm is capable of reaching 100% success after learning. It's also evident
     how, in this case, compared to the SARSA method, the measured algorithm performance
     increases steadily and much faster.
+  id: totrans-314
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Evaluate the greedy policy''s performance of the trained agent (Q-table):'
+  id: totrans-315
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE82]'
+  id: totrans-316
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE82]'
 - en: 'The output will be as follows:'
+  id: totrans-317
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE83]'
+  id: totrans-318
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE83]'
 - en: 'Display the Q-table values:'
+  id: totrans-319
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE84]'
+  id: totrans-320
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE84]'
 - en: 'The following output will be generated:'
+  id: totrans-321
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE85]'
+  id: totrans-322
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE85]'
 - en: This output shows the values of the complete state-action value function for
     our problem. These values are then used to generate the optimal policy by means
     of the greedy selection rule.
+  id: totrans-323
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Print out the greedy policy that was found and compare it with the optimal
     policy:'
+  id: totrans-324
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE86]'
+  id: totrans-325
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE86]'
 - en: 'The output will be as follows:'
+  id: totrans-326
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE87]'
+  id: totrans-327
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE87]'
 - en: As these outputs demonstrate, the Q-learning algorithm has been able to retrieve
     the optimal policy too, just like SARSA did in *Exercise 07.01, Using TD(0) SARSA
     to solve FrozenLake-v0 Deterministic Transitions*, only by means of experience
     and interaction with the environment.
+  id: totrans-328
   prefs: []
   type: TYPE_NORMAL
 - en: As we can see, for every state of the grid world the greedy policy obtained
@@ -1645,15 +2134,19 @@
     in accordance with the optimal policy that was defined by analyzing the environment
     problem. As we already saw, there are two states in which there are many different
     actions that are equally optimal, and the agent correctly implements one of them.
+  id: totrans-329
   prefs: []
   type: TYPE_NORMAL
 - en: Note
+  id: totrans-330
   prefs: []
   type: TYPE_NORMAL
 - en: To access the source code for this specific section, please refer to [https://packt.live/2AUlzym](https://packt.live/2AUlzym).
+  id: totrans-331
   prefs: []
   type: TYPE_NORMAL
 - en: You can also run this example online at [https://packt.live/3fJCnH5](https://packt.live/3fJCnH5).
+  id: totrans-332
   prefs: []
   type: TYPE_NORMAL
 - en: 'As for SARSA, it would be interesting to see how Q-learning behaves if we turn
@@ -1663,14 +2156,17 @@
     transition case is applied, and you are expected to adapt hyperparameters (especially
     the discount factor and the number of episodes) until you obtain convergence to
     the optimal policy under the stochastic transition dynamics.'
+  id: totrans-333
   prefs: []
   type: TYPE_NORMAL
 - en: 'To complete the landscape of TD(0) algorithms, we will introduce another specific
     approach that''s obtained by applying very simple modifications of the previous
     ones: Expected SARSA.'
+  id: totrans-334
   prefs: []
   type: TYPE_NORMAL
 - en: Expected SARSA
+  id: totrans-335
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
@@ -1679,15 +2175,19 @@
     pairs with the expected value. This is computed by taking into account the probability
     of each action under the current policy. This modified algorithm can be represented
     by the following update rule:'
+  id: totrans-336
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.20: State-action value function update rule'
+  id: totrans-337
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_20.jpg)'
+  id: totrans-338
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.20: State-action value function update rule'
+  id: totrans-339
   prefs: []
   type: TYPE_NORMAL
 - en: 'The additional computational complexity with respect to SARSA provides the
@@ -1697,22 +2197,28 @@
     of both SARSA and Q-learning with, in general, a performance that dominates both
     of them. An example of the update rule''s implementation is provided in the following
     snippet:'
+  id: totrans-340
   prefs: []
   type: TYPE_NORMAL
 - en: '[PRE88]'
+  id: totrans-341
   prefs: []
   type: TYPE_PRE
+  zh: '[PRE88]'
 - en: In the preceding code, the `pi` variable contains all the probabilities for
     each action in each state. The dot product involving `pi` and `q` is the operation
     needed to compute the expected value for the new state, taking into account all
     the actions for that state with their respective probabilities.
+  id: totrans-342
   prefs: []
   type: TYPE_NORMAL
 - en: Now that we've studied the TD(0) methods, let's start learning about the N-step
     TD and TD(λ) algorithms.
+  id: totrans-343
   prefs: []
   type: TYPE_NORMAL
 - en: N-Step TD and TD(λ) Algorithms
+  id: totrans-344
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
@@ -1722,6 +2228,7 @@
     we''ll unify them: in fact, they are at the extreme of a spectrum of algorithms
     (TD(0) on one side, with MC methods at the other end), and often, the best performing
     methods are somewhere in the middle of this spectrum.'
+  id: totrans-345
   prefs: []
   type: TYPE_NORMAL
 - en: N-step temporal difference algorithms extend one-step TD methods. More specifically,
@@ -1734,6 +2241,7 @@
     of this broad range. Using N-step methods allows us to adjust the number of steps
     to consider when updating the value function, thereby distributing the bootstrapping
     approach to multiple steps.
+  id: totrans-346
   prefs: []
   type: TYPE_NORMAL
 - en: A similar notion can be recalled in the context of eligibility traces, but they
@@ -1741,9 +2249,11 @@
     time intervals at the same time. These two topics will be treated separately for
     clarity and, so as to enable you to build your knowledge incrementally, we will
     start with N-step methods first, before moving on to eligibility traces.
+  id: totrans-347
   prefs: []
   type: TYPE_NORMAL
 - en: N-Step TD
+  id: totrans-348
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
@@ -1758,6 +2268,7 @@
     For example, a three-steps update would use the first three rewards and the estimated
     state value reached three steps ahead. This can be formalized for a generic number
     of steps.'
+  id: totrans-349
   prefs: []
   type: TYPE_NORMAL
 - en: This approach gives birth to a family of methods that are still temporal difference
@@ -1765,6 +2276,7 @@
     update its value. It is clear that the methods that we encountered at the beginning
     of this chapter are a special case of N-step methods. For this reason, they are
     called "one-step TD methods."
+  id: totrans-350
   prefs: []
   type: TYPE_NORMAL
 - en: 'In order to define them more formally, we can consider the estimated value
@@ -1777,47 +2289,60 @@
     that discounts `n` future rewards and the value of the state encountered after
     N-steps in the future. This quantity, called N-step return, can be defined in
     an expression, as follows:'
+  id: totrans-351
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.21: N-step return equation (with the state-value function)'
+  id: totrans-352
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_21.jpg)'
+  id: totrans-353
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.21: N-step return equation (with the state-value function)'
+  id: totrans-354
   prefs: []
   type: TYPE_NORMAL
 - en: 'A key point to note here is that in order to calculate this N-step return,
     we have to wait to reach the time `t+1` so that all the terms in the equation
     are available. By using the N-step return, it is straightforward to formalize
     the state-value function update rule, as follows:'
+  id: totrans-355
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.22: Expression for the natural state-value learning algorithm'
+  id: totrans-356
   prefs: []
   type: TYPE_NORMAL
 - en: for using N-step returns
+  id: totrans-357
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_22.jpg)'
+  id: totrans-358
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.22: Expression for the natural state-value learning algorithm for
     using N-step returns'
+  id: totrans-359
   prefs: []
   type: TYPE_NORMAL
 - en: 'Note that the values of all the other states remain unchanged, as shown in
     the following expression:'
+  id: totrans-360
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.23: Expression specifying that all the other values are kept constant'
+  id: totrans-361
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_23.jpg)'
+  id: totrans-362
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.23: Expression specifying that all the other values are kept constant'
+  id: totrans-363
   prefs: []
   type: TYPE_NORMAL
 - en: This is the equation that formalizes the N-step TD algorithm. It is worth noting
@@ -1825,14 +2350,17 @@
     the N-step return. This needs to be compensated for at the end of the episode,
     when the remaining `n-1` updates are performed all at once after reaching the
     terminal state.
+  id: totrans-364
   prefs: []
   type: TYPE_NORMAL
 - en: Similar to what we already saw for TD(0) methods, and without talking about
     this in too much data, the state-value function estimation of the N-step TD methods
     converges to the optimal value under appropriate technical conditions.
+  id: totrans-365
   prefs: []
   type: TYPE_NORMAL
 - en: N-step SARSA
+  id: totrans-366
   prefs:
   - PREF_H3
   type: TYPE_NORMAL
@@ -1842,34 +2370,43 @@
     the value function''s N-step return and in the update formulations just seen,
     coupling them with an ε-greedy policy. The definition of the N-step return (update
     targets) can be described by the following equation:'
+  id: totrans-367
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.24: N-step return equation (with the state-action value function)'
+  id: totrans-368
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_24.jpg)'
+  id: totrans-369
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.24: N-step return equation (with the state-action value function)'
+  id: totrans-370
   prefs: []
   type: TYPE_NORMAL
 - en: 'Here, ![a](img/B16182_07_24a.png) if ![b](img/B16182_07_24b.png). The update
     rule for the state-action value function is expressed as follows:'
+  id: totrans-371
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.25: Update rule for the state-action value function'
+  id: totrans-372
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_25.jpg)'
+  id: totrans-373
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.25: Update rule for the state-action value function'
+  id: totrans-374
   prefs: []
   type: TYPE_NORMAL
 - en: 'Note that the values of all the other state-action pairs remain unchanged:
     ![c](img/B16182_07_25a.png), for all values of `s`, so that ![d](img/B16182_07_25b.png)
     or ![e](img/B16182_07_25c.png). A scheme for the N-step SARSA control algorithm
     can be depicted as follows:'
+  id: totrans-375
   prefs: []
   type: TYPE_NORMAL
 - en: 'Choose the algorithm''s parameters: the step size, ![f](img/B16182_07_25d.png),
@@ -1878,78 +2415,101 @@
     the probability of choosing the non-optimal action to favor exploration. A value
     for the number of steps, `n`, has to be chosen. This can be done, for example,
     with the following code:'
+  id: totrans-376
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE89]'
+  id: totrans-377
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE89]'
 - en: 'Initialize ![g](img/B16182_07_25e.png), for all ![h](img/B16182_07_25f.png),
     ![i](img/B16182_07_25g.png), arbitrarily, except that Q(terminal, ·) = 0:'
+  id: totrans-378
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE90]'
+  id: totrans-379
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE90]'
 - en: 'Create a loop for each episode. Initialize and store the S0 ≠ terminal. Select
     and store an action using the ε-greedy policy and initialize time, `T`, as a very
     high value:'
+  id: totrans-380
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE91]'
+  id: totrans-381
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE91]'
 - en: 'Create a loop for t = 0, 1, 2, .... If t < T, then perform action ![j](img/B16182_07_25h.png).
     Observe and store the next reward as ![k](img/B16182_07_25i.png) and the next
     state as ![l](img/B16182_07_25j.png) If ![m](img/B16182_07_25k.png) is terminal,
     then set `T` equal to `t+1`:'
+  id: totrans-382
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE92]'
+  id: totrans-383
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE92]'
 - en: 'If ![n](img/B16182_07_25l.png) is not terminal, select and store a new action
     for the new state:'
+  id: totrans-384
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE93]'
+  id: totrans-385
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE93]'
 - en: 'Define the time for which the estimate is being updated, `tau`, equal to `t-n+1`:'
+  id: totrans-386
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE94]'
+  id: totrans-387
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE94]'
 - en: 'If `tau` is greater than 0, calculate the N-step return by summing the discounted
     returns of the previous n steps and adding the discounted value of the next step-next
     action pair and update the state-action value function:'
+  id: totrans-388
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE95]'
+  id: totrans-389
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE95]'
 - en: With a few minor changes, this can easily be extended to accommodate Expected
     SARSA as well. As seen previously in this chapter, it only requires us to substitute
     the expected approximate value of the state using the estimated action values
     at time, t, under the target policy at the last step of the N-steps. When the
     state in question is terminal, its expected approximate value is defined as 0.
+  id: totrans-390
   prefs: []
   type: TYPE_NORMAL
 - en: N-Step Off-Policy Learning
+  id: totrans-391
   prefs:
   - PREF_H3
   type: TYPE_NORMAL
@@ -1965,20 +2525,25 @@
     and we are doing it for more than one step. So, we need to properly weigh the
     selected actions measuring the relative probability under the two policies of
     taking those actions.
+  id: totrans-392
   prefs: []
   type: TYPE_NORMAL
 - en: 'By means of this correction, it is possible to define the rule for a simple
     off-policy version of N-step TD: the update for time `t` (actually made at time
     `t + n`) can simply be weighted by ![c](img/B16182_07_25o.png):'
+  id: totrans-393
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.26: N-step TD off-policy update rule at time ''t'''
+  id: totrans-394
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_26.jpg)'
+  id: totrans-395
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.26: N-step TD off-policy update rule at time ''t'''
+  id: totrans-396
   prefs: []
   type: TYPE_NORMAL
 - en: 'Here, `V` is the value function, ![e](img/B16182_07_26a.png) is the step size,
@@ -1986,20 +2551,25 @@
     sampling ratio. The importance sampling ratio is the relative probability under
     the two policies of taking `n` actions from ![f](img/B16182_07_26c.png) to ![f](img/B16182_07_26d.png),
     which can be expressed as follows:'
+  id: totrans-397
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.27: Sampling ratio equation'
+  id: totrans-398
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_27.jpg)'
+  id: totrans-399
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.27: Sampling ratio equation'
+  id: totrans-400
   prefs: []
   type: TYPE_NORMAL
 - en: Here, ![i](img/B16182_07_27a.png) is the agent policy, ![g](img/B16182_07_27b.png)
     is the exploration policy, ![h](img/B16182_07_27c.png) is the action, and ![h](img/B16182_07_27d.png)
     is the state.
+  id: totrans-401
   prefs: []
   type: TYPE_NORMAL
 - en: 'By this definition, it is evident that actions that would never be selected
@@ -2013,21 +2583,26 @@
     seen as a special case of the off-policy update. The general form of the update,
     from which it is possible to derive both on-policy and off-policy methods, is
     as follows:'
+  id: totrans-402
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.28: State-action value function for the off-policy N-step TD algorithm'
+  id: totrans-403
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_28.jpg)'
+  id: totrans-404
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.28: State-action value function for the off-policy N-step TD algorithm'
+  id: totrans-405
   prefs: []
   type: TYPE_NORMAL
 - en: 'As you can see, ![a](img/B16182_07_28a.png) is the state-action value function,
     ![b](img/B16182_07_28b.png) is the step size, ![c](img/B16182_07_28c.png) is the
     N-step return, and ![d](img/B16182_07_28d.png) is the importance sampling ratio.
     The scheme for the full algorithm is as follows:'
+  id: totrans-406
   prefs: []
   type: TYPE_NORMAL
 - en: 'Select an arbitrary behavior policy, ![e](img/B16182_07_28e.png), so that the
@@ -2035,77 +2610,100 @@
     actions. Choose the algorithm parameters: the step size, ![f](img/B16182_07_28f.png),
     which has to be contained in the interval (0, 1], and a value for the number of
     steps, `n`. This can be done, for example, with the following code:'
+  id: totrans-407
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE96]'
+  id: totrans-408
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE96]'
 - en: 'Initialize ![h](img/B16182_07_28g.png), for all ![g](img/B16182_07_28h.png),
     ![h](img/B16182_07_28i.png), arbitrarily, except that Q(terminal, ·) = 0:'
+  id: totrans-409
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE97]'
+  id: totrans-410
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE97]'
 - en: 'Initialize the policy, ![i](img/B16182_07_28j.png), to be greedy with respect
     to Q, or to a fixed given policy. Create a loop for each episode. Initialize and
     store the S0 ≠ terminal. Select and store an action using the b policy and initialize
     time, `T`, as a very high value:'
+  id: totrans-411
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE98]'
+  id: totrans-412
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE98]'
 - en: 'Create a loop for t = 0, 1, 2, .... If t < T, then perform action ![k](img/B16182_07_28k.png).
     Observe and store the next reward as ![j](img/B16182_07_28l.png) and the next
     state as ![l](img/B16182_07_28m.png) . If ![m](img/B16182_07_28n.png) is terminal,
     then set `T` equal to `t+1`:'
+  id: totrans-413
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE99]'
+  id: totrans-414
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE99]'
 - en: 'If ![m](img/B16182_07_28o.png) is not terminal, select and store a new action
     for the new state:'
+  id: totrans-415
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE100]'
+  id: totrans-416
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE100]'
 - en: 'Define the time for which the estimate is being updated, `tau`, equal to `t-n+1`:'
+  id: totrans-417
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE101]'
+  id: totrans-418
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE101]'
 - en: 'If `tau` is greater than or equal to `0`, calculate the sampling ratio. Calculate
     the N-step return by summing the discounted returns of the previous n steps and
     adding the discounted value of the next step-next action pair and update the state-action
     value function:'
+  id: totrans-419
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE102]'
+  id: totrans-420
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE102]'
 - en: Now that we've studied the N-step methods, it is time to proceed to the most
     general and most performant declination of temporal difference methods, TD(λ).
+  id: totrans-421
   prefs: []
   type: TYPE_NORMAL
 - en: TD(λ)
+  id: totrans-422
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
@@ -2117,6 +2715,7 @@
     As we will see shortly, it is a weighting factor that will allow us to appropriately
     weight different contributing terms involved in the estimation of the algorithm's
     return.
+  id: totrans-423
   prefs: []
   type: TYPE_NORMAL
 - en: It is possible to combine any temporal difference method, such as those we already
@@ -2130,6 +2729,7 @@
     is the case for N-step methods with finite `n > 1`). In addition to that, eligibility
     traces allow us to use extended Monte Carlo methods for the so-called online implementation,
     meaning they become applicable to non-episodic problems.
+  id: totrans-424
   prefs: []
   type: TYPE_NORMAL
 - en: With respect to what we already saw for N-step TD methods, eligibility traces
@@ -2138,32 +2738,39 @@
     of n for N-step methods can be anything but a straightforward task. Eligibility
     traces, on the other hand, allow us to "fuse" together the updates corresponding
     to different timesteps.
+  id: totrans-425
   prefs: []
   type: TYPE_NORMAL
 - en: To achieve this goal, we need to define a method to weigh the N-step return,
     ![c](img/B16182_07_28p.png), using a weight that decays exponentially with time.
     This is done by introducing a factor, ![d](img/B16182_07_28q.png), and weighting
     the nth return with ![b](img/B16182_07_28r.png).
+  id: totrans-426
   prefs: []
   type: TYPE_NORMAL
 - en: 'The goal is to define a weighted average so that all these weights must total
     to `1`. The normalization constant is the limit value of the convergent geometric
     series: ![a](img/B16182_07_28s.png). With this, we can define the so-called ![a](img/B16182_07_28t.png)-return
     as follows:'
+  id: totrans-427
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.29: Expression for the lambda return'
+  id: totrans-428
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_29.jpg)'
+  id: totrans-429
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.29: Expression for the lambda return'
+  id: totrans-430
   prefs: []
   type: TYPE_NORMAL
 - en: This equation defines how our choice of ![a](img/B16182_07_29a.png) influences
     the speed at which a given return drops exponentially as a function of the number
     of steps.
+  id: totrans-431
   prefs: []
   type: TYPE_NORMAL
 - en: 'We can now use this new return as a target for the state (or state-action pair)
@@ -2174,6 +2781,7 @@
     of looking forward in time, the point of view is reversed, and the agent updates
     all states (state-action pairs) visited in the past according to the eligibility
     traces rule and using current return and values information.'
+  id: totrans-432
   prefs: []
   type: TYPE_NORMAL
 - en: 'The eligibility trace is initialized equal to 0 for every state (or state-action
@@ -2185,72 +2793,91 @@
     reward discount ![c](img/B16182_07_29d.png) we''ve encountered many times in this
     chapter. With this new concept, we can now build the new value function update.
     First, we have the equation that regulates the eligibility trace evolution:'
+  id: totrans-433
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.30: Eligibility traces initialization and update rule at time ''t''
     (for states)'
+  id: totrans-434
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_30.jpg)'
+  id: totrans-435
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.30: Eligibility traces initialization and update rule at time ''t''
     (for states)'
+  id: totrans-436
   prefs: []
   type: TYPE_NORMAL
 - en: 'Then, we have the new definition of the TD error (or δ). The state-value function
     update will be as follows:'
+  id: totrans-437
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.31: State-value function update rule using eligibility traces'
+  id: totrans-438
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_31.jpg)'
+  id: totrans-439
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.31: State-value function update rule using eligibility traces'
+  id: totrans-440
   prefs: []
   type: TYPE_NORMAL
 - en: Now, let's see how this idea is implemented in the SARSA algorithm to obtain
     an on-policy TD control algorithm with eligibility traces.
+  id: totrans-441
   prefs: []
   type: TYPE_NORMAL
 - en: SARSA(λ)
+  id: totrans-442
   prefs:
   - PREF_H3
   type: TYPE_NORMAL
 - en: 'Directly translating a state-value update into a state-action-value update
     allows us to add the eligibility traces feature to our previously seen SARSA algorithm.
     The eligibility trace equation can be modified as follows:'
+  id: totrans-443
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.32: Eligibility trace initialization and update rule at time ''t''
     (for state-actions pairs)'
+  id: totrans-444
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_32.jpg)'
+  id: totrans-445
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.32: Eligibility trace initialization and update rule at time ''t''
     (for state-actions pairs)'
+  id: totrans-446
   prefs: []
   type: TYPE_NORMAL
 - en: 'The TD error and the state-action value function updates are written as follows:'
+  id: totrans-447
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.33: State-action pair''s value function update rule using eligibility
     traces'
+  id: totrans-448
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_33.jpg)'
+  id: totrans-449
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.33: State-action pair''s value function update rule using eligibility
     traces'
+  id: totrans-450
   prefs: []
   type: TYPE_NORMAL
 - en: 'A schema that perfectly summarizes all these steps and presents the complete
     algorithm is as follows:'
+  id: totrans-451
   prefs: []
   type: TYPE_NORMAL
 - en: 'Choose the algorithm''s parameters: the step size ![a](img/B16182_07_33a.png),
@@ -2259,80 +2886,106 @@
     the probability of choosing the non-optimal action, to favor exploration. A value
     for the `lambda` parameter has to be chosen. This can be done, for example, with
     the following code:'
+  id: totrans-452
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE103]'
+  id: totrans-453
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE103]'
 - en: 'Initialize ![a](img/B16182_07_33b.png), for all ![b](img/B16182_07_33c.png),
     ![c](img/B16182_07_33d.png), arbitrarily, except that Q(terminal, ·) = 0:'
+  id: totrans-454
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE104]'
+  id: totrans-455
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE104]'
 - en: 'Create a loop for each episode. Initialize the eligibility traces table to
     `0`:'
+  id: totrans-456
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE105]'
+  id: totrans-457
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE105]'
 - en: 'Initialize the state as it is not terminal and select an action using the ε-greedy
     policy. Then, initiate the in-episode loop:'
+  id: totrans-458
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE106]'
+  id: totrans-459
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE106]'
 - en: 'Create a loop for each step of the episode, update the eligibility traces,
     and assign a value equal to `1` to the last visited state:'
+  id: totrans-460
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE107]'
+  id: totrans-461
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE107]'
 - en: 'Step through the environment and choose the next action using the ε-greedy
     policy:'
+  id: totrans-462
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE108]'
+  id: totrans-463
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE108]'
 - en: 'Calculate the ![b](img/B16182_07_33e.png) update and update the Q-table using
     the SARSA TD(![a](img/B16182_07_33f.png)) rule:'
+  id: totrans-464
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE109]'
+  id: totrans-465
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE109]'
 - en: 'Update the state and action with new state and action values:'
+  id: totrans-466
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE110]'
+  id: totrans-467
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE110]'
 - en: We are now ready to test this new algorithm on the environment we already solved
     with one-step SARSA and Q-learning.
+  id: totrans-468
   prefs: []
   type: TYPE_NORMAL
 - en: 'Exercise 7.04: Using TD(λ) SARSA to Solve FrozenLake-v0 Deterministic Transitions'
+  id: totrans-469
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
@@ -2346,257 +2999,343 @@
     eligibility traces. We will see how this algorithm behaves and train ourselves
     in implementing a new approach to estimate a Q-value table by means of which we'll
     recover an optimal policy for our agent.
+  id: totrans-470
   prefs: []
   type: TYPE_NORMAL
 - en: 'Follow these steps to complete this exercise:'
+  id: totrans-471
   prefs: []
   type: TYPE_NORMAL
 - en: 'Import the required modules:'
+  id: totrans-472
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE111]'
+  id: totrans-473
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE111]'
 - en: 'Instantiate the `gym` environment called `FrozenLake-v0` using the `is_slippery`
     flag set to `False` in order to disable stochasticity:'
+  id: totrans-474
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE112]'
+  id: totrans-475
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE112]'
 - en: 'Take a look at the action and the observation spaces:'
+  id: totrans-476
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE113]'
+  id: totrans-477
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE113]'
 - en: 'The output will be as follows:'
+  id: totrans-478
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE114]'
+  id: totrans-479
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE114]'
 - en: 'Create two dictionaries to easily translate the `actions` numbers into moves:'
+  id: totrans-480
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE115]'
+  id: totrans-481
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE115]'
 - en: 'Reset the environment and render it to take a look at the grid:'
+  id: totrans-482
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE116]'
+  id: totrans-483
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE116]'
 - en: 'The output will be as follows:'
+  id: totrans-484
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '![Figure 7.34: Environment''s initial state'
+  id: totrans-485
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '](img/B16182_07_34.jpg)'
+  id: totrans-486
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Figure 7.34: Environment''s initial state'
+  id: totrans-487
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Visualize the optimal policy for this environment:'
+  id: totrans-488
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE117]'
+  id: totrans-489
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE117]'
 - en: 'The output will be printed as follows:'
+  id: totrans-490
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE118]'
+  id: totrans-491
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE118]'
 - en: This is the optimal policy for the deterministic case we already encountered
     when dealing with one-step TD methods. It shows the optimal actions we hope our
     agent will learn within this environment.
+  id: totrans-492
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Define the functions that will take ε-greedy actions:'
+  id: totrans-493
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE119]'
+  id: totrans-494
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE119]'
 - en: 'Define a function that will take greedy actions:'
+  id: totrans-495
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE120]'
+  id: totrans-496
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE120]'
 - en: 'Define a function that will calculate the agent''s average performance:'
+  id: totrans-497
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE121]'
+  id: totrans-498
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE121]'
 - en: 'Set the number of total episodes, the number of steps representing the interval
     by which we evaluate the agent''s average performance, the discount factor, the
     learning rate, and the `ε` parameters ruling its decrease – the starting value,
     minimum value, and range (in terms of the number of episodes) – over which the
     decrease is spread, as well as the eligibility trace''s decay parameter:'
+  id: totrans-499
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE122]'
+  id: totrans-500
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE122]'
 - en: 'Initialize the Q-table, set all values equal to `1` except for terminal states,
     and set an array that will collect all the agent''s performance evaluations during
     training:'
+  id: totrans-501
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE123]'
+  id: totrans-502
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE123]'
 - en: 'Start the SARSA training loop by looping among all episodes:'
+  id: totrans-503
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE124]'
+  id: totrans-504
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE124]'
 - en: 'Define an epsilon value based on the current episode''s run:'
+  id: totrans-505
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE125]'
+  id: totrans-506
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE125]'
 - en: 'Initialize the eligibility traces table to `0`:'
+  id: totrans-507
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE126]'
+  id: totrans-508
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE126]'
 - en: 'Reset the environment, choose the first action with an ε-greedy policy, and
     start the in-episode loop:'
+  id: totrans-509
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE127]'
+  id: totrans-510
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE127]'
 - en: 'Update the eligibility traces and assign a weight of `1` to the last visited
     state:'
+  id: totrans-511
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE128]'
+  id: totrans-512
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE128]'
 - en: 'Step through the environment with the selected action and retrieve the new
     state, reward, and done conditions:'
+  id: totrans-513
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE129]'
+  id: totrans-514
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE129]'
 - en: 'Select the new action with the ε-greedy policy:'
+  id: totrans-515
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE130]'
+  id: totrans-516
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE130]'
 - en: 'Calculate the ![b](img/B16182_07_33e.png) update and update the Q-table using
     the SARSA TD(![a](img/B16182_07_33h.png)) rule:'
+  id: totrans-517
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE131]'
+  id: totrans-518
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE131]'
 - en: 'Update the state and action with new state and action values:'
+  id: totrans-519
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE132]'
+  id: totrans-520
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE132]'
 - en: 'Evaluate the agent''s average performance:'
+  id: totrans-521
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE133]'
+  id: totrans-522
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE133]'
 - en: 'Plot the SARSA agent''s mean reward history during training:'
+  id: totrans-523
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE134]'
+  id: totrans-524
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE134]'
 - en: 'This generates the following output:'
+  id: totrans-525
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE135]'
+  id: totrans-526
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE135]'
 - en: 'The plot for this can be visualized as follows:'
+  id: totrans-527
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '![Figure 7.35: Average reward of an epoch trend over training epochs'
+  id: totrans-528
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '](img/B16182_07_35.jpg)'
+  id: totrans-529
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Figure 7.35: Average reward of an epoch trend over training epochs'
+  id: totrans-530
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
@@ -2606,64 +3345,84 @@
     is capable of reaching 100% success after learning. With respect to the one-step
     SARSA model, as seen in *Figure 7.8*, here, we can see that it reaches maximum
     performance faster, showing a notable improvement.
+  id: totrans-531
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Evaluate the greedy policy''s performance for the trained agent (Q-table):'
+  id: totrans-532
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE136]'
+  id: totrans-533
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE136]'
 - en: 'The output will be as follows:'
+  id: totrans-534
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE137]'
+  id: totrans-535
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE137]'
 - en: 'Display the Q-table values:'
+  id: totrans-536
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE138]'
+  id: totrans-537
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE138]'
 - en: 'This generates the following output:'
+  id: totrans-538
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE139]'
+  id: totrans-539
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE139]'
 - en: This output shows the values of the complete state-action value function for
     our problem. These values are then used to generate the optimal policy by means
     of the greedy selection rule.
+  id: totrans-540
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Print out the greedy policy that was found and compare it with the optimal
     policy:'
+  id: totrans-541
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE140]'
+  id: totrans-542
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE140]'
 - en: 'This produces the following output:'
+  id: totrans-543
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE141]'
+  id: totrans-544
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE141]'
 - en: As you can see, our SARSA algorithm has been able to correctly solve the FrozenLake-v0
     environment by being able to learn the optimal policy under the deterministic
     transition dynamics. In fact, as we can see, for every state of the grid world,
@@ -2672,15 +3431,19 @@
     was defined by analyzing the environment problem. As we already saw, there are
     two states in which there are two equally optimal actions, and the agent correctly
     implements one of them.
+  id: totrans-545
   prefs: []
   type: TYPE_NORMAL
 - en: Note
+  id: totrans-546
   prefs: []
   type: TYPE_NORMAL
 - en: To access the source code for this specific section, please refer to [https://packt.live/2YdePoa](https://packt.live/2YdePoa).
+  id: totrans-547
   prefs: []
   type: TYPE_NORMAL
 - en: You can also run this example online at [https://packt.live/3ek4ZXa](https://packt.live/3ek4ZXa).
+  id: totrans-548
   prefs: []
   type: TYPE_NORMAL
 - en: We can now proceed and test how it behaves when exposed to stochastic dynamics.
@@ -2689,9 +3452,11 @@
     for intermediate steps to minimize risk of falling into the holes, so in this
     case, we have to set the discount factor's gamma equal to 1\. This means that
     instead of using `gamma = 0.9`, we will use `gamma = 1.0`.
+  id: totrans-549
   prefs: []
   type: TYPE_NORMAL
 - en: 'Exercise 7.05: Using TD(λ) SARSA to Solve FrozenLake-v0 Stochastic Transitions'
+  id: totrans-550
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
@@ -2701,92 +3466,122 @@
     completely different with respect to the previous exercise since it needs to take
     care of the stochasticity factor. This imposes a new challenge for the SARSA(λ)
     algorithm. We will see how it will still be able to solve this task in this exercise.
+  id: totrans-551
   prefs: []
   type: TYPE_NORMAL
 - en: 'Follow these steps to complete this exercise:'
+  id: totrans-552
   prefs: []
   type: TYPE_NORMAL
 - en: 'Import the required modules:'
+  id: totrans-553
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE142]'
+  id: totrans-554
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE142]'
 - en: 'Instantiate the `gym` environment called `FrozenLake-v0` using the `is_slippery`
     flag set to `True` in order to enable stochasticity:'
+  id: totrans-555
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE143]'
+  id: totrans-556
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE143]'
 - en: 'Take a look at the action and observation spaces:'
+  id: totrans-557
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE144]'
+  id: totrans-558
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE144]'
 - en: 'This will print out the following:'
+  id: totrans-559
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE145]'
+  id: totrans-560
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE145]'
 - en: 'Create two dictionaries to easily translate the `actions` numbers into moves:'
+  id: totrans-561
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE146]'
+  id: totrans-562
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE146]'
 - en: 'Reset the environment and render it to take a look at the grid problem:'
+  id: totrans-563
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE147]'
+  id: totrans-564
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE147]'
 - en: 'The output will be as follows:'
+  id: totrans-565
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '![Figure 7.36: Environment''s initial state'
+  id: totrans-566
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '](img/B16182_07_36.jpg)'
+  id: totrans-567
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Figure 7.36: Environment''s initial state'
+  id: totrans-568
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Visualize the optimal policy for this environment:'
+  id: totrans-569
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE148]'
+  id: totrans-570
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE148]'
 - en: 'This prints out the following output:'
+  id: totrans-571
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE149]'
+  id: totrans-572
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE149]'
 - en: This represents the optimal policy for this environment. Except for two states,
     all the others have a single optimal action associated with them. In fact, as
     described earlier in this chapter, optimal actions here are those that bring the
@@ -2794,168 +3589,224 @@
     to lead the agent into tiles placed near holes. Two states have multiple optimal
     actions associated with them that are all equally optimal, as intended for this
     task.
+  id: totrans-573
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Define the functions that will take ε-greedy actions:'
+  id: totrans-574
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE150]'
+  id: totrans-575
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE150]'
 - en: 'Define a function that will take greedy actions:'
+  id: totrans-576
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE151]'
+  id: totrans-577
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE151]'
 - en: 'Define a function that will calculate the agent''s average performance:'
+  id: totrans-578
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE152]'
+  id: totrans-579
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE152]'
 - en: 'Set the number of total episodes, the number of steps representing the interval
     by which we will evaluate the agent''s average performance, the discount factor,
     the learning rate, and the `ε` parameters ruling its decrease – the starting value,
     minimum value, and range (in terms of the number of episodes) – over which the
     decrease is spread, as well as the eligibility trace''s decay parameter:'
+  id: totrans-580
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE153]'
+  id: totrans-581
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE153]'
 - en: 'Initialize the Q-table, set all the values equal to one except for terminal
     states, and set an array so that it collects all agent performance evaluations
     during training:'
+  id: totrans-582
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE154]'
+  id: totrans-583
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE154]'
 - en: 'Start the SARSA training loop by looping among all episodes:'
+  id: totrans-584
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE155]'
+  id: totrans-585
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE155]'
 - en: 'Define the epsilon value based on the current episode run:'
+  id: totrans-586
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE156]'
+  id: totrans-587
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE156]'
 - en: 'Initialize the eligibility traces table to 0:'
+  id: totrans-588
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE157]'
+  id: totrans-589
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE157]'
 - en: 'Reset the environment and state your choice for the first action with an ε-greedy
     policy. Then, start the in-episode loop:'
+  id: totrans-590
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE158]'
+  id: totrans-591
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE158]'
 - en: 'Update the eligibility traces by applying decay and making the last state-action
     pair the most important one:'
+  id: totrans-592
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE159]'
+  id: totrans-593
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE159]'
 - en: 'Define the environment step with the selected action and retrieval of the new
     state, reward, and done conditions:'
+  id: totrans-594
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE160]'
+  id: totrans-595
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE160]'
 - en: 'Select a new action with the ε-greedy policy:'
+  id: totrans-596
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE161]'
+  id: totrans-597
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE161]'
 - en: 'Calculate the ![b](img/B16182_07_36a.png) update and update the Q-table with
     the SARSA TD(![a](img/B16182_07_36b.png)) rule:'
+  id: totrans-598
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE162]'
+  id: totrans-599
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE162]'
 - en: 'Update the state and action with new values:'
+  id: totrans-600
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE163]'
+  id: totrans-601
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE163]'
 - en: 'Evaluate the average agent performance:'
+  id: totrans-602
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE164]'
+  id: totrans-603
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE164]'
 - en: 'Plot the SARSA agent''s mean reward history during training:'
+  id: totrans-604
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE165]'
+  id: totrans-605
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE165]'
 - en: 'This generates the following output:'
+  id: totrans-606
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE166]'
+  id: totrans-607
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE166]'
 - en: 'The plot for this can be visualized as follows:'
+  id: totrans-608
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '![Figure 7.37: Average reward of an epoch trend over training epochs'
+  id: totrans-609
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '](img/B16182_07_37.jpg)'
+  id: totrans-610
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Figure 7.37: Average reward of an epoch trend over training epochs'
+  id: totrans-611
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
@@ -2964,75 +3815,99 @@
     even when stochastic dynamics are considered. The behavior is very similar, and
     it also shows that, in the case of stochastic dynamics, it is not possible to
     obtain a perfect performance, in other words, reaching the goal 100% of the time.
+  id: totrans-612
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Evaluate the greedy policy''s performance of the trained agent (Q-table):'
+  id: totrans-613
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE167]'
+  id: totrans-614
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE167]'
 - en: 'This prints out the following output:'
+  id: totrans-615
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE168]'
+  id: totrans-616
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE168]'
 - en: 'Display the Q-table values:'
+  id: totrans-617
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE169]'
+  id: totrans-618
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE169]'
 - en: 'This generates the following output:'
+  id: totrans-619
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE170]'
+  id: totrans-620
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE170]'
 - en: This output shows the values of the complete state-action value function for
     our problem. These values are then used to generate the optimal policy by means
     of the greedy selection rule.
+  id: totrans-621
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: 'Print out the greedy policy that was found and compare it with the optimal
     policy:'
+  id: totrans-622
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: '[PRE171]'
+  id: totrans-623
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE171]'
 - en: 'This produces the following output:'
+  id: totrans-624
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
 - en: '[PRE172]'
+  id: totrans-625
   prefs:
   - PREF_IND
   type: TYPE_PRE
+  zh: '[PRE172]'
 - en: Also, as in the case of stochastic environment dynamics, the SARSA algorithm
     with eligibility traces has been able to correctly learn the optimal policy.
+  id: totrans-626
   prefs: []
   type: TYPE_NORMAL
 - en: Note
+  id: totrans-627
   prefs: []
   type: TYPE_NORMAL
 - en: To access the source code for this specific section, please refer to [https://packt.live/2CiyZVf](https://packt.live/2CiyZVf).
+  id: totrans-628
   prefs: []
   type: TYPE_NORMAL
 - en: You can also run this example online at [https://packt.live/2Np7zQ9](https://packt.live/2Np7zQ9).
+  id: totrans-629
   prefs: []
   type: TYPE_NORMAL
 - en: With this exercise, we've completed our study of temporal difference methods
@@ -3042,9 +3917,11 @@
     (or state-action pair) function. To complete our journey, we'll conclude with
     a quick comparison of the methods we explained in this chapter with those explained
     in *Chapter 5, Dynamic Programming*, and *Chapter 6, Monte Carlo Methods*.
+  id: totrans-630
   prefs: []
   type: TYPE_NORMAL
 - en: The Relationship between DP, Monte-Carlo, and TD Learning
+  id: totrans-631
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
@@ -3059,6 +3936,7 @@
     very long episodes (or even infinite ones) can be encountered, making MC methods
     impractical and too slow. This strict relation plays a central role in reinforcement
     learning theory.
+  id: totrans-632
   prefs: []
   type: TYPE_NORMAL
 - en: We have also learned about N-step methods and eligibility traces, two different
@@ -3067,6 +3945,7 @@
     concept allowed us to formally represent both of them, with the additional advantage
     of implementing a perspective change from a forward view to a more efficient incremental
     backward view, which allows us to extend MC methods even to non-episodic problems.
+  id: totrans-633
   prefs: []
   type: TYPE_NORMAL
 - en: When bringing TD and MC methods under the same theory umbrella, eligibility
@@ -3075,81 +3954,100 @@
     eligibility traces, even if typically coupled with an increased computational
     overhead, offer a better learning capability in general since they are both faster
     and more robust.
+  id: totrans-634
   prefs: []
   type: TYPE_NORMAL
 - en: It is now time for us to tackle the final activity of this chapter, where we
     will apply what we have learned from the theory and exercises we've covered on
     TD methods.
+  id: totrans-635
   prefs: []
   type: TYPE_NORMAL
 - en: 'Activity 7.01: Using TD(0) Q-Learning to Solve FrozenLake-v0 Stochastic Transitions'
+  id: totrans-636
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
 - en: 'The goal of this activity is for you to adapt the TD(0) Q-learning algorithm
     to solve the FrozenLake-v0 environment under the stochastic transition dynamics.
     We have already seen that the optimal policy appears as follows:'
+  id: totrans-637
   prefs: []
   type: TYPE_NORMAL
 - en: '![Figure 7.38: Optimal policy –  D = Down move, R = Right move, U = Up move,'
+  id: totrans-638
   prefs: []
   type: TYPE_NORMAL
 - en: and L = Left move
+  id: totrans-639
   prefs: []
   type: TYPE_NORMAL
 - en: '](img/B16182_07_38.jpg)'
+  id: totrans-640
   prefs: []
   type: TYPE_NORMAL
 - en: 'Figure 7.38: Optimal policy – D = Down move, R = Right move, U = Up move, and
     L = Left move'
+  id: totrans-641
   prefs: []
   type: TYPE_NORMAL
 - en: 'Making Q-learning converge on this environment is not a simple task, but it
     is possible. In order to make this a little bit easier, we can use a value for
     the discount factor gamma that''s equal to `0.99`. The following steps will help
     you to complete this exercise:'
+  id: totrans-642
   prefs: []
   type: TYPE_NORMAL
 - en: Import all the required modules.
+  id: totrans-643
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: Instantiate the gym environment and print out the observation and action spaces.
+  id: totrans-644
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: Reset the environment and render the starting state.
+  id: totrans-645
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: Define and print out the optimal policy for reference.
+  id: totrans-646
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: Define the functions for implementing the greedy and ε-greedy policies.
+  id: totrans-647
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: Define a function that will evaluate the agent's average performance and initialize
     the Q-table.
+  id: totrans-648
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: Define the learning method hyperparameters (ε, discount factor, total number
     of episodes, and so on).
+  id: totrans-649
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: Implement the Q-learning algorithm.
+  id: totrans-650
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: Train the agent and plot the average performance as a function of training epochs.
+  id: totrans-651
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
 - en: Display the Q-values found and print out the greedy policy while comparing it
     with the optimal one.
+  id: totrans-652
   prefs:
   - PREF_OL
   type: TYPE_NORMAL
@@ -3157,18 +4055,24 @@
     for all of the exercises in this chapter. We want to compare the policy found
     by our agent that was trained using the prescribed method with the optimal one
     to make sure we succeeded in making it learn the optimal policy correctly.
+  id: totrans-653
   prefs: []
   type: TYPE_NORMAL
 - en: 'The optimal policy should be as follows:'
+  id: totrans-654
   prefs: []
   type: TYPE_NORMAL
 - en: '[PRE173]'
+  id: totrans-655
   prefs: []
   type: TYPE_PRE
+  zh: '[PRE173]'
 - en: Note
+  id: totrans-656
   prefs: []
   type: TYPE_NORMAL
 - en: The solution to this activity can be found on page 726.
+  id: totrans-657
   prefs: []
   type: TYPE_NORMAL
 - en: By completing this activity, we've learned how to correctly implement and set
@@ -3179,9 +4083,11 @@
     our agent learn the optimal policy for this specific task, even if the maximum
     reward for this environment is bound and there is no possibility of completing
     the episode 100% of the time.
+  id: totrans-658
   prefs: []
   type: TYPE_NORMAL
 - en: Summary
+  id: totrans-659
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
@@ -3199,10 +4105,12 @@
     under both deterministic and stochastic transition dynamics. With this, we have
     been able to successfully learn about the optimal policy in all cases, thereby
     demonstrating how these methods are sound and robust.
+  id: totrans-660
   prefs: []
   type: TYPE_NORMAL
 - en: Now, it is time to move on to the next chapter, in which we will address the
     multi-armed bandit problem, a classic setting that's often encountered when studying
     reinforcement learning theory and the application of RL algorithms.
+  id: totrans-661
   prefs: []
   type: TYPE_NORMAL
