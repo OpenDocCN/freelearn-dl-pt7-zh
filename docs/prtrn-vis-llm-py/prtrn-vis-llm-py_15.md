@@ -1,6 +1,6 @@
 
 
-# 预训练基础模型的未来趋势
+# 第十五章：预训练基础模型的未来趋势
 
 在本章中，我们将通过指引未来的趋势来总结本书，涵盖书中所有相关主题。我们将探讨基础模型应用开发的趋势，例如使用 LangChain 构建互动对话应用程序，以及使用检索增强生成（retrieval augmented generation）等技术来减少大语言模型的幻觉问题。我们还将探索如何使用生成模型解决分类任务、人本设计以及其他生成模式，如代码、音乐、产品文档、幻灯片等！我们将讨论 AWS 的服务，例如 SageMaker JumpStart 基础模型、Amazon Bedrock、Amazon Titan 和 Amazon Code Whisperer，并展望基础模型及预训练技术的未来趋势。
 

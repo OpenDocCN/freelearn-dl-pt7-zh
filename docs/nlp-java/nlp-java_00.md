@@ -1,4 +1,4 @@
-# 关于作者
+# 第一章：关于作者
 
 **Breck Baldwin**是 Alias-i/LingPipe 的创始人兼总裁。该公司专注于为客户构建系统，为开发者提供教育，并偶尔进行纯研究探索。他自 1996 年起一直在构建大规模的 NLP 系统。他喜欢远足滑雪，并且写过《DIY RC Airplanes from Scratch: The Brooklyn Aerodrome Bible for Hacking the Skies》，*McGraw-Hill/TAB Electronics*出版。  
 

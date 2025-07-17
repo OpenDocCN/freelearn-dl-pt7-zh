@@ -1,4 +1,4 @@
-# 使用 Amazon SageMaker
+# 第七章：使用 Amazon SageMaker
 
 在过去几章中，你已经了解了可用的**机器学习**（**ML**）API，它们解决了商业挑战。本章中，我们将深入探讨 AWS SageMaker——当机器学习 API 无法完全满足你的需求时，SageMaker 用于无缝地构建、训练和部署模型。SageMaker 通过抽象化计算和存储资源的复杂性，提升了数据科学家和机器学习工程师的生产力。
 

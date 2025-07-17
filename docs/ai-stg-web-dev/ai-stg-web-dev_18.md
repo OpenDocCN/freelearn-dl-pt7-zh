@@ -1,6 +1,6 @@
 
 
-# AI 法规与治理——符合欧盟 AI 法案和 ISO/IEC 42001 标准的合规性
+# 第十八章：AI 法规与治理——符合欧盟 AI 法案和 ISO/IEC 42001 标准的合规性
 
 在这个 AI 时代，理解和遵守新兴的法规，如欧盟 AI 法案([`www.europarl.europa.eu/doceo/document/TA-9-2024-0138_EN.html`](https://www.europarl.europa.eu/doceo/document/TA-9-2024-0138_EN.html))和 ISO/IEC 42001 标准([`www.iso.org/obp/ui/en/#iso:std:iso-iec:42001:ed-1:v1:en`](https://www.iso.org/obp/ui/en/#iso:std:iso-iec:42001:ed-1:v1:en))至关重要。这些法规对指导 AI 技术的安全和伦理发展以及确保符合国际规范起着关键作用。随着 AI 渗透到各个行业，采取结构化的监管方法对其负责任且符合伦理的应用至关重要。
 
