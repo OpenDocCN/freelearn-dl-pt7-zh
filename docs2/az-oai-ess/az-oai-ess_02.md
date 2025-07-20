@@ -1,4 +1,4 @@
-# 2
+
 
 # Azure OpenAI 基础知识
 

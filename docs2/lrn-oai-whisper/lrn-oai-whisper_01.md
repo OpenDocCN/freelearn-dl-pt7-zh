@@ -1,4 +1,4 @@
-# 1
+
 
 # 揭开 Whisper 的面纱——介绍 OpenAI 的 Whisper
 
