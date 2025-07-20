@@ -1,0 +1,453 @@
+<html><head></head><body>
+<div id="book-content">
+<div id="sbo-rt-content"><div id="_idContainer044">
+			<h1 id="_idParaDest-153" class="chapter-number"><a id="_idTextAnchor177"/>7</h1>
+			<h1 id="_idParaDest-154"><a id="_idTextAnchor178"/>Exploring Advanced Voice Capabilities</h1>
+			<p>Welcome to <a href="B21020_07.xhtml#_idTextAnchor177"><span class="No-Break"><em class="italic">Chapter 7</em></span></a>, where we embark on an exciting journey to explore the advanced voice capabilities of OpenAI’s Whisper. This chapter will dive into techniques that enhance<a id="_idIndexMarker685"/> Whisper’s performance, such as <strong class="bold">quantization</strong>, and uncover its potential for real-time <span class="No-Break">speech recognition.</span></p>
+			<p>We begin by examining the power of quantization, a technique that reduces the model’s size and computational requirements while maintaining accuracy. You will learn<a id="_idIndexMarker686"/> how to apply quantization to Whisper using frameworks such as <strong class="bold">CTranslate2</strong> and <strong class="bold">Open Visual Inference and Neural Network Optimization</strong> (<strong class="bold">OpenVINO</strong>), enabling efficient deployment<a id="_idIndexMarker687"/> on <span class="No-Break">resource-constrained devices.</span></p>
+			<p>While we briefly touched upon the challenges of implementing real-time ASR with Whisper in the previous chapter, in this chapter, we will dive deeper into the current limitations and ongoing research efforts to make real-time transcription a reality. We will explore experimental approaches to building streaming ASR demos using Whisper and Gradio, providing hands-on examples to showcase the potential of real-time speech recognition <span class="No-Break">with Whisper.</span></p>
+			<p>In this chapter, we will cover the following <span class="No-Break">main topics:</span></p>
+			<ul>
+				<li>Leveraging the power <span class="No-Break">of quantization</span></li>
+				<li>Facing the challenges and opportunities of real-time <span class="No-Break">speech recognition</span></li>
+			</ul>
+			<p>By the end of this chapter, you will have a solid understanding of advanced techniques to optimize Whisper’s performance and appreciate the potential and challenges of real-time speech recognition. You will be equipped with practical knowledge and hands-on experience to apply these techniques in your projects, pushing the boundaries of what is possible <span class="No-Break">with Whisper.</span></p>
+			<p>So, let’s unlock the full potential of Whisper’s advanced voice capabilities, enabling you to build innovative applications that transform how we interact with spoken language in the <span class="No-Break">digital world.</span></p>
+			<h1 id="_idParaDest-155"><a id="_idTextAnchor179"/>Technical requirements</h1>
+			<p>To harness the capabilities of OpenAI’s Whisper for advanced applications, this chapter leverages Python and Google Colab for ease of use and accessibility. The Python environment setup includes the Whisper library for <span class="No-Break">transcription tasks.</span></p>
+			<p><span class="No-Break"><strong class="bold">Key requirements</strong></span><span class="No-Break">:</span></p>
+			<ul>
+				<li><strong class="bold">Google Colab notebooks</strong>: The notebooks are set to run our Python code with the minimum required memory and capacity. If the <strong class="bold">T4 GPU</strong> runtime type is available, select it for <span class="No-Break">better performance.</span></li>
+				<li><strong class="bold">Python environment</strong>: Each notebook contains directives to load the required Python libraries, including Whisper <span class="No-Break">and Gradio.</span></li>
+				<li><strong class="bold">Hugging Face account</strong>: Some notebooks require a Hugging Face account and login API key. The Colab notebooks include information about <span class="No-Break">this topic.</span></li>
+				<li><strong class="bold">Microphone and speakers</strong>: Some notebooks implement a Gradio app with voice recording and audio playback. A microphone and speakers connected to your computer might help you experience the interactive voice features. Another option is to open the URL link Gradio provides at runtime on your mobile phone; from there, you might be able to use the phone’s microphone to record <span class="No-Break">your voice.</span></li>
+				<li><strong class="bold">GitHub repository access</strong>: All Python code, including examples, is available in the chapter’s GitHub repository (<a href="https://github.com/PacktPublishing/Learn-OpenAI-Whisper/tree/main/Chapter07">https://github.com/PacktPublishing/Learn-OpenAI-Whisper/tree/main/Chapter07</a>). These Colab notebooks are ready to run, providing a practical and hands-on approach <span class="No-Break">to learning.</span></li>
+			</ul>
+			<p>By meeting these technical requirements, you will be prepared to explore Whisper in different contexts while enjoying the streamlined experience of Google Colab and the comprehensive resources available <span class="No-Break">on GitHub.</span></p>
+			<p>As we continue our journey into Whisper’s advanced capabilities, we must explore techniques to optimize its performance and efficiency. One such technique that has gained significant attention is quantization. In this section, we’ll explore the power of quantization and how it can be leveraged to enhance Whisper’s <span class="No-Break">deployment capabilities.</span></p>
+			<h1 id="_idParaDest-156"><a id="_idTextAnchor180"/>Leveraging the power of quantization</h1>
+			<p>Quantization in machine<a id="_idIndexMarker688"/> learning, particularly in ASR, refers to reducing the precision of the model’s parameters. This is typically done by mapping the continuous range of floating-point values to a discrete set of values, often represented by integers. The primary goal of quantization is to decrease the model’s computational complexity and memory footprint, which is crucial for deploying ASR systems on devices with limited resources, such as mobile phones or embedded systems. Quantization is essential <a id="_idIndexMarker689"/>for <span class="No-Break">several reasons:</span></p>
+			<ul>
+				<li><strong class="bold">Reducing model size</strong>: Using lower precision to represent the model’s weights can significantly reduce the model’s overall size. This is particularly beneficial for on-device deployment, where storage space is at <span class="No-Break">a premium.</span></li>
+				<li><strong class="bold">Improving inference speed</strong>: Lower precision arithmetic is faster on many hardware platforms, especially those without dedicated floating-point units. This can lead to faster inference times, critical for real-time applications such <span class="No-Break">as ASR.</span></li>
+				<li><strong class="bold">Increasing energy efficiency</strong>: Quantized models require fewer computational resources, lowering power consumption. This is essential for <span class="No-Break">battery-powered devices.</span></li>
+				<li><strong class="bold">Expanding hardware compatibility</strong>: Many edge devices are optimized for integer computations. Quantization allows models to leverage these <span class="No-Break">hardware optimizations.</span></li>
+			</ul>
+			<p>Some standard<a id="_idIndexMarker690"/> machine-learning<a id="_idIndexMarker691"/> quantization<a id="_idIndexMarker692"/> techniques in ASR are <strong class="bold">vector quantization</strong> (<strong class="bold">VQ</strong>), <strong class="bold">int8 quantization</strong>, and <strong class="bold">low-bit quantization</strong>. Let’s briefly <span class="No-Break">describe each:</span></p>
+			<p><em class="italic">VQ</em> is a classical technique<a id="_idIndexMarker693"/> in various domains, including speech coding and recognition. It involves mapping vectors from an ample vector space to a finite number of regions, which can be efficiently represented with fewer bits. VQ has been successfully applied to speech recognition systems, improving performance by efficiently compressing the <span class="No-Break">feature space.</span></p>
+			<p><em class="italic">INT8 quantization</em> is a recent approach<a id="_idIndexMarker694"/> to representing model weights and activations using 8-bit integers instead of 32-bit floating-point numbers. This method can reduce the model size by a factor of 4 without significantly degrading performance because it carefully rounds data from one type to another rather than simply <span class="No-Break">truncating it.</span></p>
+			<p>Further advancements<a id="_idIndexMarker695"/> have led to <em class="italic">low-bit quantization</em> techniques, where aggressive quantization to even 1 bit is explored. While this can substantially reduce storage<a id="_idIndexMarker696"/> and runtime, it may increase the <strong class="bold">word error rate</strong> (<strong class="bold">WER</strong>) in ASR tasks. However, with careful design, such as DistilHuBERT (<a href="https://huggingface.co/ntu-spml/distilhubert">https://huggingface.co/ntu-spml/distilhubert</a>), it is possible to achieve model compression<a id="_idIndexMarker697"/> with minimal <span class="No-Break">accuracy loss.</span></p>
+			<p>Be aware that quantization introduces a quantization error, which can degrade the model’s performance<a id="_idIndexMarker698"/> if not properly<a id="_idIndexMarker699"/> managed. Techniques such as <strong class="bold">quantization-aware training</strong> (<strong class="bold">QAT</strong>) and <strong class="bold">post-training quantization</strong> (<strong class="bold">PTQ</strong>) have been developed to mitigate these effects. QAT simulates the quantization process during training, allowing the model to adapt to the lower precision. PTQ, on the other hand, applies quantization after training, using calibration techniques to adjust the quantization parameters for minimal <span class="No-Break">performance loss.</span></p>
+			<p><span class="No-Break"><em class="italic">Figure 7</em></span><em class="italic">.1</em> shows a high-level view of the <a id="_idIndexMarker700"/>quantization process for <span class="No-Break">ASR models:</span></p>
+			<div>
+				<div id="_idContainer041" class="IMG---Figure">
+					<img src="image/B21020_07_1.jpg" alt="Figure 7.1 – Quantization process for ASR models" width="1212" height="264"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.1 – Quantization process for ASR models</p>
+			<p>The steps broadly outlined<a id="_idIndexMarker701"/> in the diagram are generic and intended to provide a foundational overview. Let’s review each step in <span class="No-Break">more detail:</span></p>
+			<ol>
+				<li><strong class="bold">Preparation</strong>: The initial step involves training the ASR model using high-precision (32-bit floating-point) representations. This ensures the model captures the complex patterns necessary for accurate <span class="No-Break">speech recognition.</span></li>
+				<li><strong class="bold">Selection of bit depth</strong>: Based on the target hardware and performance requirements, an appropriate bit depth is selected for quantization. Common choices include 16-bit (half-precision), 8-bit (<strong class="source-inline">int8</strong>), or even lower. Your selection should consider model size, computational efficiency, <span class="No-Break">and accuracy.</span><p class="list-inset">The choice of bit depth directly impacts the trade-off between model size, computational speed, and accuracy. Lower bit depths significantly reduce the model’s memory footprint and increase computational efficiency, but they can introduce quantization errors that potentially degrade model performance. The challenge lies in selecting an optimal bit depth that minimizes these errors while achieving the desired <span class="No-Break">efficiency gains.</span></p></li>
+				<li><strong class="bold">Calibration</strong>: A representative dataset is used to run inference through the model for PTQ. This step helps gather statistics about the distribution of activations, which are crucial for determining the <span class="No-Break">quantization parameters.</span></li>
+				<li><strong class="bold">Quantization of weights and activations</strong>: The model’s weights and activations are quantized using the gathered statistics to the selected bit depth. This involves mapping the high-precision values to a lower-precision space using scale factors and <span class="No-Break">zero points.</span></li>
+				<li><strong class="bold">QAT (optional)</strong>: In some cases, models undergo QAT, where the quantization effects are simulated during the training process. This helps the model to adapt to the reduced precision, potentially mitigating <span class="No-Break">accuracy loss.</span></li>
+				<li><strong class="bold">Testing and fine-tuning</strong>: After quantization, the model’s performance is evaluated to ensure accuracy remains within acceptable bounds. If necessary, fine-tuning or adjustments to the quantization parameters <span class="No-Break">are made.</span></li>
+				<li><strong class="bold">Deployment</strong>: The quantized model is then deployed on the target hardware, benefiting from reduced memory usage and faster inference times. This makes it suitable for edge devices<a id="_idIndexMarker702"/> or environments with limited <span class="No-Break">computational resources.</span></li>
+			</ol>
+			<p>Several quantized versions of Whisper are available, and more are being developed. In my experience, I have found that Faster-Whisper and Distil-Whisper offer superior and reliable performance. Here is a brief description <span class="No-Break">of them:</span></p>
+			<ul>
+				<li><strong class="bold">Faster-Whisper</strong> implements the Whisper <a id="_idIndexMarker703"/>model in CTranslate2, a library for efficient inference with Transformer models. It applies various methods to increase efficiency, such as weight quantization, layer fusion, and batch reordering. Quantization plays a significant role in Faster-Whisper by reducing the model’s memory footprint and accelerating inference, particularly on GPUs. We will experience Faster-Whisper in the <em class="italic">Diarizing Speech with WhisperX and NVIDIA’s NeMo</em> chapter because WhisperX<a id="_idIndexMarker704"/> uses Faster-Whisper to perform <strong class="bold">speech-to-text</strong> (<span class="No-Break"><strong class="bold">STT</strong></span><span class="No-Break">) transcriptions.</span></li>
+				<li><strong class="bold">Distil-Whisper</strong> is a distilled version of<a id="_idIndexMarker705"/> Whisper’s <strong class="source-inline">small.en</strong>, <strong class="source-inline">medium.en</strong>, and <strong class="source-inline">large-v2</strong> models that are faster and smaller while maintaining a comparable WER. Quantization can further enhance Distil-Whisper’s efficiency by reducing the precision of the model’s parameters, thus allowing for faster processing and lower <span class="No-Break">memory requirements.</span></li>
+			</ul>
+			<p>As we explore the power of quantization, let’s dive into a practical example using the CTranslate2 framework. CTranslate2 provides an efficient way to quantize and optimize the Whisper model for deployment on <span class="No-Break">resource-constrained devices.</span></p>
+			<h2 id="_idParaDest-157"><a id="_idTextAnchor181"/>Quantizing Whisper with CTranslate2 and running inference with Faster-Whisper</h2>
+			<p>Please find and open the <strong class="source-inline">LOAIW_ch07_1_Quantizing_Whisper_with_CTranslate2.ipynb</strong> Colab notebook (<a href="https://github.com/PacktPublishing/Learn-OpenAI-Whisper/blob/main/Chapter07/LOAIW_ch07_1_Quantizing_Whisper_with_CTranslate2.ipynb">https://github.com/PacktPublishing/Learn-OpenAI-Whisper/blob/main/Chapter07/LOAIW_ch07_1_Quantizing_Whisper_with_CTranslate2.ipynb</a>). The notebook demonstrates<a id="_idIndexMarker706"/> quantizing the Whisper<a id="_idIndexMarker707"/> model using CTranslate2 and<a id="_idIndexMarker708"/> the Faster-Whisper framework<a id="_idIndexMarker709"/> to load the quantized models and perform inference (transcription or translation). You should run the notebook using only the CPU and then the GPU. The CPU performance should be relatively fast because we use small Whisper models, short audio files, and quantization. <span class="No-Break"><em class="italic">Figure 7</em></span><em class="italic">.2</em> provides an overview of the quantization process, from preparing the audio data and converting and quantizing the model to evaluating its performance in language detection and transcription tasks. Quantization is vital in optimizing the model for deployment in resource-constrained environments, enabling efficient and accurate speech <span class="No-Break">recognition capabilities:</span></p>
+			<div>
+				<div id="_idContainer042" class="IMG---Figure">
+					<img src="image/B21020_07_2.jpg" alt="Figure 7.2 – High-level view of the process of quantizing Whisper using the CTranslate2 framework" width="1181" height="452"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.2 – High-level view of the process of quantizing Whisper using the CTranslate2 framework</p>
+			<p>The following steps provide an overview of the quantization process. For a complete, end-to-end implementation, please refer to the <strong class="source-inline">LOAIW_ch07_1_Quantizing_Whisper_with_CTranslate2.ipynb</strong> notebook. This section<a id="_idIndexMarker710"/> will present the high-level steps and selected<a id="_idIndexMarker711"/> code snippets <a id="_idIndexMarker712"/>to illustrate <a id="_idIndexMarker713"/>the process. Remember that the notebook contains additional details and explanations to help you understand the quantization workflow comprehensively. Here’s a detailed breakdown of <span class="No-Break">the process:</span></p>
+			<ol>
+				<li><strong class="bold">Installing libraries</strong>: The code begins with installing <strong class="source-inline">ctranslate2</strong>, <strong class="source-inline">transformers</strong>, <span class="No-Break">and </span><span class="No-Break"><strong class="source-inline">faster-whisper</strong></span><span class="No-Break">:</span><pre class="source-code">
+<strong class="bold">!pip install ctranslate2</strong>
+<strong class="bold">!pip install transformers[torch]&gt;=4.23</strong>
+<strong class="bold">!pip install faster-whisper</strong></pre><p class="list-inset">These libraries are essential for quantization and leveraging the Whisper <span class="No-Break">model’s capabilities.</span></p></li>				<li><strong class="bold">Downloading sample audio files</strong>: Two are downloaded from our GitHub repository to test the Whisper model’s <span class="No-Break">transcription capabilities:</span><pre class="source-code">
+<strong class="bold">!wget -nv </strong><a href="https://github.com/PacktPublishing/Learn-OpenAI-Whisper/raw/main/Chapter01/Learn_OAI_Whisper_Sample_Audio01.mp3">https://github.com/PacktPublishing/Learn-OpenAI-Whisper/raw/main/Chapter01/Learn_OAI_Whisper_Sample_Audio01.mp3</a>
+<strong class="bold">!wget -nv </strong><a href="https://github.com/PacktPublishing/Learn-OpenAI-Whisper/raw/main/Chapter01/Learn_OAI_Whisper_Sample_Audio02.mp3">https://github.com/PacktPublishing/Learn-OpenAI-Whisper/raw/main/Chapter01/Learn_OAI_Whisper_Sample_Audio02.mp3</a></pre></li>				<li><strong class="bold">Preprocessing audio files</strong>: The audio files are loaded and resampled to a sampling frequency of 16,000 Hz <span class="No-Break">using </span><span class="No-Break"><strong class="source-inline">librosa</strong></span><span class="No-Break">:</span><pre class="source-code">
+import ctranslate2
+from IPython.display import Audio
+import librosa
+import transformers
+# Load and resample the audio file.
+sampling_frequency = 16000
+audio, _ = librosa.load("Learn_OAI_Whisper_Sample_Audio01.mp3", sr=sampling_frequency, mono=True)
+Audio(audio, rate=sampling_frequency)</pre><p class="list-inset">This step is crucial for ensuring<a id="_idIndexMarker714"/> that the audio data <a id="_idIndexMarker715"/>is in the correct format<a id="_idIndexMarker716"/> for processing<a id="_idIndexMarker717"/> by the <span class="No-Break">Whisper model.</span></p></li>				<li><strong class="bold">Converting to CTranslate2 format</strong>: The Whisper model (<strong class="source-inline">openai/whisper-tiny</strong>) is converted to the CTranslate2 format, a more efficient <span class="No-Break">inference format:</span><pre class="source-code">
+<strong class="bold">!ct2-transformers-converter --force --model openai/whisper-tiny --output_dir whisper-tiny-ct2</strong></pre><p class="list-inset">The <strong class="source-inline">ct2-transformers-converter</strong> command converts models to the CTranslate2 format, optimized for fast inference. The core CTranslate2 implementation is framework-agnostic. The framework-specific logic is moved to a conversion step that loads supported models into a unified representation. The weights are then optionally quantized and saved into an optimized binary format for efficient storage <span class="No-Break">and processing.</span></p><p class="list-inset">When converting models using the CTranslate2 tool, the output directory typically contains several key files for the CTranslate2 engine to load and run the model. The command streamlines the process of preparing models for deployment in environments where computational efficiency is crucial and a preparatory step for quantization. While the exact output files can vary depending on the specific model being converted and the options used during conversion, standard files include <span class="No-Break">the following:</span></p><ul><li><strong class="source-inline">config.json</strong>: This JSON file contains configuration information about the model, such as its architecture, the size of its layers, and other hyperparameters. This information is crucial for the CTranslate2 engine to interpret the model’s binary weights and perform <span class="No-Break">inference correctly.</span></li><li><strong class="source-inline">model.bin</strong>: This is the binary<a id="_idIndexMarker718"/> file containing the quantized<a id="_idIndexMarker719"/> weights of the model. Quantization<a id="_idIndexMarker720"/> reduces the precision<a id="_idIndexMarker721"/> of the model’s weights, which can significantly decrease the model size and improve inference speed, often with minimal impact <span class="No-Break">on accuracy.</span></li><li><strong class="source-inline">vocabulary.json</strong> or similar vocabulary files (for example, <strong class="source-inline">source.spm</strong> and <strong class="source-inline">target.spm</strong> for models using <strong class="source-inline">SentencePiece</strong> tokenization): These files contain the mapping between tokens (words or subwords) and their corresponding indices in the model’s vocabulary. This mapping is essential for converting input text into a format that the model can process (tokenization) and converting the model’s output back into human-readable <span class="No-Break">text (detokenization).</span></li></ul><p class="list-inset">These files represent the converted and optimized model and are ready for use with CTranslate2. The conversion process might also include copying additional files necessary for the model’s operation, such as tokenization configuration (<strong class="source-inline">tokenizer_config.json</strong>), special tokens mapping (<strong class="source-inline">special_tokens_map.json</strong>), and others, depending on the model’s requirements and the conversion options <span class="No-Break">you use.</span></p></li>				<li><strong class="bold">Performing quantization</strong>: The model is then quantized to an 8-bit integer <span class="No-Break">format (</span><span class="No-Break"><strong class="source-inline">INT8</strong></span><span class="No-Break">):</span><pre class="source-code">
+<strong class="bold">!ct2-transformers-converter --force --model openai/whisper-tiny --output_dir whisper-tiny-ct2-int8 \</strong>
+<strong class="bold">--copy_files tokenizer.json preprocessor_config.json --quantization int8</strong></pre><p class="list-inset">CTranslate2 supports the most common <span class="No-Break">quantization types:</span></p><ul><li>8-bit <span class="No-Break">integers (</span><span class="No-Break"><strong class="source-inline">INT8</strong></span><span class="No-Break">)</span></li><li>16-bit <span class="No-Break">integers (</span><span class="No-Break"><strong class="source-inline">INT16</strong></span><span class="No-Break">)</span></li><li>16-bit floating <span class="No-Break">points (</span><span class="No-Break"><strong class="source-inline">FP16</strong></span><span class="No-Break">)</span></li><li>16-bit brain floating <span class="No-Break">points (</span><span class="No-Break"><strong class="source-inline">BF16</strong></span><span class="No-Break">)</span></li></ul><p class="list-inset">This step significantly<a id="_idIndexMarker722"/> reduces the model’s size<a id="_idIndexMarker723"/> and computational<a id="_idIndexMarker724"/> requirements, making<a id="_idIndexMarker725"/> it more suitable for deployment on devices with <span class="No-Break">limited resources.</span></p></li>				<li><strong class="bold">Detecting language</strong>: The quantized model detects the language of the provided <span class="No-Break">audio samples:</span><pre class="source-code">
+# Detect the language.
+results = model.detect_language(features)
+language, probability = results[0][0]
+print("Detected language %s with probability %f" % (language, probability))</pre><p class="list-inset">This step is important for ensuring that the model accurately understands the context of the <span class="No-Break">audio data.</span></p></li>				<li><strong class="bold">Transcribing audio files</strong>: The model generates transcriptions for the audio samples using the <span class="No-Break"><strong class="source-inline">processor.tokenizer.convert_tokens_to_ids()</strong></span><span class="No-Break"> method:</span><pre class="source-code">
+prompt = processor.tokenizer.convert_tokens_to_ids(
+    [
+        "&lt;|startoftranscript|&gt;",
+        language,
+        "&lt;|transcribe|&gt;",
+        "&lt;|notimestamps|&gt;",  # Remove this token to generate timestamps.
+    ]
+)
+# Load the model on device
+model = ctranslate2.models.Whisper("whisper-tiny-ct2-int8", device=this_device)
+# Run generation for the 30-second window.
+results = model.generate(features, [prompt])
+transcription = processor.decode(results[0].sequences_ids[0])
+print(transcription))</pre><p class="list-inset">This demonstrates<a id="_idIndexMarker726"/> the model’s ability<a id="_idIndexMarker727"/> to transcribe<a id="_idIndexMarker728"/> speech<a id="_idIndexMarker729"/> accurately, even <span class="No-Break">after quantization.</span></p></li>				<li><strong class="bold">Evaluating performance</strong>: After the audio transcription, the code evaluates the performance of the quantized model, such as measuring the time taken <span class="No-Break">for transcription:</span><pre class="source-code">
+# Print the end time and the delta in seconds and fractions of a second.
+end = time.time()
+print('start: ', start)
+print('end: ', end)
+print('delta: ', end - start)
+print('delta: ', datetime.timedelta(seconds=end - start))</pre><p class="list-inset">This evaluation is crucial for understanding the impact of quantization on the model’s efficiency <span class="No-Break">and accuracy.</span></p></li>			</ol>
+			<p>The results show empirical<a id="_idIndexMarker730"/> evidence that quantized models of Whisper<a id="_idIndexMarker731"/> perform transcription quite <a id="_idIndexMarker732"/>well using a much smaller<a id="_idIndexMarker733"/> memory and processing footprint. Building upon our understanding of quantization, let’s now focus on another robust framework, OpenVINO. We’ll investigate how OpenVINO can be used to quantize the Distil-Whisper model, offering a more comprehensive and rigorous <span class="No-Break">quantization process.</span></p>
+			<h2 id="_idParaDest-158"><a id="_idTextAnchor182"/>Quantizing Distil-Whisper with OpenVINO</h2>
+			<p>This hands-on exercise <a id="_idIndexMarker734"/>relies on the <strong class="source-inline">LOAIW_ch07_2_Quantizing_Distil_Whisper_with_OpenVINO.ipynb </strong>Colab notebook (<a href="https://github.com/PacktPublishing/Learn-OpenAI-Whisper/blob/main/Chapter07/LOAIW_ch07_2_Quantizing_Distil_Whisper_with_OpenVINO.ipynb">https://github.com/PacktPublishing/Learn-OpenAI-Whisper/blob/main/Chapter07/LOAIW_ch07_2_Quantizing_Distil_Whisper_with_OpenVINO.ipynb</a>). Because of OpenVINO, I recommend you run this notebook in Colab using CPU and high RAM. OpenVINO does not use an NVIDIA GPU, even if it is present, only an Intel GPU. However, the libraries OpenVINO provides are optimized to run on a plain CPU, thus a significant advantage when the computational processing resources are limited. However, you should have at least 50 GB of RAM for quantization. The notebook provides a comprehensive guide on utilizing Distil-Whisper (based on WhisperX), a distilled variant of the Whisper model, with OpenVINO for ASR. Distil-Whisper offers a significant reduction in the number of parameters (from 1,550 parameters in <strong class="source-inline">large-v2</strong> to 756 in <strong class="source-inline">distill-large-v2</strong>, or about 50% reduction) and an increase in inference<a id="_idIndexMarker735"/> speed while maintaining close performance to the original Whisper model <span class="No-Break">regarding WER.</span></p>
+			<p><span class="No-Break"><em class="italic">Figure 7</em></span><em class="italic">.3</em> outlines converting the Distil-Whisper<a id="_idIndexMarker736"/> model to the OpenVINO <strong class="bold">intermediate representation</strong> (<strong class="bold">IR</strong>) format, applying INT8 PTQ for performance enhancement, and running the model for speech <span class="No-Break">recognition tasks:</span></p>
+			<div>
+				<div id="_idContainer043" class="IMG---Figure">
+					<img src="image/B21020_07_3.jpg" alt="Figure 7.3 – High-level architectural diagram quantizing Distil-Whisper using the OpenVINO framework" width="1181" height="785"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 7.3 – High-level architectural diagram quantizing Distil-Whisper using the OpenVINO framework</p>
+			<p>The following subsections will describe the critical steps in quantizing the Distil-Whisper model using the OpenVINO framework. We will install the necessary libraries, load the model, convert it to the OpenVINO format, and apply quantization. We will also explore how to load the quantized model using the Optimum library and integrate it with Hugging Face pipelines. Finally, we will run inference with the quantized model and compare its performance<a id="_idIndexMarker737"/> and accuracy to the <span class="No-Break">original model.</span></p>
+			<h3>Installing libraries</h3>
+			<p>First, the process instructs<a id="_idIndexMarker738"/> the installation of necessary <span class="No-Break">Python libraries:</span></p>
+			<pre class="console">
+%pip install -q "transformers&gt;=4.35" onnx "git+<a href="https://github.com/huggingface/optimum-intel.git">https://github.com/huggingface/optimum-intel.git</a>" "peft==0.6.2" --extra-index-url https://download.pytorch.org/whl/cpu
+%pip install -q "openvino&gt;=2023.2.0" datasets  "gradio&gt;=4.0" "librosa" "soundfile"
+%pip install -q "nncf&gt;=2.6.0" "jiwer"</pre>			<p>Let’s examine each one in more detail, focusing on the libraries we have not <span class="No-Break">described before:</span></p>
+			<ul>
+				<li><strong class="bold">Transformers</strong>: This library is used for NLP<a id="_idIndexMarker739"/> tasks such as text classification, information extraction, and question-answering. It provides access to pre-trained models such as BERT, GPT-2, and, in this case, the Distil-Whisper model <span class="No-Break">for ASR.</span></li>
+				<li><strong class="bold">Open Neural Network Exchange (ONNX)</strong>: ONNX is an open format representing machine<a id="_idIndexMarker740"/> learning models. It enables models to be transferred between different frameworks and tools, <span class="No-Break">facilitating interoperability.</span></li>
+				<li><strong class="bold">Optimum Intel</strong>: This is part of the Hugging<a id="_idIndexMarker741"/> Face Optimum library tailored for Intel hardware. It converts models to the OpenVINO IR format, which is optimized for Intel’s hardware, and performs tasks such as quantization to improve <span class="No-Break">model performance.</span></li>
+				<li><strong class="bold">OpenVINO</strong>: The OpenVINO toolkit is designed<a id="_idIndexMarker742"/> to facilitate fast and efficient inference of deep learning models on Intel hardware. It includes optimization tools and libraries to accelerate various computer vision and deep <span class="No-Break">learning tasks.</span></li>
+				<li><strong class="bold">Datasets</strong>: This library is part of the Hugging<a id="_idIndexMarker743"/> Face ecosystem and is used for loading and processing datasets simply and efficiently. It is handy for machine learning tasks that require handling large amounts <span class="No-Break">of data.</span></li>
+				<li><strong class="bold">Soundfile</strong>: This library provides<a id="_idIndexMarker744"/> functions for reading from and writing to audio files in various formats. It handles audio data input and <span class="No-Break">output operations.</span></li>
+				<li><strong class="bold">Neural Network Compression Framework (NNCF)</strong>: This toolkit for optimizing deep<a id="_idIndexMarker745"/> learning models through quantization, pruning, and knowledge distillation. It improves neural networks’ performance, particularly regarding inference speed and <span class="No-Break">memory usage.</span></li>
+				<li><strong class="bold">JiWER</strong>: This is a library for evaluating<a id="_idIndexMarker746"/> automatic speech recognition models. It calculates metrics such as the WER, a standard measure of speech recognition <span class="No-Break">systems’ performance.</span></li>
+			</ul>
+			<p>Each library plays a specific<a id="_idIndexMarker747"/> role in running and optimizing the Distil-Whisper model using OpenVINO, from model conversion and optimization to performance evaluation and user <span class="No-Break">interface creation.</span></p>
+			<h3>Loading the model</h3>
+			<p>When initializing a PyTorch<a id="_idIndexMarker748"/> Whisper model using the <strong class="source-inline">transformers</strong> library, the <strong class="source-inline">AutoModelForSpeechSeq2Seq.from_pretrained</strong> method is <span class="No-Break">the go-to:</span></p>
+			<pre class="source-code">
+from transformers import AutoProcessor, AutoModelForSpeechSeq2Seq
+processor = AutoProcessor.from_pretrained(model_id.value)
+pt_model = AutoModelForSpeechSeq2Seq.from_pretrained(model_id.value)
+pt_model.eval();</pre>			<p>This tutorial will use the <strong class="source-inline">distil-whisper/distil-medium.en</strong> model as our primary example. It’s worth noting that the model must be downloaded during the first run, which may take <span class="No-Break">some time.</span></p>
+			<p>If you want to explore alternative models, the Distil-Whisper Hugging Face collection offers options such as <strong class="source-inline">distil-whisper/distil-large-v2</strong> or <strong class="source-inline">distil-whisper/distil-small.en</strong>. Other models based on the original Whisper architecture are available, and you can find more information about them in the <span class="No-Break">provided resources.</span></p>
+			<p>It’s crucial to emphasize the significance of preprocessing and postprocessing in this model’s usage. The <strong class="source-inline">AutoProcessor</strong> class, used to initialize <strong class="source-inline">WhisperProcessor</strong>, plays a vital role in preparing the audio input data for the model. It handles the audio conversion into a Mel-spectrogram and decodes the <strong class="source-inline">token_ids</strong> predicted output back into a string using <span class="No-Break">the tokenizer.</span></p>
+			<p>By leveraging the <strong class="source-inline">AutoModelForSpeechSeq2Seq.from_pretrained</strong> method and understanding the preprocessing and postprocessing steps, you’ll be well equipped to work effectively with PyTorch<a id="_idIndexMarker749"/> <span class="No-Break">Whisper models.</span></p>
+			<h3>Loading the OpenVINO model using the Optimum library</h3>
+			<p>The Hugging Face Optimum<a id="_idIndexMarker750"/> API is a powerful tool<a id="_idIndexMarker751"/> that simplifies converting and quantizing models from the Hugging Face Transformers library to the OpenVINO™ IR format. The Hugging Face Optimum documentation (<a href="https://huggingface.co/docs/optimum/intel/inference">https://huggingface.co/docs/optimum/intel/inference</a>) is an excellent resource if you’re looking for more <span class="No-Break">in-depth information.</span></p>
+			<p>Optimum Intel is your friend when loading optimized models from the Hugging Face Hub and creating pipelines for inference with OpenVINO Runtime. What’s great about the Optimum Inference models is that they are API-compatible with Hugging Face <strong class="source-inline">transformers</strong> models. You can seamlessly replace the <strong class="source-inline">AutoModelForXxx</strong> class with the corresponding <strong class="source-inline">OVModelForXxx</strong> class <span class="No-Break">without hassle:</span></p>
+			<pre class="source-code">
+# Using HF transformers models
+from transformers import AutoModelForSpeechSeq2Seq
+from transformers import AutoTokenizer, pipeline
+model_id = "distil-whisper/distil-large-v2"
+model = AutoModelForSpeechSeq2Seq.from_pretrained(model_id)
+# Using Optimum Inference models
+from optimum.intel.openvino import OVModelForSpeechSeq2Seq
+from transformers import AutoTokenizer, pipeline
+model_id = "distil-whisper/distil-large-v2"
+model = OVModelForSpeechSeq2Seq.from_pretrained(model_id, export=True)</pre>			<p>You’ll need to call<a id="_idIndexMarker752"/> the <strong class="source-inline">from_pretrained</strong> method to initialize<a id="_idIndexMarker753"/> the model class. When downloading and converting the <strong class="source-inline">transformers</strong> model, include the <strong class="source-inline">export=True</strong> parameter. This will ensure a smooth conversion process. Once you have the converted model, you can save it using the <span class="No-Break"><strong class="source-inline">save_pretrained</strong></span><span class="No-Break"> method:</span></p>
+			<pre class="source-code">
+from pathlib import Path
+from optimum.intel.openvino import OVModelForSpeechSeq2Seq
+model_path = Path(model_id.value.replace('/', '_'))
+ov_config = {"CACHE_DIR": ""}
+if not model_path.exists():
+    ov_model = OVModelForSpeechSeq2Seq.from_pretrained(
+        model_id.value, ov_config=ov_config, export=True, compile=False, load_in_8bit=False
+    )
+    ov_model.half()
+    ov_model.save_pretrained(model_path)
+else:
+    ov_model = OVModelForSpeechSeq2Seq.from_pretrained(
+        model_path, ov_config=ov_config, compile=False
+    )</pre>			<p>It’s worth mentioning that the tokenizers and processors distributed with the models are also compatible with the OpenVINO model. This compatibility allows you to reuse the previously initialized processor, saving time <span class="No-Break">and effort.</span></p>
+			<p>Using the Hugging Face<a id="_idIndexMarker754"/> Optimum library, we can<a id="_idIndexMarker755"/> also convert the Distil-Whisper model to OpenVINO’s optimized IR format. This step is crucial for leveraging OpenVINO’s inference engine for efficient <span class="No-Break">model execution:</span></p>
+			<pre class="source-code">
+-from transformers import AutoModelForSpeechSeq2Seq
++from optimum.intel.openvino import OVModelForSpeechSeq2Seq
+from transformers import AutoTokenizer, pipeline
+model_id = "distil-whisper/distil-large-v2"
+-model = AutoModelForSpeechSeq2Seq.from_pretrained(model_id)
++model = OVModelForSpeechSeq2Seq.from_pretrained(model_id, export=True)</pre>			<p>By leveraging the Hugging Face Optimum API and Optimum Intel, you can efficiently convert and quantize models, load optimized models, and create pipelines for inference with OpenVINO Runtime. The API compatibility and the ability to reuse initialized processors make the process even <span class="No-Break">more streamlined.</span></p>
+			<h3>Using the OpenVINO model with Hugging Face pipelines</h3>
+			<p>By combining the OpenVINO<a id="_idIndexMarker756"/> model with the Hugging Face<a id="_idIndexMarker757"/> pipeline interface and utilizing the chunked algorithm and batching capabilities of Distil-Whisper, you’ll be able to tackle long audio transcription tasks with unprecedented speed <span class="No-Break">and ease.</span></p>
+			<p>As with the original PyTorch model, the OpenVINO model seamlessly integrates with the Hugging Face pipeline interface for ASR. This compatibility allows you to transcribe long audio files using the <span class="No-Break">pipeline effortlessly:</span></p>
+			<pre class="source-code">
+from transformers import pipeline
+ov_model.generation_config = pt_model.generation_config
+pipe = pipeline(
+    "automatic-speech-recognition",
+    model=ov_model,
+    tokenizer=processor.tokenizer,
+    feature_extractor=processor.feature_extractor,
+    max_new_tokens=128,
+    chunk_length_s=15,
+    batch_size=16,
+)</pre>			<p>Distil-Whisper takes it a step further by employing a chunked algorithm, which significantly speeds up the transcription process for long-form audio. This chunked long-form algorithm is an impressive nine times faster than the sequential algorithm proposed by OpenAI in their Whisper <span class="No-Break">paper (</span><a href="https://cdn.openai.com/papers/whisper.pdf"><span class="No-Break">https://cdn.openai.com/papers/whisper.pdf</span></a><span class="No-Break">).</span></p>
+			<p>To take advantage of chunking, you only need to pass the <strong class="source-inline">chunk_length_s</strong> parameter to the pipeline. When working with Distil-Whisper, setting the chunk length to <strong class="source-inline">15</strong> seconds is the sweet spot for optimal performance. But that’s not all! If you want to leverage the power of batching, include the <strong class="source-inline">batch_size</strong> argument when calling the pipeline. This will enable<a id="_idIndexMarker758"/> you to process multiple audio chunks simultaneously, further boosting<a id="_idIndexMarker759"/> the efficiency of your <span class="No-Break">transcription workflow.</span></p>
+			<h3>Quantizing the model</h3>
+			<p>Quantization is a powerful technique<a id="_idIndexMarker760"/> for significantly reducing the model size and improving inference speed. NNCF makes it easier than ever to implement PTQ. By seamlessly integrating quantization layers into the model graph and leveraging a subset of the training dataset to initialize the parameters of these additional layers, NNCF ensures that the modifications required to your original training code <span class="No-Break">are minimal.</span></p>
+			<p>To embark on the optimization journey, the first step is to create calibration datasets specifically tailored <span class="No-Break">for quantization:</span></p>
+			<pre class="source-code">
+%%skip not $to_quantize.value
+from itertools import islice
+from optimum.intel.openvino.quantization import InferRequestWrapper
+def collect_calibration_dataset(ov_model: OVModelForSpeechSeq2Seq, calibration_dataset_size: int):
+    # Overwrite model request properties, saving the original ones for restoring later
+    original_encoder_request = ov_model.encoder.request
+    original_decoder_with_past_request = ov_model.decoder_with_past.request
+    encoder_calibration_data = []
+    decoder_calibration_data = []
+    ov_model.encoder.request = InferRequestWrapper(original_encoder_request, encoder_calibration_data)
+    ov_model.decoder_with_past.request = InferRequestWrapper(original_decoder_with_past_request,
+                                                             decoder_calibration_data)
+    calibration_dataset = load_dataset("librispeech_asr", "clean", split="validation", streaming=True)
+    for sample in tqdm(islice(calibration_dataset, calibration_dataset_size), desc="Collecting calibration data",
+                       total=calibration_dataset_size):
+        input_features = extract_input_features(sample)
+        ov_model.generate(input_features)
+    ov_model.encoder.request = original_encoder_request
+    ov_model.decoder_with_past.request = original_decoder_with_past_request
+    return encoder_calibration_data, decoder_calibration_data</pre>			<p>Since the Whisper encoder<a id="_idIndexMarker761"/> and decoder are quantized separately, preparing a calibration dataset for each model is essential. This is where the <strong class="source-inline">InferRequestWrapper</strong> class comes into play. Importing this class, you can intercept and collect the model inputs in a list. Then, you’ll run model inference on a small subset of audio samples. Remember that increasing the calibration dataset’s size generally leads to better quantization quality, so it’s worth experimenting to find the <span class="No-Break">right balance.</span></p>
+			<p>Once you have your calibration datasets ready, it’s time to unleash the power of <strong class="source-inline">nncf.quantize</strong>. This function is your key to obtaining quantized encoder and decoder models. In the case of Distil-Whisper, you’ll run <strong class="source-inline">nncf.quantize</strong> on the <strong class="source-inline">encoder</strong> and <strong class="source-inline">decoder_with_past</strong> models. It’s worth noting that the first-step decoder is not quantized since its contribution to the overall inference time <span class="No-Break">is negligible:</span></p>
+			<pre class="source-code">
+%%skip not $to_quantize.value
+import gc
+import shutil
+import nncf
+CALIBRATION_DATASET_SIZE = 50
+quantized_model_path = Path(f"{model_path}_quantized")
+def quantize(ov_model: OVModelForSpeechSeq2Seq, calibration_dataset_size: int):
+    if not quantized_model_path.exists():
+        encoder_calibration_data, decoder_calibration_data = collect_calibration_dataset(
+            ov_model, calibration_dataset_size
+        )
+        print("Quantizing encoder")
+        quantized_encoder = nncf.quantize(
+            ov_model.encoder.model,
+            nncf.Dataset(encoder_calibration_data),
+            subset_size=len(encoder_calibration_data),
+            model_type=nncf.ModelType.TRANSFORMER,
+            # Smooth Quant algorithm reduces activation quantization error; optimal alpha value was obtained through grid search
+            advanced_parameters=nncf.AdvancedQuantizationParameters(smooth_quant_alpha=0.50)
+        )
+        ov.save_model(quantized_encoder, quantized_model_path / "openvino_encoder_model.xml")
+        del quantized_encoder
+        del encoder_calibration_data
+        gc.collect()
+        print("Quantizing decoder with past")
+        quantized_decoder_with_past = nncf.quantize(
+            ov_model.decoder_with_past.model,
+            nncf.Dataset(decoder_calibration_data),
+            subset_size=len(decoder_calibration_data),
+            model_type=nncf.ModelType.TRANSFORMER,
+            # Smooth Quant algorithm reduces activation quantization error; optimal alpha value was obtained through grid search
+            advanced_parameters=nncf.AdvancedQuantizationParameters(smooth_quant_alpha=0.95)
+        )
+        ov.save_model(quantized_decoder_with_past, quantized_model_path / "openvino_decoder_with_past_model.xml")
+        del quantized_decoder_with_past
+        del decoder_calibration_data
+        gc.collect()
+        # Copy the config file and the first-step-decoder manually
+        shutil.copy(model_path / "config.json", quantized_model_path / "config.json")
+        shutil.copy(model_path / "openvino_decoder_model.xml", quantized_model_path / "openvino_decoder_model.xml")
+        shutil.copy(model_path / "openvino_decoder_model.bin", quantized_model_path / "openvino_decoder_model.bin")
+    quantized_ov_model = OVModelForSpeechSeq2Seq.from_pretrained(quantized_model_path, ov_config=ov_config, compile=False)
+    quantized_ov_model.to(device.value)
+    quantized_ov_model.compile()
+    return quantized_ov_model
+ov_quantized_model = quantize(ov_model, CALIBRATION_DATASET_SIZE)</pre>			<p>The code snippet shows<a id="_idIndexMarker762"/> that the final step is to serialize the INT8 model using the <strong class="source-inline">openvino.save_model</strong> function after quantization. This step ensures that your quantized model is ready for deployment and can be quickly loaded <span class="No-Break">for inference.</span></p>
+			<p>It’s essential to remember that quantization is a computationally intensive operation that can be both time-consuming and memory-intensive. Running the quantization code may require patience, but the benefits of model size reduction and inference speed improvement make it well worth <span class="No-Break">the effort.</span></p>
+			<p>By following these steps<a id="_idIndexMarker763"/> and leveraging the power of NNCF, you can optimize your models through PTQ, enabling faster and more <span class="No-Break">efficient inference.</span></p>
+			<h3>Running inference</h3>
+			<p>Here, we demonstrate<a id="_idIndexMarker764"/> how to run inference with the quantized model, including loading the model, preparing input samples, and executing the model to transcribe speech. Here are the steps <span class="No-Break">in detail:</span></p>
+			<ol>
+				<li><strong class="bold">Loading the dataset</strong>: Load a dataset for testing the model’s transcription capabilities. The dataset used is <strong class="source-inline">librispeech_asr_dummy</strong> from Hugging Face’s <span class="No-Break"><strong class="source-inline">datasets</strong></span><span class="No-Break"> library:</span><pre class="source-code">
+%%skip not $to_quantize.value
+dataset = load_dataset(
+    "hf-internal-testing/librispeech_asr_dummy", "clean", split="validation"
+)
+sample = dataset[0]</pre></li>				<li><strong class="bold">Preparing the input features</strong>: Extract input features from a sample in the dataset. This involves converting the audio to a <strong class="source-inline">numpy</strong> array format and then to a tensor that the model <span class="No-Break">can process:</span><pre class="source-code">
+input_features = extract_input_features(sample)
+predicted_ids = ov_model.generate(input_features)</pre></li>				<li><strong class="bold">Running inference on the original model</strong>: Use the original OpenVINO model to generate predictions for the input features. Decode the predicted token IDs into text transcription using the <span class="No-Break">model’s processor:</span><pre class="source-code">
+transcription_original = processor.batch_decode(predicted_ids, skip_special_tokens=True)</pre></li>				<li><strong class="bold">Running inference on the quantized model</strong>: Similarly, use the quantized OpenVINO model to generate predictions for the same input features. Decode the predicted token IDs into <span class="No-Break">text transcription:</span><pre class="source-code">
+predicted_ids = ov_quantized_model.generate(input_features)
+transcription_quantized = processor.batch_decode(predicted_ids, skip_special_tokens=True)</pre></li>				<li><strong class="bold">Displaying the audio</strong>: Use IPython’s <strong class="source-inline">Audio</strong> class to play the audio file used <span class="No-Break">for transcription:</span><pre class="source-code">
+display(ipd.Audio(sample["audio"]["array"], rate=sample["audio"]["sampling_rate"]))</pre></li>				<li><strong class="bold">Printing transcriptions</strong>: Print the transcriptions from the original and quantized models to compare <span class="No-Break">the results:</span><pre class="source-code">
+print(f"Original : {transcription_original[0]}")
+print(f"Quantized: {transcription_quantized[0]}")</pre></li>			</ol>
+			<p>After running this code in the notebook, review the transcriptions and verify that the transcriptions from the original and quantized models are the same, ensuring that quantization did not significantly impact the <span class="No-Break">model’s accuracy.</span></p>
+			<p>In addition, the notebook<a id="_idIndexMarker765"/> includes how to use the model with Hugging Face’s pipeline interface for ASR, highlighting the efficiency of chunked algorithms for long-form <span class="No-Break">audio transcription.</span></p>
+			<h3>Comparing performance and accuracy</h3>
+			<p>Next, we compare the original<a id="_idIndexMarker766"/> and quantized Distil-Whisper<a id="_idIndexMarker767"/> models regarding<a id="_idIndexMarker768"/> accuracy (using WER) and performance (inference time). It illustrates the benefits of quantization in enhancing model inference speed without a significant drop in accuracy. Comparing the performance and accuracy of the original and quantized models involves <span class="No-Break">the following:</span></p>
+			<ul>
+				<li><strong class="bold">Measuring accuracy</strong>: We use the <em class="italic">1 - WER</em> metric to measure the accuracy of the models. This involves comparing the transcriptions produced by the models against a ground truth to calculate the error rate. A lower WER indicates <span class="No-Break">higher accuracy:</span><pre class="source-code">
+word_accuracy = (1 - wer(ground_truths, predictions, reference_transform=wer_standardize,                         hypothesis_transform=wer_standardize)) * 100</pre></li>				<li><strong class="bold">Measuring performance</strong>: The inference time is measured<a id="_idIndexMarker769"/> separately for the encoder and decoder-with-past model forwards<a id="_idIndexMarker770"/> and the whole<a id="_idIndexMarker771"/> model inference. This step involves timing the model’s inference process to evaluate how quickly it can generate predictions. Performance measurement is crucial for understanding the efficiency gains achieved <span class="No-Break">through quantization:</span><pre class="source-code">
+mean_whole_infer_time = sum(whole_infer_times)
+mean_encoder_infer_time = sum(encoder_infer_times)
+mean_decoder_with_time_infer_time = sum(decoder_with_past_infer_times)</pre></li>				<li><strong class="bold">Comparing original and quantized models</strong>: The notebook directly compares the original Distil-Whisper models and their quantized counterparts regarding accuracy (<em class="italic">using 1 - WER</em>) and performance (inference time). This comparison helps to illustrate the impact of quantization on the model’s efficiency <span class="No-Break">and effectiveness:</span><pre class="source-code">
+print(f"Encoder performance speedup: {times_original[1] / times_quantized[1]:.3f}")
+print(f"Decoder with past performance speedup: {times_original[2] / times_quantized[2]:.3f}")
+print(f"Whole pipeline performance speedup: {times_original[0] / times_quantized[0]:.3f}")
+print(f"Whisper transcription word accuracy. Original model: {accuracy_original:.2f}%. Quantized model: {accuracy_quantized:.2f}%.")
+print(f"Accuracy drop: {accuracy_original - accuracy_quantized:.2f}%.")</pre></li>			</ul>
+			<p>Based on the comparison printout from running the notebook, you can conclude the benefits of quantization, such as significant improvements in model inference time without a major drop in accuracy. These steps provide a comprehensive framework for evaluating the impact of<a id="_idIndexMarker772"/> quantization on the performance<a id="_idIndexMarker773"/> and accuracy of ASR models <a id="_idIndexMarker774"/>such as Distil-Whisper when optimized with OpenVINO. The goal is to demonstrate that quantization can significantly enhance model efficiency for deployment in resource-constrained environments without substantially <span class="No-Break">compromising accuracy.</span></p>
+			<h3>Running the interactive demo</h3>
+			<p>As an extra, the interactive Gradio<a id="_idIndexMarker775"/> demo allows us to test the model’s capabilities on their audio data or recordings. This section demonstrates the practical application of the quantized Distil-Whisper model in a <span class="No-Break">user-friendly manner.</span></p>
+			<p>I encourage you to run and experiment with the Colab notebook. It is a foundational tool for understanding the quantization process and, more importantly, a blueprint for your experimental or production work. After running the notebook, we embarked on a fascinating journey through the integration of cutting-edge technologies in ASR. The notebook meticulously outlined leveraging the Distil-Whisper model, a distilled variant of OpenAI’s Whisper, optimized for performance with significantly fewer parameters, and deploying it with Intel’s OpenVINO toolkit for enhanced inference speed <span class="No-Break">and efficiency.</span></p>
+			<p>One of the key learnings from this notebook was the seamless synergy between various libraries and frameworks to achieve a streamlined workflow for ASR tasks. Using the Hugging Face Transformers library to access pre-trained models and the Optimum Intel library for model conversion to OpenVINO’s IR exemplified a powerful approach to model deployment. This process simplified the user experience and paved the way for leveraging hardware acceleration capabilities offered by <span class="No-Break">Intel architectures.</span></p>
+			<p>The notebook further delved into the practical aspects of model quantization using NNCF. This step was crucial for optimizing model performance without significantly compromising accuracy. The detailed walkthrough of preparing calibration datasets, running quantization, and comparing the performance and accuracy of the original and quantized models provided invaluable insights into the nuances of <span class="No-Break">model optimization.</span></p>
+			<p>Another significant aspect highlighted in the notebook was the use of Gradio to create interactive demos. This demonstrated the practical application of the Distil-Whisper model in real-world scenarios, allowing users to test the model’s capabilities on their audio data. Including such a demo underscored the importance of accessibility and user engagement in developing and deploying <span class="No-Break">AI models.</span></p>
+			<p>You should seek ways to apply the learnings from this notebook directly to your experimental or production ASR tasks. They extend to the broader field of AI model deployment and optimization, highlighting the evolving landscape of AI technologies and their <span class="No-Break">practical applications.</span></p>
+			<p>While quantization has proven to be a powerful technique for optimizing Whisper’s performance and enabling efficient deployment, another exciting frontier lies in exploring the challenges and opportunities of real-time speech recognition with Whisper. Real-time transcription opens up possibilities, from enhancing accessibility to facilitating instant communication. However, it also presents unique technical hurdles that must be overcome. In the following section, we will delve into the current limitations and ongoing research efforts to make real-time transcription with Whisper a reality. By understanding these challenges<a id="_idIndexMarker776"/> and the potential solutions on the horizon, we can appreciate the immense potential of Whisper in reshaping how we interact with spoken language in <span class="No-Break">real-time scenarios.</span></p>
+			<h1 id="_idParaDest-159"><a id="_idTextAnchor183"/>Facing the challenges and opportunities of real-time speech recognition</h1>
+			<p>Pursuing real-time transcription with Whisper opens up many applications that can benefit various sectors, including education, healthcare, and customer service. Real-time transcription can enhance accessibility for individuals with hearing impairments, facilitate instant communication in multilingual contexts, and provide immediate documentation of verbal exchanges. As Whisper’s capabilities evolve, its potential to serve as a universal translator and accessibility tool becomes <span class="No-Break">increasingly apparent.</span></p>
+			<p>At present, however, more limitations and challenges are preventing real-time transcription. Let’s delve into these aspects, focusing on the technical intricacies and prospects of performing real-time transcription <span class="No-Break">with Whisper:</span></p>
+			<ul>
+				<li><strong class="bold">Processing time and latency</strong>: One of the primary challenges<a id="_idIndexMarker777"/> in achieving real-time transcription with Whisper is its operation’s inherent latency and processing time. As discussions on platforms such as GitHub and Hugging Face reveal, Whisper is not inherently designed for real-time STT conversion. While robust for processing audio files of unlimited length, the system’s architecture encounters hurdles in delivering instantaneous transcription results. This latency stems from the complex neural network models that underpin Whisper, which require significant computational resources to analyze and transcribe <span class="No-Break">speech accurately.</span></li>
+				<li><strong class="bold">Increasing accuracy and contextual understanding</strong>: Another limitation lies in Whisper’s transcriptions’ accuracy and contextual knowledge. While Whisper has demonstrated remarkable proficiency in transcribing diverse languages and accents, real-time applications pose unique challenges. The system must recognize speech accurately and understand context, idioms, and colloquial expressions in the flow of conversation. This demands a level of linguistic and cultural nuance<a id="_idIndexMarker778"/> that current models are still striving <span class="No-Break">to perfect.</span></li>
+			</ul>
+			<p>Despite these limitations, the potential<a id="_idIndexMarker779"/> for Whisper to transform real-time transcription is immense. The technology’s current capabilities and ongoing advancements offer a glimpse into a future where these challenges <span class="No-Break">are surmountable:</span></p>
+			<ul>
+				<li><strong class="bold">Advancing model efficiency</strong>: Recent research efforts have focused on enhancing Whisper’s efficiency and reducing latency, making real-time transcription a tangible goal. For instance, a study on arXiv, <em class="italic">Turning Whisper into Real-Time Transcription System</em> (<a href="https://arxiv.org/abs/2307.14743">https://arxiv.org/abs/2307.14743</a>), discusses methods for turning Whisper into a real-time transcription system. These include optimizing the model’s architecture and leveraging more powerful computational resources. As these advancements continue, we can anticipate significant reductions in processing time, bringing Whisper closer to delivering seamless <span class="No-Break">real-time transcription.</span></li>
+				<li><strong class="bold">Integrating with edge computing</strong>: The integration of Whisper with edge computing presents a promising avenue for overcoming latency issues. By processing data closer to the source of data generation, edge computing can drastically reduce the time it takes for audio to be transcribed. This approach accelerates transcription and alleviates bandwidth constraints, making real-time transcription more feasible<a id="_idIndexMarker780"/> <span class="No-Break">and efficient.</span></li>
+			</ul>
+			<p>While the journey toward flawless real-time transcription with Whisper is fraught with technical challenges, the opportunities it presents are undeniably compelling. The latency, processing time, and contextual accuracy limitations are significant yet manageable. Through ongoing research, technological advancements, and innovative applications, Whisper stands on the cusp of redefining real-time transcription. As we look to the future, the integration of Whisper into our daily lives promises not only to enhance communication and accessibility but also to push the boundaries of what is possible with AI. The road ahead is challenging and exciting, underscoring the importance of continued exploration and development in this <span class="No-Break">dynamic field.</span></p>
+			<p>To better understand the challenges and potential of real-time speech recognition with Whisper, let’s dive into a practical example. In the following section, we will build an interactive real-time ASR demo using Hugging Face’s implementation of Whisper and the user-friendly <span class="No-Break">Gradio library.</span></p>
+			<h2 id="_idParaDest-160"><a id="_idTextAnchor184"/>Building a real-time ASR demo with Hugging Face Whisper</h2>
+			<p>In this section, we will leverage<a id="_idIndexMarker781"/> the power of Gradio, a user interface library, to rapidly construct an interactive demo of the Whisper model. This demo will allow you or others to test the model’s performance by speaking into the microphone on your device. Let’s find and run the <strong class="source-inline">LOAIW_ch07_3_Building_real_time_ASR_with_HF_Whisper.ipynb </strong>notebook (<a href="https://github.com/PacktPublishing/Learn-OpenAI-Whisper/blob/main/Chapter07/LOAIW_ch07_3_Building_real_time_ASR_with_HF_Whisper.ipynb">https://github.com/PacktPublishing/Learn-OpenAI-Whisper/blob/main/Chapter07/LOAIW_ch07_3_Building_real_time_ASR_with_HF_Whisper.ipynb</a>). The notebook is structured into three <span class="No-Break">main sections:</span></p>
+			<ul>
+				<li><strong class="bold">Setting up the ASR model using the Hugging Face Transformers library</strong>: We will load and configure the necessary components from the <strong class="source-inline">transformers</strong> library to prepare the ASR model for <span class="No-Break">our demo</span></li>
+				<li><strong class="bold">Creating a full-context ASR demo</strong>: We will build a demo in which the user speaks the entire audio before the ASR model processes it and generates <span class="No-Break">the transcription</span></li>
+				<li><strong class="bold">Creating a streaming ASR demo</strong>: We will extend the previous demo to support real-time streaming, allowing the ASR model to transcribe the audio as the user speaks, providing a more <span class="No-Break">interactive experience</span></li>
+			</ul>
+			<p>By the end of this notebook, you<a id="_idIndexMarker782"/> will have a solid understanding of creating engaging demos for speech recognition models using Gradio and the Hugging Face <span class="No-Break">Transformers library.</span></p>
+			<h3>Preparing the development environment</h3>
+			<p>Before diving into building<a id="_idIndexMarker783"/> the speech recognition demos, it’s crucial to set up our development environment with the necessary dependencies. In this section, we will do <span class="No-Break">the following:</span></p>
+			<ol>
+				<li>Install the required libraries, such as Gradio, to ensure a smooth <span class="No-Break">development process.</span></li>
+				<li>Configure the environment to work seamlessly with the Hugging Face Transformers library, allowing us to leverage pre-trained models and powerful <span class="No-Break">NLP tools.</span></li>
+			</ol>
+			<p>By properly setting up our environment, we lay the foundation for an efficient and hassle-free coding experience throughout <span class="No-Break">the notebook.</span></p>
+			<p>To bring our exploration of real-time ASR with Whisper to life, we’ll first need to set up our development environment. Let’s walk through the installation of the necessary libraries and configuration of our setup to work seamlessly with the Hugging Face <span class="No-Break">Transformers library.</span></p>
+			<pre class="console">
+%%capture
+!pip -q install gradio</pre>			<p>Setting up your Hugging Face token is essential to ensure a seamless experience while working with this notebook. The notebook will load transformer classes and models from the Hugging Face repository, which requires valid <span class="No-Break">token authentication.</span></p>
+			<p>If you haven’t created a Hugging Face token yet or need a refresher on the process, please refer to <a href="https://github.com/PacktPublishing/Learn-OpenAI-Whisper/blob/main/Chapter03/LOAIW_ch03_working_with_audio_data_via_Hugging_Face.ipynb">https://github.com/PacktPublishing/Learn-OpenAI-Whisper/blob/main/Chapter03/LOAIW_ch03_working_with_audio_data_via_Hugging_Face.ipynb</a>. This resource provides step-by-step instructions on how to create and configure your Hugging <span class="No-Break">Face token.</span></p>
+			<p>By setting up your token correctly, you’ll be able to easily access the full range of features and models available in the Hugging Face ecosystem, enabling you to build powerful speech <span class="No-Break">recognition demos:</span></p>
+			<pre class="source-code">
+from huggingface_hub import notebook_login
+notebook_login()
+from huggingface_hub import whoami
+whoami()</pre>			<p>With our development environment<a id="_idIndexMarker784"/> set up, let’s begin by loading the transformers ASR model, which will serve as the foundation for our <span class="No-Break">interactive application.</span></p>
+			<h3>Step 1 – Loading the transformers ASR model</h3>
+			<p>We first need<a id="_idIndexMarker785"/> an ASR model<a id="_idIndexMarker786"/> to begin building our speech recognition demo. You can either train your model or use a pre-trained one. Loading the <strong class="source-inline">"whisper"</strong> model from the Hugging Face <strong class="source-inline">transformers</strong> library is straightforward. Here’s the code snippet to <span class="No-Break">accomplish this:</span></p>
+			<pre class="source-code">
+from transformers import pipeline
+p = pipeline("automatic-speech-recognition", model="openai/whisper-base.en")</pre>			<p>With just these two lines of code, we initialize a pipeline for automatic speech recognition using the <strong class="source-inline">"openai/whisper-base.en"</strong> model. The pipeline abstracts away the complexities of working with the model directly, providing a high-level interface for performing <span class="No-Break">ASR tasks.</span></p>
+			<p>By utilizing a pre-trained model such as <strong class="source-inline">"whisper"</strong>, we can quickly start building our demo without the need for extensive model training. This allows us to focus on integrating the model<a id="_idIndexMarker787"/> into our application<a id="_idIndexMarker788"/> and creating an engaging <span class="No-Break">user experience.</span></p>
+			<h3>Step 2 – Building a full-context ASR demo with transformers</h3>
+			<p>Our first step in creating<a id="_idIndexMarker789"/> the speech recognition<a id="_idIndexMarker790"/> demo is to build a <em class="italic">full-context</em> ASR demo. In this demo, the user will speak the entire audio before the ASR model processes it and generates the transcription. Thanks to Gradio’s intuitive interface, building this demo is <span class="No-Break">a breeze:</span></p>
+			<pre class="source-code">
+import gradio as gr
+from transformers import pipeline
+import numpy as np
+transcriber = pipeline("automatic-speech-recognition", model="openai/whisper-base.en")
+def transcribe(audio):
+    sr, y = audio
+    y = y.astype(np.float32)
+    y /= np.max(np.abs(y))
+    return transcriber({"sampling_rate": sr, "raw": y})["text"]
+demo = gr.Interface(
+    transcribe,
+    gr.Audio(sources=["microphone"]),
+    "text",
+)
+demo.launch(debug=True)</pre>			<p>In the preceding snippet, we start<a id="_idIndexMarker791"/> by creating a function<a id="_idIndexMarker792"/> that wraps around the <strong class="source-inline">pipeline</strong> object we initialized earlier. This function serves as the core of our demo, handling the audio input and generating <span class="No-Break">the transcription.</span></p>
+			<p>We then utilize Gradio’s built-in <strong class="source-inline">Audio</strong> component to capture the user’s audio input. This component will be configured to accept input from the user’s microphone and return the file path of the recorded audio. We’ll use a simple <strong class="source-inline">Textbox</strong> component to display the <span class="No-Break">transcribed text.</span></p>
+			<p>The <strong class="source-inline">transcribe</strong> function, the heart of our demo, takes a single parameter called <strong class="source-inline">audio</strong>. This parameter represents the audio data recorded by the user, stored as a <strong class="source-inline">numpy</strong> array. However, the <strong class="source-inline">pipeline</strong> object expects the audio data to be in the <strong class="source-inline">float32</strong> format. To ensure compatibility, we first convert the audio data to <strong class="source-inline">float32</strong> and then normalize it by dividing it by its maximum absolute value. Finally, we pass the processed audio data to the <strong class="source-inline">pipeline</strong> object to obtain the <span class="No-Break">transcribed text.</span></p>
+			<h3>Step 3 – Enhancing the demo with real-time streaming capabilities</h3>
+			<p>To create a streaming ASR demo, we need<a id="_idIndexMarker793"/> to make the following changes in the Python <span class="No-Break">Gradio script:</span></p>
+			<ol>
+				<li>Set <strong class="source-inline">streaming=True</strong> in the <strong class="source-inline">Audio</strong> component to enable continuous audio capture from the <span class="No-Break">user’s microphone.</span></li>
+				<li>Set <strong class="source-inline">live=True</strong> in the <strong class="source-inline">Interface</strong> component to ensure the interface updates dynamically as new audio data <span class="No-Break">is received.</span></li>
+				<li>Add a <strong class="source-inline">state</strong> variable to the interface to store the recorded audio and the <span class="No-Break">previous transcription.</span></li>
+			</ol>
+			<p>All these changes<a id="_idIndexMarker794"/> are already applied in <span class="No-Break">the script:</span></p>
+			<pre class="source-code">
+import gradio as gr
+from transformers import pipeline
+import numpy as np
+transcriber = pipeline("automatic-speech-recognition", model="openai/whisper-base.en")
+def transcribe(state, new_chunk):
+    if state is None:
+        stream = np.array([], dtype=np.float32)
+        previous_text = ""
+    else:
+        stream, previous_text = state
+    sr, y = new_chunk
+    duration = len(y) / sr
+    y = y.astype(np.float32)
+    y /= np.max(np.abs(y))
+    overlap = int(sr * 0.5)  # Half a second overlap
+    if len(stream) &gt; 0:
+        stream = np.concatenate([stream[-overlap:], y])
+    else:
+        stream = y
+    # Transcribe the current chunk
+    new_text = transcriber({"sampling_rate": sr, "raw": stream})["text"]
+    # Update the previous text based on the overlap
+    if len(previous_text) &gt; 0:
+        overlap_text = previous_text[-int(len(previous_text) * 0.1):]  # Last 10% of previous text
+        combined_text = previous_text[:-len(overlap_text)] + new_text
+    else:
+        combined_text = new_text
+    return (stream, combined_text), combined_text
+demo = gr.Interface(
+    transcribe,
+    ["state", gr.Audio(sources=["microphone"], streaming=True)],
+    ["state", "text"],
+    live=True,
+)
+demo.launch(debug=True)</pre>			<p>In the streaming demo, we use a <strong class="source-inline">state</strong> variable to keep track of the audio history and the previous transcription. The <strong class="source-inline">transcribe</strong> function is called whenever a new small chunk of audio is received, and it needs to process the new chunk along with the previously <span class="No-Break">recorded audio.</span></p>
+			<p>To improve the accuracy <a id="_idIndexMarker795"/>and coherence of the transcription, we introduce a dynamic window size based on the duration of the new audio chunk and a slight overlap between consecutive windows. Here’s how the <strong class="source-inline">transcribe</strong> <span class="No-Break">function works:</span></p>
+			<ol>
+				<li>If the <strong class="source-inline">state</strong> is <strong class="source-inline">None</strong>, initialize an empty <strong class="source-inline">numpy</strong> array (<strong class="source-inline">stream</strong>) to store the audio and an empty string (<strong class="source-inline">previous_text</strong>) to store the <span class="No-Break">previous transcription.</span></li>
+				<li>Extract <strong class="source-inline">new_chunk</strong>’s sampling rate (<strong class="source-inline">sr</strong>) and audio data (<strong class="source-inline">y</strong>) <span class="No-Break">from </span><span class="No-Break"><strong class="source-inline">new_chunk</strong></span><span class="No-Break">.</span></li>
+				<li>Calculate the duration of the new audio chunk and normalize the <span class="No-Break">audio data.</span></li>
+				<li>Introduce an overlap of half a second between consecutive windows to ensure continuity in <span class="No-Break">the transcription.</span></li>
+				<li>Concatenate the new audio chunk to the existing stream, considering <span class="No-Break">the overlap.</span></li>
+				<li>Transcribe the entire stream using the <span class="No-Break"><strong class="source-inline">transcriber</strong></span><span class="No-Break"> object.</span></li>
+				<li>Update <strong class="source-inline">previous_text</strong> by removing the overlap from the end of the previous transcription and concatenating it with the <span class="No-Break">new transcription.</span></li>
+				<li>Return the updated <strong class="source-inline">stream</strong> and <strong class="source-inline">combined_text</strong> values as the state and the <strong class="source-inline">combined_text</strong> value as the <span class="No-Break">transcription output.</span></li>
+			</ol>
+			<p>By using a dynamic window size and introducing an overlap between consecutive windows, we can improve the accuracy and coherence of the streaming transcription. The small overlap helps maintain continuity in the transcription and reduces the occurrence of overlapping or <span class="No-Break">missing words.</span></p>
+			<p>Of course, this is a straightforward<a id="_idIndexMarker796"/> demo. It is designed to show that real-time with Whisper is not as far away from reality as it might appear. I encourage you to enhance and experiment with that demo and <span class="No-Break">have fun!</span></p>
+			<h1 id="_idParaDest-161"><a id="_idTextAnchor185"/>Summary</h1>
+			<p>In this chapter, we embarked on an exciting exploration of OpenAI’s Whisper’s advanced voice capabilities. We delved into powerful techniques that enhance Whisper’s performance, such as quantization, and uncovered its potential for real-time <span class="No-Break">speech recognition.</span></p>
+			<p>We began by examining the power of quantization, which reduces the model’s size and computational requirements while maintaining accuracy. We learned how to apply quantization to Whisper using frameworks such as CTranslate2 and OpenVINO, enabling efficient deployment on resource-constrained devices. The hands-on experience quantizing Whisper using CTranslate2 and Distil-Whisper with OpenVINO provided practical insights into optimizing the model for various <span class="No-Break">deployment scenarios.</span></p>
+			<p>Furthermore, we tackled the challenges and opportunities of real-time speech recognition with Whisper. We gained insights into the current limitations, such as processing time and latency, and explored ongoing research efforts to make real-time transcription a reality. The experimental approach to building a streaming ASR demo using Whisper and Gradio provided a glimpse into the future possibilities of real-time <span class="No-Break">speech recognition.</span></p>
+			<p>Throughout the chapter, we acquired a solid understanding of advanced techniques to optimize Whisper’s performance and appreciate the potential and challenges of real-time speech recognition. The hands-on coding examples and practical insights equipped us with the knowledge and skills to apply these techniques in our projects, pushing the boundaries of what is possible <span class="No-Break">with Whisper.</span></p>
+			<p>As we conclude this chapter, we look ahead to <a href="B21020_08.xhtml#_idTextAnchor186"><span class="No-Break"><em class="italic">Chapter 8</em></span></a>, <em class="italic">Diarizing Speech with WhisperX and NVIDIA’s NeMo</em>. While Whisper has proven to be a powerful tool for transcribing speech, there’s another crucial aspect of speech analysis that can significantly enhance its utility: speaker diarization. By augmenting Whisper with the ability to identify and attribute speech segments to different speakers, we open a new realm of possibilities for analyzing multispeaker conversations. Join me in the next chapter, and let’s explore how Whisper can be integrated with cutting-edge diarization techniques to unlock <span class="No-Break">these capabilities.</span></p>
+		</div>
+	</div>
+</div>
+</body></html>

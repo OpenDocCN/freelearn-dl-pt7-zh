@@ -1,0 +1,408 @@
+<html><head></head><body>
+		<div id="_idContainer093">
+			<h1 id="_idParaDest-60" class="chapter-number"><a id="_idTextAnchor059"/>4</h1>
+			<h1 id="_idParaDest-61"><a id="_idTextAnchor060"/>Developing an Enterprise Document Question-Answer Solution</h1>
+			<p>In the previous chapter, we delved into advanced topics that expanded our understanding of language models. We became familiar with concepts such as embedding, which involves representing words or phrases in a numerical form for language model processing and storing the embedding into Azure Cognitive Search for use in relevance searches. Additionally, we explored the Model Context Window, which determines the amount of context a language model considers for generating predictions. We also discovered features such as Azure OpenAI On Your Data, which allows customer chat, model fine-tuning, and OpenAI function calling, enabling the execution of specific functions within the language model. The chapter further introduced OpenAI plugins, offering extensibility options for enhancing the functionality of language models. Finally, we were introduced to LangChain and Semantic Kernel, an application development framework for large <span class="No-Break">language models.</span></p>
+			<p>This chapter covers the <span class="No-Break">following topics:</span></p>
+			<ul>
+				<li>Enterprise use case with <span class="No-Break">unstructured documents</span></li>
+				<li><span class="No-Break">Architecture design</span></li>
+				<li>Developing a question-answering solution using Azure OpenAI and the Azure Cognitive <span class="No-Break">Search index</span></li>
+			</ul>
+			<p>Before we dive into the enterprise use case with unstructured documents, let’s address a common challenge faced by many: navigating through a vast array of documents to find specific information. Each subject or project often comes with numerous documents, generously provided by various sources. These documents hold the keys to success, but they can be overwhelming <span class="No-Break">and disorganized.</span></p>
+			<p>When the need arises to find specific information, the task can become daunting. Hours can be spent meticulously combing through page after page, document after document, in search of that crucial piece of information. This process can be time-consuming <span class="No-Break">and frustrating.</span></p>
+			<p>However, there is hope. Imagine a solution that could streamline this process, making it easier and faster to find the information you need. Today, we will explore such a game-changing solution with Azure OpenAI, designed to solve these <span class="No-Break">problems efficiently.</span></p>
+			<p>Enterprises possess a multitude of unstructured documents that hold a wealth of knowledge to answer specific questions. This challenge is not unique to businesses; it’s a dilemma faced by organizations across various industries. Let’s dive into a real-world scenario to grasp the gravity of <span class="No-Break">this situation.</span></p>
+			<p>Imagine you’re the owner of a thriving tourism company specializing in crafting customized travel experiences for adventurous souls. Your company has been curating unique journeys for travelers for years, leading to the accumulation of a significant number of <span class="No-Break">unstructured documents.</span></p>
+			<p>Within this digital vault, you’ll find an array of materials: detailed itineraries, travel guides, customer reviews, booking records, and a vast array of communications with hotels, airlines, and local tour operators from destinations all around the world. These documents encapsulate a wealth of information, from travelers’ preferences to hidden gems and logistical intricacies for crafting <span class="No-Break">unforgettable trips.</span></p>
+			<p>Now, let’s zoom in on a particular scenario. A loyal client, who has enjoyed several of your remarkable adventures, approaches you with a special request. They seek a meticulously planned trip that caters to their specific interests: hiking through pristine landscapes, capturing wildlife through the lens, and immersing themselves in authentic cultural experiences. Their request is clear—they want a detailed itinerary that seamlessly weaves together these unique elements into an <span class="No-Break">unforgettable journey.</span></p>
+			<p>As you and your team embark on this mission, the challenge becomes starkly evident. The process of manually sifting through thousands of unstructured documents to uncover relevant travel destinations, accommodation options, tour activities, and logistical details is not just time-consuming but also fraught with the risk of missing critical details. This painstaking endeavor could stretch into weeks, and even then, the outcome may not be as precise as <span class="No-Break">you desire.</span></p>
+			<p>The predicament faced by travel companies is not unique. Many enterprises grapple with a similar situation, where they have gathered a wealth of unstructured documents, each holding the key to unlocking exceptional experiences. In this chapter, we are going to see how we can solve this using Azure OpenAI and the Azure Cognitive <span class="No-Break">Search index.</span></p>
+			<h1 id="_idParaDest-62"><a id="_idTextAnchor061"/>Technical requirements</h1>
+			<p>To follow along with the practical exercises in this chapter, access the source code available in this chapter's GitHub repository <span class="No-Break">at </span><a href="https://github.com/PacktPublishing/Azure-OpenAI-Essentials/blob/main/Chapter4.ipynb"><span class="No-Break">https://github.com/PacktPublishing/Azure-OpenAI-Essentials/blob/main/Chapter4.ipynb</span></a><span class="No-Break">.</span></p>
+			<p>Install the following tools on your local machine to start working on <span class="No-Break">the solution:</span></p>
+			<ul>
+				<li>Python 3.9, 3.10, or 3.11 – <a href="https://www.python.org/downloads/"><span class="No-Break">https://www.python.org/downloads/</span></a></li>
+				<li>Azure Developer CLI – <a href="https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&amp;pivots=os-windows"><span class="No-Break">https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&amp;pivots=os-windows</span></a></li>
+				<li>Node.js 14+ – <a href="https://nodejs.org/en/download"><span class="No-Break">https://nodejs.org/en/download</span></a></li>
+				<li>Git – <a href="https://git-scm.com/downloads"><span class="No-Break">https://git-scm.com/downloads</span></a></li>
+				<li>PowerShell 7+ (pwsh) – <a href="https://github.com/powershell/powershell"><span class="No-Break">https://github.com/powershell/powershell</span></a></li>
+				<li>Azure account – If you’re new to Azure, get an Azure account for free and you’ll get some free Azure credits to <span class="No-Break">get started</span></li>
+				<li>Azure subscription with access enabled for the Azure OpenAI Service (you can request access with this <span class="No-Break">form: </span><a href="https://learn.microsoft.com/en-in/legal/cognitive-services/openai/limited-access"><span class="No-Break">https://learn.microsoft.com/en-in/legal/cognitive-services/openai/limited-access</span></a><span class="No-Break">)</span></li>
+				<li>Azure OpenAI connection and <span class="No-Break">model information:</span><ul><li>OpenAI <span class="No-Break">API key</span></li><li>OpenAI embedding model <span class="No-Break">deployment name</span></li><li>OpenAI <span class="No-Break">API version</span></li></ul></li>
+			</ul>
+			<p>In addition to the aforementioned system requirements, it is crucial to have a solid foundation in fundamental Azure services and a basic proficiency in the Python programming language, equivalent to a beginner level (Python 100). These skills are vital for efficiently harnessing and leveraging Azure services in the context of this chapter. Rest assured, even if you are new to the Azure environment, we have designed this chapter to be beginner friendly. It offers clear explanations and includes detailed screenshots to facilitate your learning and get you started on the <span class="No-Break">right track.</span></p>
+			<h1 id="_idParaDest-63"><a id="_idTextAnchor062"/>Architecture design</h1>
+			<p>To construct <a id="_idIndexMarker291"/>this system, we need the following <span class="No-Break">essential services:</span></p>
+			<ul>
+				<li>Azure <span class="No-Break">Cognitive Search</span></li>
+				<li>Azure <span class="No-Break">OpenAI Service</span></li>
+			</ul>
+			<p>Our primary objective is to transform unstructured data into embeddings, which will be stored within a vector database. When a user submits a query, the system leverages Azure OpenAI embeddings for processing. Subsequently, a vector search operation is performed on the vector database to retrieve the top K paragraphs. These selected paragraphs are then sent to the Azure OpenAI answering prompt, which extracts the answers and delivers them to <span class="No-Break">the user.</span></p>
+			<p>The following is a simple architecture diagram for a question-and-answer solution using <span class="No-Break">Azure OpenAI:</span></p>
+			<div>
+				<div id="_idContainer077" class="IMG---Figure">
+					<img src="image/B21019_04_1.jpg" alt="Figure 4.1: Architecture design"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.1: Architecture design</p>
+			<p>In the preceding diagram, we are sending Azure OpenAI Service embeddings to a vector database, and the questions asked by the user are sent to those embeddings and the results will be extracted. Now, we<a id="_idIndexMarker292"/>will develop a solution to our problem using <span class="No-Break">this design.</span></p>
+			<h1 id="_idParaDest-64"><a id="_idTextAnchor063"/>Developing a question-answering solution using Azure OpenAI and the Azure Cognitive Search index</h1>
+			<p>Now that we’re familiar with the architectural <a id="_idIndexMarker293"/>elements <a id="_idIndexMarker294"/>necessary for creating this solution, let’s proceed with the implementation of these components in the Azure portal. As previously mentioned, having an active Azure account is a prerequisite for building <span class="No-Break">this application.</span></p>
+			<h2 id="_idParaDest-65"><a id="_idTextAnchor064"/>Azure subscription prerequisites</h2>
+			<p>The following <a id="_idIndexMarker295"/>prerequisites are established in <a href="B21019_02.xhtml#_idTextAnchor023"><span class="No-Break"><em class="italic">Chapter 2</em></span></a> and can <span class="No-Break">be reused:</span></p>
+			<ul>
+				<li><span class="No-Break">Azure subscription</span></li>
+				<li>Azure <span class="No-Break">OpenAI resource</span></li>
+				<li>Deployed Azure <span class="No-Break">OpenAI models</span></li>
+			</ul>
+			<p>Create the following tools, excluding those already established in <a href="B21019_02.xhtml#_idTextAnchor023"><span class="No-Break"><em class="italic">Chapter 2</em></span></a><span class="No-Break">.</span></p>
+			<p>Since we have already set up Azure OpenAI and its deployments, the next step is to create Azure Cognitive Search within the same resource group where we established <span class="No-Break">Azure OpenAI:</span></p>
+			<ol>
+				<li>Navigate to the search bar in the top navigation and search for <strong class="source-inline">Azure Cognitive Search</strong>, as <span class="No-Break">illustrated here:</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer078" class="IMG---Figure">
+					<img src="image/B21019_04_2.jpg" alt="Figure 4.2: Azure Cognitive Search"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.2: Azure Cognitive Search</p>
+			<p class="list-inset">When you access the Azure OpenAI service page, you’ll find a <strong class="bold">Create</strong> option, as <span class="No-Break">indicated here:</span></p>
+			<div>
+				<div id="_idContainer079" class="IMG---Figure">
+					<img src="image/B21019_04_3.jpg" alt="Figure 4.3: Azure Cognitive Search creation"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.3: Azure Cognitive Search creation</p>
+			<ol>
+				<li value="2">After<a id="_idIndexMarker296"/> clicking on the <strong class="bold">Create</strong> option, a form will appear, similar to the one in <span class="No-Break"><em class="italic">Figure 4</em></span><em class="italic">.4</em>. Choose the <strong class="bold">Resource Group</strong>—in my case, I’ve selected <strong class="bold">azure-openai-rg</strong>, which was created earlier. In the final step of this section, select a pricing tier; I’ve chosen <strong class="bold">Standard S0</strong>. This is how it should appear after completing <span class="No-Break">step 1:</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer080" class="IMG---Figure">
+					<img src="image/B21019_04_4.jpg" alt="Figure 4.4: Azure Cognitive Search basics"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.4: Azure Cognitive Search basics</p>
+			<ol>
+				<li value="3">After completing step 2, click on <a id="_idIndexMarker297"/>the <strong class="bold">Next</strong> button to proceed to the scale step, where you can review the pricing details based on your selected tier. You can leave the default settings as they are and then click on the <strong class="bold">Next</strong> button <span class="No-Break">to continue:</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer081" class="IMG---Figure">
+					<img src="image/B21019_04_5.jpg" alt="Figure 4.5: Azure Cognitive Search scale"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.5: Azure Cognitive Search scale</p>
+			<ol>
+				<li value="4">After clicking <strong class="bold">Next</strong>, you will be<a id="_idIndexMarker298"/> directed to the <strong class="bold">Networking</strong> tab, where the endpoint connectivity is set to <strong class="bold">Public</strong> by default. Please leave it as <strong class="bold">Public</strong> and click on <strong class="bold">Next</strong> <span class="No-Break">to proceed:</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer082" class="IMG---Figure">
+					<img src="image/B21019_04_6.jpg" alt="Figure 4.6: Azure Cognitive Search networking"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.6: Azure Cognitive Search networking</p>
+			<ol>
+				<li value="5">After clicking the <strong class="bold">Next</strong> button, you will be <a id="_idIndexMarker299"/>directed to the <strong class="bold">Tags</strong> step. You can ignore this section for now. Tags are name/value pairs that allow you to categorize resources and facilitate consolidated billing by applying the same tag to multiple search and resource groups. You can find similar details on the <strong class="bold">Tags</strong> step. Proceed by clicking <strong class="bold">Next</strong> and then go to the <strong class="bold">Review + </strong><span class="No-Break"><strong class="bold">create</strong></span><span class="No-Break"> step.</span><p class="list-inset">Here, it will display the details you’ve chosen in the previous steps. Review all the information and click on the <span class="No-Break"><strong class="bold">Create</strong></span><span class="No-Break"> button:</span></p></li>
+			</ol>
+			<div>
+				<div id="_idContainer083" class="IMG---Figure">
+					<img src="image/B21019_04_7.jpg" alt="Figure 4.7: Azure Cognitive Search tags"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.7: Azure Cognitive Search tags</p>
+			<p class="list-inset">The creation of Cognitive <a id="_idIndexMarker300"/>Search may take a few moments. Once the search deployment is finished, you can access the resource page, which appears <span class="No-Break">as follows:</span></p>
+			<div>
+				<div id="_idContainer084" class="IMG---Figure">
+					<img src="image/B21019_04_8.jpg" alt="Figure 4.8: Azure Cognitive Search overview"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.8: Azure Cognitive Search overview</p>
+			<ol>
+				<li value="6">To create an index that will be <a id="_idIndexMarker301"/>used for vector searches and to add documents to the vector store, click on the <strong class="bold">Add index</strong> link. Alternatively, you can create one from the <span class="No-Break"><strong class="bold">Indexes</strong></span><span class="No-Break"> tab:</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer085" class="IMG---Figure">
+					<img src="image/B21019_04_9.jpg" alt="Figure 4.9: Azure Cognitive Search index creation"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.9: Azure Cognitive Search index creation</p>
+			<ol>
+				<li value="7">When you click on the <strong class="bold">Add index</strong> option, a form will appear, as shown in <span class="No-Break"><em class="italic">Figure 4</em></span><em class="italic">.10</em>. Fill in the necessary fields for your application, including <span class="No-Break"><strong class="bold">Index name</strong></span><span class="No-Break">:</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer086" class="IMG---Figure">
+					<img src="image/B21019_04_10.jpg" alt="Figure 4.10: Azure Cognitive Search index creation"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.10: Azure Cognitive Search index creation</p>
+			<ol>
+				<li value="8">Click on <strong class="bold">Create</strong>, and it will take a few moments to create the index. You can verify its creation when you navigate to the <span class="No-Break"><strong class="bold">Indexes</strong></span><span class="No-Break"> tab:</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer087" class="IMG---Figure">
+					<img src="image/B21019_04_11.jpg" alt="Figure 4.11: Azure Cognitive Search index overview"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.11: Azure Cognitive Search index overview</p>
+			<p>In the preceding screenshot, we can clearly see the <strong class="bold">azureblob-index</strong> created. So, with this, we have created<a id="_idIndexMarker302"/> the required infrastructure for building <span class="No-Break">our solution.</span></p>
+			<p>In the next section, we will start with implementing the code for <span class="No-Break">our solution.</span></p>
+			<h2 id="_idParaDest-66"><a id="_idTextAnchor065"/>Solution using Azure OpenAI</h2>
+			<p>Now that we <a id="_idIndexMarker303"/>have set up all the essential services in our Azure portal, we can begin constructing our solution. To develop the code, I will be working within the Azure ML Studio notebook. For this solution, I’m utilizing Python version 3.12. As mentioned earlier, any version above 3.7.1 should work seamlessly. You can access the code we’re using on our GitHub repo; I recommend referring to it as you progress through this chapter. Within the repository, you’ll find a <strong class="source-inline">requirements.txt</strong> file that lists all the Python libraries necessary for our solution. Please review this file and use the following command to install the <span class="No-Break">required packages:</span></p>
+			<pre class="console">
+!pip install -r requirements.txt</pre>			<p>Once you’ve successfully configured these constants in your <strong class="source-inline">.env</strong> file, you’re ready to proceed with integrating them into <span class="No-Break">your code:</span></p>
+			<ol>
+				<li>We’ll start by <span class="No-Break">importing packages:</span><pre class="source-code">
+import os
+from dotenv import load_dotenv
+import openai
+from langchain import OpenAI
+from langchain.llms import AzureOpenAI
+from langchain.retrievers import AzureCognitiveSearchRetriever
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import Chroma
+from langchain.llms import AzureOpenAI
+from langchain.chains import RetrievalQA</pre><p class="list-inset">You can see a variety of libraries being used in the previous code. Let’s delve into each of these libraries in the <span class="No-Break">following table:</span></p></li>			</ol>
+			<table id="table001-2" class="No-Table-Style _idGenTablePara-1">
+				<colgroup>
+					<col/>
+					<col/>
+				</colgroup>
+				<thead>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset"><span class="No-Break"><strong class="bold">Module/Library</strong></span></p>
+						</td>
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset"><span class="No-Break"><strong class="bold">Description</strong></span></p>
+						</td>
+					</tr>
+				</thead>
+				<tbody>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset"><span class="No-Break"><strong class="source-inline">os</strong></span></p>
+						</td>
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset">Provides functions to interact with the <span class="No-Break">operating system</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset"><span class="No-Break"><strong class="source-inline">dotenv</strong></span></p>
+						</td>
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset">Loads environment variables from a .<span class="No-Break">env file</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset"><span class="No-Break"><strong class="source-inline">openai</strong></span></p>
+						</td>
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset">Python library for interacting with OpenAI’s services, <span class="No-Break">including GPT-3</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset"><span class="No-Break"><strong class="source-inline">langchain</strong></span></p>
+						</td>
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset">Custom library or package related to natural language processing <a id="_idIndexMarker304"/>and <strong class="bold">machine </strong><span class="No-Break"><strong class="bold">learning</strong></span><span class="No-Break"> (</span><span class="No-Break"><strong class="bold">ML</strong></span><span class="No-Break">)</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset"><span class="No-Break"><strong class="source-inline">langchain.llms.AzureOpenAI</strong></span></p>
+						</td>
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset">Implementation or class related to OpenAI’s language models <span class="No-Break">on Azure</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset"><span class="No-Break"><strong class="source-inline">langchain.retrievers.AzureCognitiveSearchRetriever</strong></span></p>
+						</td>
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset">Module or class for retrieving information from Azure <span class="No-Break">Cognitive Search</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset"><span class="No-Break"><strong class="source-inline">langchain.embeddings.OpenAIEmbeddings</strong></span></p>
+						</td>
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset">Possibly related to extracting vector embeddings from text using <span class="No-Break">OpenAI models</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset"><span class="No-Break"><strong class="source-inline">langchain.vectorstores.Chroma</strong></span></p>
+						</td>
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset">Custom vector store or data structure, potentially for working with vectors <span class="No-Break">in ML</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset"><span class="No-Break"><strong class="source-inline">langchain.chains.RetrievalQA</strong></span></p>
+						</td>
+						<td class="No-Table-Style T---Body">
+							<p class="list-inset">Module or class for building a question-answering system using a <span class="No-Break">retrieval-based approach</span></p>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Table 4.1: Modules used and their description</p>
+			<ol>
+				<li value="2">Now, let’s <a id="_idIndexMarker305"/>initialize all the necessary constants using the keys provided in the <strong class="source-inline">.</strong><span class="No-Break"><strong class="source-inline">env</strong></span><span class="No-Break"> file:</span><pre class="source-code">
+# Azure
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_DEPLOYMENT_ENDPOINT = os.getenv(
+    "OPENAI_DEPLOYMENT_ENDPOINT")
+OPENAI_DEPLOYMENT_NAME = os.getenv(
+    "OPENAI_DEPLOYMENT_NAME")
+OPENAI_MODEL_NAME = os.getenv(
+    "OPENAI_MODEL_NAME")
+OPENAI_API_VERSION = os.getenv(
+    "OPENAI_API_VERSION")
+OPENAI_EMBEDDING_DEPLOYMENT_NAME = os.getenv(
+    "OPENAI_EMBEDDING_DEPLOYMENT_NAME")
+OPENAI_EMBEDDING_MODEL_NAME = os.getenv(
+    "OPENAI_EMBEDDING_MODEL_NAME")
+OPENAI_DEPLOYMENT_VERSION = os.getenv(
+    "OPENAI_DEPLOYMENT_VERSION")
+OPENAI_EMBEDDING_VERSION = os.getenv(
+    "OPENAI_EMBEDDING_VERSION")
+OPENAI_SIMILARITY_DEPLOYMENT_NAME = os.getenv(
+    "OPENAI_SIMILARITY_DEPLOYMENT_NAME")
+# Cognitive service
+vector_store_address = os.getenv("VECTOR_STORE_ADDRESS")
+vector_store_password = os.getenv("VECTOR_STORE_PASSWORD")
+AZURE_COGNITIVE_SEARCH_SERVICE_NAME = os.getenv(
+    "AZURE_COGNITIVE_SEARCH_SERVICE_NAME")
+AZURE_COGNITIVE_SEARCH_INDEX_NAME = os.getenv(
+    "AZURE_COGNITIVE_SEARCH_INDEX_NAME")
+AZURE_COGNITIVE_SEARCH_API_KEY = os.getenv(
+    "AZURE_COGNITIVE_SEARCH_API_KEY")
+#init Azure OpenAI
+openai.api_type = "azure"
+openai.api_version = OPENAI_DEPLOYMENT_VERSION
+openai.api_base = OPENAI_DEPLOYMENT_ENDPOINT
+openai.api_key = OPENAI_API_KEY
+load_dotenv()</pre><p class="list-inset">In the previous code, we <a id="_idIndexMarker306"/>created all the required constants and initialized OpenAI. This is a sample <strong class="source-inline">.</strong><span class="No-Break"><strong class="source-inline">env</strong></span><span class="No-Break"> file:</span></p><pre class="source-code">OPENAI_DEPLOYMENT_ENDPOINT = "{endpoint}"
+OPENAI_API_KEY = "{key}"
+OPENAI_API_BASE = "{endpoint}"
+OPENAI_API_TYPE = "azure"
+OPENAI_DEPLOYMENT_NAME = "gpt-35-turbo "
+OPENAI_DEPLOYMENT_VERSION = "2023-07-01-preview"
+OPENAI_MODEL_NAME="gpt-35-turbo "
+OPENAI_EMBEDDING_DEPLOYMENT_NAME = "text-embedding-ada-002"
+OPENAI_EMBEDDING_MODEL_NAME = "text-embedding-ada-002"
+OPENAI_EMBEDDING_DEPLOYMENT_VERSION = "2023-07-01-preview"
+OPENAI_EMBEDDING_VERSION = "2023-03-15-preview"
+LOCATION = "westeurope"
+OPENAI_API_VERSION = "2023-07-01-preview"
+VECTOR_STORE_ADDRESS = "{cognitive-search-url}"
+VECTOR_STORE_PASSWORD = "{cognitive-search-adminkey}"
+OPENAI_SIMILARITY_DEPLOYMENT_NAME = "text-embedding-ada-002"
+SERPER_API_KEY = '{serper_api_key}'
+AZURE_COGNITIVE_SEARCH_SERVICE_NAME = "{cognitive-search-servicename}"
+AZURE_COGNITIVE_SEARCH_INDEX_NAME = "{index-name}"
+AZURE_COGNITIVE_SEARCH_API_KEY = "{cognitive-search-key}"</pre><p class="list-inset">We have provided a <a id="_idIndexMarker307"/>sample <strong class="source-inline">.env</strong> file that needs to be configured with the connection strings from your Azure portal. Follow these steps to set <span class="No-Break">it up:</span></p><ol><li class="upper-roman">Adjust the <strong class="source-inline">OPENAI_API_BASE</strong> and <strong class="source-inline">OPENAI_DEPLOYMENT_ENDPOINT</strong> values to match your Azure OpenAI resource name. For example, if you’ve named your Azure OpenAI resource <strong class="source-inline">oai-documents-qna</strong>, the <strong class="source-inline">OPENAI_API_BASE</strong> value should be set <span class="No-Break">to </span><a href="https://oai-documents-qna.azure.com/"><span class="No-Break">https://oai-documents-qna.azure.com/</span></a><span class="No-Break">.</span></li><li class="upper-roman">Update the <strong class="source-inline">OPENAI_API_KEY</strong> value with the access key found in your Azure OpenAI resource under the <span class="No-Break"><strong class="bold">Keys</strong></span><span class="No-Break"> section.</span></li><li class="upper-roman">Similarly, modify the values of <strong class="source-inline">AZURE_SEARCH_SERVICE_NAME</strong> and <strong class="source-inline">AZURE_SEARCH_ADMIN_KEY</strong> to match your Azure Search resource details, which can be obtained from Azure <span class="No-Break">Cognitive Search.</span></li></ol></li>			</ol>
+			<p>By completing these configurations, you’ll have the necessary connection settings for <span class="No-Break">your resources.</span></p>
+			<p>We will now test the connectivity with Azure OpenAI <span class="No-Break">as follows:</span></p>
+			<pre class="source-code">
+# using model engine for testing the connectivity OpenAI
+llm = AzureOpenAI(engine=OPENAI_MODEL_NAME, temperature=0)
+print(llm('tell me about yourself'))</pre>			<p>The language model (referred to as <strong class="source-inline">llm</strong>) is being initialized using the <strong class="source-inline">AzureOpenAI</strong> class with the specified engine (presumably an OpenAI model) named <strong class="source-inline">OPENAI_MODEL_NAME</strong> and a temperature setting of <strong class="source-inline">0</strong>, which controls the randomness of the model’s responses. It then uses the initialized model to generate a response to the <strong class="source-inline">tell me about yourself</strong> input prompt and prints the generated response to test the connectivity and functionality of the OpenAI <span class="No-Break">language model.</span></p>
+			<p>This is <span class="No-Break">the output:</span></p>
+			<div>
+				<div id="_idContainer088" class="IMG---Figure">
+					<img src="image/B21019_04_12.jpg" alt="Figure 4.12: Connectivity output"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.12: Connectivity output</p>
+			<p>Next, we will <a id="_idIndexMarker308"/>load documents, create embeddings, and add them to the <span class="No-Break">vector search:</span></p>
+			<pre class="source-code">
+# load documents
+loader = DirectoryLoader('data/', glob='*.pdf', show_progress=True)
+documents = loader.load()</pre>			<p>In the previous code, we loaded all the files with the <strong class="source-inline">.pdf</strong> extension from the data folder into <span class="No-Break">the loader.</span></p>
+			<p>In the next line, we are loading them into a <span class="No-Break"><strong class="source-inline">documents</strong></span><span class="No-Break"> object:</span></p>
+			<pre class="source-code">
+# split documents into chunks
+text_splitter = CharacterTextSplitter(chunk_size=1000, 
+    chunk_overlap=0)
+docs = text_splitter.split_documents(documents)</pre>			<p>We are initializing the <strong class="source-inline">CharacterTextSplitter</strong> and using that for splitting the documents with a chunk size <span class="No-Break">of 1,000:</span></p>
+			<pre class="source-code">
+# vector search
+index_name: str = " azureblob-index"
+embeddings: OpenAIEmbeddings = OpenAIEmbeddings(deployment=model, 
+    chunk_size=1)
+vector_store: AzureSearch = AzureSearch(
+     azure_search_endpoint = vector_store_address,
+     azure_search_key=vector_store_password,
+     index_name=index_name,
+     embedding_function=embeddings.embed_query,
+)
+list_of_docs = vector_store.add_documents(documents=docs)</pre>			<p>In the previous code, we<a id="_idIndexMarker309"/> initialized the vector store as <strong class="source-inline">AzureSearch</strong> and added the documents to the <span class="No-Break">vector store.</span></p>
+			<p>Let’s recap the code we have written <span class="No-Break">so far.</span></p>
+			<p>The code first loads PDF documents from a specified directory using <em class="italic">DocumentLoader</em>, then splits them into smaller text chunks using <strong class="source-inline">CharacterTextSplitter</strong>. It subsequently creates embeddings using the <strong class="source-inline">OpenAIEmbeddings</strong> module, and finally sets up an <em class="italic">Azure Search service</em> for vector-based document search and adds the previously split text documents (<strong class="source-inline">docs</strong>) to the vector store using the <span class="No-Break"><strong class="source-inline">vector_store</strong></span><span class="No-Break"> instance.</span></p>
+			<p><span class="No-Break">Output:</span></p>
+			<div>
+				<div id="_idContainer089" class="IMG---Figure">
+					<img src="image/B21019_04_13.jpg" alt="Figure 4.13: Documents and embeddings output"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.13: Documents and embeddings output</p>
+			<p>Now, we will perform a similarity search on the <span class="No-Break">vector database:</span></p>
+			<pre class="source-code">
+# Perform a similarity search
+docs_search = vector_search.similarity_search(
+    query="What are some good places in Goa to visit in December",
+    k=3,
+    search_type="similarity",
+)
+print(docs_search[0].page_content)</pre>			<p>A similarity search is conducted using the <strong class="source-inline">vector_search</strong> object. It takes the query “What are some good places in Goa to visit in December?” and retrieves the top three documents that are most similar to this query from the vector store. The content of the most similar document is then printed, allowing you to find and display documents that closely match<a id="_idIndexMarker310"/> the query based on their <span class="No-Break">vector representations.</span></p>
+			<p><span class="No-Break">Output:</span></p>
+			<div>
+				<div id="_idContainer090" class="IMG---Figure">
+					<img src="image/B21019_04_14.jpg" alt="Figure 4.14: Similarity search output"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.14: Similarity search output</p>
+			<p>Finally, we will create a chain using <strong class="source-inline">llm – </strong><span class="No-Break"><strong class="source-inline">AzureOpenAI</strong></span><span class="No-Break">:</span></p>
+			<pre class="source-code">
+chain = RetrievalQA.from_chain_type(
+    llm=AzureOpenAI(
+        deployment_name=OPENAI_DEPLOYMENT_NAME, 
+        model=OPENAI_DEPLOYMENT_NAME
+    ),
+    chain_type="stuff",
+    retriever=vector_search.as_retriever()
+)
+chain</pre>			<p>The code initializes <a id="_idIndexMarker311"/>a <strong class="bold">question-answering</strong> (<strong class="bold">QA</strong>) system represented by the <strong class="source-inline">RetrievalQA</strong> chain. It employs an <strong class="source-inline">AzureOpenAI</strong> model (configured with a specific deployment and model) to answer questions related to a <strong class="source-inline">stuff</strong> category. The retrieval of relevant information for answering questions is facilitated by the <strong class="source-inline">vector_search</strong> object acting as <span class="No-Break">the retriever.</span></p>
+			<p><span class="No-Break">Output:</span></p>
+			<div>
+				<div id="_idContainer091" class="IMG---Figure">
+					<img src="image/B21019_04_15.jpg" alt="Figure 4.15: Chain output using RetrievalQA"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.15: Chain output using RetrievalQA</p>
+			<p>We will test it using the <span class="No-Break">following query:</span></p>
+			<pre class="source-code">
+query = " What are some good places in Goa to visit in December"
+chain.run(query)</pre>			<p>The specific question “What are some good places in Goa to visit in December?” is submitted to a configured QA system represented by the <em class="italic">chain</em>. The system utilizes an <strong class="source-inline">AzureOpenAI</strong> model and a vector search retriever to find and generate a response to the question. The actual answer to the question is determined by the model’s understanding and the content available in the <span class="No-Break">system’s index.</span></p>
+			<p><span class="No-Break">Output:</span></p>
+			<div>
+				<div id="_idContainer092" class="IMG---Figure">
+					<img src="image/B21019_04_16.jpg" alt="Figure 4.16: Query output"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 4.16: Query output</p>
+			<p>Now our solution has <a id="_idIndexMarker312"/>clearly given the required response from our vector search. With this, we have achieved the <span class="No-Break">desired output.</span></p>
+			<h1 id="_idParaDest-67"><a id="_idTextAnchor066"/>Summary</h1>
+			<p>In this chapter, we explored the development of an enterprise-level document QA solution by leveraging Azure OpenAI and Azure Cognitive Search. We addressed the common organizational challenge of managing vast amounts of unstructured documents containing valuable information and highlighted the transformative potential of such a solution. We outlined the essential tools and software required to set up the development environment, ensuring readiness for implementation. We also detailed the architecture, explaining how Azure Cognitive Search and Azure OpenAI Service work together to convert unstructured data into embeddings for efficient searching. Finally, we provided a practical guide to building the solution, including setting up an Azure OpenAI deployment and Azure Cognitive <span class="No-Break">Search components.</span></p>
+			<p>In the next chapter, we will integrate OpenAI and Azure Communications Services to build an advanced <span class="No-Break">analytics solution.</span></p>
+		</div>
+	</body></html>

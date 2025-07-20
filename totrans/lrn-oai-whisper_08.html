@@ -1,0 +1,707 @@
+<html><head></head><body>
+<div id="book-content">
+<div id="sbo-rt-content"><div id="_idContainer045">
+			<h1 id="_idParaDest-162" class="chapter-number"><a id="_idTextAnchor186"/>8</h1>
+			<h1 id="_idParaDest-163"><a id="_idTextAnchor187"/>Diarizing Speech with WhisperX and NVIDIA’s NeMo</h1>
+			<p>Welcome to <a href="B21020_08.xhtml#_idTextAnchor186"><span class="No-Break"><em class="italic">Chapter 8</em></span></a>, where we will explore the world of <strong class="bold">speech diarization</strong>. While Whisper has proven to be a powerful tool for transcribing speech, there’s another crucial aspect of speech analysis that can significantly enhance its utility – speaker diarization. By augmenting Whisper with the ability to identify and attribute speech segments to different speakers, we open a new realm of possibilities for analyzing multispeaker conversations. This chapter will explore how Whisper can be integrated with cutting-edge diarization techniques to unlock <span class="No-Break">these capabilities.</span></p>
+			<p>We will start by exploring the evolution of speaker diarization systems, from the limitations of early approaches to the transformative impact of transformer models. Through practical, hands-on examples, we’ll preprocess audio data, transcribe speech with Whisper, and fine-tune the alignment between transcriptions and the <span class="No-Break">original audio.</span></p>
+			<p>In this chapter, we will cover the following <span class="No-Break">main topics:</span></p>
+			<ul>
+				<li>Augmenting Whisper with <span class="No-Break">speaker diarization</span></li>
+				<li>Performing hands-on <span class="No-Break">speech diarization</span></li>
+			</ul>
+			<p>By the end of this chapter, you’ll know how to integrate Whisper with advanced techniques such as voice activity detection, speaker embedding extraction, and clustering, enabling you to augment its capabilities and achieve state-of-the-art diarization performance. You’ll also learn how to leverage NVIDIA’s powerful <strong class="bold">multiscale diarization decoder</strong> (<strong class="bold">MSDD</strong>) model, which considers multiple temporal resolutions of speaker embeddings to deliver exceptional accuracy. By mastering the techniques presented in this chapter, you’ll be well-equipped to tackle complex multispeaker audio scenarios and push the boundaries of what’s possible with <span class="No-Break">OpenAI Whisper.</span></p>
+			<p>Get ready to dive into the exciting world of speaker diarization and unlock new insights from multispeaker conversations. Let’s begin this transformative <span class="No-Break">journey together!</span></p>
+			<h1 id="_idParaDest-164"><a id="_idTextAnchor188"/>Technical requirements</h1>
+			<p>To harness the capabilities of OpenAI’s Whisper for advanced applications, this chapter leverages Python and Google Colab for ease of use and accessibility. The Python environment setup includes the Whisper library for <span class="No-Break">transcription tasks.</span></p>
+			<p><span class="No-Break"><strong class="bold">Key requirements</strong></span><span class="No-Break">:</span></p>
+			<ul>
+				<li><strong class="bold">Google Colab notebooks</strong>: The notebooks are set to run our Python code with the minimum required memory and capacity. If the <strong class="bold">T4 GPU</strong> runtime type is available, select it for <span class="No-Break">better performance.</span></li>
+				<li><strong class="bold">Google Colab notebooks</strong>: The notebooks are set to run our Python code with the minimum required memory and capacity. If that option is available, change the runtime type to <strong class="bold">GPU</strong> for <span class="No-Break">better performance.</span></li>
+				<li><strong class="bold">Python environment</strong>: Each notebook contains directives to load the required Python libraries, including Whisper <span class="No-Break">and Gradio.</span></li>
+				<li><strong class="bold">Hugging Face account</strong>: Some notebooks require a Hugging Face account and login API key. The Colab notebooks include information about <span class="No-Break">this topic.</span></li>
+				<li><strong class="bold">Microphone and speakers</strong>: Some notebooks implement a Gradio app with voice recording and audio playback. A microphone and speakers connected to your computer might help you experience the interactive voice features. Another option is to open the URL link that Gradio provides at runtime on your mobile phone; from there, you can use the phone’s microphone to record <span class="No-Break">your voice.</span></li>
+				<li><strong class="bold">GitHub repository access</strong>: All Python code, including examples, is available in the chapter’s GitHub repository (<a href="https://github.com/PacktPublishing/Learn-OpenAI-Whisper/tree/main/Chapter08">https://github.com/PacktPublishing/Learn-OpenAI-Whisper/tree/main/Chapter08</a>). These Colab notebooks are ready to run, providing a practical and hands-on approach <span class="No-Break">to learning.</span></li>
+			</ul>
+			<p>By meeting these technical requirements, you will be prepared to explore Whisper in different contexts while enjoying the streamlined experience of Google Colab and the comprehensive resources available <span class="No-Break">on GitHub.</span></p>
+			<h1 id="_idParaDest-165"><a id="_idTextAnchor189"/>Augmenting Whisper with speaker diarization</h1>
+			<p>Speaker diarization, partitioning an<a id="_idIndexMarker797"/> audio stream into segments according to the speaker’s identity, is a powerful feature in multispeaker speech processing. It addresses the question of <em class="italic">who spoke when?</em> In a given audio clip, it is crucial to enhance the functionality and usability of ASR systems. The origins of speaker<a id="_idIndexMarker798"/> diarization can be traced back to the 1990s when the foundational work for clustering-based diarization paradigms was laid down. These early studies focused on radio broadcast news and communications applications, primarily aiming to improve ASR performance. The features used in these early studies were handcrafted mainly, with <strong class="bold">Mel-frequency cepstral coefficients</strong> (<strong class="bold">MFCCs</strong>) being a <a id="_idIndexMarker799"/><span class="No-Break">common choice.</span></p>
+			<p>Over time, the field of speaker diarization has seen significant advancements, particularly with the emergence of deep learning technology. Modern diarization systems often leverage neural networks and large-scale GPU computing to improve accuracy and efficiency. The progression<a id="_idIndexMarker800"/> of diarization techniques has included the use of <strong class="bold">Gaussian mixture models</strong> (<strong class="bold">GMMs</strong>) and <strong class="bold">hidden Markov models</strong> (<strong class="bold">HMMs</strong>) in earlier approaches, followed by the<a id="_idIndexMarker801"/> adoption of neural embeddings (such as <em class="italic">x</em>-vectors and <em class="italic">d</em>-vectors, which we will cover in more detail in the <em class="italic">An introduction to speaker embeddings</em> section later in this chapter) and clustering methods in more <span class="No-Break">recent times.</span></p>
+			<p>One of the most significant contributions to the field has been the development of end-to-end neural diarization approaches, which aim to simplify the diarization process by merging distinct steps in the diarization pipeline. These approaches have been designed to handle the challenges of multispeaker labeling and diarization, such as dealing with noisy acoustic environments, a range of vocal tenors, and <span class="No-Break">accent nuances.</span></p>
+			<p>Open source initiatives have also contributed to the evolution of diarization capabilities, with tools such as ALIZE, pyannote.audio, pyAudioAnalysis, SHoUT, and LIUM SpkDiarization providing resources for researchers and developers to implement and experiment with diarization in their applications. Most earlier tools are now either inactive or abandoned, except for <span class="No-Break">pyannote.audio (Pyannote).</span></p>
+			<p>The early speaker diarization systems, while pioneering in their approach to solving the <em class="italic">who spoke when</em> problem in audio recordings, faced several<a id="_idIndexMarker802"/> limitations that impacted their accuracy and efficiency. In the next section, we will examine the fundamental hurdles of early diarization solutions<a id="_idIndexMarker803"/> in <span class="No-Break">more detail.</span></p>
+			<h2 id="_idParaDest-166"><a id="_idTextAnchor190"/>Understanding the limitations and constraints of diarization</h2>
+			<p>Many of the deficiencies and inaccuracies in early diarization efforts were rooted in the technological constraints of the time, the <a id="_idIndexMarker804"/>complexity of human speech, and the nascent state of machine learning techniques applied to audio processing. Understanding these limitations provides valuable insights into the evolution of diarization capabilities and the significant advancements made <span class="No-Break">over time:</span></p>
+			<ul>
+				<li><strong class="bold">Computing limitations</strong>: Early diarization systems were limited by the computational power available at the time. Processing large audio datasets required significant computational resources, which were not as readily available or as powerful as today’s standards. This limitation affected the complexity of the algorithms that could be run in a reasonable amount of time, thereby constraining the accuracy of early <span class="No-Break">diarization systems.</span></li>
+				<li><strong class="bold">Feature extraction and modeling limitations</strong>: The feature extraction techniques used in early diarization systems, such as MFCCs, were relatively simplistic compared to the sophisticated embeddings used in modern systems. These early features might not effectively capture the nuances of different speakers’ voices, leading to less accurate <span class="No-Break">speaker differentiation.</span></li>
+				<li><strong class="bold">Reliance on GMMs and HMMs for speaker modeling</strong>: While these models provided a foundation for speaker diarization, they were limited in handling the variability and complexity of human speech across different speakers <span class="No-Break">and environments.</span></li>
+				<li><strong class="bold">Handling of speaker change points</strong>: One of the significant challenges for early diarization systems was accurately detecting speaker change points. These systems struggled particularly with short speech segments and segments close to speaker change points. The performance of these systems degraded both as the segment duration decreased and the proximity to the speaker change point increased. For example, over 33% and 40% of<a id="_idIndexMarker805"/> the errors in <strong class="bold">single-distant microphone</strong> (<strong class="bold">SDM</strong>) and <strong class="bold">multiple-distant microphone</strong> (<strong class="bold">MDM</strong>) conditions occurred within 0.5 seconds of a <a id="_idIndexMarker806"/>change point for all evaluated systems. SDM refers to a scenario where a single microphone is placed at a distance from the speakers, capturing audio<a id="_idIndexMarker807"/> from all participants. On the other hand, MDM involves multiple microphones placed at different locations in the recording environment, providing additional spatial information that can be leveraged for improved diarization performance. The percentage of errors in the context of these setups highlights early diarization systems’ challenges in accurately detecting speaker changes, especially near <span class="No-Break">change points.</span></li>
+				<li><strong class="bold">Scalability and flexibility</strong>: Early diarization systems were often designed with specific applications in mind, such as radio broadcast news or meeting recordings, and might not quickly adapt to other types of audio content. This lack of flexibility limited the broader application of diarization technology. Moreover, the scalability of these systems to handle large-scale or real-time diarization tasks was a <span class="No-Break">significant challenge.</span></li>
+				<li><strong class="bold">Error analysis and improvement directions</strong>: In-depth error analysis of early diarization systems revealed that improvements near speaker change points could significantly impact overall performance. Modifications such as alternative minimum duration constraints and leveraging the difference between the most prominent and second-largest log-likelihood scores for unsupervised clustering were explored to address <span class="No-Break">these limitations.</span></li>
+			</ul>
+			<p>Despite their groundbreaking efforts, early approaches to speaker diarization encountered various limitations that could have improved their accuracy and efficiency. These limitations stemmed from technological constraints, the intricacies of human speech, and the nascent state of machine-learning techniques. However, introducing transformer-based models has revolutionized the field, addressing many of these challenges and paving the way for <a id="_idIndexMarker808"/>more accurate and <span class="No-Break">efficient solutions.</span></p>
+			<h2 id="_idParaDest-167"><a id="_idTextAnchor191"/>Bringing transformers into speech diarization</h2>
+			<p>Transformers have been instrumental in advancing state-of-the-art speech diarization. They are adept at handling<a id="_idIndexMarker809"/> speech’s sequential and contextual nature, which is essential for differentiating between speakers in an audio stream. The self-attention mechanism within transformers allows a model to weigh the importance of each part of the input data, which is crucial for identifying speaker change points and attributing speech segments to the <span class="No-Break">correct speaker.</span></p>
+			<p>As mentioned earlier, traditional diarization methods often relied on GMMs and HMMs to model speaker characteristics. These methods need to be improved to handle the variability and complexity of human speech. In contrast, transformer-based diarization systems can process entire data sequences simultaneously, allowing them to capture the context and relationships between speech segments <span class="No-Break">more effectively.</span></p>
+			<p>Transformers also enable embeddings, such as <em class="italic">x</em>-vectors and <em class="italic">d</em>-vectors, which provide a more nuanced representation of speaker characteristics. This leads to improved diarization performance, especially in challenging acoustic environments or scenarios with <span class="No-Break">overlapping speech.</span></p>
+			<p>Moving beyond the limitations of earlier diarization attempts, we must introduce a game-changing framework that brings transformers into speech diarization – NVIDIA’s <strong class="bold">Neural Modules</strong> (<strong class="bold">NeMo</strong>). NeMo is an open <a id="_idIndexMarker810"/>source toolkit for building, training, and fine-tuning GPU-accelerated speech and NLP models. It provides a collection of pre-built modules and models that can be quickly composed to create complex AI applications, such as ASR, natural language understanding, and text-to-speech synthesis. NeMo offers a more direct approach to diarization with its transformer-based pipeline, opening new possibilities for speaker identification <span class="No-Break">and separation.</span></p>
+			<h2 id="_idParaDest-168"><a id="_idTextAnchor192"/>Introducing NVIDIA’s NeMo framework</h2>
+			<p>Compared to traditional methods, transformer-based <a id="_idIndexMarker811"/>diarization systems provide superior performance and are better suited to the complexities of natural speech. NVIDIA’s NeMo toolkit supports training and fine-tuning speaker diarization models. NeMo leverages transformer-based models for various speech tasks, including diarization. The<a id="_idIndexMarker812"/> toolkit provides a pipeline that includes <strong class="bold">voice activity detection</strong> (<strong class="bold">VAD</strong>), <strong class="bold">speaker embedding extraction</strong>, and <strong class="bold">clustering</strong> modules, which <a id="_idIndexMarker813"/>are essential components of a diarization <a id="_idIndexMarker814"/>system. NeMo’s approach to diarization involves training models that can capture the characteristics of unseen speakers and assign audio segments to the correct <span class="No-Break">speaker index.</span></p>
+			<p>From a more comprehensive point of view, NVIDIA NeMo offers much more than transformer-based diarization. NeMo is an end-to-end, cloud-native framework for building, customizing, and deploying generative AI models across various platforms, including LLMs. It provides a comprehensive solution for the entire generative AI model development life cycle, from data processing and model training to inference. NeMo is particularly noted for its capabilities in conversational AI, encompassing ASR, NLP, and <span class="No-Break">text-to-speech synthesis.</span></p>
+			<p>NeMo stands out for its <a id="_idIndexMarker815"/>ability to handle large-scale models, supporting the training of models with up to trillions of parameters. Advanced parallelization techniques such as tensor parallelism, pipeline parallelism, and sequence parallelism facilitate this, enabling efficient scaling of models across thousands of GPUs. The framework is built on top of PyTorch and PyTorch Lightning, offering a familiar environment for researchers and developers to innovate within the conversational <span class="No-Break">AI space.</span></p>
+			<p>One of the critical features of NeMo is its modular architecture, where models are composed of neural modules with strongly typed input and output. This design promotes reusability and simplifies the creation of new conversational AI models by allowing researchers to leverage pre-existing code and <span class="No-Break">pre-trained models.</span></p>
+			<p>NeMo is available as open source software, encouraging contributions from the community and facilitating widespread adoption and customization. It also integrates with NVIDIA’s AI platform, including the NVIDIA Triton Inference Server, to deploy models in production environments. NVIDIA NeMo provides a powerful and flexible framework to develop state-of-the-art conversational AI models, offering tools and resources that streamline bringing generative AI applications from concept <span class="No-Break">to deployment.</span></p>
+			<p>Now that we’ve explored Whisper and NeMo’s capabilities separately, let’s consider the potential of integrating these two powerful tools. Combining Whisper’s transcription prowess with NeMo’s advanced diarization features can unlock even greater insights from <span class="No-Break">audio data.</span></p>
+			<h2 id="_idParaDest-169"><a id="_idTextAnchor193"/>Integrating Whisper and NeMo</h2>
+			<p>While Whisper is primarily <a id="_idIndexMarker816"/>known for its transcription capabilities, it can also be adapted for diarization tasks. However, Whisper does not natively support speaker diarization. To achieve diarization with Whisper, additional tools such as Pyannote, a speaker diarization toolkit, can be used in conjunction with Whisper’s transcriptions to <span class="No-Break">identify speakers.</span></p>
+			<p>Integrating NVIDIA’s NeMo with OpenAI’s Whisper<a id="_idIndexMarker817"/> for speaker diarization involves a novel pipeline that leverages the strengths of both systems to enhance diarization outcomes. This integration is particularly notable in the context of inference and <span class="No-Break">result interpretation.</span></p>
+			<p>The pipeline begins with Whisper processing audio to generate highly accurate transcriptions. Whisper’s role is primarily to transcribe the audio, providing detailed textual output of the spoken content. However, Whisper does not natively support speaker diarization—identifying <em class="italic">who spoke when</em> within <span class="No-Break">the audio.</span></p>
+			<p>To introduce diarization, the pipeline incorporates NVIDIA’s NeMo, specifically its speaker diarization module. NeMo’s diarization system is designed to process audio recordings, segmenting them by speaker labels. It achieves this through several steps, including VAD, speaker embedding extraction, and clustering. The speaker embeddings capture unique voice characteristics, which are then clustered to differentiate between speakers in <span class="No-Break">the audio.</span></p>
+			<p>The integration of Whisper and NeMo for diarization allows you to align Whisper’s transcriptions with speaker labels identified by NeMo. This means that the output includes what was said (from Whisper’s transcriptions) and identifies which speaker said each part (from NeMo’s diarization). The result is a more comprehensive understanding of the audio content, providing both the textual transcription and the <span class="No-Break">speaker attribution.</span></p>
+			<p>This integration is beneficial in scenarios where understanding conversation dynamics is crucial, such as meetings, interviews, and legal proceedings. It enhances the utility of transcriptions by adding a layer of speaker-specific context, making it easier to follow conversations and attribute <span class="No-Break">statements accurately.</span></p>
+			<p>The integration between Whisper and NeMo for speaker diarization combines Whisper’s advanced transcription capabilities with NeMo’s robust diarization framework. This synergy enhances the interpretability of audio content by providing detailed transcriptions alongside accurate speaker labels, thereby offering a richer analysis of <span class="No-Break">spoken interactions.</span></p>
+			<p>Before we delve deeper into the integration of Whisper and NeMo, it’s crucial to understand a fundamental concept in modern speech processing systems – <strong class="bold">speaker embeddings</strong>. These vectorial representations<a id="_idIndexMarker818"/> of speaker characteristics are vital in<a id="_idIndexMarker819"/> enabling accurate <span class="No-Break">speaker diarization.</span></p>
+			<h2 id="_idParaDest-170"><a id="_idTextAnchor194"/>An introduction to speaker embeddings</h2>
+			<p>Speaker embeddings are<a id="_idIndexMarker820"/> vectorial representations extracted from a speech signal that encapsulate the characteristics of a speaker’s voice in a compact form. These embeddings are designed to be discriminative, meaning they can effectively differentiate between speakers while being robust to variations in speech content, channel, and environmental noise. The goal is to obtain a fixed-length vector from variable-length speech utterances that capture the unique traits of a <span class="No-Break">speaker’s voice.</span></p>
+			<p>Speaker embeddings are a fundamental component in modern speech processing systems, enabling various applications from speaker verification to diarization. Their ability to condense the rich information of a speaker’s voice into a fixed-length vector makes them invaluable for systems that need to recognize, differentiate, or track speakers across <span class="No-Break">audio recordings.</span></p>
+			<p>From a more technical perspective, there are several types of speaker embeddings, each with its method of extraction <span class="No-Break">and characteristics:</span></p>
+			<ul>
+				<li><em class="italic">i</em><strong class="bold">-vectors</strong>: These embeddings <a id="_idIndexMarker821"/>capture speaker and channel variabilities in a low-dimensional space. They are derived from a GMM framework and represent the differences between a given speaker’s pronunciation and the average pronunciation across a set of <span class="No-Break">phonetic classes.</span></li>
+				<li><em class="italic">d</em><strong class="bold">-vectors</strong>: These are obtained by training <a id="_idIndexMarker822"/>a speaker-discriminative <strong class="bold">deep neural network</strong> (<strong class="bold">DNN</strong>) and extracting<a id="_idIndexMarker823"/> frame-level vectors from the last hidden layer. These vectors are then averaged over the entire utterance to produce the <em class="italic">d</em>-vector, representing the <span class="No-Break">speaker’s identity.</span></li>
+				<li><em class="italic">x</em><strong class="bold">-vectors</strong>: This type of embedding involves frame- and segment-level feature (utterance) processing. <em class="italic">X</em>-vectors <a id="_idIndexMarker824"/>are extracted using a DNN that processes a sequence of acoustic features and aggregates them, using a statistics pooling layer to produce a <span class="No-Break">fixed-length vector.</span></li>
+				<li><em class="italic">s</em><strong class="bold">-vectors</strong>: Also known as <a id="_idIndexMarker825"/>sequence or summary vectors, <em class="italic">s</em>-vectors are derived from recurrent neural network architectures such as RNNs or LSTMs. They are designed to capture sequential information and can encode spoken terms and word orders to a <span class="No-Break">notable extent.</span></li>
+			</ul>
+			<p>Extracting speaker embeddings typically involves training a neural network model to optimize the encoder <a id="_idIndexMarker826"/>using loss functions that encourage discriminative learning. After training, the pre-activation of a hidden layer at the segment-level network is extracted as the speaker embedding. The network is trained on a large dataset of speakers to ensure that the embeddings generalize well to <span class="No-Break">unseen speakers.</span></p>
+			<p>In the context of speaker diarization, speaker embeddings cluster speech segments according to the speaker’s identity. The embeddings provide a way to measure the similarity between segments and groups of those likely to be from the same speaker. This is a crucial step in the diarization process, as it allows you to accurately attribute speech to the correct speaker within an <span class="No-Break">audio stream.</span></p>
+			<p>As we’ve seen, both Whisper augmented with Pyannote and NVIDIA’s NeMo offer powerful diarization capabilities. However, it’s essential to understand the critical differences between these approaches to make informed decisions when choosing a <span class="No-Break">diarization solution.</span></p>
+			<h2 id="_idParaDest-171"><a id="_idTextAnchor195"/>Differentiating NVIDIA’s NeMo capabilities</h2>
+			<p>The integration of diarization<a id="_idIndexMarker827"/> capabilities into ASR systems has been significantly influenced by the advent of transformer models, particularly in the context of OpenAI’s Whisper and NVIDIA’s NeMo frameworks. These advancements have improved the accuracy of ASR systems and introduced new methodologies to handle speaker diarization tasks. Let’s delve into the similarities and differences between Whisper diarization using Pyannote and diarization using NVIDIA’s NeMo, focusing on speech activity detection, speaker change detection, and overlapped speech detection. Understanding the differences between these two approaches to speaker diarization is crucial for making informed decisions when choosing a solution for your specific use case. By examining how each system handles critical aspects of the diarization process, such as speech activity detection, speaker change detection, and overlapped <a id="_idIndexMarker828"/>speech detection, you can better assess which approach aligns with your accuracy, efficiency, and ease of <span class="No-Break">integration requirements:</span></p>
+			<table id="table001-3" class="No-Table-Style">
+				<colgroup>
+					<col/>
+					<col/>
+					<col/>
+				</colgroup>
+				<thead>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break"><strong class="bold">Diarization feature</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><strong class="bold">Whisper </strong><span class="No-Break"><strong class="bold">with Pyannote</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><span class="No-Break"><strong class="bold">NVIDIA NeMo</strong></span></p>
+						</td>
+					</tr>
+				</thead>
+				<tbody>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="bold">Detecting </strong><span class="No-Break"><strong class="bold">speech activity</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Whisper does not inherently perform VAD as part of its diarization process. However, when combined with Pyannote, an external VAD model from the Pyannote toolkit can segment the audio into speech and non-speech intervals before applying diarization. This approach requires integrating Whisper’s ASR capabilities with Pyannote’s VAD models, based on deep learning techniques and fine-tuning, for accurate <span class="No-Break">speech/non-speech segmentation.</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>NeMo’s speaker diarization pipeline includes a dedicated VAD module that is trainable and optimized as part of the diarization system. This VAD model is designed to detect the presence or absence of speech and generate timestamps for speech activity within an audio recording. Integrating VAD within NeMo’s diarization pipeline allows for a more streamlined process, directly feeding the VAD results into subsequent <span class="No-Break">diarization steps.</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="bold">Detecting </strong><span class="No-Break"><strong class="bold">speaker change</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>The integration of Whisper with Pyannote for diarization purposes relies on Pyannote’s speaker change detection capabilities. Pyannote employs neural network models to identify points in audio where a speaker change occurs. This process is crucial for segmenting the audio into homogeneous segments attributed to individual speakers. Speaker change detection in Pyannote is a separate module that works with its <span class="No-Break">diarization pipeline.</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>NeMo’s approach to speaker change detection is implicitly handled within its diarization pipeline, including modules for extracting and clustering speaker embeddings. While NeMo does not explicitly mention a standalone speaker change detection module, identifying speaker changes is integrated into the overall diarization workflow, mainly through analyzing speaker embeddings and their temporal distribution <span class="No-Break">across audio.</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="bold">Detecting </strong><span class="No-Break"><strong class="bold">overlapped speech</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Overlapped speech detection is another area where Pyannote complements Whisper’s capabilities. Pyannote’s toolkit includes models designed to detect and handle overlapping speech, a <a id="_idIndexMarker829"/>challenging aspect of speaker diarization. This functionality is crucial for accurately diarizing conversations where multiple speakers <span class="No-Break">simultaneously talk.</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Like speaker change detection, NeMo’s treatment of overlapped speech is integrated into its diarization pipeline rather than being addressed by a separate module. The system’s ability to handle overlapped speech results from its sophisticated speaker embedding and clustering techniques, which can identify and separate speakers even in challenging <span class="No-Break">overlapping scenarios.</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="bold">Integrating speaker embeddings in the </strong><span class="No-Break"><strong class="bold">diarization pipeline</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Whisper’s combination with Pyannote relies on external modules for these tasks, offering flexibility and modularity. In contrast, NeMo’s diarization pipeline directly integrates these functionalities, providing a<a id="_idIndexMarker830"/> streamlined and cohesive workflow. These advancements underscore the transformative impact of transformer models on speech processing, paving the way for more accurate and efficient <span class="No-Break">diarization systems.</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>NVIDIA’s NeMo toolkit includes a more integrated approach to speaker diarization. It provides a complete diarization pipeline that includes VAD, speaker embedding extraction, and clustering. NeMo’s speaker embeddings are extracted using models explicitly trained for this purpose, and these embeddings are then used within the same framework to perform the clustering necessary <span class="No-Break">for diarization.</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="bold">Clustering and assigning </strong><span class="No-Break"><strong class="bold">speaker embeddings</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>After extracting speaker embeddings, Pyannote uses various clustering algorithms, such as hierarchical clustering, to group and assign the embeddings to<a id="_idIndexMarker831"/> the respective speakers. This clustering process is crucial for determining which audio segments belong to <span class="No-Break">which speaker.</span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>NeMo also uses clustering algorithms to group speaker embeddings. However, NeMo employs a multiscale, auto-tuning, spectral clustering approach, reportedly more resilient than the Pyannote version. This approach involves segmenting the audio file with different window lengths and calculating embeddings for multiple scales, which are then clustered to label each segment with <span class="No-Break">a speaker.</span></p>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Table 8.1 – How different diarization approaches handle critical diarization features</p>
+			<p>While both Whisper augmented with Pyannote and NVIDIA’s NeMo use speaker embeddings as a core part of their diarization pipelines, their approaches have notable differences. Whisper requires an external toolkit (<strong class="source-inline">pyannote.audio</strong>) to perform diarization, whereas NeMo offers an all-in-one solution with its speaker embedding extraction and clustering<a id="_idIndexMarker832"/> modules. NeMo’s multiscale clustering approach is a distinctive feature, differentiating it from the Pyannote implementation used with Whisper. These differences reflect the diverse methodologies and innovations present in the field of speaker <span class="No-Break">diarization research.</span></p>
+			<p class="callout-heading">Blending Whisper and PyAnnote – WhisperX</p>
+			<p class="callout">WhisperX (<a href="https://replicate.com/dinozoiddev/whisperx">https://replicate.com/dinozoiddev/whisperx</a>) provides fast ASR (70x faster than OpenAI’s <strong class="source-inline">Whisper large-v2</strong>) with word-level timestamps and speaker diarization, a feature not natively <a id="_idIndexMarker833"/>supported by Whisper. WhisperX builds upon the foundational strengths of Whisper by addressing some of its limitations, particularly in timestamp accuracy and speaker diarization. While Whisper provides utterance-level timestamps, WhisperX advances this by offering word-level timestamps, crucial for applications requiring precise synchronization between text and audio, such as subtitling and detailed audio analysis. This is achieved through combining techniques, including VAD, pre-segmentation of audio into manageable chunks, and forced alignment with an external phoneme model to provide accurate <span class="No-Break">word-level timestamps.</span></p>
+			<p class="callout">The implementation of WhisperX supports transcription in all languages supported by Whisper, with alignment currently available for English audio. It has been upgraded to incorporate the latest Whisper models and diarization technologies powered by Pyannote to enhance its performance further. At the time of writing, WhisperX incorporates <strong class="source-inline">whisper-large-v3</strong> along with diarization upgrades to speaker-diarization-3.1 and segmentation-3.0, powered by Pyannote. WhisperX demonstrates significant improvements over Whisper in word segmentation precision and recall, as well as reductions in WER and increases in transcription speed, especially when employing batched transcription with <span class="No-Break">VAD preprocessing.</span></p>
+			<p class="callout">In summary, WhisperX is a significant evolution of OpenAI’s Whisper, offering enhanced functionality through word-level timestamps and speaker diarization. These advancements make WhisperX a powerful tool for applications requiring detailed and accurate speech transcription <span class="No-Break">and analysis.</span></p>
+			<p>With this solid theoretical foundation, it’s time to put our knowledge into practice. The next hands-on section <a id="_idIndexMarker834"/>will explore a practical implementation that combines WhisperX, NeMo, and other supporting Python libraries to perform speech diarization on real-world <span class="No-Break">audio data.</span></p>
+			<h1 id="_idParaDest-172"><a id="_idTextAnchor196"/>Performing hands-on speech diarization</h1>
+			<p>Transitioning from the<a id="_idIndexMarker835"/> theoretical context of speech diarization, let’s immerse ourselves in the practical implementation that combines WhisperX, NeMo, and other supporting Python libraries, all from the comfort of our trusty Google Colaboratory. I encourage you to visit the book’s GitHub repository, find the <strong class="source-inline">LOAIW_ch08_diarizing_speech_with_WhisperX_and_NVIDIA_NeMo.ipynb</strong> notebook (<a href="https://github.com/PacktPublishing/Learn-OpenAI-Whisper/blob/main/Chapter08/LOAIW_ch08_diarizing_speech_with_WhisperX_and_NVIDIA_NeMo.ipynb">https://github.com/PacktPublishing/Learn-OpenAI-Whisper/blob/main/Chapter08/LOAIW_ch08_diarizing_speech_with_WhisperX_and_NVIDIA_NeMo.ipynb</a>), and run the Python code yourself; feel free to experiment by modifying parameters and observe the results. The notebook provides a detailed walk-through to integrate Whisper’s transcription capabilities with NeMo’s diarization framework, offering a robust solution to analyze speech in <span class="No-Break">audio recordings.</span></p>
+			<p>The notebook is structured into<a id="_idIndexMarker836"/> several key sections, each focusing on a specific aspect of the <span class="No-Break">diarization process.</span></p>
+			<h2 id="_idParaDest-173"><a id="_idTextAnchor197"/>Setting up the environment</h2>
+			<p>The first section of the notebook<a id="_idIndexMarker837"/> outlines the installation of several Python libraries and tools essential for the <span class="No-Break">diarization process:</span></p>
+			<pre class="console">
+!pip install git+<a href="https://github.com/m-bain/whisperX.git@78dcfaab51005aa703ee21375f81ed31bc248560">https://github.com/m-bain/whisperX.git@78dcfaab51005aa703ee21375f81ed31bc248560</a>
+!pip install --no-build-isolation nemo_toolkit[asr]==1.22.0
+!pip install --no-deps git+<a href="https://github.com/facebookresearch/demucs#egg=demucs">https://github.com/facebookresearch/demucs#egg=demucs</a>
+!pip install dora-search "lameenc&gt;=1.2" openunmix
+!pip install deepmultilingualpunctuation
+!pip install wget pydub</pre>			<p>Let’s review each to understand their role <span class="No-Break">in diarization:</span></p>
+			<ul>
+				<li><strong class="source-inline">whisperX</strong>: An extension of OpenAI’s Whisper model, tailored for enhanced functionality. Notably, WhisperX installs faster-whisper (<a href="https://github.com/SYSTRAN/faster-whisper">https://github.com/SYSTRAN/faster-whisper</a>), a reimplementation of OpenAI’s Whisper model using CTranslate2 (<a href="https://github.com/OpenNMT/CTranslate2/">https://github.com/OpenNMT/CTranslate2/</a>). This implementation is up to four times faster than OpenAI’s Whisper with the same accuracy, while using less memory. The efficiency can be improved with 8-bit quantization on both the CPU <span class="No-Break">and GPU.</span></li>
+				<li><strong class="source-inline">nemo_toolkit[asr]</strong>: NVIDIA’s NeMo toolkit for ASR, providing the foundation for <span class="No-Break">speaker diarization.</span></li>
+				<li><strong class="source-inline">demucs</strong>: A library for music source separation, functional for preprocessing audio files by isolating speech from <span class="No-Break">background music.</span></li>
+				<li><strong class="source-inline">dora-search</strong>, <strong class="source-inline">lameenc, and openunmix</strong>: Tools and libraries for audio processing, enhancing the<a id="_idIndexMarker838"/> quality and compatibility of audio data for <span class="No-Break">diarization tasks.</span></li>
+				<li><strong class="source-inline">deepmultilingualpunctuation</strong>: A library for adding punctuation to transcriptions, improving the readability and structure of the <span class="No-Break">generated text.</span></li>
+				<li><strong class="source-inline">wget and pydub</strong>: Utilities for downloading and manipulating audio files, facilitating audio data handling within the <span class="No-Break">Python environment.</span></li>
+			</ul>
+			<p>These libraries collectively form the foundation for processing audio files, transcribing speech, and performing speaker diarization. Each tool plays a specific role, from preparing the audio data to generating accurate transcriptions and identifying distinct speakers within <span class="No-Break">the audio.</span></p>
+			<h2 id="_idParaDest-174"><a id="_idTextAnchor198"/>Streamlining the diarization workflow with helper functions</h2>
+			<p>The notebook defines several <a id="_idIndexMarker839"/>supporting functions to simplify the process of diarizing speech with Whisper and NeMo. These functions are instrumental in managing audio data, aligning transcriptions with speaker identities, and enhancing the workflow. The following is a concise description of <span class="No-Break">each function:</span></p>
+			<ul>
+				<li><strong class="source-inline">create_config()</strong>: Initializes and returns a configuration object, setting up essential parameters for the <span class="No-Break">diarization process:</span><pre class="source-code">
+def create_config(output_dir):
+    DOMAIN_TYPE = "telephonic"  # Can be meeting, telephonic, or general based on domain type of the audio file
+    CONFIG_FILE_NAME = f"diar_infer_{DOMAIN_TYPE}.yaml"
+    CONFIG_URL = f"https://raw.githubusercontent.com/NVIDIA/NeMo/main/examples/speaker_tasks/diarization/conf/inference/{CONFIG_FILE_NAME}"
+    MODEL_CONFIG = os.path.join(output_dir, CONFIG_FILE_NAME)
+    if not os.path.exists(MODEL_CONFIG):
+        MODEL_CONFIG = wget.download(CONFIG_URL, output_dir)
+    config = OmegaConf.load(MODEL_CONFIG)
+    data_dir = os.path.join(output_dir, "data")
+    os.makedirs(data_dir, exist_ok=True)
+    meta = {
+        "audio_filepath": os.path.join(output_dir, "mono_file.wav"),
+        "offset": 0,
+        "duration": None,
+        "label": "infer",
+        "text": "-",
+        "rttm_filepath": None,
+        "uem_filepath": None,
+    }
+    with open(os.path.join(data_dir, "input_manifest.json"), "w") as fp:
+        json.dump(meta, fp)
+        fp.write("\n")
+    pretrained_vad = "vad_multilingual_marblenet"
+    pretrained_speaker_model = "titanet_large"
+    config.num_workers = 0  # Workaround for multiprocessing hanging with ipython issue
+    config.diarizer.manifest_filepath = os.path.join(data_dir, "input_manifest.json")
+    config.diarizer.out_dir = (
+        output_dir  # Directory to store intermediate files and prediction outputs
+    )
+    config.diarizer.speaker_embeddings.model_path = pretrained_speaker_model
+    config.diarizer.oracle_vad = (
+        False  # compute VAD provided with model_path to vad config
+    )
+    config.diarizer.clustering.parameters.oracle_num_speakers = False
+    # Here, we use our in-house pretrained NeMo VAD model
+    config.diarizer.vad.model_path = pretrained_vad
+    config.diarizer.vad.parameters.onset = 0.8
+    config.diarizer.vad.parameters.offset = 0.6
+    config.diarizer.vad.parameters.pad_offset = -0.05
+    config.diarizer.msdd_model.model_path = (
+        "diar_msdd_telephonic"  # Telephonic speaker diarization model
+    )
+    return config</pre></li>				<li><strong class="source-inline">get_word_ts_anchor()</strong>: Determines the anchor timestamp for words, facilitating accurate alignment between <a id="_idIndexMarker840"/>spoken words and their timestamps in <span class="No-Break">the audio:</span><pre class="source-code">
+def get_word_ts_anchor(s, e, option="start"):
+    if option == "end":
+        return e
+    elif option == "mid":
+        return (s + e) / 2
+    return s</pre></li>				<li><strong class="source-inline">get_words_speaker_mapping()</strong>: Maps each word in the transcription to the corresponding speaker based on the diarization results, ensuring that every word is attributed to the <span class="No-Break">correct speaker:</span><pre class="source-code">
+def get_words_speaker_mapping(wrd_ts, spk_ts, word_anchor_option="start"):
+    s, e, sp = spk_ts[0]
+    wrd_pos, turn_idx = 0, 0
+    wrd_spk_mapping = []
+    for wrd_dict in wrd_ts:
+        ws, we, wrd = (
+            int(wrd_dict["start"] * 1000),
+            int(wrd_dict["end"] * 1000),
+            wrd_dict["word"],
+        )
+        wrd_pos = get_word_ts_anchor(ws, we, word_anchor_option)
+        while wrd_pos &gt; float(e):
+            turn_idx += 1
+            turn_idx = min(turn_idx, len(spk_ts) - 1)
+            s, e, sp = spk_ts[turn_idx]
+            if turn_idx == len(spk_ts) - 1:
+                e = get_word_ts_anchor(ws, we, option="end")
+        wrd_spk_mapping.append(
+            {"word": wrd, "start_time": ws, "end_time": we, "speaker": sp}
+        )
+    return wrd_spk_mapping</pre></li>				<li><strong class="source-inline">get_first_word_idx_of_sentence()</strong>: Identifies the index of the first word in a sentence, crucial <a id="_idIndexMarker841"/>for processing sentences in the context of speaker attribution <span class="No-Break">and alignment:</span><pre class="source-code">
+def get_first_word_idx_of_sentence(word_idx, word_list, speaker_list, max_words):
+    is_word_sentence_end = (
+        lambda x: x &gt;= 0 and word_list[x][-1] in sentence_ending_punctuations
+    )
+    left_idx = word_idx
+    while (
+        left_idx &gt; 0
+        and word_idx - left_idx &lt; max_words
+        and speaker_list[left_idx - 1] == speaker_list[left_idx]
+        and not is_word_sentence_end(left_idx - 1)
+    ):
+        left_idx -= 1
+    return left_idx if left_idx == 0 or is_word_sentence_end(left_idx - 1) else -1</pre></li>				<li><strong class="source-inline">get_last_word_idx_of_sentence()</strong>: Finds the index of the last word in a sentence, aiding in<a id="_idIndexMarker842"/> delineating sentence boundaries within the <span class="No-Break">transcribed text:</span><pre class="source-code">
+def get_last_word_idx_of_sentence(word_idx, word_list, max_words):
+    is_word_sentence_end = (
+        lambda x: x &gt;= 0 and word_list[x][-1] in sentence_ending_punctuations
+    )
+    right_idx = word_idx
+    while (
+        right_idx &lt; len(word_list)
+        and right_idx - word_idx &lt; max_words
+        and not is_word_sentence_end(right_idx)
+    ):
+        right_idx += 1
+    return (
+        right_idx
+        if right_idx == len(word_list) - 1 or is_word_sentence_end(right_idx)
+        else -1
+    )</pre></li>				<li><strong class="source-inline">get_realigned_ws_mapping_with_punctuation()</strong>: Adjusts the word-to-speaker mapping by considering punctuation, enhancing the accuracy of speaker attribution, especially<a id="_idIndexMarker843"/> in complex <span class="No-Break">conversational scenarios:</span><pre class="source-code">
+def get_realigned_ws_mapping_with_punctuation(
+    word_speaker_mapping, max_words_in_sentence=50
+):
+    is_word_sentence_end = (
+        lambda x: x &gt;= 0
+        and word_speaker_mapping[x]["word"][-1] in sentence_ending_punctuations
+    )
+    wsp_len = len(word_speaker_mapping)
+    words_list, speaker_list = [], []
+    for k, line_dict in enumerate(word_speaker_mapping):
+        word, speaker = line_dict["word"], line_dict["speaker"]
+        words_list.append(word)
+        speaker_list.append(speaker)
+    k = 0
+    while k &lt; len(word_speaker_mapping):
+        line_dict = word_speaker_mapping[k]
+        if (
+            k &lt; wsp_len - 1
+            and speaker_list[k] != speaker_list[k + 1]
+            and not is_word_sentence_end(k)
+        ):
+            left_idx = get_first_word_idx_of_sentence(
+                k, words_list, speaker_list, max_words_in_sentence
+            )
+            right_idx = (
+                get_last_word_idx_of_sentence(
+                    k, words_list, max_words_in_sentence - k + left_idx - 1
+                )
+                if left_idx &gt; -1
+                else -1
+            )
+            if min(left_idx, right_idx) == -1:
+                k += 1
+                continue
+            spk_labels = speaker_list[left_idx : right_idx + 1]
+            mod_speaker = max(set(spk_labels), key=spk_labels.count)
+            if spk_labels.count(mod_speaker) &lt; len(spk_labels) // 2:
+                k += 1
+                continue
+            speaker_list[left_idx : right_idx + 1] = [mod_speaker] * (
+                right_idx - left_idx + 1
+            )
+            k = right_idx
+        k += 1
+    k, realigned_list = 0, []
+    while k &lt; len(word_speaker_mapping):
+        line_dict = word_speaker_mapping[k].copy()
+        line_dict["speaker"] = speaker_list[k]
+        realigned_list.append(line_dict)
+        k += 1
+    return realigned_list</pre></li>				<li><strong class="source-inline">get_sentences_speaker_mapping()</strong>: Generates a mapping of entire sentences to speakers, providing<a id="_idIndexMarker844"/> a higher-level view of speaker contributions throughout <span class="No-Break">the audio:</span><pre class="source-code">
+def get_sentences_speaker_mapping(word_speaker_mapping, spk_ts):
+    sentence_checker = nltk.tokenize.PunktSentenceTokenizer().text_contains_sentbreak
+    s, e, spk = spk_ts[0]
+    prev_spk = spk
+    snts = []
+    snt = {"speaker": f"Speaker {spk}", "start_time": s, "end_time": e, "text": ""}
+    for wrd_dict in word_speaker_mapping:
+        wrd, spk = wrd_dict["word"], wrd_dict["speaker"]
+        s, e = wrd_dict["start_time"], wrd_dict["end_time"]
+        if spk != prev_spk or sentence_checker(snt["text"] + " " + wrd):
+            snts.append(snt)
+            snt = {
+                "speaker": f"Speaker {spk}",
+                "start_time": s,
+                "end_time": e,
+                "text": "",
+            }
+        else:
+            snt["end_time"] = e
+        snt["text"] += wrd + " "
+        prev_spk = spk
+    snts.append(snt)
+    return snts</pre></li>				<li><strong class="source-inline">get_speaker_aware_transcript()</strong>: Produces a transcript aware of speaker identities, integrating <a id="_idIndexMarker845"/>both the textual content and the speaker information into a <span class="No-Break">cohesive format:</span><pre class="source-code">
+def get_speaker_aware_transcript(sentences_speaker_mapping, f):
+    previous_speaker = sentences_speaker_mapping[0]["speaker"]
+    f.write(f"{previous_speaker}: ")
+    for sentence_dict in sentences_speaker_mapping:
+        speaker = sentence_dict["speaker"]
+        sentence = sentence_dict["text"]
+        # If this speaker doesn't match the previous one, start a new paragraph
+        if speaker != previous_speaker:
+            f.write(f"\n\n{speaker}: ")
+            previous_speaker = speaker
+        # No matter what, write the current sentence
+        f.write(sentence + " ")</pre></li>				<li><strong class="source-inline">format_timestamp()</strong>: Converts timestamps into a human-readable format, essential for annotating the<a id="_idIndexMarker846"/> transcript with precise <span class="No-Break">timing information:</span><pre class="source-code">
+def format_timestamp(
+    milliseconds: float, always_include_hours: bool = False, decimal_marker: str = "."
+):
+    assert milliseconds &gt;= 0, "non-negative timestamp expected"
+    hours = milliseconds // 3_600_000
+    milliseconds -= hours * 3_600_000
+    minutes = milliseconds // 60_000
+    milliseconds -= minutes * 60_000
+    seconds = milliseconds // 1_000
+    milliseconds -= seconds * 1_000
+    hours_marker = f"{hours:02d}:" if always_include_hours or hours &gt; 0 else ""
+    return (
+        f"{hours_marker}{minutes:02d}:{seconds:02d}{decimal_marker}{milliseconds:03d}"
+    )</pre></li>				<li><strong class="source-inline">write_srt()</strong>: Outputs the diarization<a id="_idIndexMarker847"/> results in the <strong class="bold">SubRip Text</strong> (<strong class="bold">SRT</strong>) format, suitable for<a id="_idIndexMarker848"/> subtitles or detailed analysis, including speaker labels <span class="No-Break">and timestamps:</span><pre class="source-code">
+def write_srt(transcript, file):
+    """
+    Write a transcript to a file in SRT format.
+    """
+    for i, segment in enumerate(transcript, start=1):
+        # write srt lines
+        print(
+            f"{i}\n"
+            f"{format_timestamp(segment['start_time'], always_include_hours=True, decimal_marker=',')} --&gt; "
+            f"{format_timestamp(segment['end_time'], always_include_hours=True, decimal_marker=',')}\n"
+            f"{segment['speaker']}: {segment['text'].strip().replace('--&gt;', '-&gt;')}\n",
+            file=file,
+            flush=True,
+        )</pre></li>				<li><strong class="source-inline">find_numeral_symbol_tokens()</strong>: Identifies tokens within the transcription that represent numeral symbols, aiding in processing numerical data <span class="No-Break">within text:</span><pre class="source-code">
+def find_numeral_symbol_tokens(tokenizer):
+    numeral_symbol_tokens = [
+        -1,
+    ]
+    for token, token_id in tokenizer.get_vocab().items():
+        has_numeral_symbol = any(c in "0123456789%$£" for c in token)
+        if has_numeral_symbol:
+            numeral_symbol_tokens.append(token_id)
+    return numeral_symbol_tokens</pre></li>				<li><strong class="source-inline">_get_next_start_timestamp()</strong>: Calculates the start timestamp for the next word, ensuring<a id="_idIndexMarker849"/> continuity in the sequence of timestamps across <span class="No-Break">a transcription:</span><pre class="source-code">
+def _get_next_start_timestamp(word_timestamps, current_word_index, final_timestamp):
+    # if current word is the last word
+    if current_word_index == len(word_timestamps) - 1:
+        return word_timestamps[current_word_index]["start"]
+    next_word_index = current_word_index + 1
+    while current_word_index &lt; len(word_timestamps) - 1:
+        if word_timestamps[next_word_index].get("start") is None:
+            # if next word doesn't have a start timestamp
+            # merge it with the current word and delete it
+            word_timestamps[current_word_index]["word"] += (
+                " " + word_timestamps[next_word_index]["word"]
+            )
+            word_timestamps[next_word_index]["word"] = None
+            next_word_index += 1
+            if next_word_index == len(word_timestamps):
+                return final_timestamp
+        else:
+            return word_timestamps[next_word_index]["start"]</pre></li>				<li><strong class="source-inline">filter_missing_timestamps()</strong>: Filters and corrects any missing or incomplete timestamps in<a id="_idIndexMarker850"/> transcription data, maintaining the integrity of <span class="No-Break">temporal information:</span><pre class="source-code">
+def filter_missing_timestamps(
+    word_timestamps, initial_timestamp=0, final_timestamp=None
+):
+    # handle the first and last word
+    if word_timestamps[0].get("start") is None:
+        word_timestamps[0]["start"] = (
+            initial_timestamp if initial_timestamp is not None else 0
+        )
+        word_timestamps[0]["end"] = _get_next_start_timestamp(
+            word_timestamps, 0, final_timestamp
+        )
+    result = [
+        word_timestamps[0],
+    ]
+    for i, ws in enumerate(word_timestamps[1:], start=1):
+        # if ws doesn't have a start and end
+        # use the previous end as start and next start as end
+        if ws.get("start") is None and ws.get("word") is not None:
+            ws["start"] = word_timestamps[i - 1]["end"]
+            ws["end"] = _get_next_start_timestamp(word_timestamps, i, final_timestamp)
+        if ws["word"] is not None:
+            result.append(ws)
+    return result</pre></li>				<li><strong class="source-inline">cleanup()</strong>: Cleans up temporary files or directories created during diarization, ensuring a<a id="_idIndexMarker851"/> tidy <span class="No-Break">working environment:</span><pre class="source-code">
+def cleanup(path: str):
+    """path could either be relative or absolute."""
+    # check if file or directory exists
+    if os.path.isfile(path) or os.path.islink(path):
+        # remove file
+        os.remove(path)
+    elif os.path.isdir(path):
+        # remove directory and all its content
+        shutil.rmtree(path)
+    else:
+        raise ValueError("Path {} is not a file or dir.".format(path))</pre></li>				<li><strong class="source-inline">process_language_arg()</strong>: Processes the language argument to ensure compatibility with<a id="_idIndexMarker852"/> models, facilitating accurate transcription across <span class="No-Break">different languages:</span><pre class="source-code">
+def process_language_arg(language: str, model_name: str):
+    """
+    Process the language argument to make sure it's valid and convert language names to language codes.
+    """
+    if language is not None:
+        language = language.lower()
+    if language not in LANGUAGES:
+        if language in TO_LANGUAGE_CODE:
+            language = TO_LANGUAGE_CODE[language]
+        else:
+            raise ValueError(f"Unsupported language: {language}")
+    if model_name.endswith(".en") and language != "en":
+        if language is not None:
+            logging.warning(
+                f"{model_name} is an English-only model but received '{language}'; using English instead."
+            )
+        language = "en"
+    return language</pre></li>				<li><strong class="source-inline">transcribe()</strong>: Utilizes Whisper to transcribe audio into text, providing foundational textual <a id="_idIndexMarker853"/>data for the <span class="No-Break">diarization process:</span><pre class="source-code">
+def transcribe(
+    audio_file: str,
+    language: str,
+    model_name: str,
+    compute_dtype: str,
+    suppress_numerals: bool,
+    device: str,
+):
+    from faster_whisper import WhisperModel
+    from helpers import find_numeral_symbol_tokens, wav2vec2_langs
+    # Faster Whisper non-batched
+    # Run on GPU with FP16
+    whisper_model = WhisperModel(model_name, device=device, compute_type=compute_dtype)
+    # or run on GPU with INT8
+    # model = WhisperModel(model_size, device="cuda", compute_type="int8_float16")
+    # or run on CPU with INT8
+    # model = WhisperModel(model_size, device="cpu", compute_type="int8")
+    if suppress_numerals:
+        numeral_symbol_tokens = find_numeral_symbol_tokens(whisper_model.hf_tokenizer)
+    else:
+        numeral_symbol_tokens = None
+    if language is not None and language in wav2vec2_langs:
+        word_timestamps = False
+    else:
+        word_timestamps = True
+    segments, info = whisper_model.transcribe(
+        audio_file,
+        language=language,
+        beam_size=5,
+        word_timestamps=word_timestamps,  # TODO: disable this if the language is supported by wav2vec2
+        suppress_tokens=numeral_symbol_tokens,
+        vad_filter=True,
+    )
+    whisper_results = []
+    for segment in segments:
+        whisper_results.append(segment._asdict())
+    # clear gpu vram
+    del whisper_model
+    torch.cuda.empty_cache()
+    return whisper_results, language</pre></li>				<li><strong class="source-inline">transcribe_batched()</strong>: Offers a batch processing capability to transcribe audio files, optimizing the <a id="_idIndexMarker854"/>transcription process for efficiency <span class="No-Break">and scalability:</span><pre class="source-code">
+def transcribe_batched(
+    audio_file: str,
+    language: str,
+    batch_size: int,
+    model_name: str,
+    compute_dtype: str,
+    suppress_numerals: bool,
+    device: str,
+):
+    import whisperx
+    # Faster Whisper batched
+    whisper_model = whisperx.load_model(
+        model_name,
+        device,
+        compute_type=compute_dtype,
+        asr_options={"suppress_numerals": suppress_numerals},
+    )
+    audio = whisperx.load_audio(audio_file)
+    result = whisper_model.transcribe(audio, language=language, batch_size=batch_size)
+    del whisper_model
+    torch.cuda.empty_cache()
+    return result["segments"], result["language"]</pre></li>			</ul>
+			<p>These functions collectively form the notebook foundation of the diarization workflow, enabling seamless <a id="_idIndexMarker855"/>integration of Whisper’s transcription capabilities with NeMo’s advanced <span class="No-Break">diarization features.</span></p>
+			<h2 id="_idParaDest-175"><a id="_idTextAnchor199"/>Separating music from speech using Demucs</h2>
+			<p>As we explore the<a id="_idIndexMarker856"/> notebook, let’s focus on the preprocessing step, which is crucial for enhancing speech clarity before diarization. This section introduces <strong class="bold">Demucs</strong>, a deep-learning model for separating music source vocals from complex <span class="No-Break">audio tracks.</span></p>
+			<p>Separating music from<a id="_idIndexMarker857"/> speech is essential, mainly when dealing with recordings containing background music or other non-speech elements. By extracting the vocal component, the diarization system can more effectively analyze and attribute speech to the correct speakers, as the spectral and temporal characteristics of their speech signals become more pronounced and less obscured <span class="No-Break">by music:</span></p>
+			<pre class="source-code">
+if enable_stemming:
+    # Isolate vocals from the rest of the audio
+    return_code = os.system(
+        f'python3 -m demucs.separate -n htdemucs --two-stems=vocals "{audio_path}" -o "temp_outputs"'
+    )
+    if return_code != 0:
+        logging.warning("Source splitting failed, using original audio file.")
+        vocal_target = audio_path
+    else:
+        vocal_target = os.path.join(
+            "temp_outputs",
+            "htdemucs",
+            os.path.splitext(os.path.basename(audio_path))[0],
+            "vocals.wav",
+        )
+else:
+    vocal_target = audio_path</pre>			<p>Demucs operates by leveraging a neural network trained to distinguish between different audio sources within a mixture. When applied to an audio file, it can separate the vocal track from the instrumental, allowing subsequent tools such as Whisper and NeMo to process the speech <a id="_idIndexMarker858"/>without the interference of <span class="No-Break">background music.</span></p>
+			<p>This separation step is beneficial for<a id="_idIndexMarker859"/> the accuracy of speaker diarization and any downstream tasks that require clean speech input, such as transcription and speech recognition. By using Demucs as part of the preprocessing pipeline, the notebook ensures that the input to the diarization system is optimized for the best <span class="No-Break">possible performance.</span></p>
+			<h2 id="_idParaDest-176"><a id="_idTextAnchor200"/>Transcribing audio using WhisperX</h2>
+			<p>The next step is to leverage WhisperX to transcribe the audio content. The transcription process involves processing the<a id="_idIndexMarker860"/> audio file through <a id="_idIndexMarker861"/>Whisper to generate a set of text segments, each accompanied by timestamps indicating when the segment <span class="No-Break">was spoken:</span></p>
+			<pre class="source-code">
+compute_type = "float16"
+# or run on GPU with INT8
+# compute_type = "int8_float16"
+# or run on CPU with INT8
+# compute_type = "int8"
+if batch_size != 0:
+    whisper_results, language = transcribe_batched(
+        vocal_target,
+        language,
+        batch_size,
+        whisper_model_name,
+        compute_type,
+        suppress_numerals,
+        device,
+    )
+else:
+    whisper_results, language = transcribe(
+        vocal_target,
+        language,
+        whisper_model_name,
+        compute_type,
+        suppress_numerals,
+        device,
+    )</pre>			<p>This foundational step provides the<a id="_idIndexMarker862"/> textual content necessary for speaker diarization and further analysis. I hope you’ve noticed that both functions, <strong class="source-inline">transcribe()</strong> and <strong class="source-inline">transcribe_batch()</strong>, were <a id="_idIndexMarker863"/>previously defined in <span class="No-Break">the notebook.</span></p>
+			<h2 id="_idParaDest-177"><a id="_idTextAnchor201"/>Aligning the transcription with the original audio using Wav2Vec2</h2>
+			<p>Following transcription, the <a id="_idIndexMarker864"/>notebook introduces the use of <strong class="bold">Wav2Vec2</strong> for forced alignment, a process that refines the alignment between the transcribed text and the original audio. Wav2Vec2, a<a id="_idIndexMarker865"/> large-scale neural network model, excels at learning representations of speech that are beneficial for speech recognition and alignment tasks. By employing Wav2Vec2, we demonstrate how to fine-tune the alignment of transcription segments with the audio <a id="_idIndexMarker866"/>signal, ensuring that the text is accurately synchronized with the <span class="No-Break">spoken words:</span></p>
+			<pre class="source-code">
+if language in wav2vec2_langs:
+    device = "cuda"
+    alignment_model, metadata = whisperx.load_align_model(
+        language_code=language, device=device
+    )
+    result_aligned = whisperx.align(
+        whisper_results, alignment_model, metadata, vocal_target, device
+    )
+    word_timestamps = filter_missing_timestamps(
+        result_aligned["word_segments"],
+        initial_timestamp=whisper_results[0].get("start"),
+        final_timestamp=whisper_results[-1].get("end"),
+    )
+    # clear gpu vram
+    del alignment_model
+    torch.cuda.empty_cache()
+else:
+    assert batch_size == 0, (  # TODO: add a better check for word timestamps existence
+        f"Unsupported language: {language}, use --batch_size to 0"
+        " to generate word timestamps using whisper directly and fix this error."
+    )
+    word_timestamps = []
+    for segment in whisper_results:
+        for word in segment["words"]:
+            word_timestamps.append({"word": word[2], "start": word[0], "end": word[1]})</pre>			<p>This alignment is essential for diarization, as it allows for a more precise segmentation of audio based on speaker changes. The combined output of Whisper and Wav2Vec2 offers a fully aligned <a id="_idIndexMarker867"/>transcription, which is<a id="_idIndexMarker868"/> instrumental for tasks such as speaker diarization, sentiment analysis, and language identification. This section in the notebook emphasizes that if a Wav2Vec2 model is not available for a specific language, the word timestamps generated by Whisper will be utilized, showcasing the flexibility of <span class="No-Break">the approach.</span></p>
+			<p>By integrating Whisper’s transcription capabilities with Wav2Vec2’s alignment precision, we set the stage for accurate speaker diarization, enhancing the overall quality and reliability of the <span class="No-Break">diarization process.</span></p>
+			<h2 id="_idParaDest-178"><a id="_idTextAnchor202"/>Using NeMo’s MSDD model for speaker diarization</h2>
+			<p>At the core of the notebook, the<a id="_idIndexMarker869"/> focus shifts toward the intricate process of speaker diarization, leveraging the advanced capabilities of NVIDIA’s NeMo MSDD. This section in the notebook is pivotal, as it addresses distinguishing between different speakers within an audio signal, a task essential for accurately attributing speech segments to <span class="No-Break">individual speakers:</span></p>
+			<pre class="source-code">
+# Initialize NeMo MSDD diarization model
+msdd_model = NeuralDiarizer(cfg=create_config(temp_path)).to("cuda")
+msdd_model.diarize()
+del msdd_model
+torch.cuda.empty_cache()</pre>			<p>The NeMo MSDD model stands at the forefront of this process, employing a sophisticated approach to<a id="_idIndexMarker870"/> diarization that considers multiple temporal resolutions of speaker embeddings. This multiscale strategy enhances the model’s ability to discern between speakers, even in challenging audio environments with overlapping speech or <span class="No-Break">background noise.</span></p>
+			<h2 id="_idParaDest-179"><a id="_idTextAnchor203"/>Mapping speakers to sentences according to timestamps</h2>
+			<p>After successfully separating speech from music, transcribing the audio using Whisper, and performing speaker diarization with the NeMo MSDD model, the next challenge is to accurately map each <a id="_idIndexMarker871"/>sentence in the transcription to its corresponding speaker. This involves analyzing the timestamps associated with each word or segment in the transcription and the speaker labels assigned during the <span class="No-Break">diarization process:</span></p>
+			<pre class="source-code">
+speaker_ts = []
+with open(os.path.join(temp_path, "pred_rttms", "mono_file.rttm"), "r") as f:
+    lines = f.readlines()
+    for line in lines:
+        line_list = line.split(" ")
+        s = int(float(line_list[5]) * 1000)
+        e = s + int(float(line_list[8]) * 1000)
+        speaker_ts.append([s, e, int(line_list[11].split("_")[-1])])
+wsm = get_words_speaker_mapping(word_timestamps, speaker_ts, "start")</pre>			<p>The preceding code ensures that each sentence in the transcription is correctly attributed to a speaker, considering the start and end times of spoken segments. This meticulous mapping is crucial for applications where understanding conversation dynamics, such as who said <a id="_idIndexMarker872"/>what and when, is essential. It enables a more granular analysis of dialogues, meetings, interviews, and audio content involving <span class="No-Break">multiple speakers.</span></p>
+			<h2 id="_idParaDest-180"><a id="_idTextAnchor204"/>Enhancing speaker attribution with punctuation-based realignment</h2>
+			<p>The following code snippet demonstrates how punctuation determines the predominant speaker for each sentence in a transcription. It employs a pre-trained punctuation model, <strong class="source-inline">kredor/punctuate-all</strong>, to predict punctuation marks for the transcribed words. The code<a id="_idIndexMarker873"/> then processes the words and their predicted punctuation, handling exceptional cases such as acronyms (e.g., USA) to avoid incorrect punctuation. This approach ensures that the speaker attribution remains consistent within each sentence, even in the presence of background comments or brief interjections from other speakers. This is particularly useful in scenarios where the transcription may not indicate speaker changes, such as when a speaker’s utterance is interrupted or overlapped by another’s. By analyzing the distribution of speaker labels for each word in a sentence, the code can assign a consistent speaker label to the entire sentence, enhancing the coherence of the <span class="No-Break">diarization output:</span></p>
+			<pre class="source-code">
+if language in punct_model_langs:
+    # restoring punctuation in the transcript to help realign the sentences
+    punct_model = PunctuationModel(model="kredor/punctuate-all")
+    words_list = list(map(lambda x: x["word"], wsm))
+    labled_words = punct_model.predict(words_list)
+    ending_puncts = ".?!"
+    model_puncts = ".,;:!?"
+    # We don't want to punctuate U.S.A. with a period. Right?
+    is_acronym = lambda x: re.fullmatch(r"\b(?:[a-zA-Z]\.){2,}", x)
+    for word_dict, labeled_tuple in zip(wsm, labled_words):
+        word = word_dict["word"]
+        if (
+            word
+            and labeled_tuple[1] in ending_puncts
+            and (word[-1] not in model_puncts or is_acronym(word))
+        ):
+            word += labeled_tuple[1]
+            if word.endswith(".."):
+                word = word.rstrip(".")
+            word_dict["word"] = word
+else:
+    logging.warning(
+        f"Punctuation restoration is not available for {language} language. Using the original punctuation."
+    )
+wsm = get_realigned_ws_mapping_with_punctuation(wsm)
+ssm = get_sentences_speaker_mapping(wsm, speaker_ts)</pre>			<p>This approach also addresses instances where background comments or brief interjections occur while a primary speaker delivers a monologue. The code effectively attributes the main body of <a id="_idIndexMarker874"/>speech to the dominant speaker, disregarding sporadic remarks from others. This results in a more accurate and reliable mapping of speech segments to the appropriate speakers, ensuring that the diarization process reflects the actual structure of <span class="No-Break">the conversation.</span></p>
+			<h2 id="_idParaDest-181"><a id="_idTextAnchor205"/>Finalizing the diarization process</h2>
+			<p>In this final section, the<a id="_idIndexMarker875"/> code performs essential cleanup tasks, exports the diarization results for further use, and replaces speaker IDs with their corresponding names. The main steps include <span class="No-Break">the following:</span></p>
+			<ol>
+				<li><strong class="bold">Saving the speaker-aware transcript</strong>: The <strong class="source-inline">get_speaker_aware_transcript</strong> function generates a transcript incorporating textual content and speaker information. This transcript is then saved as a file with the same name as the input audio file but with a <strong class="source-inline">.</strong><span class="No-Break"><strong class="source-inline">txt</strong></span><span class="No-Break"> extension:</span><pre class="source-code">
+with open(f"{os.path.splitext(audio_path)[0]}.txt", "w", encoding="utf-8-sig") as f:
+    get_speaker_aware_transcript(ssm, f)</pre></li>				<li><strong class="bold">Exporting the diarization results in SRT format</strong>: The <strong class="source-inline">write_srt function</strong> is employed to export the diarization results in the SRT format. This format is commonly used for subtitles and includes speaker labels and precise timestamps for each utterance. The SRT file is saved with the same name as the input audio file but with a <strong class="source-inline">.</strong><span class="No-Break"><strong class="source-inline">srt</strong></span><span class="No-Break"> extension:</span><pre class="source-code">
+with open(f"{os.path.splitext(audio_path)[0]}.srt", "w", encoding="utf-8-sig") as srt:
+    write_srt(ssm, srt)</pre></li>				<li><strong class="bold">Cleaning up temporary files</strong>: The cleanup function removes any temporary files or directories created during the diarization process. This step ensures a clean and organized <a id="_idIndexMarker876"/>working environment, freeing storage space and maintaining <span class="No-Break">system efficiency:</span><pre class="source-code">
+cleanup(temp_path)</pre></li>				<li><strong class="bold">Mapping speaker identifiers to speaker names</strong>: The code reads the content of the previously saved speaker-aware transcript file and replaces the generic speaker IDs (e.g., <strong class="source-inline">Speaker 0</strong>, <strong class="source-inline">Speaker 1</strong>, and <strong class="source-inline">Speaker 2</strong>) with the actual names of <span class="No-Break">the speakers:</span><pre class="source-code">
+# Open the file
+with open(f"{os.path.splitext(audio_path)[0]}.txt", 'r') as f:
+    text = f.read()
+# Replace the speaker IDs with names
+text = text.replace('Speaker 0','Ewa Jasiewicz')
+text = text.replace('Speaker 1','Chris Faulkner')
+text = text.replace('Speaker 2','Matt Frei')
+# Write the file to disk
+with open(audio_path[:-4] + '-with-speakers-names.txt', 'w') as f:
+    f.write(text)</pre></li>			</ol>
+			<p>By completing these final steps, the diarization process is concluded, and the results are made available for further analysis, post-processing, or integration with other tools and workflows. The exported speaker-aware transcript, SRT file, and transcript with mapped speaker names provide valuable insights into the content and structure of the audio recording, enabling a wide range of applications, such as content analysis, speaker identification, and <span class="No-Break">subtitle generation.</span></p>
+			<p>After diving into the notebook, we uncovered a treasure trove of insights into the nuanced world of speech diarization using cutting-edge AI tools. The notebook was a hands-on guide, meticulously walking us through separating and transcribing speech from complex <span class="No-Break">audio files.</span></p>
+			<p>One of the first lessons was setting up the right environment. The notebook emphasized the need to install specific dependencies, such as Whisper and NeMo, which were pivotal for the tasks. This step <a id="_idIndexMarker877"/>was crucial, laying the groundwork for all <span class="No-Break">subsequent operations.</span></p>
+			<p>As we delved deeper, we learned about the utility of helper functions. These functions were the unsung heroes that streamlined the workflow, from processing audio files to handling timestamps and cleaning up resources. They exemplified the principle of writing clean, reusable code that significantly reduced the <span class="No-Break">project’s complexity.</span></p>
+			<p>The notebook also introduced us to separating music from speech using Demucs. This step was a testament to the power of preprocessing in enhancing the accuracy of diarization. By isolating vocals, we focused on speech’s spectral and temporal characteristics, which are essential for identifying <span class="No-Break">different speakers.</span></p>
+			<p>Another key takeaway was the integration of multiple models to achieve better results. The notebook showcased how Whisper was used for transcription and Wav2Vec2 for aligning the transcription with the original audio. This synergy between models was a brilliant example of how combining different AI tools leads to a more <span class="No-Break">robust solution.</span></p>
+			<p>Mapping speakers into sentences and realigning speech segments using punctuation was particularly enlightening. It demonstrated the intricacies of diarization and the need for attention to detail to ensure that each speaker was accurately represented in <span class="No-Break">the transcript.</span></p>
+			<p>In essence, the notebook was<a id="_idIndexMarker878"/> a masterclass in the practical application of AI for speech diarization. It not only taught us the technical steps involved but also imparted broader lessons on the importance of preprocessing, the power of combining different AI models, and the need for meticulous post-processing to ensure the integrity of the <span class="No-Break">final output.</span></p>
+			<h1 id="_idParaDest-182"><a id="_idTextAnchor206"/>Summary</h1>
+			<p>In this chapter, we embarked on an exciting exploration of the advanced voice capabilities of OpenAI’s Whisper. We delved into powerful techniques that enhance Whisper’s performance, such as quantization, and uncovered its potential for speaker diarization and real-time <span class="No-Break">speech recognition.</span></p>
+			<p>We augmented Whisper with speaker diarization capabilities, allowing it to identify and attribute speech segments to different speakers within an audio recording. By integrating Whisper with the NVIDIA NeMo framework, we discovered how to perform accurate speaker diarization, opening new possibilities for analyzing multispeaker conversations. Our hands-on experience with WhisperX and NVIDIA NeMo showcased the power of combining Whisper’s transcription capabilities with advanced <span class="No-Break">diarization techniques.</span></p>
+			<p>Throughout the chapter, we acquired a solid understanding of advanced techniques to optimize Whisper’s performance and expand its capabilities with speaker diarization. The hands-on coding examples and practical insights equipped us with the knowledge and skills to apply these techniques in our projects, pushing the boundaries of what is possible <span class="No-Break">with Whisper.</span></p>
+			<p>As we conclude this chapter, we will look ahead to <a href="B21020_09.xhtml#_idTextAnchor207"><span class="No-Break"><em class="italic">Chapter 9</em></span></a>, <em class="italic">Harnessing Whisper for Personalized Voice Synthesis</em>. In that chapter, we will gain the knowledge and skills to preprocess audio data, fine-tune voice models, and generate realistic speech using a personal voice synthesis model. The hands-on coding examples and practical insights will empower you to apply these techniques in your projects, pushing the boundaries of what is possible with personalized <span class="No-Break">voice synthesis.</span></p>
+			<p>Join me as we continue our journey with Whisper, ready to embrace the exciting possibilities in the rapidly evolving world of <span class="No-Break">voice-synthesis technology.</span></p>
+		</div>
+	</div>
+</div>
+</body></html>

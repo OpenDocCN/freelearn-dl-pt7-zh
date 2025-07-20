@@ -1,0 +1,526 @@
+<html><head></head><body>
+		<div id="_idContainer154">
+			<h1 id="_idParaDest-102" class="chapter-number"><a id="_idTextAnchor101"/>9</h1>
+			<h1 id="_idParaDest-103"><a id="_idTextAnchor102"/>Transforming Text to Video</h1>
+			<p>In the previous chapter, we explored building recommendations based on specific data, using the example of Netflix to understand how we can suggest movies to viewers. Now, let’s shift our focus to a different scenario: educators wanting to convey complex topics to students through videos rather than textual explanations. However, creating videos is a time-consuming task that demands considerable effort <span class="No-Break">from teachers.</span></p>
+			<p>In this chapter, we delve into how Azure OpenAI can revolutionize this process, by streaming the generation of videos from text prompts. First, we dive into setting up the necessary tools in the Azure portal, gaining a comprehensive understanding of the solution. We then explain how to utilize Python to creatively generate images from the provided prompts, including how to segment the prompts into key phrases. Finally, we show how to seamlessly convert these generated images into video format, accompanied by the creation of audio files to enhance the educational experience. Specifically, we will cover <span class="No-Break">the following:</span></p>
+			<ul>
+				<li>Problem <span class="No-Break">statement introduction</span></li>
+				<li><span class="No-Break">Architecture design</span></li>
+				<li>Build Transforming Text to Video service using Azure OpenAI and Azure <span class="No-Break">Cognitive service</span></li>
+			</ul>
+			<h1 id="_idParaDest-104"><a id="_idTextAnchor103"/>Problem statement introduction</h1>
+			<p>Imagine being an educator <a id="_idIndexMarker384"/>passionate about creating engaging lesson plans that inspire and captivate students. You recognize the value of incorporating visual elements into your teaching, especially in today’s digital age. However, the idea of turning your carefully planned lessons into engaging videos feels like a significant challenge. The process is time-intensive and demands technical skills that may not align with your expertise. Hours spent on filming, editing, and navigating complex software take away from focusing on lesson improvement and providing personalized attention to students. While the potential of video content to enhance teaching is clear, the challenges involved in creating it often seem to outweigh <span class="No-Break">its benefits.</span></p>
+			<p>However, amidst the challenges, a glimmer of hope emerges: Azure OpenAI. This innovative technology presents itself as a beacon of light, promising to revolutionize the way educators like you create video content for <span class="No-Break">their lessons.</span></p>
+			<p>First, we create a concise prompt summarizing the content. Then, Azure OpenAI condenses the text into a brief summary. Using Azure Cognitive Service, we extract essential keywords. With Azure OpenAI’s DALL-E model, we generate prompts for relevant images. Azure’s<a id="_idIndexMarker385"/> Speech service converts the summary into an audio file for narration. Finally, we combine the audio with DALL-E images to create the video. This process enables efficient text-to-video conversion with <span class="No-Break">Azure services.</span></p>
+			<h1 id="_idParaDest-105"><a id="_idTextAnchor104"/>Technical requirements</h1>
+			<p>To follow along with the practical exercises in this chapter, access the source code available in this chapter's GitHub repository <span class="No-Break">at </span><a href="https://github.com/PacktPublishing/Azure-OpenAI-Essentials/blob/main/Chapter_9.ipynb"><span class="No-Break">https://github.com/PacktPublishing/Azure-OpenAI-Essentials/blob/main/Chapter_9.ipynb</span></a><span class="No-Break">.</span></p>
+			<p>Install the required tools on your local machine to start working on the solution. The versions listed here are the stable versions at the time of publishing this book. If you choose a different version than the recommended one, you may encounter errors when running the provided code due to library <span class="No-Break">version mismatches:</span></p>
+			<ul>
+				<li>Python 3.9, 3.10, or <span class="No-Break">3.11: </span><a href="https://www.python.org/downloads/"><span class="No-Break">https://www.python.org/downloads/</span></a></li>
+				<li>The Azure Developer CLI: Azure developer <span class="No-Break">CLI Installation</span></li>
+				<li>Node.js <span class="No-Break">14+: </span><a href="https://nodejs.org/en/download"><span class="No-Break">https://nodejs.org/en/download</span></a></li>
+				<li><span class="No-Break">Git: </span><a href="https://git-scm.com/downloads"><span class="No-Break">https://git-scm.com/downloads</span></a></li>
+				<li>Powershell 7+ (<span class="No-Break"><strong class="source-inline">pwsh</strong></span><span class="No-Break">): </span><a href="https://github.com/powershell/powershell"><span class="No-Break">https://github.com/powershell/powershell</span></a></li>
+				<li>Azure account: If you’re new to Azure, get an Azure account for free and you’ll get some free Azure credits to <span class="No-Break">get started.</span></li>
+				<li>Azure subscription with access enabled for the Azure OpenAI service: You can request access with this form <span class="No-Break">at </span><a href="https://aka.ms/oaiapply"><span class="No-Break">https://aka.ms/oaiapply</span></a></li>
+				<li>Azure OpenAI connection and <span class="No-Break">model information:</span><ul><li>OpenAI <span class="No-Break">API key</span></li><li>OpenAI embedding model <span class="No-Break">deployment name</span></li><li>OpenAI <span class="No-Break">API version</span></li></ul></li>
+				<li>Key <span class="No-Break">phrase extraction</span></li>
+				<li>Speech <span class="No-Break">to text</span></li>
+			</ul>
+			<p>In addition to the preceding system requirements, it is crucial to have a solid foundation in fundamental Azure services and a basic proficiency in the Python programming language, equivalent to a beginner level (Python 100). These skills are vital for efficiently harnessing and leveraging Azure services in the context of this chapter. Rest assured, even if you are new to the Azure environment, we have designed this chapter to be beginner friendly. It offers clear explanations and includes detailed screenshots to facilitate your learning and get you started on the <span class="No-Break">right track.</span></p>
+			<h1 id="_idParaDest-106"><a id="_idTextAnchor105"/>Architecture design</h1>
+			<p>The process behind <a id="_idIndexMarker386"/>creating the solution mentioned in the introduction is <span class="No-Break">as follows:</span></p>
+			<p>The user sends a query to the Azure OpenAI API, which generates a text summary. This summary is then passed to Azure Cognitive Services for key phrase extraction. The extracted key phrases are sent back to the ChatGPT API to generate images, while the text summary is also sent to the Azure Speech API to convert it into audio. Finally, both the audio and images are combined into an MP4 file using MoviePy. MoviePy is a Python library for video editing. It provides a simple and intuitive way to manipulate video clips, allowing you to perform tasks like cutting and trimming, concatenating multiple video clips together, adding titles and text, and so on. The following diagram shows the <span class="No-Break">overall architecture:</span></p>
+			<div>
+				<div id="_idContainer130" class="IMG---Figure">
+					<img src="image/B21019_09_1.jpg" alt="Figure 9.1: Architecture diagram"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.1: Architecture diagram</p>
+			<h1 id="_idParaDest-107"><a id="_idTextAnchor106"/>Build transforming text to video using Azure OpenAI and Azure Cognitive service</h1>
+			<p><a href="B21019_04.xhtml#_idTextAnchor059"><span class="No-Break"><em class="italic">Chapter 4</em></span></a> covers <a id="_idIndexMarker387"/>the setup of an Azure account <a id="_idIndexMarker388"/>with an active<a id="_idIndexMarker389"/> subscription<a id="_idIndexMarker390"/> and the creation of an Azure OpenAI Service resource. Additionally, it provides guidance on deploying an Azure OpenAI Service model, which may utilize GPT-3, ChatGPT, or GPT-4 models. The step-by-step process for building this solution is <span class="No-Break">as follows:</span></p>
+			<ol>
+				<li>Set up Language and Speech services <span class="No-Break">within Azure.</span></li>
+				<li>Import the necessary packages for <span class="No-Break">the solution.</span></li>
+				<li>Utilize Azure OpenAI to <span class="No-Break">summarize text.</span></li>
+				<li>Employ Azure Cognitive Service to extract <span class="No-Break">key phrases.</span></li>
+				<li>Generate prompts for image creation using Azure OpenAI’s <span class="No-Break">DALL-E model.</span></li>
+				<li>Create an audio file using the Azure <span class="No-Break">Speech service.</span></li>
+				<li>Combine the audio file with the images to produce <span class="No-Break">a video.</span></li>
+			</ol>
+			<p>Let’s <span class="No-Break">get started:</span></p>
+			<ol>
+				<li>Create an Azure <span class="No-Break">Language service.</span><ol><li class="upper-roman">To create an Azure Language service, navigate to the search bar in the top navigation and search <span class="No-Break">for </span><span class="No-Break"><strong class="source-inline">Language</strong></span><span class="No-Break">.</span></li><li class="upper-roman">If not found on the search navigation, then click on <strong class="bold">Create a resource</strong>, and<a id="_idIndexMarker391"/> in <a id="_idIndexMarker392"/>the<a id="_idIndexMarker393"/> Marketplace, search<a id="_idIndexMarker394"/> for <strong class="source-inline">Language</strong> and click <span class="No-Break">on </span><span class="No-Break"><strong class="bold">Create</strong></span><span class="No-Break">.</span></li></ol></li>
+			</ol>
+			<div>
+				<div id="_idContainer131" class="IMG---Figure">
+					<img src="image/B21019_09_2.jpg" alt="Figure 9.2: Create Language service"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.2: Create Language service</p>
+			<ol>
+				<li class="upper-roman" value="3">Click on <a id="_idIndexMarker395"/>the <strong class="bold">Continue to create your resource</strong> button in the Language service<a id="_idIndexMarker396"/> by<a id="_idIndexMarker397"/> accepting <a id="_idIndexMarker398"/><span class="No-Break">the defaults.</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer132" class="IMG---Figure">
+					<img src="image/B21019_09_3.jpg" alt="Figure 9.3: Create Language resource"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.3: Create Language resource</p>
+			<ol>
+				<li class="upper-roman" value="4">After Creating the Language Service from the Marketplace, make selections for <strong class="bold">Subscription</strong> and <strong class="bold">Resource group</strong> on the <strong class="bold">Create a resource</strong> form that you created in <a href="B21019_04.xhtml#_idTextAnchor059"><span class="No-Break"><em class="italic">Chapter 4</em></span></a> and the pricing tier as <span class="No-Break"><strong class="bold">Free F0</strong></span><span class="No-Break">.</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer133" class="IMG---Figure">
+					<img src="image/B21019_09_4.jpg" alt="Figure 9.4: Create Language Basics step"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.4: Create Language Basics step</p>
+			<ol>
+				<li class="upper-roman" value="5">Now<a id="_idIndexMarker399"/> give <a id="_idIndexMarker400"/>your <a id="_idIndexMarker401"/>desired <a id="_idIndexMarker402"/>resource, click on the <strong class="bold">Next</strong> button, and go to the <strong class="bold">Network</strong> tab. Select the <strong class="bold">All networks, including the internet, can access this resource</strong> option and click <span class="No-Break">on </span><span class="No-Break"><strong class="bold">Next</strong></span><span class="No-Break">.</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer134" class="IMG---Figure">
+					<img src="image/B21019_09_5.jpg" alt="Figure 9.5: Create Language resource Network step"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.5: Create Language resource Network step</p>
+			<ol>
+				<li class="upper-roman" value="6">In the <strong class="bold">Identity</strong> tab, just <a id="_idIndexMarker403"/>configure<a id="_idIndexMarker404"/> it <a id="_idIndexMarker405"/>with <a id="_idIndexMarker406"/>all the defaults and click on the <strong class="bold">Next</strong> button to go to the <span class="No-Break"><strong class="bold">Tags</strong></span><span class="No-Break"> tab.</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer135" class="IMG---Figure">
+					<img src="image/B21019_09_6.jpg" alt="Figure 9.6: Create Language Identity step"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.6: Create Language Identity step</p>
+			<ol>
+				<li class="upper-roman" value="7">You can ignore <a id="_idIndexMarker407"/>this <a id="_idIndexMarker408"/>section <a id="_idIndexMarker409"/>for <a id="_idIndexMarker410"/>now. Tags are name/value pairs that allow you to categorize resources and facilitate consolidated billing by applying the same tag to multiple search and resource groups. You can find similar details on the <strong class="bold">Tags</strong> step. Proceed by clicking <strong class="bold">Next</strong> and then go to the <strong class="bold">Review + Create</strong> button. Here, it will display the details you’ve chosen in the previous steps. Review all the information and click on the <span class="No-Break"><strong class="bold">Create</strong></span><span class="No-Break"> button:</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer136" class="IMG---Figure">
+					<img src="image/B21019_09_7.jpg" alt="Figure 9.7: Create Language Review + create step"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.7: Create Language Review + create step</p>
+			<ol>
+				<li class="upper-roman" value="8">Once you click on <strong class="bold">Create</strong>, a new deployment will be generated and the resource will <span class="No-Break">be created.</span></li>
+			</ol>
+			<ol>
+				<li value="2">Create an Azure <span class="No-Break">Speech service.</span><ol><li class="upper-roman">To create an<a id="_idIndexMarker411"/> Azure <a id="_idIndexMarker412"/>Speech<a id="_idIndexMarker413"/> service, navigate <a id="_idIndexMarker414"/>to the search bar in the top navigation and search for <strong class="source-inline">Language</strong>. If not found, click on <strong class="bold">Create a resource</strong> and, in the Marketplace, search for <strong class="source-inline">Language</strong> and click <span class="No-Break">on </span><span class="No-Break"><strong class="bold">Create</strong></span><span class="No-Break">.</span></li></ol></li>
+			</ol>
+			<div>
+				<div id="_idContainer137" class="IMG---Figure">
+					<img src="image/B21019_09_8.jpg" alt="Figure 9.8: Create a Speech service"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.8: Create a Speech service</p>
+			<ol>
+				<li class="upper-roman" value="2">After creating the <a id="_idIndexMarker415"/>Speech <a id="_idIndexMarker416"/>service from <a id="_idIndexMarker417"/>the <a id="_idIndexMarker418"/>Marketplace, make selections for <strong class="bold">Subscription</strong> and <strong class="bold">Resource group</strong> on the <strong class="bold">Create a resource</strong> form that you created in <a href="B21019_04.xhtml#_idTextAnchor059"><span class="No-Break"><em class="italic">Chapter 4</em></span></a> and set the pricing tier as <span class="No-Break"><strong class="bold">Free F0</strong></span><span class="No-Break">.</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer138" class="IMG---Figure">
+					<img src="image/B21019_09_9.jpg" alt="Figure 9.9: Create Speech Services Basics step"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.9: Create Speech Services Basics step</p>
+			<ol>
+				<li class="upper-roman" value="3">Now give your <a id="_idIndexMarker419"/>desired<a id="_idIndexMarker420"/> resource, click <a id="_idIndexMarker421"/>on<a id="_idIndexMarker422"/> the <strong class="bold">Next</strong> button, and go to the <strong class="bold">Network</strong> tab. Select the <strong class="bold">All networks, including the internet, can access this resource</strong> option and click <span class="No-Break">on </span><span class="No-Break"><strong class="bold">Next</strong></span><span class="No-Break">.</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer139" class="IMG---Figure">
+					<img src="image/B21019_09_10.jpg" alt="Figure 9.10: Create Speech Services Network step"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.10: Create Speech Services Network step</p>
+			<ol>
+				<li class="upper-roman" value="4">In <a id="_idIndexMarker423"/>the <strong class="bold">Identity</strong> tab, just <a id="_idIndexMarker424"/>configure it <a id="_idIndexMarker425"/>with <a id="_idIndexMarker426"/>all the defaults and click on the <strong class="bold">Next</strong> button to go to the <span class="No-Break"><strong class="bold">Tags</strong></span><span class="No-Break"> tab.</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer140" class="IMG---Figure">
+					<img src="image/B21019_09_11.jpg" alt="Figure 9.11: Create Speech Services Identity step"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.11: Create Speech Services Identity step</p>
+			<ol>
+				<li class="upper-roman" value="5">You can ignore this <a id="_idIndexMarker427"/>section <a id="_idIndexMarker428"/>for <a id="_idIndexMarker429"/>now. Proceed<a id="_idIndexMarker430"/> by clicking <strong class="bold">Next</strong> and then go to the <strong class="bold">Review + Create</strong> button. Here, it will display the details you’ve chosen in the previous steps. Review all the information and click on the <span class="No-Break"><strong class="bold">Create</strong></span><span class="No-Break"> button.</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer141" class="IMG---Figure">
+					<img src="image/B21019_09_12.jpg" alt="Figure 9.12: Create Speech Services Review + create step"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.12: Create Speech Services Review + create step</p>
+			<ol>
+				<li class="upper-roman" value="6">Once you click <a id="_idIndexMarker431"/>on <strong class="bold">Create</strong>, a new deployment will be generated and the resource<a id="_idIndexMarker432"/> will <a id="_idIndexMarker433"/><span class="No-Break">be </span><span class="No-Break"><a id="_idIndexMarker434"/></span><span class="No-Break">created.</span></li>
+			</ol>
+			<h2 id="_idParaDest-108"><a id="_idTextAnchor107"/>Solution using Azure OpenAI and Azure Language and Speech services</h2>
+			<p>Now that we have set up all the essential services in the Azure portal, we can begin constructing our solution. To develop the code, I will be working within a Python notebook and the remaining installations are the same that were defined in <a href="B21019_04.xhtml#_idTextAnchor059"><span class="No-Break"><em class="italic">Chapter 4</em></span></a><span class="No-Break">.</span></p>
+			<p>You will need to install one extra Python library for this code other than the one installed in <a href="B21019_04.xhtml#_idTextAnchor059"><span class="No-Break"><em class="italic">Chapter 4</em></span></a><span class="No-Break">.</span></p>
+			<p>Create a new Juypter notebook and install the <span class="No-Break">following packages:</span></p>
+			<pre class="console">
+pip install openai==0.28
+pip install dotenv
+pip install azure-ai-textanalytics
+pip install azure-cognitiveservices-speech
+pip install moviepy</pre>			<h3>Importing packages</h3>
+			<p>Install missing libraries using <strong class="source-inline">pip install</strong>, make sure your OpenAI version is 0.28.0, and then import the <a id="_idIndexMarker435"/>packages using the <span class="No-Break">following code:</span></p>
+			<pre class="source-code">
+import openai
+import os
+from dotenv import load_dotenv
+import azure.cognitiveservices.speech as speechsdk
+from azure.ai.textanalytics import TextAnalyticsClient
+from azure.core.credentials import AzureKeyCredential
+import urllib.request
+from moviepy.editor import *
+import numpy as np
+from PIL import Image</pre>			<p>You can see a variety of libraries being used in the preceding code. Let’s delve into each of these libraries in the <a id="_idIndexMarker436"/><span class="No-Break">table here.</span></p>
+			<table id="table001-7" class="T---Table _idGenTablePara-1">
+				<colgroup>
+					<col/>
+					<col/>
+				</colgroup>
+				<tbody>
+					<tr class="T---Table">
+						<td class="T---Table T---Body T---Body">
+							<p><span class="No-Break"><strong class="bold">Import Statement</strong></span></p>
+						</td>
+						<td class="T---Table T---Body T---Body">
+							<p><span class="No-Break"><strong class="bold">Description</strong></span></p>
+						</td>
+					</tr>
+					<tr class="T---Table">
+						<td class="T---Table T---Body T---Body">
+							<p><span class="No-Break"><strong class="source-inline">import openai</strong></span></p>
+						</td>
+						<td class="T---Table T---Body T---Body">
+							<p>Imports the OpenAI library for accessing the <span class="No-Break">OpenAI API.</span></p>
+						</td>
+					</tr>
+					<tr class="T---Table">
+						<td class="T---Table T---Body T---Body">
+							<p><span class="No-Break"><strong class="source-inline">import os</strong></span></p>
+						</td>
+						<td class="T---Table T---Body T---Body">
+							<p>Imports the os module, which provides a portable way of interacting with the <span class="No-Break">operating system.</span></p>
+						</td>
+					</tr>
+					<tr class="T---Table">
+						<td class="T---Table T---Body T---Body">
+							<p><strong class="source-inline">from dotenv </strong><span class="No-Break"><strong class="source-inline">import load_dotenv</strong></span></p>
+						</td>
+						<td class="T---Table T---Body T---Body">
+							<p>Imports the <strong class="source-inline">load_dotenv</strong> function from the <strong class="source-inline">dotenv</strong> module to load environment variables from a <strong class="source-inline">.</strong><span class="No-Break"><strong class="source-inline">env</strong></span><span class="No-Break"> file.</span></p>
+						</td>
+					</tr>
+					<tr class="T---Table">
+						<td class="T---Table T---Body T---Body">
+							<p><strong class="source-inline">import azure.cognitiveservices.speech </strong><span class="No-Break"><strong class="source-inline">as speechsdk</strong></span></p>
+						</td>
+						<td class="T---Table T---Body T---Body">
+							<p>Imports the Azure Cognitive Services Speech SDK for speech recognition <span class="No-Break">and synthesis.</span></p>
+						</td>
+					</tr>
+					<tr class="T---Table">
+						<td class="T---Table T---Body T---Body">
+							<p><strong class="source-inline">from azure.ai.textanalytics </strong><span class="No-Break"><strong class="source-inline">import TextAnalyticsClient</strong></span></p>
+						</td>
+						<td class="T---Table T---Body T---Body">
+							<p>Imports the <strong class="source-inline">TextAnalyticsClient</strong> class from the <strong class="source-inline">azure.ai.textanalytics</strong> module for <span class="No-Break">text analysis.</span></p>
+						</td>
+					</tr>
+					<tr class="T---Table">
+						<td class="T---Table T---Body T---Body">
+							<p><strong class="source-inline">from azure.core.credentials </strong><span class="No-Break"><strong class="source-inline">import AzureKeyCredential</strong></span></p>
+						</td>
+						<td class="T---Table T---Body T---Body">
+							<p>Imports the <strong class="source-inline">AzureKeyCredential</strong> class from the <strong class="source-inline">azure.core.credentials</strong> module for authentication with <span class="No-Break">Azure services.</span></p>
+						</td>
+					</tr>
+					<tr class="T---Table">
+						<td class="T---Table T---Body T---Body">
+							<p><span class="No-Break"><strong class="source-inline">import urllib.request</strong></span></p>
+						</td>
+						<td class="T---Table T---Body T---Body">
+							<p>Imports the <strong class="source-inline">urllib.request</strong> module for making <span class="No-Break">HTTP requests.</span></p>
+						</td>
+					</tr>
+					<tr class="T---Table">
+						<td class="T---Table T---Body T---Body">
+							<p><strong class="source-inline">from moviepy.editor </strong><span class="No-Break"><strong class="source-inline">import *</strong></span></p>
+						</td>
+						<td class="T---Table T---Body T---Body">
+							<p>Imports the MoviePy library for video editing <span class="No-Break">and manipulation.</span></p>
+						</td>
+					</tr>
+					<tr class="T---Table">
+						<td class="T---Table T---Body T---Body">
+							<p><strong class="source-inline">import numpy </strong><span class="No-Break"><strong class="source-inline">as np</strong></span></p>
+						</td>
+						<td class="T---Table T---Body T---Body">
+							<p>Imports the NumPy library for numerical computing <span class="No-Break">with arrays.</span></p>
+						</td>
+					</tr>
+					<tr class="T---Table">
+						<td class="T---Table T---Body T---Body">
+							<p><strong class="source-inline">from PIL </strong><span class="No-Break"><strong class="source-inline">import Image</strong></span></p>
+						</td>
+						<td class="T---Table T---Body T---Body">
+							<p>Imports the <strong class="source-inline">Image</strong> module from the Pillow library for <span class="No-Break">image processing.</span></p>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Table 9.1: Imports explanation</p>
+			<p>Now, let’s initialize all the necessary <a id="_idIndexMarker437"/>constants using the keys provided in the <strong class="source-inline">.env</strong> file. Add “<strong class="source-inline">COMMUNICATION_CONNECTION_STRING</strong>” and “<strong class="source-inline">COMMUNICATION_ENDPOINT</strong>” to your already existing <strong class="source-inline">.</strong><span class="No-Break"><strong class="source-inline">env</strong></span><span class="No-Break"> file:</span></p>
+			<pre class="source-code">
+# Azure
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_DEPLOYMENT_ENDPOINT = os.getenv("OPENAI_DEPLOYMENT_ENDPOINT")
+OPENAI_DEPLOYMENT_NAME = os.getenv("OPENAI_DEPLOYMENT_NAME")
+OPENAI_MODEL_NAME = os.getenv("OPENAI_MODEL_NAME")
+OPENAI_API_VERSION = os.getenv("OPENAI_API_VERSION")
+OPENAI_DEPLOYMENT_VERSION = os.getenv("OPENAI_DEPLOYMENT_VERSION")
+#init Azure OpenAI
+openai.api_type = "azure"
+openai.api_version = OPENAI_DEPLOYMENT_VERSION
+openai.api_base = OPENAI_DEPLOYMENT_ENDPOINT
+openai.api_key = OPENAI_API_KEY
+OPENAI_LANGUAGE_KEY = os.getenv("OPENAI_LANGUAGE_KEY")
+OPENAI_LANGUAGE_ENDPOINT = os.getenv("OPENAI_LANGUAGE_ENDPOINT")
+OPENAI_SPEECH_KEY = os.getenv("OPENAI_SPEECH_KEY")
+OPENAI_SPEECH_REGION = os.getenv("OPENAI_SPEECH_REGION")
+load_dotenv()</pre>			<p>Add these to the <strong class="source-inline">.env</strong> file that was created in <a href="B21019_04.xhtml#_idTextAnchor059"><span class="No-Break"><em class="italic">Chapter 4</em></span></a> with the <strong class="source-inline">connectionString</strong> <span class="No-Break">and </span><span class="No-Break"><strong class="source-inline">endpoints</strong></span><span class="No-Break">:</span></p>
+			<pre class="source-code">
+OPENAI_LANGUAGE_KEY = {OPENAI_LANGUAGE_KEY}
+OPENAI_LANGUAGE_ENDPOINT = {OPENAI_LANGUAGE_ENDPOINT}
+OPENAI_SPEECH_KEY = {OPENAI_SPEECH_KEY}
+OPENAI_SPEECH_REGION = {OPENAI_SPEECH_REGION}</pre>			<p>Follow these steps to set up the Language and Speech <span class="No-Break">service endpoint:</span></p>
+			<ol>
+				<li class="upper-roman">Update the ‘<strong class="source-inline">OPENAI_LANGUAGE_KEY</strong>’ and ‘<strong class="source-inline">OPENAI_LANGUAGE_ENDPOINT</strong>’ values with the connection string value found in your <a id="_idIndexMarker438"/>Azure Language service under the <span class="No-Break"><strong class="bold">Keys</strong></span><span class="No-Break"> section.</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer142" class="IMG---Figure">
+					<img src="image/B21019_09_13.jpg" alt="Figure 9.13: Language Service Keys and Endpoint"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.13: Language Service Keys and Endpoint</p>
+			<ol>
+				<li class="upper-roman" value="2">Similarly, modify the values of ‘<strong class="source-inline">OPENAI_SPEECH_KEY</strong>’ and ‘<strong class="source-inline">OPENAI_SPEECH_REGION</strong>’ with the value found in your Azure Speech service under the <span class="No-Break"><strong class="bold">Keys</strong></span><span class="No-Break"> section.</span></li>
+			</ol>
+			<div>
+				<div id="_idContainer143" class="IMG---Figure">
+					<img src="image/B21019_09_14.jpg" alt="Figure 9.14: Speech Service Keys and Endpoint"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.14: Speech Service Keys and Endpoint</p>
+			<p class="list-inset">By completing these configurations, you’ll have the necessary connection settings for your <a id="_idIndexMarker439"/>resources. Once you see <strong class="source-inline">True</strong>, then the script to load the variables <span class="No-Break">is successful.</span></p>
+			<div>
+				<div id="_idContainer144" class="IMG---Figure">
+					<img src="image/B21019_09_15.jpg" alt="Figure 9.15: Output of load env"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.15: Output of load env</p>
+			<h3>Summarizing text using Azure OpenAI</h3>
+			<ol>
+				<li>Generating <span class="No-Break">the prompt</span><p class="list-inset">This code<a id="_idIndexMarker440"/> snippet defines the number of sentences desired for the summary and prompts the user to input content. It then constructs a prompt for text summarization that requests a summary capturing the main idea in the specified number <span class="No-Break">of sentences.</span></p><p class="list-inset">Here’s an example prompt: HTML Hello World Tutorial: Generate a beginner-friendly tutorial for creating a basic “Hello World” webpage <span class="No-Break">using HTML:</span></p><pre class="source-code">
+num_of_sentences = 1
+content = input("Please enter the content: ")
+prompt = 'Provide a summary of the text below that captures its main idea in '+ str(num_of_sentences) +'sentences. \n' + content</pre><p class="list-inset">This is <span class="No-Break">the output:</span></p></li>			</ol>
+			<div>
+				<div id="_idContainer145" class="IMG---Figure">
+					<img src="image/B21019_09_16.jpg" alt="Figure 9.16: Output of the prompt"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.16: Output of the prompt</p>
+			<ol>
+				<li value="2">Generating OpenAI<a id="_idIndexMarker441"/> response for <span class="No-Break">the prompt</span><p class="list-inset">This code utilizes the OpenAI library to generate a text summary. It sends a request to the OpenAI engine specified by <strong class="source-inline">OPENAI_DEPLOYMENT_NAME</strong> with a given prompt (<strong class="source-inline">prompt</strong>). The <strong class="source-inline">temperature</strong>, <strong class="source-inline">max_tokens</strong>, and <strong class="source-inline">top_p</strong> parameters control the generation process. Finally, it prints the generated text summary retrieved from the <span class="No-Break"><strong class="source-inline">response_summ</strong></span><span class="No-Break"> object:</span></p><pre class="source-code">
+response_summ = openai.Completion.create(
+  engine=OPENAI_DEPLOYMENT_NAME,
+  prompt=prompt,
+  temperature=0.3,
+  max_tokens=100,
+  top_p=1,
+)
+print(response_summ.choices[0].text)
+In the above code lets understand what each parameter means -
+openai.Completion.create:
+This is a method call to the OpenAI API to create a text completion.
+engine=OPENAI_DEPLOYMENT_NAME:
+Specifies the engine to use for generating the completion. OPENAI_DEPLOYMENT_NAME is a variable that holds the name of the deployment or model you want to use.
+prompt=prompt:
+The prompt parameter is the input text that you provide to the model. The model will generate a completion based on this input.
+temperature=0.3:
+The temperature parameter controls the randomness of the output. Lower values (like 0.3) make the output more focused and deterministic, while higher values make it more random.
+max_tokens=100:
+The max_tokens parameter specifies the maximum number of tokens (words or word pieces) to generate in the completion.
+top_p=1:
+The top_p parameter is used for nucleus sampling. It controls the diversity of the output by considering only the top p probability mass. A value of 1 means no filtering based on probability mass.</pre><p class="list-inset">This is <span class="No-Break">the</span><span class="No-Break"><a id="_idIndexMarker442"/></span><span class="No-Break"> output:</span></p></li>			</ol>
+			<div>
+				<div id="_idContainer146" class="IMG---Figure">
+					<img src="image/B21019_09_17.jpg" alt="Figure 9.17: Output of OpenAI response"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.17: Output of OpenAI response</p>
+			<h3>Extracting key phrases using Azure Cognitive Service</h3>
+			<ol>
+				<li value="1">Authenticating<a id="_idIndexMarker443"/> <span class="No-Break">the client</span><p class="list-inset">This code defines a <strong class="source-inline">authenticate_client()</strong> function to authenticate the Azure Text Analytics client using the provided API key. It initializes an <strong class="source-inline">AzureKeyCredential</strong> object with the API key and creates a <strong class="source-inline">TextAnalyticsClient</strong> object with the specified endpoint and credentials. Finally, it returns the authenticated <span class="No-Break">client instances:</span></p><pre class="source-code">
+def authenticate_client():
+     def authenticate_client():
+    try:
+        ta_credential = AzureKeyCredential(OPENAI_LANGUAGE_KEY)
+        text_analytics_client = TextAnalyticsClient(
+            endpoint=OPENAI_LANGUAGE_ENDPOINT,
+            credential=ta_credential
+        )
+        return text_analytics_client
+    except AzureError as e:
+        print(f"An error occurred while authenticating the client: {e}")
+        return None
+client = authenticate_client()</pre><p class="list-inset">The preceding code includes error handling to catch and handle any exceptions that might occur during the authentication process. If an error occurs, it prints an error message and returns <strong class="source-inline">None</strong>. This makes the function more robust and helps in diagnosing issues related to <span class="No-Break">client authentication.</span></p><p class="list-inset">Alternatively, you can<a id="_idIndexMarker444"/> also use <strong class="bold">Azure Active Directory</strong> (<strong class="bold">AAD</strong>) token credentials and<a id="_idIndexMarker445"/> Managed Identity for Azure resources. These methods can provide enhanced security and ease of management in <span class="No-Break">certain scenarios.</span></p></li>				<li>Key <span class="No-Break">phase extraction</span><p class="list-inset">The <strong class="source-inline">key_phrase_extraction_example</strong> function utilizes an Azure Text Analytics client to extract key phrases from a document. It populates <strong class="source-inline">phrase_list</strong> with extracted key phrases and concatenates them into <strong class="source-inline">phrases</strong>. If successful, it returns both <strong class="source-inline">phrase_list</strong> and <strong class="source-inline">phrases</strong>; otherwise, it handles exceptions and prints an <span class="No-Break">error message:</span></p><pre class="source-code">
+def key_phrase_extraction_example(client):
+    try:
+        phrase_list, phrases = [], ''
+        documents = [response_summ.choices[0].text]
+        response_kp = client.extract_key_phrases(
+            documents = documents)[0]
+        if not response_kp.is_error:
+            print("\tKey Phrases:")
+            for phrase in response_kp.key_phrases:
+                print("\t\t", phrase)
+                phrase_list.append(phrase)
+                phrases = phrases +"\n"+ phrase
+        else:
+            print(response_kp.id, response_kp.error)
+    except Exception as err:
+        print("Encountered exception. {}".format(err))
+    return phrase_list, phrases</pre></li>				<li>Executing <span class="No-Break">key phrases:</span><p class="list-inset">This line calls the <strong class="source-inline">key_phrase_extraction_example</strong> function with the client object as an argument. It retrieves two values: <strong class="source-inline">phrase_list</strong>, a list containing<a id="_idIndexMarker446"/> extracted key phrases, and <strong class="source-inline">phrases</strong>, a concatenated string of <span class="No-Break">these phrases:</span></p><pre class="source-code">
+phrase_list, phrases = key_phrase_extraction_example(client)</pre><p class="list-inset">This is <span class="No-Break">the output:</span></p></li>			</ol>
+			<div>
+				<div id="_idContainer147" class="IMG---Figure">
+					<img src="image/B21019_09_18.jpg" alt="Figure 9.18: Output of the generated phrases from the user prompt"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.18: Output of the generated phrases from the user prompt</p>
+			<h3>Generating prompts for image creation using Azure OpenAI’s DALL-E model</h3>
+			<ol>
+				<li value="1">Prompt for <span class="No-Break">image generation:</span><p class="list-inset">Construct a<a id="_idIndexMarker447"/> prompt <a id="_idIndexMarker448"/>for generating images using the DALL-E model based on <span class="No-Break">provided phrases:</span></p><pre class="source-code">
+prompt = ''' Provide an image idea for each phrases: ''' + phrases</pre></li>				<li>Extracting image phrases from the <span class="No-Break">generated response:</span><p class="list-inset">This code sends a request to OpenAI’s text completion API with a given prompt, retrieves the response containing image phrases, splits the response by newline characters, and extracts the image phrases from the response. The prompt sets the context for DALL-E to create an image. For example, <strong class="source-inline">Provide an image idea for each phrase</strong> is a directive that tells the model to interpret the phrases as visual cues and generate image ideas based on them. The extracted phrases are specific descriptive elements derived from the model’s response to the prompt. These phrases provide the detailed visual components that guide DALL-E in <span class="No-Break">generating images:</span></p><pre class="source-code">
+response_phrase  = openai.Completion.create(
+  engine=OPENAI_DEPLOYMENT_NAME,
+  prompt=prompt,
+  temperature=0.3,
+  max_tokens=100,
+  top_p=1,
+)
+image_phrases = response_phrase.choices[0].text.split("\n")[1:]
+print(image_phrases)</pre></li>			</ol>
+			<div>
+				<div id="_idContainer148" class="IMG---Figure">
+					<img src="image/B21019_09_19.jpg" alt="Figure 9.19: Output of the generated image phrases"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.19: Output of the generated image phrases</p>
+			<ol>
+				<li value="3">Processing <span class="No-Break">image phrases</span><p class="list-inset">This Python snippet filters out image phrases, extracts the text before the colon, eliminates duplicate entries, and prints the unique list of extracted phrases. Duplicate entries need to be removed to ensure that each image prompt sent to DALL-E is unique <a id="_idIndexMarker449"/>and to <a id="_idIndexMarker450"/>optimize the efficiency of the image <span class="No-Break">generation process:</span></p><pre class="source-code">
+im_ph = []
+for image_phrase in image_phrases:
+   if(len(image_phrase) &gt; 0):
+        im_ph.append(image_phrase.split(":")[0])
+# Convert the list to a set to remove duplicates, then back to a list
+im_ph = list(set(im_ph))
+print(im_ph)</pre><p class="list-inset">This is <span class="No-Break">the output:</span></p></li>			</ol>
+			<div>
+				<div id="_idContainer149" class="IMG---Figure">
+					<img src="image/B21019_09_20.jpg" alt="Figure 9.20: Output of image phrases after removing duplicates"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.20: Output of image phrases after removing duplicates</p>
+			<ol>
+				<li value="4">Generating <span class="No-Break">image URLs:</span><p class="list-inset">This code iterates over a list of image phrases, sends requests to OpenAI’s Image API to generate images based on each phrase, retrieves the URL of the generated image, and appends the URL to a list <span class="No-Break">of images:</span></p><pre class="source-code">
+images = []
+for phrase in im_ph:
+    response = openai.Image.create(
+        prompt=phrase,
+        size='1024x1024',
+        n=1
+    )
+    image_url = response["data"][0]["url"]
+    images.append(image_url)</pre></li>				<li>Downloading<a id="_idIndexMarker451"/> <span class="No-Break">generated</span><span class="No-Break"><a id="_idIndexMarker452"/></span><span class="No-Break"> images</span><p class="list-inset">This code iterates over a list of image URLs, downloads each image using <strong class="source-inline">urllib</strong>, assigns a filename to each image based on a counter, and appends the filename to a list. Finally, it prints a message indicating that the downloading process <span class="No-Break">is complete:</span></p><pre class="source-code">
+counter = 0
+image_list = []
+for url in images:
+    counter += 1
+    filename = "file" + str(counter) + ".jpg"
+    urllib.request.urlretrieve(url, filename)
+    image_list.append(filename)
+print ("Downloading done.....")</pre><p class="list-inset">This is<a id="_idIndexMarker453"/> <span class="No-Break">the</span><span class="No-Break"><a id="_idIndexMarker454"/></span><span class="No-Break"> output:</span></p></li>			</ol>
+			<div>
+				<div id="_idContainer150" class="IMG---Figure">
+					<img src="image/B21019_09_21.jpg" alt="Figure 9.21: Output of generated images"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.21: Output of generated images</p>
+			<h3>Generating an audio file using the Azure Speech service</h3>
+			<ol>
+				<li value="1">Create <a id="_idIndexMarker455"/>Speech <span class="No-Break">config </span><span class="No-Break"><a id="_idIndexMarker456"/></span><span class="No-Break">object</span><p class="list-inset">This code initializes a <strong class="source-inline">SpeechConfig</strong> object with the provided subscription key and region for the Azure Speech service and prints the <span class="No-Break">configuration details:</span></p><pre class="source-code">
+speech_config = speechsdk.SpeechConfig(
+    subscription=OPENAI_SPEECH_KEY, 
+    region=OPENAI_SPEECH_REGION)
+print(speech_config)</pre></li>				<li>Text to <span class="No-Break">speech function:</span><p class="list-inset">The <strong class="source-inline">text_to_speech</strong> function leverages the Azure Speech service to convert input text into speech. It saves the synthesized audio to a specified filename and provides feedback on the <span class="No-Break">process outcome:</span></p><pre class="source-code">
+def text_to_speech(text, filename):
+    audio_config = speechsdk.AudioConfig(filename=filename)
+    speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=audio_config)
+    result = speech_synthesizer.speak_text_async(text).get()
+    print(result)
+    if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+        print(f"Audio saved to {filename}")
+    else:
+        print(f"Error: {result.error_details}")
+text = response_summ.choices[0].text
+filename = "audio.mp4"
+text_to_speech(text, filename)</pre><p class="list-inset">This is<a id="_idIndexMarker457"/> <span class="No-Break">the </span><span class="No-Break"><a id="_idIndexMarker458"/></span><span class="No-Break">output:</span></p></li>			</ol>
+			<div>
+				<div id="_idContainer151" class="IMG---Figure">
+					<img src="image/B21019_09_22.jpg" alt="Figure 9.22: Output of Speech based on generated images"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.22: Output of Speech based on generated images</p>
+			<h3>Combining the audio file with the images to produce a video</h3>
+			<p>This code <a id="_idIndexMarker459"/>resizes images, creates video clips with a duration of 2 seconds for each image, combines them into a final video clip, adds audio from the specified file, and writes the resulting video to an output file. Finally, it prints messages indicating the start and completion of the video <span class="No-Break">creation process:</span></p>
+			<pre class="source-code">
+print("Creating the video.....")
+def create_video(images, audio, output):
+    resized_images = [np.array(Image.open(img).resize((1024, 1024))) for img in images]
+    clips = [ImageClip(img).set_duration(2) for img in resized_images]
+    concat_clip = concatenate_videoclips(clips, method="compose")
+    audio_clip = AudioFileClip(audio)
+    final_clip = concat_clip.set_audio(audio_clip)
+    final_clip.write_videofile(output, fps=24)
+images = image_list
+audio = filename
+output = "video.mp4"
+create_video(images, audio, output)
+print("Video created.....")</pre>			<p>This is <span class="No-Break">the</span><span class="No-Break"><a id="_idIndexMarker460"/></span><span class="No-Break"> output:</span></p>
+			<div>
+				<div id="_idContainer152" class="IMG---Figure">
+					<img src="image/B21019_09_23.jpg" alt="Figure 9.23: Output of combining the images and audio into a video"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.23: Output of combining the images and audio into a video</p>
+			<div>
+				<div id="_idContainer153" class="IMG---Figure">
+					<img src="image/B21019_09_24.jpg" alt="Figure 9.24: Output of the images, audio, and combined video downloaded"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 9.24: Output of the images, audio, and combined video downloaded</p>
+			<p>The code snippets<a id="_idIndexMarker461"/> for this chapter are available on GitHub and can be accessed <span class="No-Break">here: </span><a href="https://github.com/PacktPublishing/Azure-OpenAI-Essentials/blob/main/Chapter_9.ipynb"><span class="No-Break">https://github.com/PacktPublishing/Azure-OpenAI-Essentials/blob/main/Chapter_9.ipynb</span></a></p>
+			<h1 id="_idParaDest-109"><a id="_idTextAnchor108"/>Summary</h1>
+			<p>In this chapter, we discovered how to turn text into videos using Azure and OpenAI. First, we made a summary of the text and picked out important phrases with Azure Cognitive Services. Then, we got image ideas and fetched related images with OpenAI’s DALL-E model. Next, we made a speech from the text with the Azure Speech service and combined it with the images to make a video. This method makes it easier to create interesting video content by automatically changing text into visuals <span class="No-Break">and audio.</span></p>
+			<p>By using these advanced technologies, we can speed up the process of making videos from text. This not only saves time but also makes the video content more accessible and engaging. With Azure and OpenAI, changing text into captivating videos is simpler and more efficient, offering new opportunities for sharing ideas <span class="No-Break">and stories.</span></p>
+			<p>In the next chapter, we will delve into creating a multimodal multi-agent framework with the Azure OpenAI Assistant API. This chapter will guide you through building a system where multiple intelligent agents collaborate using advanced language models. These agents will be capable of understanding and generating natural language, enabling them to perform tasks independently and make autonomous decisions. For instance, we will explore a scenario where AI agents work together to create and enhance images based on user input. One agent might generate an initial image, another refines the details, and a third adjusts the colors and textures. This collaborative process will demonstrate how a team of AI agents can achieve high-quality and intricate outputs that would be challenging for a single agent to <span class="No-Break">accomplish alone.</span></p>
+		</div>
+	</body></html>

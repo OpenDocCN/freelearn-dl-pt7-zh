@@ -1,0 +1,290 @@
+<html><head></head><body>
+		<div id="_idContainer129">
+			<h1 id="_idParaDest-96" class="chapter-number"><a id="_idTextAnchor095"/>8</h1>
+			<h1 id="_idParaDest-97"><a id="_idTextAnchor096"/>Creating a Basic Recommender Solution with Azure OpenAI</h1>
+			<p>In our last chapter, we delved into the art of crafting a straightforward Python program. This program does more than just generate code snippets; it’s like having a coding genie that also provides documentation for the code it conjures. This feature serves as a launchpad for our coding journey, making it accessible even for those with minimal or no prior <span class="No-Break">coding knowledge.</span></p>
+			<p>Imagine you and your friend are getting ready for a relaxing Friday night, planning to watch a movie. But here’s the catch – picking a movie from a big list is kind <span class="No-Break">of tough.</span></p>
+			<p>So, you come up with a cool idea! Instead of stressing over the choices, why not create something to help? You decide to make a chatbot, which is a small program that behaves like a helpful friend who understands what kind of movies you like and suggests the <span class="No-Break">perfect ones.</span></p>
+			<p>Now, picture this: You and your friend, all set with snacks, telling your bot what you’re in the mood to watch. No more scrolling through endless lists – the bot does the hard work and gives you movie suggestions based on what <span class="No-Break">you like.</span></p>
+			<p>This experience is like having your own movie guide for the perfect Friday night. The excitement builds up as you think about how much easier and more fun your movie nights are going to be with your new movie guide. Get ready for a stress-free movie night with your <span class="No-Break">recommender solution.</span></p>
+			<h1 id="_idParaDest-98"><a id="_idTextAnchor097"/>Technical requirements</h1>
+			<p>To follow along with the practical exercises in this chapter, access the source code available in this chapter's GitHub repository <span class="No-Break">at </span><a href="https://github.com/PacktPublishing/Unlocking-Creativity-with-Azure-OpenAI/blob/main/Chapter%208.ipynb"><span class="No-Break">https://github.com/PacktPublishing/Unlocking-Creativity-with-Azure-OpenAI/blob/main/Chapter%208.ipynb</span></a></p>
+			<p>No additional technical requirements are needed beyond those specified in <a href="B21019_07.xhtml#_idTextAnchor088"><span class="No-Break"><em class="italic">Chapter 7</em></span></a>’s <em class="italic">Technical </em><span class="No-Break"><em class="italic">requirements</em></span><span class="No-Break"> section.</span></p>
+			<p>You do, however, need to create a Kaggle account to generate an API key for fetching datasets of your choice. In this chapter, we are using the Netflix dataset, available <span class="No-Break">at </span><a href="https://www.kaggle.com/datasets/shivamb/netflix-shows/code"><span class="No-Break">https://www.kaggle.com/datasets/shivamb/netflix-shows/code</span></a><span class="No-Break">.</span></p>
+			<h1 id="_idParaDest-99"><a id="_idTextAnchor098"/>Architecture diagram</h1>
+			<p>For this <a id="_idIndexMarker371"/>chapter’s solution, the user first retrieves the raw dataset from a source such as Kaggle. Next, we normalize and clean the data to fit our requirements. This processed data is then used to create embeddings. When the user queries for movie suggestions, the ChatGPT API searches through the embedded dataset and provides recommendations based on the user’s input. The following diagram shows the <span class="No-Break">overall workflow:</span></p>
+			<div>
+				<div id="_idContainer120" class="IMG---Figure">
+					<img src="image/B21019_08_1.jpg" alt="Figure 8.1: Architecture diagram"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 8.1: Architecture diagram</p>
+			<h1 id="_idParaDest-100"><a id="_idTextAnchor099"/>Creating a recommender solution using Azure OpenAI</h1>
+			<p>Now that we<a id="_idIndexMarker372"/> have set up all the essential services in our Azure portal, we can begin constructing our solution. To develop the code, we will <a id="_idIndexMarker373"/>be working within an <strong class="bold">Azure Machine Learning Studio</strong> (<strong class="bold">Azure ML Studio</strong>) notebook. For this solution, we will be utilizing Python version 3.12. As mentioned earlier, any version above 3.7.1 should work seamlessly. You can access the code we’re using on this GitHub profile; I recommend referring to it as you progress through this chapter. Within the repository, you’ll find a <strong class="source-inline">requirements.txt</strong> file that lists all the Python libraries necessary for our solution. Please review this file and <a id="_idIndexMarker374"/>use the following command to install the required packages: !<strong class="source-inline">pip install requirements.txt</strong>. Then, proceed <span class="No-Break">as follows:</span></p>
+			<ol>
+				<li>Create a <span class="No-Break">Kaggle account.</span><p class="list-inset">Navigate to <a href="https://www.kaggle.com/datasets/shivamb/netflix-shows?resource=download">https://www.kaggle.com/datasets/shivamb/netflix-shows?resource=download</a>, then either download the CSV file or go to <strong class="bold">Settings</strong> and generate an API token by clicking on <strong class="bold">Create </strong><span class="No-Break"><strong class="bold">New Token</strong></span><span class="No-Break">:</span></p></li>
+			</ol>
+			<div>
+				<div id="_idContainer121" class="IMG---Figure">
+					<img src="image/B21019_08_2.jpg" alt="Figure 8.2: Generating a Kaggle token"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 8.2: Generating a Kaggle token</p>
+			<ol>
+				<li value="2">Import the <span class="No-Break">required packages.</span><p class="list-inset">Install missing libraries using <strong class="source-inline">pip install</strong> and make sure your <strong class="source-inline">openai </strong>version <span class="No-Break">is 0.28.0:</span></p><pre class="source-code">
+import openai
+import os
+import re
+import requests
+import sys
+from num2words import num2words
+import pandas as pd
+import numpy as np
+from openai.embeddings_utils import (
+    get_embedding, cosine_similarity)
+import tiktoken
+from dotenv import load_dotenv
+#Unzip the downloaded file
+import zipfile</pre><p class="list-inset">You can <a id="_idIndexMarker375"/>see a variety of libraries being used in the preceding code. Let’s delve into each of these libraries in the <span class="No-Break">following table:</span></p></li>			</ol>
+			<table id="table001-6" class="No-Table-Style _idGenTablePara-1">
+				<colgroup>
+					<col/>
+					<col/>
+				</colgroup>
+				<thead>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break"><strong class="bold">Import Statement</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p><span class="No-Break"><strong class="bold">Description</strong></span></p>
+						</td>
+					</tr>
+				</thead>
+				<tbody>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break"><strong class="source-inline">import openai</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Provides access to the OpenAI API for interacting with AI models <span class="No-Break">and services.</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break"><strong class="source-inline">import os</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Provides functions for interacting with the operating system, such as accessing environment variables <span class="No-Break">and files.</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break"><strong class="source-inline">import re</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Provides support for regular expressions, allowing pattern matching and <span class="No-Break">string manipulation.</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break"><strong class="source-inline">import requests</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Enables HTTP requests, allowing interaction with web servers <span class="No-Break">and APIs.</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break"><strong class="source-inline">import sys</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Provides system-specific parameters and functions, such as access to command-line arguments and the <span class="No-Break">Python interpreter.</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">from num2words </strong><span class="No-Break"><strong class="source-inline">import num2words</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Allows conversion of numbers <span class="No-Break">to words.</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">import pandas </strong><span class="No-Break"><strong class="source-inline">as pd</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Provides data structures and functions for data manipulation and analysis, particularly for handling <span class="No-Break">tabular data.</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">import numpy </strong><span class="No-Break"><strong class="source-inline">as np</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Offers numerical computing capabilities, including support for arrays, matrices, and <span class="No-Break">mathematical operations.</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">from openai.embeddings_utils import </strong><span class="No-Break"><strong class="source-inline">get_embedding, cosine_similarity</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Provides utility functions for working with embeddings, including generating embeddings and computing <span class="No-Break">cosine similarity.</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><span class="No-Break"><strong class="source-inline">import tiktoken</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Not a standard Python module. It appears to be a custom or third-party module. Its purpose is unclear from the <strong class="source-inline">import</strong> <span class="No-Break">statement alone.</span></p>
+						</td>
+					</tr>
+					<tr class="No-Table-Style">
+						<td class="No-Table-Style">
+							<p><strong class="source-inline">from dotenv </strong><span class="No-Break"><strong class="source-inline">import load_dotenv</strong></span></p>
+						</td>
+						<td class="No-Table-Style">
+							<p>Offers functionality for loading environment variables from a <strong class="source-inline">.env</strong> file into <span class="No-Break">the environment.</span></p>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Table 8.1: Explanation of imported packages</p>
+			<ol>
+				<li>Now, let’s<a id="_idIndexMarker376"/> initialize all the necessary constants using the keys provided in the <strong class="source-inline">.env</strong> file. Add <strong class="source-inline">"KAGGLE_USERNAME"</strong> and <strong class="source-inline">"KAGGLE_KEY"</strong> to your already existing <strong class="source-inline">.</strong><span class="No-Break"><strong class="source-inline">env</strong></span><span class="No-Break"> file:</span><pre class="source-code">
+# Azure
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_DEPLOYMENT_ENDPOINT =os.getenv(
+    "OPENAI_DEPLOYMENT_ENDPOINT")
+OPENAI_DEPLOYMENT_NAME = os.getenv("OPENAI_DEPLOYMENT_NAME")
+OPENAI_MODEL_NAME = os.getenv("OPENAI_MODEL_NAME")
+OPENAI_API_VERSION = os.getenv("OPENAI_API_VERSION")
+OPENAI_DEPLOYMENT_VERSION =os.getenv(
+    "OPENAI_DEPLOYMENT_VERSION")
+KAGGLE_USERNAME = os.getenv("KAGGLE_USERNAME")
+KAGGLE_KEY = os.getenv("KAGGLE_KEY")
+server = os.getenv("DATABASESERVER")
+database = os.getenv("DATABASE")
+username = os.getenv("DATABASEUSERNAME")
+password = os.getenv("DATABASEPASSWORD")
+#init Azure OpenAI
+openai.api_type = "azure"
+openai.api_version = OPENAI_DEPLOYMENT_VERSION
+openai.api_base = OPENAI_DEPLOYMENT_ENDPOINT
+openai.api_key = OPENAI_API_KEY
+load_dotenv()</pre></li>				<li>Add these <a id="_idIndexMarker377"/>to the <strong class="source-inline">.env</strong> file that was already created in <a href="B21019_06.xhtml#_idTextAnchor077"><span class="No-Break"><em class="italic">Chapter 6</em></span></a> with the <span class="No-Break">Kaggle information:</span><pre class="source-code">
+KAGGLE_USERNAME = '{username}'
+KAGGLE_KEY='{key}'</pre></li>				<li>Follow these steps to set up <span class="No-Break">Kaggle credentials:</span><ol><li class="upper-roman">Once you generate a Kaggle token, as explained in the beginning of the section, a <strong class="source-inline">.json</strong> file with a username and key will <span class="No-Break">be generated.</span></li><li class="upper-roman">Update the <strong class="source-inline">KAGGLE_USERNAME</strong> value with the username value found <span class="No-Break">in </span><span class="No-Break"><strong class="source-inline">kaggle.json</strong></span><span class="No-Break">.</span></li><li class="upper-roman">Similarly, modify the values of <strong class="source-inline">KAGGLE_KEY</strong> with <span class="No-Break">the key.</span></li></ol><p class="list-inset">By<a id="_idIndexMarker378"/> completing these configurations, you’ll have the necessary connection settings for your resources. We get the <span class="No-Break">following output:</span></p></li>
+			</ol>
+			<div>
+				<div id="_idContainer122" class="IMG---Figure">
+					<img src="image/B21019_08_3.jpg" alt="Figure 8.3: Output from loading the .env file"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 8.3: Output from loading the .env file</p>
+			<ol>
+				<li value="4">Download <span class="No-Break">the dataset.</span><p class="list-inset">This is a concise way to download the <strong class="source-inline">netflix-shows</strong> dataset from Kaggle directly from within a <span class="No-Break">Jupyter notebook:</span></p><pre class="source-code">
+!kaggle datasets download -d shivamb/netflix-shows</pre><p class="list-inset">We get the <span class="No-Break">following output:</span></p></li>			</ol>
+			<div>
+				<div id="_idContainer123" class="IMG---Figure">
+					<img src="image/B21019_08_4.jpg" alt="Figure 8.4: Downloading of dataset from Kaggle"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 8.4: Downloading of dataset from Kaggle</p>
+			<ol>
+				<li value="5">Unzip the <span class="No-Break">downloaded dataset.</span><p class="list-inset">This code unzips the downloaded file and adds it to the <span class="No-Break"><strong class="source-inline">netflix_dataset</strong></span><span class="No-Break"> folder:</span></p><pre class="source-code">
+with zipfile.ZipFile("netflix-shows.zip", 'r') as zip_ref:
+    zip_ref.extractall("netflix_dataset")</pre></li>				<li>Read<a id="_idIndexMarker379"/> data from the <strong class="source-inline">.</strong><span class="No-Break"><strong class="source-inline">csv</strong></span><span class="No-Break"> file.</span><p class="list-inset">This code reads data from the <strong class="source-inline">.csv</strong> file and imports the data into a <span class="No-Break"><strong class="source-inline">pandas</strong></span><span class="No-Break"> DataFrame:</span></p><pre class="source-code">
+#Read Data from csv file
+pd.read_csv("netflix_dataset/netflix_titles.csv")
+data</pre><p class="list-inset">Here is <span class="No-Break">the output:</span></p></li>			</ol>
+			<div>
+				<div id="_idContainer124" class="IMG---Figure">
+					<img src="image/B21019_08_5.jpg" alt="Figure 8.5: Output of the .csv data"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 8.5: Output of the .csv data</p>
+			<ol>
+				<li value="7">Fetch the title <span class="No-Break">and description.</span><p class="list-inset">This code fetches the title and description from the <span class="No-Break">entire dataset:</span></p><pre class="source-code">
+data_content = data[['title', 'description']]
+data_content</pre><p class="list-inset">Here is <span class="No-Break">the output:</span></p></li>			</ol>
+			<div>
+				<div id="_idContainer125" class="IMG---Figure">
+					<img src="image/B21019_08_6.jpg" alt="Figure 8.6: Output of just title and description"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 8.6: Output of just title and description</p>
+			<ol>
+				<li value="8">Normalize <span class="No-Break">the data.</span><p class="list-inset">The <a id="_idIndexMarker380"/>code snippet ensures that the <strong class="source-inline">'title'</strong> column in the <strong class="source-inline">data_content</strong> DataFrame is normalized by removing excess whitespace, unnecessary punctuation, and <span class="No-Break">newline characters:</span></p><pre class="source-code">
+pd.options.mode.chained_assignment = None
+# s is input text
+def normalize_text(s, sep_token = " \n "):
+    s = re.sub(r'\s+',  ' ', s).strip()
+    s = re.sub(r". ,","",s)
+    # remove all instances of multiple spaces
+    s = s.replace("..",".")
+    s = s.replace(". .",".")
+    s = s.replace("\n", "")
+    s = s.strip()
+    return s
+data_content['title']= data_content["title"].apply(
+    lambda x : normalize_text(x))
+data_content</pre><p class="list-inset">Here is<a id="_idIndexMarker381"/> <span class="No-Break">the output:</span></p></li>			</ol>
+			<div>
+				<div id="_idContainer126" class="IMG---Figure">
+					<img src="image/B21019_08_7.jpg" alt="Figure 8.7: Output of the data after normalization"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 8.7: Output of the data after normalization</p>
+			<ol>
+				<li value="9"><span class="No-Break">Create embeddings.</span><p class="list-inset">The code snippet performs embedding generation for text descriptions and integrates <a id="_idIndexMarker382"/>the embeddings into the <strong class="source-inline">data_content</strong> DataFrame, laying the groundwork for potential further analysis or applications involving the <span class="No-Break">generated embeddings:</span></p><pre class="source-code">
+data_content['ada_v2'] = data_content["description"]. apply(
+    lambda x : get_embedding(
+        x, engine = 'text-embedding-ada-002'))</pre><p class="list-inset">Here is <span class="No-Break">the output:</span></p></li>			</ol>
+			<div>
+				<div id="_idContainer127" class="IMG---Figure">
+					<img src="image/B21019_08_8.jpg" alt="Figure 8.8: Output with embeddings"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 8.8: Output with embeddings</p>
+			<ol>
+				<li value="10">Search for <span class="No-Break">specific content.</span><p class="list-inset">This code efficiently discovers similar content within a dataset. By calculating similarity scores and selecting top matches, the function becomes a powerful tool for finding the <span class="No-Break">required results:</span></p><pre class="source-code">
+def search_docs(df, user_query, top_n=3, to_print=True):
+    embedding = get_embedding(
+        user_query,
+        engine="text-embedding-3-large"
+    )
+    df["similarities"] = df.ada_v2.apply(
+    lambda x: cosine_similarity(x, embedding))
+    res = (
+        df.sort_values("similarities", ascending=False)
+        .head(top_n)
+    )
+    if to_print:
+        display(res)
+    return res
+title = "Blood &amp; Water"
+description = data_content.loc[data_content['title'] == title, 
+    "description"].iloc[0]
+res = search_docs(data_content, description, top_n=15)</pre><p class="list-inset">Here is <span class="No-Break">the output:</span></p></li>			</ol>
+			<div>
+				<div id="_idContainer128" class="IMG---Figure">
+					<img src="image/B21019_08_9.jpg" alt="Figure 8.9: Output of search on the data"/>
+				</div>
+			</div>
+			<p class="IMG---Caption" lang="en-US" xml:lang="en-US">Figure 8.9: Output of search on the data</p>
+			<p>In our code, we<a id="_idIndexMarker383"/> used the title <strong class="source-inline">"Blood &amp; Water"</strong>. Our recommender solution then generated a list of movies based on your preferences. The first record in the data is <strong class="source-inline">"Blood &amp; Water"</strong> itself, with a perfect similarity score of 1. Following that, we received recommendations such as <strong class="source-inline">"Dive Club"</strong> with a similarity score of 0.874 and <strong class="source-inline">"The Vanished"</strong> with a similarity score of 0.870, among others. This allows us to easily choose a movie from the list based on the similarity <span class="No-Break">scores provided.</span></p>
+			<p>The code snippets for this chapter are available on GitHub and can be accessed <span class="No-Break">here: </span><a href="https://github.com/PacktPublishing/Azure-OpenAI-Essentials/blob/main/Chapter%208.ipynb"><span class="No-Break">https://github.com/PacktPublishing/Azure-OpenAI-Essentials/blob/main/Chapter%208.ipynb</span></a></p>
+			<h1 id="_idParaDest-101"><a id="_idTextAnchor100"/>Summary</h1>
+			<p>In this chapter, we significantly enhanced our movie recommender solution, adding layers of functionality that make it both more intelligent and user-friendly. We began by setting up the necessary keys and credentials, ensuring our program could securely interact with the required APIs and services. This setup is crucial because it allows our system to access powerful resources, such as OpenAI’s embedding models, which are key to understanding and processing <span class="No-Break">the data.</span></p>
+			<p>Next, we integrated a Netflix dataset directly from Kaggle into our Jupyter notebook. By organizing this dataset into a <strong class="source-inline">pandas</strong> DataFrame, we created a structured environment that facilitates efficient data manipulation and analysis. This step is vital because a clean, well-organized dataset is the foundation for any data-driven solution, enabling us to focus on extracting <span class="No-Break">meaningful insights.</span></p>
+			<p>After loading the data, we zeroed in on the titles and descriptions of the shows, recognizing that these text fields hold the most valuable information for recommending content. We cleaned and preprocessed this text data to ensure it was in a format that a machine could easily interpret. Text preprocessing is a critical step as it eliminates noise and standardizes the data, allowing the model to better understand the nuances of <span class="No-Break">different shows.</span></p>
+			<p>To further enhance our recommender, we transformed the descriptions into numerical representations, known as embeddings, using OpenAI’s powerful models. These embeddings capture the semantic meaning of the text, allowing our system to compare and contrast different shows more effectively. This capability is what enables our recommender to suggest shows that are genuinely similar in content and theme to the ones users <span class="No-Break">already enjoy.</span></p>
+			<p>Finally, we developed a function that leverages these embeddings to find and recommend shows similar to a given favorite. For example, if you’re a fan of <strong class="source-inline">"Blood &amp; Water"</strong>, our system can suggest other shows that share similar themes, storylines, or styles. This function is the core of our recommender, making it not just a tool for discovering new content but a personalized guide tailored to your <span class="No-Break">unique tastes.</span></p>
+			<p>Looking ahead, in the next chapter, we will take a step further by exploring how to transform text prompts into videos. We’ll start by generating images from text prompts and then combine these images to create videos. This will open up new possibilities for dynamic content creation, which can be adapted to various other use cases such as marketing, education, <span class="No-Break">and entertainment.</span></p>
+		</div>
+	</body></html>
