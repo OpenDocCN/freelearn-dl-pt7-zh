@@ -1,0 +1,433 @@
+- en: '8'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Creating a Basic Recommender Solution with Azure OpenAI
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In our last chapter, we delved into the art of crafting a straightforward Python
+    program. This program does more than just generate code snippets; it’s like having
+    a coding genie that also provides documentation for the code it conjures. This
+    feature serves as a launchpad for our coding journey, making it accessible even
+    for those with minimal or no prior coding knowledge.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Imagine you and your friend are getting ready for a relaxing Friday night, planning
+    to watch a movie. But here’s the catch – picking a movie from a big list is kind
+    of tough.
+  prefs: []
+  type: TYPE_NORMAL
+- en: So, you come up with a cool idea! Instead of stressing over the choices, why
+    not create something to help? You decide to make a chatbot, which is a small program
+    that behaves like a helpful friend who understands what kind of movies you like
+    and suggests the perfect ones.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, picture this: You and your friend, all set with snacks, telling your bot
+    what you’re in the mood to watch. No more scrolling through endless lists – the
+    bot does the hard work and gives you movie suggestions based on what you like.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: This experience is like having your own movie guide for the perfect Friday night.
+    The excitement builds up as you think about how much easier and more fun your
+    movie nights are going to be with your new movie guide. Get ready for a stress-free
+    movie night with your recommender solution.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: To follow along with the practical exercises in this chapter, access the source
+    code available in this chapter's GitHub repository at [https://github.com/PacktPublishing/Unlocking-Creativity-with-Azure-OpenAI/blob/main/Chapter%208.ipynb](https://github.com/PacktPublishing/Unlocking-Creativity-with-Azure-OpenAI/blob/main/Chapter%208.ipynb)
+  prefs: []
+  type: TYPE_NORMAL
+- en: No additional technical requirements are needed beyond those specified in [*Chapter
+    7*](B21019_07.xhtml#_idTextAnchor088)’s *Technical* *requirements* section.
+  prefs: []
+  type: TYPE_NORMAL
+- en: You do, however, need to create a Kaggle account to generate an API key for
+    fetching datasets of your choice. In this chapter, we are using the Netflix dataset,
+    available at [https://www.kaggle.com/datasets/shivamb/netflix-shows/code](https://www.kaggle.com/datasets/shivamb/netflix-shows/code).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Architecture diagram
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'For this chapter’s solution, the user first retrieves the raw dataset from
+    a source such as Kaggle. Next, we normalize and clean the data to fit our requirements.
+    This processed data is then used to create embeddings. When the user queries for
+    movie suggestions, the ChatGPT API searches through the embedded dataset and provides
+    recommendations based on the user’s input. The following diagram shows the overall
+    workflow:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 8.1: Architecture diagram](img/B21019_08_1.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 8.1: Architecture diagram'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating a recommender solution using Azure OpenAI
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Now that we have set up all the essential services in our Azure portal, we
+    can begin constructing our solution. To develop the code, we will be working within
+    an `requirements.txt` file that lists all the Python libraries necessary for our
+    solution. Please review this file and use the following command to install the
+    required packages: !`pip install requirements.txt`. Then, proceed as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Create a Kaggle account.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Navigate to [https://www.kaggle.com/datasets/shivamb/netflix-shows?resource=download](https://www.kaggle.com/datasets/shivamb/netflix-shows?resource=download),
+    then either download the CSV file or go to **Settings** and generate an API token
+    by clicking on **Create** **New Token**:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 8.2: Generating a Kaggle token](img/B21019_08_2.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 8.2: Generating a Kaggle token'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Import the required packages.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Install missing libraries using `pip install` and make sure your `openai` version
+    is 0.28.0:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You can see a variety of libraries being used in the preceding code. Let’s
+    delve into each of these libraries in the following table:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '| **Import Statement** | **Description** |'
+  prefs: []
+  type: TYPE_TB
+- en: '| --- | --- |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `import openai` | Provides access to the OpenAI API for interacting with
+    AI models and services. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `import os` | Provides functions for interacting with the operating system,
+    such as accessing environment variables and files. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `import re` | Provides support for regular expressions, allowing pattern
+    matching and string manipulation. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `import requests` | Enables HTTP requests, allowing interaction with web
+    servers and APIs. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `import sys` | Provides system-specific parameters and functions, such as
+    access to command-line arguments and the Python interpreter. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `from num2words` `import num2words` | Allows conversion of numbers to words.
+    |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `import pandas` `as pd` | Provides data structures and functions for data
+    manipulation and analysis, particularly for handling tabular data. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `import numpy` `as np` | Offers numerical computing capabilities, including
+    support for arrays, matrices, and mathematical operations. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `from openai.embeddings_utils import` `get_embedding, cosine_similarity`
+    | Provides utility functions for working with embeddings, including generating
+    embeddings and computing cosine similarity. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `import tiktoken` | Not a standard Python module. It appears to be a custom
+    or third-party module. Its purpose is unclear from the `import` statement alone.
+    |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `from dotenv` `import load_dotenv` | Offers functionality for loading environment
+    variables from a `.env` file into the environment. |'
+  prefs: []
+  type: TYPE_TB
+- en: 'Table 8.1: Explanation of imported packages'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let’s initialize all the necessary constants using the keys provided in
+    the `.env` file. Add `"KAGGLE_USERNAME"` and `"KAGGLE_KEY"` to your already existing
+    `.``env` file:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Add these to the `.env` file that was already created in [*Chapter 6*](B21019_06.xhtml#_idTextAnchor077)
+    with the Kaggle information:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Follow these steps to set up Kaggle credentials:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Once you generate a Kaggle token, as explained in the beginning of the section,
+    a `.json` file with a username and key will be generated.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Update the `KAGGLE_USERNAME` value with the username value found in `kaggle.json`.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Similarly, modify the values of `KAGGLE_KEY` with the key.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'By completing these configurations, you’ll have the necessary connection settings
+    for your resources. We get the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 8.3: Output from loading the .env file](img/B21019_08_3.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 8.3: Output from loading the .env file'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Download the dataset.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'This is a concise way to download the `netflix-shows` dataset from Kaggle directly
+    from within a Jupyter notebook:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'We get the following output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 8.4: Downloading of dataset from Kaggle](img/B21019_08_4.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 8.4: Downloading of dataset from Kaggle'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Unzip the downloaded dataset.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'This code unzips the downloaded file and adds it to the `netflix_dataset` folder:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Read data from the `.``csv` file.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'This code reads data from the `.csv` file and imports the data into a `pandas`
+    DataFrame:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Here is the output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 8.5: Output of the .csv data](img/B21019_08_5.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 8.5: Output of the .csv data'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Fetch the title and description.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'This code fetches the title and description from the entire dataset:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Here is the output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 8.6: Output of just title and description](img/B21019_08_6.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 8.6: Output of just title and description'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Normalize the data.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '[PRE8]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Here is the output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 8.7: Output of the data after normalization](img/B21019_08_7.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 8.7: Output of the data after normalization'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Create embeddings.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '[PRE10]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Here is the output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 8.8: Output with embeddings](img/B21019_08_8.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 8.8: Output with embeddings'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Search for specific content.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'This code efficiently discovers similar content within a dataset. By calculating
+    similarity scores and selecting top matches, the function becomes a powerful tool
+    for finding the required results:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Here is the output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 8.9: Output of search on the data](img/B21019_08_9.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 8.9: Output of search on the data'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In our code, we used the title `"Blood & Water"`. Our recommender solution then
+    generated a list of movies based on your preferences. The first record in the
+    data is `"Blood & Water"` itself, with a perfect similarity score of 1\. Following
+    that, we received recommendations such as `"Dive Club"` with a similarity score
+    of 0.874 and `"The Vanished"` with a similarity score of 0.870, among others.
+    This allows us to easily choose a movie from the list based on the similarity
+    scores provided.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The code snippets for this chapter are available on GitHub and can be accessed
+    here: [https://github.com/PacktPublishing/Azure-OpenAI-Essentials/blob/main/Chapter%208.ipynb](https://github.com/PacktPublishing/Azure-OpenAI-Essentials/blob/main/Chapter%208.ipynb)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we significantly enhanced our movie recommender solution, adding
+    layers of functionality that make it both more intelligent and user-friendly.
+    We began by setting up the necessary keys and credentials, ensuring our program
+    could securely interact with the required APIs and services. This setup is crucial
+    because it allows our system to access powerful resources, such as OpenAI’s embedding
+    models, which are key to understanding and processing the data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, we integrated a Netflix dataset directly from Kaggle into our Jupyter
+    notebook. By organizing this dataset into a `pandas` DataFrame, we created a structured
+    environment that facilitates efficient data manipulation and analysis. This step
+    is vital because a clean, well-organized dataset is the foundation for any data-driven
+    solution, enabling us to focus on extracting meaningful insights.
+  prefs: []
+  type: TYPE_NORMAL
+- en: After loading the data, we zeroed in on the titles and descriptions of the shows,
+    recognizing that these text fields hold the most valuable information for recommending
+    content. We cleaned and preprocessed this text data to ensure it was in a format
+    that a machine could easily interpret. Text preprocessing is a critical step as
+    it eliminates noise and standardizes the data, allowing the model to better understand
+    the nuances of different shows.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To further enhance our recommender, we transformed the descriptions into numerical
+    representations, known as embeddings, using OpenAI’s powerful models. These embeddings
+    capture the semantic meaning of the text, allowing our system to compare and contrast
+    different shows more effectively. This capability is what enables our recommender
+    to suggest shows that are genuinely similar in content and theme to the ones users
+    already enjoy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Finally, we developed a function that leverages these embeddings to find and
+    recommend shows similar to a given favorite. For example, if you’re a fan of `"Blood
+    & Water"`, our system can suggest other shows that share similar themes, storylines,
+    or styles. This function is the core of our recommender, making it not just a
+    tool for discovering new content but a personalized guide tailored to your unique
+    tastes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Looking ahead, in the next chapter, we will take a step further by exploring
+    how to transform text prompts into videos. We’ll start by generating images from
+    text prompts and then combine these images to create videos. This will open up
+    new possibilities for dynamic content creation, which can be adapted to various
+    other use cases such as marketing, education, and entertainment.
+  prefs: []
+  type: TYPE_NORMAL

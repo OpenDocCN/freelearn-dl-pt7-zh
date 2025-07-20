@@ -1,0 +1,833 @@
+- en: '9'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Transforming Text to Video
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In the previous chapter, we explored building recommendations based on specific
+    data, using the example of Netflix to understand how we can suggest movies to
+    viewers. Now, let’s shift our focus to a different scenario: educators wanting
+    to convey complex topics to students through videos rather than textual explanations.
+    However, creating videos is a time-consuming task that demands considerable effort
+    from teachers.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, we delve into how Azure OpenAI can revolutionize this process,
+    by streaming the generation of videos from text prompts. First, we dive into setting
+    up the necessary tools in the Azure portal, gaining a comprehensive understanding
+    of the solution. We then explain how to utilize Python to creatively generate
+    images from the provided prompts, including how to segment the prompts into key
+    phrases. Finally, we show how to seamlessly convert these generated images into
+    video format, accompanied by the creation of audio files to enhance the educational
+    experience. Specifically, we will cover the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Problem statement introduction
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Architecture design
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Build Transforming Text to Video service using Azure OpenAI and Azure Cognitive
+    service
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Problem statement introduction
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Imagine being an educator passionate about creating engaging lesson plans that
+    inspire and captivate students. You recognize the value of incorporating visual
+    elements into your teaching, especially in today’s digital age. However, the idea
+    of turning your carefully planned lessons into engaging videos feels like a significant
+    challenge. The process is time-intensive and demands technical skills that may
+    not align with your expertise. Hours spent on filming, editing, and navigating
+    complex software take away from focusing on lesson improvement and providing personalized
+    attention to students. While the potential of video content to enhance teaching
+    is clear, the challenges involved in creating it often seem to outweigh its benefits.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'However, amidst the challenges, a glimmer of hope emerges: Azure OpenAI. This
+    innovative technology presents itself as a beacon of light, promising to revolutionize
+    the way educators like you create video content for their lessons.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, we create a concise prompt summarizing the content. Then, Azure OpenAI
+    condenses the text into a brief summary. Using Azure Cognitive Service, we extract
+    essential keywords. With Azure OpenAI’s DALL-E model, we generate prompts for
+    relevant images. Azure’s Speech service converts the summary into an audio file
+    for narration. Finally, we combine the audio with DALL-E images to create the
+    video. This process enables efficient text-to-video conversion with Azure services.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: To follow along with the practical exercises in this chapter, access the source
+    code available in this chapter's GitHub repository at [https://github.com/PacktPublishing/Azure-OpenAI-Essentials/blob/main/Chapter_9.ipynb](https://github.com/PacktPublishing/Azure-OpenAI-Essentials/blob/main/Chapter_9.ipynb).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Install the required tools on your local machine to start working on the solution.
+    The versions listed here are the stable versions at the time of publishing this
+    book. If you choose a different version than the recommended one, you may encounter
+    errors when running the provided code due to library version mismatches:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Python 3.9, 3.10, or 3.11: [https://www.python.org/downloads/](https://www.python.org/downloads/)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'The Azure Developer CLI: Azure developer CLI Installation'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Node.js 14+: [https://nodejs.org/en/download](https://nodejs.org/en/download)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Git: [https://git-scm.com/downloads](https://git-scm.com/downloads)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Powershell 7+ (`pwsh`): [https://github.com/powershell/powershell](https://github.com/powershell/powershell)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Azure account: If you’re new to Azure, get an Azure account for free and you’ll
+    get some free Azure credits to get started.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Azure subscription with access enabled for the Azure OpenAI service: You can
+    request access with this form at [https://aka.ms/oaiapply](https://aka.ms/oaiapply)'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Azure OpenAI connection and model information:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: OpenAI API key
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: OpenAI embedding model deployment name
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: OpenAI API version
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Key phrase extraction
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Speech to text
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In addition to the preceding system requirements, it is crucial to have a solid
+    foundation in fundamental Azure services and a basic proficiency in the Python
+    programming language, equivalent to a beginner level (Python 100). These skills
+    are vital for efficiently harnessing and leveraging Azure services in the context
+    of this chapter. Rest assured, even if you are new to the Azure environment, we
+    have designed this chapter to be beginner friendly. It offers clear explanations
+    and includes detailed screenshots to facilitate your learning and get you started
+    on the right track.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Architecture design
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The process behind creating the solution mentioned in the introduction is as
+    follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The user sends a query to the Azure OpenAI API, which generates a text summary.
+    This summary is then passed to Azure Cognitive Services for key phrase extraction.
+    The extracted key phrases are sent back to the ChatGPT API to generate images,
+    while the text summary is also sent to the Azure Speech API to convert it into
+    audio. Finally, both the audio and images are combined into an MP4 file using
+    MoviePy. MoviePy is a Python library for video editing. It provides a simple and
+    intuitive way to manipulate video clips, allowing you to perform tasks like cutting
+    and trimming, concatenating multiple video clips together, adding titles and text,
+    and so on. The following diagram shows the overall architecture:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.1: Architecture diagram](img/B21019_09_1.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.1: Architecture diagram'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Build transforming text to video using Azure OpenAI and Azure Cognitive service
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: '[*Chapter 4*](B21019_04.xhtml#_idTextAnchor059) covers the setup of an Azure
+    account with an active subscription and the creation of an Azure OpenAI Service
+    resource. Additionally, it provides guidance on deploying an Azure OpenAI Service
+    model, which may utilize GPT-3, ChatGPT, or GPT-4 models. The step-by-step process
+    for building this solution is as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Set up Language and Speech services within Azure.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Import the necessary packages for the solution.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Utilize Azure OpenAI to summarize text.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Employ Azure Cognitive Service to extract key phrases.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Generate prompts for image creation using Azure OpenAI’s DALL-E model.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Create an audio file using the Azure Speech service.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Combine the audio file with the images to produce a video.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Let’s get started:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Create an Azure Language service.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: To create an Azure Language service, navigate to the search bar in the top navigation
+    and search for `Language`.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: If not found on the search navigation, then click on `Language` and click on
+    **Create**.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 9.2: Create Language service](img/B21019_09_2.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.2: Create Language service'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Click on the **Continue to create your resource** button in the Language service
+    by accepting the defaults.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 9.3: Create Language resource](img/B21019_09_3.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.3: Create Language resource'
+  prefs: []
+  type: TYPE_NORMAL
+- en: After Creating the Language Service from the Marketplace, make selections for
+    **Subscription** and **Resource group** on the **Create a resource** form that
+    you created in [*Chapter 4*](B21019_04.xhtml#_idTextAnchor059) and the pricing
+    tier as **Free F0**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 9.4: Create Language Basics step](img/B21019_09_4.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.4: Create Language Basics step'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now give your desired resource, click on the **Next** button, and go to the
+    **Network** tab. Select the **All networks, including the internet, can access
+    this resource** option and click on **Next**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 9.5: Create Language resource Network step](img/B21019_09_5.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.5: Create Language resource Network step'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the **Identity** tab, just configure it with all the defaults and click on
+    the **Next** button to go to the **Tags** tab.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 9.6: Create Language Identity step](img/B21019_09_6.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.6: Create Language Identity step'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'You can ignore this section for now. Tags are name/value pairs that allow you
+    to categorize resources and facilitate consolidated billing by applying the same
+    tag to multiple search and resource groups. You can find similar details on the
+    **Tags** step. Proceed by clicking **Next** and then go to the **Review + Create**
+    button. Here, it will display the details you’ve chosen in the previous steps.
+    Review all the information and click on the **Create** button:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 9.7: Create Language Review + create step](img/B21019_09_7.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.7: Create Language Review + create step'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once you click on **Create**, a new deployment will be generated and the resource
+    will be created.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Create an Azure Speech service.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: To create an Azure Speech service, navigate to the search bar in the top navigation
+    and search for `Language`. If not found, click on `Language` and click on **Create**.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 9.8: Create a Speech service](img/B21019_09_8.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.8: Create a Speech service'
+  prefs: []
+  type: TYPE_NORMAL
+- en: After creating the Speech service from the Marketplace, make selections for
+    **Subscription** and **Resource group** on the **Create a resource** form that
+    you created in [*Chapter 4*](B21019_04.xhtml#_idTextAnchor059) and set the pricing
+    tier as **Free F0**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 9.9: Create Speech Services Basics step](img/B21019_09_9.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.9: Create Speech Services Basics step'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now give your desired resource, click on the **Next** button, and go to the
+    **Network** tab. Select the **All networks, including the internet, can access
+    this resource** option and click on **Next**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 9.10: Create Speech Services Network step](img/B21019_09_10.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.10: Create Speech Services Network step'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the **Identity** tab, just configure it with all the defaults and click on
+    the **Next** button to go to the **Tags** tab.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 9.11: Create Speech Services Identity step](img/B21019_09_11.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.11: Create Speech Services Identity step'
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can ignore this section for now. Proceed by clicking **Next** and then go
+    to the **Review + Create** button. Here, it will display the details you’ve chosen
+    in the previous steps. Review all the information and click on the **Create**
+    button.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 9.12: Create Speech Services Review + create step](img/B21019_09_12.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.12: Create Speech Services Review + create step'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once you click on **Create**, a new deployment will be generated and the resource
+    will be created.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Solution using Azure OpenAI and Azure Language and Speech services
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Now that we have set up all the essential services in the Azure portal, we can
+    begin constructing our solution. To develop the code, I will be working within
+    a Python notebook and the remaining installations are the same that were defined
+    in [*Chapter 4*](B21019_04.xhtml#_idTextAnchor059).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You will need to install one extra Python library for this code other than the
+    one installed in [*Chapter 4*](B21019_04.xhtml#_idTextAnchor059).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Create a new Juypter notebook and install the following packages:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: Importing packages
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'Install missing libraries using `pip install`, make sure your OpenAI version
+    is 0.28.0, and then import the packages using the following code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: You can see a variety of libraries being used in the preceding code. Let’s delve
+    into each of these libraries in the table here.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '| **Import Statement** | **Description** |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `import openai` | Imports the OpenAI library for accessing the OpenAI API.
+    |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `import os` | Imports the os module, which provides a portable way of interacting
+    with the operating system. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `from dotenv` `import load_dotenv` | Imports the `load_dotenv` function from
+    the `dotenv` module to load environment variables from a `.``env` file. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `import azure.cognitiveservices.speech` `as speechsdk` | Imports the Azure
+    Cognitive Services Speech SDK for speech recognition and synthesis. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `from azure.ai.textanalytics` `import TextAnalyticsClient` | Imports the
+    `TextAnalyticsClient` class from the `azure.ai.textanalytics` module for text
+    analysis. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `from azure.core.credentials` `import AzureKeyCredential` | Imports the `AzureKeyCredential`
+    class from the `azure.core.credentials` module for authentication with Azure services.
+    |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `import urllib.request` | Imports the `urllib.request` module for making
+    HTTP requests. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `from moviepy.editor` `import *` | Imports the MoviePy library for video
+    editing and manipulation. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `import numpy` `as np` | Imports the NumPy library for numerical computing
+    with arrays. |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `from PIL` `import Image` | Imports the `Image` module from the Pillow library
+    for image processing. |'
+  prefs: []
+  type: TYPE_TB
+- en: 'Table 9.1: Imports explanation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let’s initialize all the necessary constants using the keys provided in
+    the `.env` file. Add “`COMMUNICATION_CONNECTION_STRING`” and “`COMMUNICATION_ENDPOINT`”
+    to your already existing `.``env` file:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Add these to the `.env` file that was created in [*Chapter 4*](B21019_04.xhtml#_idTextAnchor059)
+    with the `connectionString` and `endpoints`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Follow these steps to set up the Language and Speech service endpoint:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Update the ‘`OPENAI_LANGUAGE_KEY`’ and ‘`OPENAI_LANGUAGE_ENDPOINT`’ values with
+    the connection string value found in your Azure Language service under the **Keys**
+    section.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 9.13: Language Service Keys and Endpoint](img/B21019_09_13.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.13: Language Service Keys and Endpoint'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Similarly, modify the values of ‘`OPENAI_SPEECH_KEY`’ and ‘`OPENAI_SPEECH_REGION`’
+    with the value found in your Azure Speech service under the **Keys** section.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 9.14: Speech Service Keys and Endpoint](img/B21019_09_14.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.14: Speech Service Keys and Endpoint'
+  prefs: []
+  type: TYPE_NORMAL
+- en: By completing these configurations, you’ll have the necessary connection settings
+    for your resources. Once you see `True`, then the script to load the variables
+    is successful.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.15: Output of load env](img/B21019_09_15.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.15: Output of load env'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summarizing text using Azure OpenAI
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Generating the prompt
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '[PRE5]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This is the output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 9.16: Output of the prompt](img/B21019_09_16.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.16: Output of the prompt'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Generating OpenAI response for the prompt
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'This code utilizes the OpenAI library to generate a text summary. It sends
+    a request to the OpenAI engine specified by `OPENAI_DEPLOYMENT_NAME` with a given
+    prompt (`prompt`). The `temperature`, `max_tokens`, and `top_p` parameters control
+    the generation process. Finally, it prints the generated text summary retrieved
+    from the `response_summ` object:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This is the output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 9.17: Output of OpenAI response](img/B21019_09_17.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.17: Output of OpenAI response'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Extracting key phrases using Azure Cognitive Service
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Authenticating the client
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'This code defines a `authenticate_client()` function to authenticate the Azure
+    Text Analytics client using the provided API key. It initializes an `AzureKeyCredential`
+    object with the API key and creates a `TextAnalyticsClient` object with the specified
+    endpoint and credentials. Finally, it returns the authenticated client instances:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The preceding code includes error handling to catch and handle any exceptions
+    that might occur during the authentication process. If an error occurs, it prints
+    an error message and returns `None`. This makes the function more robust and helps
+    in diagnosing issues related to client authentication.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Alternatively, you can also use `key_phrase_extraction_example` function utilizes
+    an Azure Text Analytics client to extract key phrases from a document. It populates
+    `phrase_list` with extracted key phrases and concatenates them into `phrases`.
+    If successful, it returns both `phrase_list` and `phrases`; otherwise, it handles
+    exceptions and prints an error message:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Executing key phrases:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'This line calls the `key_phrase_extraction_example` function with the client
+    object as an argument. It retrieves two values: `phrase_list`, a list containing
+    extracted key phrases, and `phrases`, a concatenated string of these phrases:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This is the output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 9.18: Output of the generated phrases from the user prompt](img/B21019_09_18.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.18: Output of the generated phrases from the user prompt'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Generating prompts for image creation using Azure OpenAI’s DALL-E model
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'Prompt for image generation:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Construct a prompt for generating images using the DALL-E model based on provided
+    phrases:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Extracting image phrases from the generated response:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'This code sends a request to OpenAI’s text completion API with a given prompt,
+    retrieves the response containing image phrases, splits the response by newline
+    characters, and extracts the image phrases from the response. The prompt sets
+    the context for DALL-E to create an image. For example, `Provide an image idea
+    for each phrase` is a directive that tells the model to interpret the phrases
+    as visual cues and generate image ideas based on them. The extracted phrases are
+    specific descriptive elements derived from the model’s response to the prompt.
+    These phrases provide the detailed visual components that guide DALL-E in generating
+    images:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '![Figure 9.19: Output of the generated image phrases](img/B21019_09_19.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.19: Output of the generated image phrases'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Processing image phrases
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '[PRE13]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This is the output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 9.20: Output of image phrases after removing duplicates](img/B21019_09_20.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.20: Output of image phrases after removing duplicates'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Generating image URLs:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'This code iterates over a list of image phrases, sends requests to OpenAI’s
+    Image API to generate images based on each phrase, retrieves the URL of the generated
+    image, and appends the URL to a list of images:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Downloading generated images
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'This code iterates over a list of image URLs, downloads each image using `urllib`,
+    assigns a filename to each image based on a counter, and appends the filename
+    to a list. Finally, it prints a message indicating that the downloading process
+    is complete:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This is the output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 9.21: Output of generated images](img/B21019_09_21.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.21: Output of generated images'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Generating an audio file using the Azure Speech service
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Create Speech config object
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'This code initializes a `SpeechConfig` object with the provided subscription
+    key and region for the Azure Speech service and prints the configuration details:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Text to speech function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The `text_to_speech` function leverages the Azure Speech service to convert
+    input text into speech. It saves the synthesized audio to a specified filename
+    and provides feedback on the process outcome:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'This is the output:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 9.22: Output of Speech based on generated images](img/B21019_09_22.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.22: Output of Speech based on generated images'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Combining the audio file with the images to produce a video
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'This code resizes images, creates video clips with a duration of 2 seconds
+    for each image, combines them into a final video clip, adds audio from the specified
+    file, and writes the resulting video to an output file. Finally, it prints messages
+    indicating the start and completion of the video creation process:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This is the output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.23: Output of combining the images and audio into a video](img/B21019_09_23.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.23: Output of combining the images and audio into a video'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 9.24: Output of the images, audio, and combined video downloaded](img/B21019_09_24.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 9.24: Output of the images, audio, and combined video downloaded'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The code snippets for this chapter are available on GitHub and can be accessed
+    here: [https://github.com/PacktPublishing/Azure-OpenAI-Essentials/blob/main/Chapter_9.ipynb](https://github.com/PacktPublishing/Azure-OpenAI-Essentials/blob/main/Chapter_9.ipynb)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we discovered how to turn text into videos using Azure and
+    OpenAI. First, we made a summary of the text and picked out important phrases
+    with Azure Cognitive Services. Then, we got image ideas and fetched related images
+    with OpenAI’s DALL-E model. Next, we made a speech from the text with the Azure
+    Speech service and combined it with the images to make a video. This method makes
+    it easier to create interesting video content by automatically changing text into
+    visuals and audio.
+  prefs: []
+  type: TYPE_NORMAL
+- en: By using these advanced technologies, we can speed up the process of making
+    videos from text. This not only saves time but also makes the video content more
+    accessible and engaging. With Azure and OpenAI, changing text into captivating
+    videos is simpler and more efficient, offering new opportunities for sharing ideas
+    and stories.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will delve into creating a multimodal multi-agent framework
+    with the Azure OpenAI Assistant API. This chapter will guide you through building
+    a system where multiple intelligent agents collaborate using advanced language
+    models. These agents will be capable of understanding and generating natural language,
+    enabling them to perform tasks independently and make autonomous decisions. For
+    instance, we will explore a scenario where AI agents work together to create and
+    enhance images based on user input. One agent might generate an initial image,
+    another refines the details, and a third adjusts the colors and textures. This
+    collaborative process will demonstrate how a team of AI agents can achieve high-quality
+    and intricate outputs that would be challenging for a single agent to accomplish
+    alone.
+  prefs: []
+  type: TYPE_NORMAL

@@ -1,0 +1,932 @@
+- en: '5'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Staging the OpenAI API for Application Development
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: So far, we have used the OpenAI API by connecting directly to OpenAI’s endpoint
+    and making a request. When building applications and workflows, however, it is
+    not typical to connect directly to OpenAI. Instead, developers tend to stage and
+    call OpenAI’s API from their own backend APIs, which then return information to
+    the application.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Essentially, there is a layer between the frontend of an application and the
+    OpenAI API, as depicted in *Figure 5**.1*. This layer normally processes requests
+    from the frontend, calls the OpenAI API (or a series of other endpoints), receives
+    the completion, processes it, and then returns the data back to the frontend.
+    We will refer to this layer as the **backend layer** or the **server layer**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 5.1 – Demonstration of typical application architecture using the
+    OpenAI API](img/B21007_05_01.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 5.1 – Demonstration of typical application architecture using the OpenAI
+    API
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Integrating OpenAI’s API into an application usually involves an architecture
+    where the frontend layer (the user interface) communicates with a backend layer
+    (the server), which in turn interacts with OpenAI’s API. This approach has several
+    advantages:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Security and API key management*: The OpenAI API key is not exposed to the
+    frontend, reducing the risk of it being compromised. The backend can securely
+    store and manage the API key.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Control and customization*: The backend can control the rate and nature of
+    requests sent to OpenAI’s API. It can also preprocess requests from the frontend
+    or post-process responses from OpenAI, customizing the data according to application
+    needs.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Integration with other services*: Often, applications require data from multiple
+    sources. The backend can integrate OpenAI’s API with other APIs or data sources,
+    creating a centralized point for data processing and distribution.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*User authentication and authorization*: The backend can implement security
+    measures such as user authentication and authorization, ensuring that only authorized
+    users can access certain functionalities.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This *backend* layer is typically staged and hosted on a **serverless** system
+    such as Azure Functions, Amazon Web Services Lambda, or Google Cloud Functions.
+    Using a serverless architecture offers several benefits, the paramount of which
+    is simplified operations – it’s easy and quick to create a backend layer with
+    serverless architecture.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we will take the first step into application development with
+    the OpenAI API. We will learn how to create a serverless backend layer that connects
+    and processes data from OpenAI API. We will then learn how to integrate that with
+    the frontend layer, using both no-code and code platforms. By the end of this
+    chapter, you will have everything you need to start creating your own intelligent
+    applications.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, we will cover the following recipes:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating a public endpoint server that calls the OpenAI API
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Extending the endpoint server to accept parameters and return data
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Calling the user-created endpoint from no-code applications
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: All the recipes in this chapter require you to have access to the OpenAI API
+    (via a generated API key) and have an API client installed. You can refer to the
+    [*Chapter 1*](B21007_01.xhtml#_idTextAnchor021) recipe *Making OpenAI API requests
+    with Postman* for more information on how to obtain your API key. This will also
+    require knowledge of Python and the Python OpenAI library, which we covered in
+    the first recipe within [*Chapter 4*](B21007_04.xhtml#_idTextAnchor074).
+  prefs: []
+  type: TYPE_NORMAL
+- en: We will also use the **Google Cloud Platform** (**GCP**) to host our public
+    endpoint. GCP is a suite of cloud computing services offered by Google. It provides
+    a range of hosting and computing services for databases, data storage, data analytics,
+    machine learning, and more, all hosted on Google’s infrastructure.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In order to do this, you need to create a Google Cloud account, which you can
+    do here: [https://cloud.google.com/](https://cloud.google.com/).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating a public endpoint server that calls the OpenAI API
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: As discussed previously, there are many important benefits of creating your
+    own public endpoint server that calls the OpenAI API, instead of connecting to
+    the OpenAI API directly – the biggest being control and customization, which we
+    will explore in this recipe and the next recipe.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this recipe, we will use GCP to host our public endpoint. When this endpoint
+    is called, it will make a request to OpenAI for a slogan for an ice cream company
+    and then will return the answer to the user. This sounds simple and almost unnecessary
+    to make a public endpoint, but it is the final step we need to build a truly intelligent
+    application that leverages OpenAI.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To do this, we will create a GCP resource called **Cloud Functions**, which
+    we will explore later in the *How it works…* section of the recipe.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Getting ready
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Ensure you have an OpenAI platform account with available usage credits. If
+    you don’t, please follow the *Setting up your OpenAI Playground environment* recipe
+    in [*Chapter 1*](B21007_01.xhtml#_idTextAnchor021).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Furthermore, ensure you have created a GCP account. To do this, navigate to
+    [https://cloud.google.com/](https://cloud.google.com/), then select **Start Free**
+    from the top right, and follow the instructions that you see.
+  prefs: []
+  type: TYPE_NORMAL
+- en: You may need to provide a billing profile as well to create any GCP resources.
+    Note that GCP does have a free tier, and in this recipe, we will not go above
+    the free tier (so, essentially, you should not be billed for anything).
+  prefs: []
+  type: TYPE_NORMAL
+- en: You may need to create a project if this is your first time logging in to **Google
+    Cloud Platform**. After you log in, select **Select a project** from the top left
+    and then select **New Project**. Provide a **project name** and then select **Create**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The next recipe in this chapter will also have this same requirement.
+  prefs: []
+  type: TYPE_NORMAL
+- en: How to do it…
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Navigate to [https://console.cloud.google.com/](https://console.cloud.google.com/).
+    In the **Search** field at the top of the page, type in **Cloud Functions** and
+    select the top choice from the drop-down menu, **Cloud Functions**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 5.2 – Cloud Functions in the dropdown](img/B21007_05_02.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 5.2 – Cloud Functions in the dropdown
+  prefs: []
+  type: TYPE_NORMAL
+- en: Select **Create Function** from the top of the page. This will begin to create
+    our custom backend endpoint and start the configuration steps.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'On the **Configuration** page, fill in the following steps:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '**Environment**: Select **2nd gen** from the drop-down menu.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Function name**: Since we’re creating a backend endpoint that will produce
+    company slogans, the function name will be **slogan_creator**.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Region**: Choose the environment location nearest you.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In the **Trigger** menu, choose **HTTPS**. In the **Authentication** sub-menu,
+    select **Allow unauthenticated invocation**. We need to check this as we are going
+    to create a public endpoint that will be accessible from our frontend services.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![Figure 5.3 – Sample configuration settings of a Google Cloud Function](img/B21007_05_03.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 5.3 – Sample configuration settings of a Google Cloud Function
+  prefs: []
+  type: TYPE_NORMAL
+- en: Select the **Next** button on the bottom of the page to then move on to the
+    **Code** section.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: From the **Runtime** dropdown, select **Python 3.12**. This ensures that our
+    backend endpoint will be coded using the Python programming language.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: For that **Entry point** option, type in **create_slogan**. This refers to the
+    name of the function in Python that is called when the public endpoint is reached
+    and triggered.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'On the left-hand side menu, you will see two files: **main.py** and **requirements.txt**.
+    Select the **requirements.txt** file. This will list all the Python packages that
+    need to be installed for our Cloud Function to operate.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In the center of the screen where the contents of **requirements.txt** are displayed,
+    enter a new line and type in **openai**. This will ensure that the latest **openai**
+    library package is installed. Your screen should look like what’s displayed in
+    *Figure 5**.4*.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 5.4 – Snapshot of the requirements.txt file](img/B21007_05_04.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 5.4 – Snapshot of the requirements.txt file
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'From the left-hand side menu, select **main.py**. Copy and paste the following
+    code into the center of the screen (where the content for that file is displayed).
+    These are the instructions that the public endpoint will run when it is triggered:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: As you can see, it simply calls the OpenAI endpoint, requests a chat completion,
+    and then returns the output to the user. You will also need your OpenAI API key.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Next, deploy the function by selecting the **Deploy** button at the bottom of
+    your page.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Wait for your function to be fully deployed, which typically takes two minutes.
+    You can verify whether the function has been deployed or not by observing the
+    progress in the top left section of the page (shown in *Figure 5**.5*). Once it
+    is green and checkmarked, the build is successful, and your function has been
+    deployed.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 5.5 – The Cloud Function deployment page](img/B21007_05_05.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 5.5 – The Cloud Function deployment page
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, let’s verify that our function works. Select the endpoint URL, found on
+    the top of the page near **URL**. It’s typically in the form **https://[location]-[project-name].cloudfunctions.net/[function-name]**.
+    It is also highlighted in *Figure 5**.5*.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: This will open a new web page that will trigger our custom public endpoint,
+    and return a chat completion, which, in this case, is the slogan for an ice cream
+    business. Note that this is a public endpoint – this will work on your computer,
+    phone, or any device connected to the internet.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 5.6 – Output of a Google Cloud Function](img/B21007_05_06.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 5.6 – Output of a Google Cloud Function
+  prefs: []
+  type: TYPE_NORMAL
+- en: How it works…
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'In this recipe, we created a public endpoint. This endpoint can be accessed
+    by anyone (including your application in future recipes). The logic of the endpoint
+    is simple and something we have covered prior: return a slogan for a company that
+    sells ice cream. What’s new, however, is that this is our very own public endpoint
+    that is hosted in Google Cloud, using the Cloud Function resource.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note that we used the free tier of Google Cloud Functions, which does have limitations
+    such as a cap on the number of function invocations per month, limited execution
+    time, and constrained computational resources. However, for our current purposes,
+    these limitations are not a hindrance, allowing us to deploy and test our functions
+    effectively without incurring costs. This setup is ideal for small-scale applications
+    or for learning and experimentation purposes, providing a practical way to understand
+    cloud functionalities and serverless architecture in a cost-effective manner.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Code in the Cloud Function
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: The code that we used within the Cloud Function should appear familiar – it’s
+    the exact code we used in the first recipe within [*Chapter 4*](B21007_04.xhtml#_idTextAnchor074),
+    but wrapped into a function called `create_slogan`. This code simply makes an
+    OpenAI chat completion with the `system` and `user` messages being `You are an
+    AI assistant that creates one slogan based on company descriptions` and `A company
+    that sells ice cream` respectively. What are GCP Cloud Functions?
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Cloud Functions**, commonly referred to as **serverless functions** or **Function
+    as a Service (FaaS)**, are a key component of serverless computing. In this model,
+    developers write and deploy individual functions – small, single-purpose pieces
+    of code – that are executed in the cloud. These functions are typically event-driven,
+    meaning they are designed to respond to specific triggers or events.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'There are two main benefits of Cloud Functions that make them perfect for creating
+    our backend layer and a public endpoint:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*No server management*: Developers don’t need to provision or manage any servers.
+    The cloud provider dynamically allocates and manages the infrastructure. There
+    is no need for setup or maintenance. We created it in less than 10 minutes.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Automatic scaling*: Cloud Functions automatically scale up or down based on
+    the number of incoming event triggers. This means they can handle a single request
+    per day or thousands per second. This is especially important when building applications
+    – you want them to work whether there’s one user on your apps, or millions.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Nevertheless, it’s essential to keep in mind that just like any other tool,
+    Cloud Functions come with their own set of pros and cons. They’re selected in
+    this scenario primarily because they offer economical and simple setup benefits
+    during the initial stages. As with every choice, it’s always worth weighing up
+    the potential challenges alongside the advantages.
+  prefs: []
+  type: TYPE_NORMAL
+- en: GCP offers free-tier Cloud Functions, which means you can set them up for free
+    (assuming they receive less than 2 million requests and some other thresholds
+    (see [https://cloud.google.com/functions/pricing](https://cloud.google.com/functions/pricing)),
+    which we will certainly not pass in these recipes).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Setting up a Cloud Function
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'When setting up a Cloud Function, there were several configurations options
+    that we purposely chose. Here is an explanation of the important configurations:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Trigger**: This setting defines how your Cloud Function is invoked. In simple
+    terms, it specifies the event or condition that will cause your function (or the
+    code in the function) to run. There are generally two options:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**HTTP Trigger**: The function is invoked through an HTTP request, which is
+    the same protocol we have used in previous recipes to call the OpenAI API within
+    Postman. This is useful if you are creating public endpoints that will be called
+    manually by other applications, which is why we have chosen this option.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Event Trigger**: This option allows your function to respond to events from
+    your cloud environment (e.g., changes in a Cloud Storage bucket).'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Authentication**: This setting controls who can invoke your Cloud Function.
+    It’s a crucial part of securing your function against unauthorized access. For
+    now, we have chosen **Allow Unauthenticated Invocations**, meaning that anyone
+    can invoke your public endpoint. Even though this isn’t the most secure option,
+    it is the most convenient option as you do not need to create authentication logic
+    within Postman or any other frontend layer that needs to call the Google Cloud
+    Function. It’s important to note that this is not the most secure choice and we
+    highly discourage its use in real-world applications. This option has been utilized
+    in this instance for convenience – to avoid creating authentication logic within
+    Postman or any other frontend layer that interacts with the Google Cloud Function.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Entry Point**: This refers to the name of the function in Python that is
+    called when the public endpoint is reached and triggered. Essentially, this is
+    the function or portion of the code that is run when the public endpoint is invoked.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Essentially, now that we have created a public endpoint that calls the OpenAI
+    API, we no longer need to worry about hosting it on our own computers or servers.
+    It can now be reached by anyone globally, even an intelligent application (which
+    I am foreshadowing). This is important because wrapping it in a public endpoint
+    is the first step in building an intelligent application.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Extending the endpoint server to accept parameters and return data
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'In the previous recipe, we successfully created a Cloud Function that, when
+    invoked, returned a slogan for an ice cream company. While this is useful as it
+    sits on the cloud, we want to amend this function so that it can do two things:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Accept parameters*: We need to modify the function to accept input parameters
+    as part of the HTTP request. This means we will be able to create a Cloud Function
+    that not only returns the slogan for an ice cream business but any type of business
+    for which we provide a description.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Structure the output*: We don’t want to simply output the chat completion
+    (which, in this case, is the slogan). Instead, we want to process the data and
+    output a JSON object, as it is widely used and easy to work with in web applications.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In this recipe, we will create a public endpoint server that will accept a parameter
+    called `business_description` and will return the generated slogan in a structured
+    output form.
+  prefs: []
+  type: TYPE_NORMAL
+- en: How to do it…
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Navigate to [https://console.cloud.google.com/](https://console.cloud.google.com/).
+    On the **Search** field at the top of the page, type in **Cloud Functions** and
+    select the top choice from the drop-down menu called **Cloud Functions**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select **Create Function** from the top of the page. This will begin to create
+    our custom backend endpoint and start the configuration steps.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'On the **Configuration** page, fill in the following steps:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '**Environment**: Select **2nd gen** from the drop-down menu.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Function** **name**: **slogan_creator_with_parameters**.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Region**: Choose the environment location nearest you, as the closer the
+    server is to you, the faster the response.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: From the **Trigger** menu, choose **HTTPS**. From the **Authentication** sub-menu,
+    select **Allow** **unauthenticated invocation**.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Select the **Next** button at the bottom of the page to then move on to the
+    **Code** section.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: From the **Runtime** dropdown, select **Python 3.12**. This ensures that our
+    backend endpoint will be coded using the Python programming language.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: For that **Entry point** option, type in **create_slogan_with_parameters**.
+    This refers to the name of the function in Python that is called when the public
+    endpoint is reached and triggered.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'In the menu on the left-hand side, you will see two files: **main.py** and
+    **requirements.txt**. Select the **requirements.txt** file. This will list all
+    the Python packages that need to be installed for our Cloud Function to operate.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: At the center of the screen where the contents of **requirements.txt** are displayed,
+    enter a new line and type in **openai**. This will ensure that the latest **openai**
+    library package is installed.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'From the left-hand side menu, select **main.py**. Copy and paste the following
+    code into the center of the screen (where the content for that file is displayed).
+    You will again need your OpenAI API key. As you can see, the code is very similar
+    to the previous recipe, with two key changes that are highlighted:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Next, deploy the function by selecting the **Deploy** button at the bottom of
+    your page. Wait for your function to be fully deployed, which typically takes
+    two minutes. Make note of the Cloud Function URL. It is typically in the form
+    **https://[location]-[project-name].cloudfunctions.net/[function-name]**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Now, we can test our function. Since we have created a Cloud Function that takes
+    a JSON body as input, we need to use Postman to make the HTTP request to our public
+    endpoint.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: In Postman, create a new request by selecting the **New** button from the top
+    left menu bar and then selecting **HTTP**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Change **HTTP Request type** from **GET** to **POST** by selecting the **Method**
+    drop-down menu (by default, it will be set to **GET**).
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Enter the Cloud Function URL from *step 9* as the **Endpoint**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Select **Headers** in the sub-menu and add the following key-value pairs to
+    the table below it:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '| *Key* | *Value* |'
+  prefs: []
+  type: TYPE_TB
+- en: '| --- | --- |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `Content-Type` | `application/json` |'
+  prefs: []
+  type: TYPE_TB
+- en: '14. Select **Body** in the sub-menu and then select **raw** for the request
+    type. Enter the following request body. After that, select **Send**:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: '15. After sending the HTTP request, you should see the following response from
+    your public endpoint. Note that your message value may be different, but the structure
+    should be the same:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: How it works…
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In this recipe, we created a Cloud Function that simply was able to take in
+    inputs and produce structured output. This is important as, when we build our
+    intelligent applications, we will need to create endpoints like these that the
+    application relies on.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To do this, we made two sets of edits to the Python code we used from the first
+    recipe.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Accepting inputs
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Cloud Functions have an object assigned to collect inputs made from HTTP Post
+    requests. This object can be found as an argument to the input function, which
+    in this case is `create_slogan_with_parameters (request)`, and so the object is
+    `request`. This object stores the HTTP request (along with its request body and
+    headers) and can be converted to JSON using the code. We can then parse through
+    the JSON object to retrieve the particular input, which in this case is `name`,
+    and assign it to the `business_description` variable.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this way, we have created a Cloud Function that can take in and parse any
+    input from the request body of HTTP requests.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating structured outputs
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'Next, we need to return outputs from the Cloud Function in a structured form,
+    such as JSON. Using JSON instead of a string to obtain outputs is important for
+    two main reasons:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Structured multiple outputs*: JSON allows us to structure multiple data points
+    in an organized manner. You can easily represent different outputs as separate
+    key-value pairs within a single JSON object. This structure makes it straightforward
+    to handle and access multiple pieces of data returned by the Cloud Function.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Nested and complex data*: JSON can handle nested structures, meaning you can
+    have JSON objects within JSON objects. This feature is particularly useful when
+    your Cloud Function needs to return complex data with multiple layers or hierarchical
+    information.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'In the code, we did this in Python by defining a JSON object with two elements:
+    `slogan` and `number of characters`. In this way, whoever or whatever uses our
+    endpoint will be able to parse through these outputs with ease.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this recipe, we took another leap into creating intelligent applications
+    with the OpenAI API, by creating an endpoint that takes in a user-defined customizable
+    input, processes it, calls the OpenAI API, and then returns a structured JSON
+    output that can be parsed.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Calling the user-created endpoint from no-code applications
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this recipe, we will finalize the development process by creating an application
+    (or a frontend user interface) that will call the public endpoint from the previous
+    recipe. To do this efficiently, we will use a no-code application development
+    platform called *Bubble*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**No-code application development** refers to a method of creating software
+    applications without the need for traditional programming. It uses graphical interfaces
+    and configuration instead of writing code in a programming language. This approach
+    makes app development accessible to people without a programming background, democratizing
+    the ability to create and deploy applications.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Platforms such as Bubble are prominent examples of no-code development environments.
+    Bubble is a popular no-code development platform that enables individuals and
+    businesses to create web applications without the need for traditional programming.
+    It enables users to create web applications with robust functionality without
+    needing to understand or write any programming code.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This approach is increasingly popular for small businesses and start-ups, and
+    within enterprise settings for developing internal tools and prototypes. Bubble
+    also enables users to create applications that call public endpoints and APIs,
+    which we will leverage in this recipe.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this recipe, we will create a simple application in Bubble that calls the
+    public endpoint we’ve created, that returns marketing slogans.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Getting ready
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: You must create a Bubble account to follow this recipe. You can create a free
+    Bubble account by following the steps at [http://bubble.io](http://bubble.io).
+    There is no need to pay for a paid tier – all the features we will use in this
+    book can be done through the free tier.
+  prefs: []
+  type: TYPE_NORMAL
+- en: How to do it…
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: After you have created an account in Bubble and logged in, navigate to [https://bubble.io/home/apps](https://bubble.io/home/apps)
+    and select **Create an app** in the top-right corner of the screen.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Leave the **Start from a template** option blank. Name your app something unique,
+    such as **marketingslogan154**. Select the **Start with basic** **features** button.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: If an option called **Skip application assistant** appears, select it, as we
+    will be going through all the steps manually ourselves. You should now see the
+    Bubble **UI Builder**, which is a blank canvas with a menu bar on the left-hand
+    side, as shown in *Figure 5**.7*.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 5.7 – Bubble UI Builder screen](img/B21007_05_07.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 5.7 – Bubble UI Builder screen
+  prefs: []
+  type: TYPE_NORMAL
+- en: The first thing we are going to do is set up the endpoint/API connection. Select
+    **Plugins** from the left-hand menu, and then select **Add plugins**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 5.8 – Selecting plugins for our app](img/B21007_05_08.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 5.8 – Selecting plugins for our app
+  prefs: []
+  type: TYPE_NORMAL
+- en: Install the **API Connector** by selecting the **Install** button on the API
+    Connector element. This will enable your Bubble app to call endpoints and APIs.
+    After it has been installed, select **Done**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: After that, you should see the API connector on your **Plugins** page. Select
+    the **Add another API** button. A set of configuration options will appear.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Now, we need to initialize our API/endpoint connection. For the configuration
+    options, select or type in the following. Note that you may need to select the
+    *expand* button near `Content-Type` and `application/json`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**Body** **type**: **JSON**'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Body**:'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_PRE
+- en: Your screen should look like *Figure 5**.9*.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 5.9 – API Connector configurations](img/B21007_05_09.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 5.9 – API Connector configurations
+  prefs: []
+  type: TYPE_NORMAL
+- en: Select the **Initialize** call button near the bottom of the page. If you do
+    receive the *500 error*, review the previous recipe to ensure your endpoint/API
+    is reachable and that it works. Sometimes, you may need to repeat this step multiple
+    times if the GCP servers are busy at the time you are testing this call.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: You should now see a screen called **Returned values – API call**. Ensure that
+    you see two rows and that for each row, the data type is set up correctly as shown
+    as follows (these should be the default values). Select **Save**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '| `number_of_characters` | `number` |'
+  prefs: []
+  type: TYPE_TB
+- en: '| --- | --- |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `slogan` | `text` |'
+  prefs: []
+  type: TYPE_TB
+- en: Now that we have set up Bubble, let’s go ahead and add some elements. Select
+    the **Design** button from the left-hand menu. Then select the **Text** element
+    and drag it to the middle of the screen. You should now see the element highlighted,
+    with a property menu for that element on the right side.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 5.10 – Text element in Bubble UI Builder](img/B21007_05_10.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 5.10 – Text element in Bubble UI Builder
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the property menu, select the box that says **...edit me…** and select **Insert**
+    **dynamic data**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In the drop-down menu, select **Get data from an external API** and a pop-up
+    menu will appear on the left.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 5.11 – Text menu from Bubble](img/B21007_05_11.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 5.11 – Text menu from Bubble
+  prefs: []
+  type: TYPE_NORMAL
+- en: From the drop-down menu, select the API that was created in *step 7*. In the
+    **Body (JSON object)** menu, ensure that it reflects the JSON data from *step
+    7*. Then, select the text box and select **slogan**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 5.12 – Text menu from Bubble](img/B21007_05_12.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 5.12 – Text menu from Bubble
+  prefs: []
+  type: TYPE_NORMAL
+- en: Our no-code Bubble application is complete!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Click the **Preview** button in the top-right corner of the screen to open the
+    web application we have just created.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 5.13 – Output in Bubble](img/B21007_05_13.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 5.13 – Output in Bubble
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you can see, we have now created a web application that generates slogans
+    for ice cream companies. Continue refreshing the screen and you can see additional
+    slogans.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: Every time you refresh the screen, you will use tokens from the OpenAI API,
+    so it is wise not to do it too many times in a row.
+  prefs: []
+  type: TYPE_NORMAL
+- en: How it works…
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In this recipe, we created a frontend application that invoked the public endpoint
+    that we set up in the previous recipe. This was the final building block in creating
+    an intelligent application using the OpenAI API. We also did this completely using
+    no-code tools.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Bubble HTTP requests
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: The main achievement of this recipe was being able to make an HTTP request from
+    a frontend application such as Bubble. Most application platforms can make external
+    API requests and this is certainly the case if you are building an application
+    using traditional coding languages, such as JavaScript.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In Bubble, we did this through the API connector plugin, which simplifies the
+    process of integrating with external APIs. This plugin acts as a bridge between
+    Bubble and the external service, allowing us to send and receive data seamlessly.
+    By configuring the API connector with the appropriate endpoints, authentication,
+    and parameters, we were able to extend the functionality of our Bubble application
+    to interact with other web services.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Connecting Bubble directly to OpenAI
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: It is worth noting why we had to create our own backend layer endpoint instead
+    of connecting directly to OpenAI. Why did we have an intermediary layer?
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Security concerns*: Directly integrating external APIs, especially those handling
+    sensitive data or requiring authentication, can pose security risks. By using
+    a backend layer, sensitive information such as our OpenAI API keys or authentication
+    tokens can be kept secure and not exposed in the client-side code that users may
+    be able to see.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Data processing and caching*: The intermediary layer can process, filter,
+    or cache the data before sending it to the frontend. This can optimize performance,
+    reduce the load on the client side, and manage data flow more effectively. For
+    example, we process the data in the backend to also extract **number_of_characters**.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Custom logic implementation*: The backend layer allows for the implementation
+    of custom logic that might not be possible or efficient to handle on the client
+    side. This includes data transformation, complex calculations, or decision-making
+    processes based on the data received from OpenAI.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Overall, in this chapter, we took the significant next steps toward staging
+    and hosting the OpenAI API and building an intelligent application. We did this
+    by creating a backend layer that took in inputs, processed them, and produced
+    structured outputs, and we proved that we could invoke this endpoint from a frontend
+    application.
+  prefs: []
+  type: TYPE_NORMAL

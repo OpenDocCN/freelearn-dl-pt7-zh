@@ -1,0 +1,630 @@
+- en: '4'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Developing an Enterprise Document Question-Answer Solution
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the previous chapter, we delved into advanced topics that expanded our understanding
+    of language models. We became familiar with concepts such as embedding, which
+    involves representing words or phrases in a numerical form for language model
+    processing and storing the embedding into Azure Cognitive Search for use in relevance
+    searches. Additionally, we explored the Model Context Window, which determines
+    the amount of context a language model considers for generating predictions. We
+    also discovered features such as Azure OpenAI On Your Data, which allows customer
+    chat, model fine-tuning, and OpenAI function calling, enabling the execution of
+    specific functions within the language model. The chapter further introduced OpenAI
+    plugins, offering extensibility options for enhancing the functionality of language
+    models. Finally, we were introduced to LangChain and Semantic Kernel, an application
+    development framework for large language models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This chapter covers the following topics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Enterprise use case with unstructured documents
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Architecture design
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Developing a question-answering solution using Azure OpenAI and the Azure Cognitive
+    Search index
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Before we dive into the enterprise use case with unstructured documents, let’s
+    address a common challenge faced by many: navigating through a vast array of documents
+    to find specific information. Each subject or project often comes with numerous
+    documents, generously provided by various sources. These documents hold the keys
+    to success, but they can be overwhelming and disorganized.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: When the need arises to find specific information, the task can become daunting.
+    Hours can be spent meticulously combing through page after page, document after
+    document, in search of that crucial piece of information. This process can be
+    time-consuming and frustrating.
+  prefs: []
+  type: TYPE_NORMAL
+- en: However, there is hope. Imagine a solution that could streamline this process,
+    making it easier and faster to find the information you need. Today, we will explore
+    such a game-changing solution with Azure OpenAI, designed to solve these problems
+    efficiently.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Enterprises possess a multitude of unstructured documents that hold a wealth
+    of knowledge to answer specific questions. This challenge is not unique to businesses;
+    it’s a dilemma faced by organizations across various industries. Let’s dive into
+    a real-world scenario to grasp the gravity of this situation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Imagine you’re the owner of a thriving tourism company specializing in crafting
+    customized travel experiences for adventurous souls. Your company has been curating
+    unique journeys for travelers for years, leading to the accumulation of a significant
+    number of unstructured documents.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Within this digital vault, you’ll find an array of materials: detailed itineraries,
+    travel guides, customer reviews, booking records, and a vast array of communications
+    with hotels, airlines, and local tour operators from destinations all around the
+    world. These documents encapsulate a wealth of information, from travelers’ preferences
+    to hidden gems and logistical intricacies for crafting unforgettable trips.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let’s zoom in on a particular scenario. A loyal client, who has enjoyed
+    several of your remarkable adventures, approaches you with a special request.
+    They seek a meticulously planned trip that caters to their specific interests:
+    hiking through pristine landscapes, capturing wildlife through the lens, and immersing
+    themselves in authentic cultural experiences. Their request is clear—they want
+    a detailed itinerary that seamlessly weaves together these unique elements into
+    an unforgettable journey.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you and your team embark on this mission, the challenge becomes starkly evident.
+    The process of manually sifting through thousands of unstructured documents to
+    uncover relevant travel destinations, accommodation options, tour activities,
+    and logistical details is not just time-consuming but also fraught with the risk
+    of missing critical details. This painstaking endeavor could stretch into weeks,
+    and even then, the outcome may not be as precise as you desire.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The predicament faced by travel companies is not unique. Many enterprises grapple
+    with a similar situation, where they have gathered a wealth of unstructured documents,
+    each holding the key to unlocking exceptional experiences. In this chapter, we
+    are going to see how we can solve this using Azure OpenAI and the Azure Cognitive
+    Search index.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: To follow along with the practical exercises in this chapter, access the source
+    code available in this chapter's GitHub repository at [https://github.com/PacktPublishing/Azure-OpenAI-Essentials/blob/main/Chapter4.ipynb](https://github.com/PacktPublishing/Azure-OpenAI-Essentials/blob/main/Chapter4.ipynb).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Install the following tools on your local machine to start working on the solution:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Python 3.9, 3.10, or 3.11 – [https://www.python.org/downloads/](https://www.python.org/downloads/)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Azure Developer CLI – [https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Node.js 14+ – [https://nodejs.org/en/download](https://nodejs.org/en/download)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Git – [https://git-scm.com/downloads](https://git-scm.com/downloads)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: PowerShell 7+ (pwsh) – [https://github.com/powershell/powershell](https://github.com/powershell/powershell)
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Azure account – If you’re new to Azure, get an Azure account for free and you’ll
+    get some free Azure credits to get started
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Azure subscription with access enabled for the Azure OpenAI Service (you can
+    request access with this form: [https://learn.microsoft.com/en-in/legal/cognitive-services/openai/limited-access](https://learn.microsoft.com/en-in/legal/cognitive-services/openai/limited-access))'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Azure OpenAI connection and model information:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: OpenAI API key
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: OpenAI embedding model deployment name
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: OpenAI API version
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In addition to the aforementioned system requirements, it is crucial to have
+    a solid foundation in fundamental Azure services and a basic proficiency in the
+    Python programming language, equivalent to a beginner level (Python 100). These
+    skills are vital for efficiently harnessing and leveraging Azure services in the
+    context of this chapter. Rest assured, even if you are new to the Azure environment,
+    we have designed this chapter to be beginner friendly. It offers clear explanations
+    and includes detailed screenshots to facilitate your learning and get you started
+    on the right track.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Architecture design
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'To construct this system, we need the following essential services:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Azure Cognitive Search
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Azure OpenAI Service
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Our primary objective is to transform unstructured data into embeddings, which
+    will be stored within a vector database. When a user submits a query, the system
+    leverages Azure OpenAI embeddings for processing. Subsequently, a vector search
+    operation is performed on the vector database to retrieve the top K paragraphs.
+    These selected paragraphs are then sent to the Azure OpenAI answering prompt,
+    which extracts the answers and delivers them to the user.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following is a simple architecture diagram for a question-and-answer solution
+    using Azure OpenAI:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 4.1: Architecture design](img/B21019_04_1.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 4.1: Architecture design'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the preceding diagram, we are sending Azure OpenAI Service embeddings to
+    a vector database, and the questions asked by the user are sent to those embeddings
+    and the results will be extracted. Now, wewill develop a solution to our problem
+    using this design.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Developing a question-answering solution using Azure OpenAI and the Azure Cognitive
+    Search index
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Now that we’re familiar with the architectural elements necessary for creating
+    this solution, let’s proceed with the implementation of these components in the
+    Azure portal. As previously mentioned, having an active Azure account is a prerequisite
+    for building this application.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Azure subscription prerequisites
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'The following prerequisites are established in [*Chapter 2*](B21019_02.xhtml#_idTextAnchor023)
+    and can be reused:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Azure subscription
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Azure OpenAI resource
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Deployed Azure OpenAI models
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Create the following tools, excluding those already established in [*Chapter
+    2*](B21019_02.xhtml#_idTextAnchor023).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Since we have already set up Azure OpenAI and its deployments, the next step
+    is to create Azure Cognitive Search within the same resource group where we established
+    Azure OpenAI:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Navigate to the search bar in the top navigation and search for `Azure Cognitive
+    Search`, as illustrated here:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 4.2: Azure Cognitive Search](img/B21019_04_2.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 4.2: Azure Cognitive Search'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'When you access the Azure OpenAI service page, you’ll find a **Create** option,
+    as indicated here:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 4.3: Azure Cognitive Search creation](img/B21019_04_3.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 4.3: Azure Cognitive Search creation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'After clicking on the **Create** option, a form will appear, similar to the
+    one in *Figure 4**.4*. Choose the **Resource Group**—in my case, I’ve selected
+    **azure-openai-rg**, which was created earlier. In the final step of this section,
+    select a pricing tier; I’ve chosen **Standard S0**. This is how it should appear
+    after completing step 1:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 4.4: Azure Cognitive Search basics](img/B21019_04_4.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 4.4: Azure Cognitive Search basics'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'After completing step 2, click on the **Next** button to proceed to the scale
+    step, where you can review the pricing details based on your selected tier. You
+    can leave the default settings as they are and then click on the **Next** button
+    to continue:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 4.5: Azure Cognitive Search scale](img/B21019_04_5.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 4.5: Azure Cognitive Search scale'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'After clicking **Next**, you will be directed to the **Networking** tab, where
+    the endpoint connectivity is set to **Public** by default. Please leave it as
+    **Public** and click on **Next** to proceed:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 4.6: Azure Cognitive Search networking](img/B21019_04_6.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 4.6: Azure Cognitive Search networking'
+  prefs: []
+  type: TYPE_NORMAL
+- en: After clicking the **Next** button, you will be directed to the **Tags** step.
+    You can ignore this section for now. Tags are name/value pairs that allow you
+    to categorize resources and facilitate consolidated billing by applying the same
+    tag to multiple search and resource groups. You can find similar details on the
+    **Tags** step. Proceed by clicking **Next** and then go to the **Review +** **create**
+    step.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Here, it will display the details you’ve chosen in the previous steps. Review
+    all the information and click on the **Create** button:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '![Figure 4.7: Azure Cognitive Search tags](img/B21019_04_7.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 4.7: Azure Cognitive Search tags'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The creation of Cognitive Search may take a few moments. Once the search deployment
+    is finished, you can access the resource page, which appears as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 4.8: Azure Cognitive Search overview](img/B21019_04_8.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 4.8: Azure Cognitive Search overview'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To create an index that will be used for vector searches and to add documents
+    to the vector store, click on the **Add index** link. Alternatively, you can create
+    one from the **Indexes** tab:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 4.9: Azure Cognitive Search index creation](img/B21019_04_9.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 4.9: Azure Cognitive Search index creation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'When you click on the **Add index** option, a form will appear, as shown in
+    *Figure 4**.10*. Fill in the necessary fields for your application, including
+    **Index name**:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 4.10: Azure Cognitive Search index creation](img/B21019_04_10.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 4.10: Azure Cognitive Search index creation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Click on **Create**, and it will take a few moments to create the index. You
+    can verify its creation when you navigate to the **Indexes** tab:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 4.11: Azure Cognitive Search index overview](img/B21019_04_11.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 4.11: Azure Cognitive Search index overview'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the preceding screenshot, we can clearly see the **azureblob-index** created.
+    So, with this, we have created the required infrastructure for building our solution.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next section, we will start with implementing the code for our solution.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Solution using Azure OpenAI
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Now that we have set up all the essential services in our Azure portal, we
+    can begin constructing our solution. To develop the code, I will be working within
+    the Azure ML Studio notebook. For this solution, I’m utilizing Python version
+    3.12\. As mentioned earlier, any version above 3.7.1 should work seamlessly. You
+    can access the code we’re using on our GitHub repo; I recommend referring to it
+    as you progress through this chapter. Within the repository, you’ll find a `requirements.txt`
+    file that lists all the Python libraries necessary for our solution. Please review
+    this file and use the following command to install the required packages:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Once you’ve successfully configured these constants in your `.env` file, you’re
+    ready to proceed with integrating them into your code:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We’ll start by importing packages:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'You can see a variety of libraries being used in the previous code. Let’s delve
+    into each of these libraries in the following table:'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '| **Module/Library** | **Description** |'
+  prefs: []
+  type: TYPE_TB
+- en: '| --- | --- |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `os` | Provides functions to interact with the operating system |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `dotenv` | Loads environment variables from a .env file |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `openai` | Python library for interacting with OpenAI’s services, including
+    GPT-3 |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `langchain` | Custom library or package related to natural language processing
+    and **machine** **learning** (**ML**) |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `langchain.llms.AzureOpenAI` | Implementation or class related to OpenAI’s
+    language models on Azure |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `langchain.retrievers.AzureCognitiveSearchRetriever` | Module or class for
+    retrieving information from Azure Cognitive Search |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `langchain.embeddings.OpenAIEmbeddings` | Possibly related to extracting
+    vector embeddings from text using OpenAI models |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `langchain.vectorstores.Chroma` | Custom vector store or data structure,
+    potentially for working with vectors in ML |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `langchain.chains.RetrievalQA` | Module or class for building a question-answering
+    system using a retrieval-based approach |'
+  prefs: []
+  type: TYPE_TB
+- en: 'Table 4.1: Modules used and their description'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, let’s initialize all the necessary constants using the keys provided in
+    the `.``env` file:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: By completing these configurations, you’ll have the necessary connection settings
+    for your resources.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will now test the connectivity with Azure OpenAI as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: The language model (referred to as `llm`) is being initialized using the `AzureOpenAI`
+    class with the specified engine (presumably an OpenAI model) named `OPENAI_MODEL_NAME`
+    and a temperature setting of `0`, which controls the randomness of the model’s
+    responses. It then uses the initialized model to generate a response to the `tell
+    me about yourself` input prompt and prints the generated response to test the
+    connectivity and functionality of the OpenAI language model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This is the output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 4.12: Connectivity output](img/B21019_04_12.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 4.12: Connectivity output'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Next, we will load documents, create embeddings, and add them to the vector
+    search:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the previous code, we loaded all the files with the `.pdf` extension from
+    the data folder into the loader.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the next line, we are loading them into a `documents` object:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We are initializing the `CharacterTextSplitter` and using that for splitting
+    the documents with a chunk size of 1,000:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the previous code, we initialized the vector store as `AzureSearch` and added
+    the documents to the vector store.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let’s recap the code we have written so far.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The code first loads PDF documents from a specified directory using *DocumentLoader*,
+    then splits them into smaller text chunks using `CharacterTextSplitter`. It subsequently
+    creates embeddings using the `OpenAIEmbeddings` module, and finally sets up an
+    *Azure Search service* for vector-based document search and adds the previously
+    split text documents (`docs`) to the vector store using the `vector_store` instance.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 4.13: Documents and embeddings output](img/B21019_04_13.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 4.13: Documents and embeddings output'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Now, we will perform a similarity search on the vector database:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: A similarity search is conducted using the `vector_search` object. It takes
+    the query “What are some good places in Goa to visit in December?” and retrieves
+    the top three documents that are most similar to this query from the vector store.
+    The content of the most similar document is then printed, allowing you to find
+    and display documents that closely match the query based on their vector representations.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 4.14: Similarity search output](img/B21019_04_14.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 4.14: Similarity search output'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Finally, we will create a chain using `llm –` `AzureOpenAI`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: The code initializes a `RetrievalQA` chain. It employs an `AzureOpenAI` model
+    (configured with a specific deployment and model) to answer questions related
+    to a `stuff` category. The retrieval of relevant information for answering questions
+    is facilitated by the `vector_search` object acting as the retriever.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 4.15: Chain output using RetrievalQA](img/B21019_04_15.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 4.15: Chain output using RetrievalQA'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We will test it using the following query:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: The specific question “What are some good places in Goa to visit in December?”
+    is submitted to a configured QA system represented by the *chain*. The system
+    utilizes an `AzureOpenAI` model and a vector search retriever to find and generate
+    a response to the question. The actual answer to the question is determined by
+    the model’s understanding and the content available in the system’s index.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 4.16: Query output](img/B21019_04_16.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 4.16: Query output'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now our solution has clearly given the required response from our vector search.
+    With this, we have achieved the desired output.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we explored the development of an enterprise-level document
+    QA solution by leveraging Azure OpenAI and Azure Cognitive Search. We addressed
+    the common organizational challenge of managing vast amounts of unstructured documents
+    containing valuable information and highlighted the transformative potential of
+    such a solution. We outlined the essential tools and software required to set
+    up the development environment, ensuring readiness for implementation. We also
+    detailed the architecture, explaining how Azure Cognitive Search and Azure OpenAI
+    Service work together to convert unstructured data into embeddings for efficient
+    searching. Finally, we provided a practical guide to building the solution, including
+    setting up an Azure OpenAI deployment and Azure Cognitive Search components.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the next chapter, we will integrate OpenAI and Azure Communications Services
+    to build an advanced analytics solution.
+  prefs: []
+  type: TYPE_NORMAL

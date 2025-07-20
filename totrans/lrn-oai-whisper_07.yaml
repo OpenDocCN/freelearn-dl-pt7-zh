@@ -1,0 +1,1262 @@
+- en: '7'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Exploring Advanced Voice Capabilities
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Welcome to [*Chapter 7*](B21020_07.xhtml#_idTextAnchor177), where we embark
+    on an exciting journey to explore the advanced voice capabilities of OpenAI’s
+    Whisper. This chapter will dive into techniques that enhance Whisper’s performance,
+    such as **quantization**, and uncover its potential for real-time speech recognition.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We begin by examining the power of quantization, a technique that reduces the
+    model’s size and computational requirements while maintaining accuracy. You will
+    learn how to apply quantization to Whisper using frameworks such as **CTranslate2**
+    and **Open Visual Inference and Neural Network Optimization** (**OpenVINO**),
+    enabling efficient deployment on resource-constrained devices.
+  prefs: []
+  type: TYPE_NORMAL
+- en: While we briefly touched upon the challenges of implementing real-time ASR with
+    Whisper in the previous chapter, in this chapter, we will dive deeper into the
+    current limitations and ongoing research efforts to make real-time transcription
+    a reality. We will explore experimental approaches to building streaming ASR demos
+    using Whisper and Gradio, providing hands-on examples to showcase the potential
+    of real-time speech recognition with Whisper.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, we will cover the following main topics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Leveraging the power of quantization
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Facing the challenges and opportunities of real-time speech recognition
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: By the end of this chapter, you will have a solid understanding of advanced
+    techniques to optimize Whisper’s performance and appreciate the potential and
+    challenges of real-time speech recognition. You will be equipped with practical
+    knowledge and hands-on experience to apply these techniques in your projects,
+    pushing the boundaries of what is possible with Whisper.
+  prefs: []
+  type: TYPE_NORMAL
+- en: So, let’s unlock the full potential of Whisper’s advanced voice capabilities,
+    enabling you to build innovative applications that transform how we interact with
+    spoken language in the digital world.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: To harness the capabilities of OpenAI’s Whisper for advanced applications, this
+    chapter leverages Python and Google Colab for ease of use and accessibility. The
+    Python environment setup includes the Whisper library for transcription tasks.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Key requirements**:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Google Colab notebooks**: The notebooks are set to run our Python code with
+    the minimum required memory and capacity. If the **T4 GPU** runtime type is available,
+    select it for better performance.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Python environment**: Each notebook contains directives to load the required
+    Python libraries, including Whisper and Gradio.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Hugging Face account**: Some notebooks require a Hugging Face account and
+    login API key. The Colab notebooks include information about this topic.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Microphone and speakers**: Some notebooks implement a Gradio app with voice
+    recording and audio playback. A microphone and speakers connected to your computer
+    might help you experience the interactive voice features. Another option is to
+    open the URL link Gradio provides at runtime on your mobile phone; from there,
+    you might be able to use the phone’s microphone to record your voice.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**GitHub repository access**: All Python code, including examples, is available
+    in the chapter’s GitHub repository ([https://github.com/PacktPublishing/Learn-OpenAI-Whisper/tree/main/Chapter07](https://github.com/PacktPublishing/Learn-OpenAI-Whisper/tree/main/Chapter07)).
+    These Colab notebooks are ready to run, providing a practical and hands-on approach
+    to learning.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: By meeting these technical requirements, you will be prepared to explore Whisper
+    in different contexts while enjoying the streamlined experience of Google Colab
+    and the comprehensive resources available on GitHub.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As we continue our journey into Whisper’s advanced capabilities, we must explore
+    techniques to optimize its performance and efficiency. One such technique that
+    has gained significant attention is quantization. In this section, we’ll explore
+    the power of quantization and how it can be leveraged to enhance Whisper’s deployment
+    capabilities.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Leveraging the power of quantization
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Quantization in machine learning, particularly in ASR, refers to reducing the
+    precision of the model’s parameters. This is typically done by mapping the continuous
+    range of floating-point values to a discrete set of values, often represented
+    by integers. The primary goal of quantization is to decrease the model’s computational
+    complexity and memory footprint, which is crucial for deploying ASR systems on
+    devices with limited resources, such as mobile phones or embedded systems. Quantization
+    is essential for several reasons:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Reducing model size**: Using lower precision to represent the model’s weights
+    can significantly reduce the model’s overall size. This is particularly beneficial
+    for on-device deployment, where storage space is at a premium.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Improving inference speed**: Lower precision arithmetic is faster on many
+    hardware platforms, especially those without dedicated floating-point units. This
+    can lead to faster inference times, critical for real-time applications such as
+    ASR.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Increasing energy efficiency**: Quantized models require fewer computational
+    resources, lowering power consumption. This is essential for battery-powered devices.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Expanding hardware compatibility**: Many edge devices are optimized for integer
+    computations. Quantization allows models to leverage these hardware optimizations.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Some standard machine-learning quantization techniques in ASR are **vector
+    quantization** (**VQ**), **int8 quantization**, and **low-bit quantization**.
+    Let’s briefly describe each:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*VQ* is a classical technique in various domains, including speech coding and
+    recognition. It involves mapping vectors from an ample vector space to a finite
+    number of regions, which can be efficiently represented with fewer bits. VQ has
+    been successfully applied to speech recognition systems, improving performance
+    by efficiently compressing the feature space.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*INT8 quantization* is a recent approach to representing model weights and
+    activations using 8-bit integers instead of 32-bit floating-point numbers. This
+    method can reduce the model size by a factor of 4 without significantly degrading
+    performance because it carefully rounds data from one type to another rather than
+    simply truncating it.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Further advancements have led to *low-bit quantization* techniques, where aggressive
+    quantization to even 1 bit is explored. While this can substantially reduce storage
+    and runtime, it may increase the **word error rate** (**WER**) in ASR tasks. However,
+    with careful design, such as DistilHuBERT ([https://huggingface.co/ntu-spml/distilhubert](https://huggingface.co/ntu-spml/distilhubert)),
+    it is possible to achieve model compression with minimal accuracy loss.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Be aware that quantization introduces a quantization error, which can degrade
+    the model’s performance if not properly managed. Techniques such as **quantization-aware
+    training** (**QAT**) and **post-training quantization** (**PTQ**) have been developed
+    to mitigate these effects. QAT simulates the quantization process during training,
+    allowing the model to adapt to the lower precision. PTQ, on the other hand, applies
+    quantization after training, using calibration techniques to adjust the quantization
+    parameters for minimal performance loss.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Figure 7**.1* shows a high-level view of the quantization process for ASR
+    models:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.1 – Quantization process for ASR models](img/B21020_07_1.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.1 – Quantization process for ASR models
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The steps broadly outlined in the diagram are generic and intended to provide
+    a foundational overview. Let’s review each step in more detail:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Preparation**: The initial step involves training the ASR model using high-precision
+    (32-bit floating-point) representations. This ensures the model captures the complex
+    patterns necessary for accurate speech recognition.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '`int8`), or even lower. Your selection should consider model size, computational
+    efficiency, and accuracy.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: The choice of bit depth directly impacts the trade-off between model size, computational
+    speed, and accuracy. Lower bit depths significantly reduce the model’s memory
+    footprint and increase computational efficiency, but they can introduce quantization
+    errors that potentially degrade model performance. The challenge lies in selecting
+    an optimal bit depth that minimizes these errors while achieving the desired efficiency
+    gains.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '**Calibration**: A representative dataset is used to run inference through
+    the model for PTQ. This step helps gather statistics about the distribution of
+    activations, which are crucial for determining the quantization parameters.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**Quantization of weights and activations**: The model’s weights and activations
+    are quantized using the gathered statistics to the selected bit depth. This involves
+    mapping the high-precision values to a lower-precision space using scale factors
+    and zero points.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**QAT (optional)**: In some cases, models undergo QAT, where the quantization
+    effects are simulated during the training process. This helps the model to adapt
+    to the reduced precision, potentially mitigating accuracy loss.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**Testing and fine-tuning**: After quantization, the model’s performance is
+    evaluated to ensure accuracy remains within acceptable bounds. If necessary, fine-tuning
+    or adjustments to the quantization parameters are made.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**Deployment**: The quantized model is then deployed on the target hardware,
+    benefiting from reduced memory usage and faster inference times. This makes it
+    suitable for edge devices or environments with limited computational resources.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Several quantized versions of Whisper are available, and more are being developed.
+    In my experience, I have found that Faster-Whisper and Distil-Whisper offer superior
+    and reliable performance. Here is a brief description of them:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Faster-Whisper** implements the Whisper model in CTranslate2, a library for
+    efficient inference with Transformer models. It applies various methods to increase
+    efficiency, such as weight quantization, layer fusion, and batch reordering. Quantization
+    plays a significant role in Faster-Whisper by reducing the model’s memory footprint
+    and accelerating inference, particularly on GPUs. We will experience Faster-Whisper
+    in the *Diarizing Speech with WhisperX and NVIDIA’s NeMo* chapter because WhisperX
+    uses Faster-Whisper to perform **speech-to-text** (**STT**) transcriptions.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`small.en`, `medium.en`, and `large-v2` models that are faster and smaller
+    while maintaining a comparable WER. Quantization can further enhance Distil-Whisper’s
+    efficiency by reducing the precision of the model’s parameters, thus allowing
+    for faster processing and lower memory requirements.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: As we explore the power of quantization, let’s dive into a practical example
+    using the CTranslate2 framework. CTranslate2 provides an efficient way to quantize
+    and optimize the Whisper model for deployment on resource-constrained devices.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Quantizing Whisper with CTranslate2 and running inference with Faster-Whisper
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'Please find and open the `LOAIW_ch07_1_Quantizing_Whisper_with_CTranslate2.ipynb`
+    Colab notebook ([https://github.com/PacktPublishing/Learn-OpenAI-Whisper/blob/main/Chapter07/LOAIW_ch07_1_Quantizing_Whisper_with_CTranslate2.ipynb](https://github.com/PacktPublishing/Learn-OpenAI-Whisper/blob/main/Chapter07/LOAIW_ch07_1_Quantizing_Whisper_with_CTranslate2.ipynb)).
+    The notebook demonstrates quantizing the Whisper model using CTranslate2 and the
+    Faster-Whisper framework to load the quantized models and perform inference (transcription
+    or translation). You should run the notebook using only the CPU and then the GPU.
+    The CPU performance should be relatively fast because we use small Whisper models,
+    short audio files, and quantization. *Figure 7**.2* provides an overview of the
+    quantization process, from preparing the audio data and converting and quantizing
+    the model to evaluating its performance in language detection and transcription
+    tasks. Quantization is vital in optimizing the model for deployment in resource-constrained
+    environments, enabling efficient and accurate speech recognition capabilities:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.2 – High-level view of the process of quantizing Whisper using the
+    CTranslate2 framework](img/B21020_07_2.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.2 – High-level view of the process of quantizing Whisper using the
+    CTranslate2 framework
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following steps provide an overview of the quantization process. For a
+    complete, end-to-end implementation, please refer to the `LOAIW_ch07_1_Quantizing_Whisper_with_CTranslate2.ipynb`
+    notebook. This section will present the high-level steps and selected code snippets
+    to illustrate the process. Remember that the notebook contains additional details
+    and explanations to help you understand the quantization workflow comprehensively.
+    Here’s a detailed breakdown of the process:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`ctranslate2`, `transformers`, and `faster-whisper`:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: These libraries are essential for quantization and leveraging the Whisper model’s
+    capabilities.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '**Downloading sample audio files**: Two are downloaded from our GitHub repository
+    to test the Whisper model’s transcription capabilities:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: import ctranslate2
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: from IPython.display import Audio
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: import librosa
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: import transformers
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Load and resample the audio file.
+  prefs:
+  - PREF_IND
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: sampling_frequency = 16000
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: audio, _ = librosa.load("Learn_OAI_Whisper_Sample_Audio01.mp3", sr=sampling_frequency,
+    mono=True)
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Audio(audio, rate=sampling_frequency)
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '`openai/whisper-tiny`) is converted to the CTranslate2 format, a more efficient
+    inference format:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '`INT8`):'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 16-bit integers (`INT16`)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 16-bit floating points (`FP16`)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 16-bit brain floating points (`BF16`)
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: This step significantly reduces the model’s size and computational requirements,
+    making it more suitable for deployment on devices with limited resources.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Detecting language**: The quantized model detects the language of the provided
+    audio samples:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: This step is important for ensuring that the model accurately understands the
+    context of the audio data.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '`processor.tokenizer.convert_tokens_to_ids()` method:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: This demonstrates the model’s ability to transcribe speech accurately, even
+    after quantization.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '**Evaluating performance**: After the audio transcription, the code evaluates
+    the performance of the quantized model, such as measuring the time taken for transcription:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: This evaluation is crucial for understanding the impact of quantization on the
+    model’s efficiency and accuracy.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: The results show empirical evidence that quantized models of Whisper perform
+    transcription quite well using a much smaller memory and processing footprint.
+    Building upon our understanding of quantization, let’s now focus on another robust
+    framework, OpenVINO. We’ll investigate how OpenVINO can be used to quantize the
+    Distil-Whisper model, offering a more comprehensive and rigorous quantization
+    process.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Quantizing Distil-Whisper with OpenVINO
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: This hands-on exercise relies on the `LOAIW_ch07_2_Quantizing_Distil_Whisper_with_OpenVINO.ipynb`
+    Colab notebook ([https://github.com/PacktPublishing/Learn-OpenAI-Whisper/blob/main/Chapter07/LOAIW_ch07_2_Quantizing_Distil_Whisper_with_OpenVINO.ipynb](https://github.com/PacktPublishing/Learn-OpenAI-Whisper/blob/main/Chapter07/LOAIW_ch07_2_Quantizing_Distil_Whisper_with_OpenVINO.ipynb)).
+    Because of OpenVINO, I recommend you run this notebook in Colab using CPU and
+    high RAM. OpenVINO does not use an NVIDIA GPU, even if it is present, only an
+    Intel GPU. However, the libraries OpenVINO provides are optimized to run on a
+    plain CPU, thus a significant advantage when the computational processing resources
+    are limited. However, you should have at least 50 GB of RAM for quantization.
+    The notebook provides a comprehensive guide on utilizing Distil-Whisper (based
+    on WhisperX), a distilled variant of the Whisper model, with OpenVINO for ASR.
+    Distil-Whisper offers a significant reduction in the number of parameters (from
+    1,550 parameters in `large-v2` to 756 in `distill-large-v2`, or about 50% reduction)
+    and an increase in inference speed while maintaining close performance to the
+    original Whisper model regarding WER.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Figure 7**.3* outlines converting the Distil-Whisper model to the OpenVINO
+    **intermediate representation** (**IR**) format, applying INT8 PTQ for performance
+    enhancement, and running the model for speech recognition tasks:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.3 – High-level architectural diagram quantizing Distil-Whisper using
+    the OpenVINO framework](img/B21020_07_3.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.3 – High-level architectural diagram quantizing Distil-Whisper using
+    the OpenVINO framework
+  prefs: []
+  type: TYPE_NORMAL
+- en: The following subsections will describe the critical steps in quantizing the
+    Distil-Whisper model using the OpenVINO framework. We will install the necessary
+    libraries, load the model, convert it to the OpenVINO format, and apply quantization.
+    We will also explore how to load the quantized model using the Optimum library
+    and integrate it with Hugging Face pipelines. Finally, we will run inference with
+    the quantized model and compare its performance and accuracy to the original model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Installing libraries
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'First, the process instructs the installation of necessary Python libraries:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let’s examine each one in more detail, focusing on the libraries we have not
+    described before:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Transformers**: This library is used for NLP tasks such as text classification,
+    information extraction, and question-answering. It provides access to pre-trained
+    models such as BERT, GPT-2, and, in this case, the Distil-Whisper model for ASR.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Open Neural Network Exchange (ONNX)**: ONNX is an open format representing
+    machine learning models. It enables models to be transferred between different
+    frameworks and tools, facilitating interoperability.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Optimum Intel**: This is part of the Hugging Face Optimum library tailored
+    for Intel hardware. It converts models to the OpenVINO IR format, which is optimized
+    for Intel’s hardware, and performs tasks such as quantization to improve model
+    performance.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**OpenVINO**: The OpenVINO toolkit is designed to facilitate fast and efficient
+    inference of deep learning models on Intel hardware. It includes optimization
+    tools and libraries to accelerate various computer vision and deep learning tasks.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Datasets**: This library is part of the Hugging Face ecosystem and is used
+    for loading and processing datasets simply and efficiently. It is handy for machine
+    learning tasks that require handling large amounts of data.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Soundfile**: This library provides functions for reading from and writing
+    to audio files in various formats. It handles audio data input and output operations.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Neural Network Compression Framework (NNCF)**: This toolkit for optimizing
+    deep learning models through quantization, pruning, and knowledge distillation.
+    It improves neural networks’ performance, particularly regarding inference speed
+    and memory usage.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**JiWER**: This is a library for evaluating automatic speech recognition models.
+    It calculates metrics such as the WER, a standard measure of speech recognition
+    systems’ performance.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Each library plays a specific role in running and optimizing the Distil-Whisper
+    model using OpenVINO, from model conversion and optimization to performance evaluation
+    and user interface creation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Loading the model
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'When initializing a PyTorch Whisper model using the `transformers` library,
+    the `AutoModelForSpeechSeq2Seq.from_pretrained` method is the go-to:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: This tutorial will use the `distil-whisper/distil-medium.en` model as our primary
+    example. It’s worth noting that the model must be downloaded during the first
+    run, which may take some time.
+  prefs: []
+  type: TYPE_NORMAL
+- en: If you want to explore alternative models, the Distil-Whisper Hugging Face collection
+    offers options such as `distil-whisper/distil-large-v2` or `distil-whisper/distil-small.en`.
+    Other models based on the original Whisper architecture are available, and you
+    can find more information about them in the provided resources.
+  prefs: []
+  type: TYPE_NORMAL
+- en: It’s crucial to emphasize the significance of preprocessing and postprocessing
+    in this model’s usage. The `AutoProcessor` class, used to initialize `WhisperProcessor`,
+    plays a vital role in preparing the audio input data for the model. It handles
+    the audio conversion into a Mel-spectrogram and decodes the `token_ids` predicted
+    output back into a string using the tokenizer.
+  prefs: []
+  type: TYPE_NORMAL
+- en: By leveraging the `AutoModelForSpeechSeq2Seq.from_pretrained` method and understanding
+    the preprocessing and postprocessing steps, you’ll be well equipped to work effectively
+    with PyTorch Whisper models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Loading the OpenVINO model using the Optimum library
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: The Hugging Face Optimum API is a powerful tool that simplifies converting and
+    quantizing models from the Hugging Face Transformers library to the OpenVINO™
+    IR format. The Hugging Face Optimum documentation ([https://huggingface.co/docs/optimum/intel/inference](https://huggingface.co/docs/optimum/intel/inference))
+    is an excellent resource if you’re looking for more in-depth information.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Optimum Intel is your friend when loading optimized models from the Hugging
+    Face Hub and creating pipelines for inference with OpenVINO Runtime. What’s great
+    about the Optimum Inference models is that they are API-compatible with Hugging
+    Face `transformers` models. You can seamlessly replace the `AutoModelForXxx` class
+    with the corresponding `OVModelForXxx` class without hassle:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'You’ll need to call the `from_pretrained` method to initialize the model class.
+    When downloading and converting the `transformers` model, include the `export=True`
+    parameter. This will ensure a smooth conversion process. Once you have the converted
+    model, you can save it using the `save_pretrained` method:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: It’s worth mentioning that the tokenizers and processors distributed with the
+    models are also compatible with the OpenVINO model. This compatibility allows
+    you to reuse the previously initialized processor, saving time and effort.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Using the Hugging Face Optimum library, we can also convert the Distil-Whisper
+    model to OpenVINO’s optimized IR format. This step is crucial for leveraging OpenVINO’s
+    inference engine for efficient model execution:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: By leveraging the Hugging Face Optimum API and Optimum Intel, you can efficiently
+    convert and quantize models, load optimized models, and create pipelines for inference
+    with OpenVINO Runtime. The API compatibility and the ability to reuse initialized
+    processors make the process even more streamlined.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Using the OpenVINO model with Hugging Face pipelines
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: By combining the OpenVINO model with the Hugging Face pipeline interface and
+    utilizing the chunked algorithm and batching capabilities of Distil-Whisper, you’ll
+    be able to tackle long audio transcription tasks with unprecedented speed and
+    ease.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As with the original PyTorch model, the OpenVINO model seamlessly integrates
+    with the Hugging Face pipeline interface for ASR. This compatibility allows you
+    to transcribe long audio files using the pipeline effortlessly:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: Distil-Whisper takes it a step further by employing a chunked algorithm, which
+    significantly speeds up the transcription process for long-form audio. This chunked
+    long-form algorithm is an impressive nine times faster than the sequential algorithm
+    proposed by OpenAI in their Whisper paper ([https://cdn.openai.com/papers/whisper.pdf](https://cdn.openai.com/papers/whisper.pdf)).
+  prefs: []
+  type: TYPE_NORMAL
+- en: To take advantage of chunking, you only need to pass the `chunk_length_s` parameter
+    to the pipeline. When working with Distil-Whisper, setting the chunk length to
+    `15` seconds is the sweet spot for optimal performance. But that’s not all! If
+    you want to leverage the power of batching, include the `batch_size` argument
+    when calling the pipeline. This will enable you to process multiple audio chunks
+    simultaneously, further boosting the efficiency of your transcription workflow.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Quantizing the model
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Quantization is a powerful technique for significantly reducing the model size
+    and improving inference speed. NNCF makes it easier than ever to implement PTQ.
+    By seamlessly integrating quantization layers into the model graph and leveraging
+    a subset of the training dataset to initialize the parameters of these additional
+    layers, NNCF ensures that the modifications required to your original training
+    code are minimal.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To embark on the optimization journey, the first step is to create calibration
+    datasets specifically tailored for quantization:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: Since the Whisper encoder and decoder are quantized separately, preparing a
+    calibration dataset for each model is essential. This is where the `InferRequestWrapper`
+    class comes into play. Importing this class, you can intercept and collect the
+    model inputs in a list. Then, you’ll run model inference on a small subset of
+    audio samples. Remember that increasing the calibration dataset’s size generally
+    leads to better quantization quality, so it’s worth experimenting to find the
+    right balance.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Once you have your calibration datasets ready, it’s time to unleash the power
+    of `nncf.quantize`. This function is your key to obtaining quantized encoder and
+    decoder models. In the case of Distil-Whisper, you’ll run `nncf.quantize` on the
+    `encoder` and `decoder_with_past` models. It’s worth noting that the first-step
+    decoder is not quantized since its contribution to the overall inference time
+    is negligible:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: The code snippet shows that the final step is to serialize the INT8 model using
+    the `openvino.save_model` function after quantization. This step ensures that
+    your quantized model is ready for deployment and can be quickly loaded for inference.
+  prefs: []
+  type: TYPE_NORMAL
+- en: It’s essential to remember that quantization is a computationally intensive
+    operation that can be both time-consuming and memory-intensive. Running the quantization
+    code may require patience, but the benefits of model size reduction and inference
+    speed improvement make it well worth the effort.
+  prefs: []
+  type: TYPE_NORMAL
+- en: By following these steps and leveraging the power of NNCF, you can optimize
+    your models through PTQ, enabling faster and more efficient inference.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Running inference
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'Here, we demonstrate how to run inference with the quantized model, including
+    loading the model, preparing input samples, and executing the model to transcribe
+    speech. Here are the steps in detail:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`librispeech_asr_dummy` from Hugging Face’s `datasets` library:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '`numpy` array format and then to a tensor that the model can process:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '**Running inference on the original model**: Use the original OpenVINO model
+    to generate predictions for the input features. Decode the predicted token IDs
+    into text transcription using the model’s processor:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '**Running inference on the quantized model**: Similarly, use the quantized
+    OpenVINO model to generate predictions for the same input features. Decode the
+    predicted token IDs into text transcription:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '`Audio` class to play the audio file used for transcription:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '**Printing transcriptions**: Print the transcriptions from the original and
+    quantized models to compare the results:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: After running this code in the notebook, review the transcriptions and verify
+    that the transcriptions from the original and quantized models are the same, ensuring
+    that quantization did not significantly impact the model’s accuracy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In addition, the notebook includes how to use the model with Hugging Face’s
+    pipeline interface for ASR, highlighting the efficiency of chunked algorithms
+    for long-form audio transcription.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Comparing performance and accuracy
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'Next, we compare the original and quantized Distil-Whisper models regarding
+    accuracy (using WER) and performance (inference time). It illustrates the benefits
+    of quantization in enhancing model inference speed without a significant drop
+    in accuracy. Comparing the performance and accuracy of the original and quantized
+    models involves the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Measuring accuracy**: We use the *1 - WER* metric to measure the accuracy
+    of the models. This involves comparing the transcriptions produced by the models
+    against a ground truth to calculate the error rate. A lower WER indicates higher
+    accuracy:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '**Measuring performance**: The inference time is measured separately for the
+    encoder and decoder-with-past model forwards and the whole model inference. This
+    step involves timing the model’s inference process to evaluate how quickly it
+    can generate predictions. Performance measurement is crucial for understanding
+    the efficiency gains achieved through quantization:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '**Comparing original and quantized models**: The notebook directly compares
+    the original Distil-Whisper models and their quantized counterparts regarding
+    accuracy (*using 1 - WER*) and performance (inference time). This comparison helps
+    to illustrate the impact of quantization on the model’s efficiency and effectiveness:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Based on the comparison printout from running the notebook, you can conclude
+    the benefits of quantization, such as significant improvements in model inference
+    time without a major drop in accuracy. These steps provide a comprehensive framework
+    for evaluating the impact of quantization on the performance and accuracy of ASR
+    models such as Distil-Whisper when optimized with OpenVINO. The goal is to demonstrate
+    that quantization can significantly enhance model efficiency for deployment in
+    resource-constrained environments without substantially compromising accuracy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Running the interactive demo
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: As an extra, the interactive Gradio demo allows us to test the model’s capabilities
+    on their audio data or recordings. This section demonstrates the practical application
+    of the quantized Distil-Whisper model in a user-friendly manner.
+  prefs: []
+  type: TYPE_NORMAL
+- en: I encourage you to run and experiment with the Colab notebook. It is a foundational
+    tool for understanding the quantization process and, more importantly, a blueprint
+    for your experimental or production work. After running the notebook, we embarked
+    on a fascinating journey through the integration of cutting-edge technologies
+    in ASR. The notebook meticulously outlined leveraging the Distil-Whisper model,
+    a distilled variant of OpenAI’s Whisper, optimized for performance with significantly
+    fewer parameters, and deploying it with Intel’s OpenVINO toolkit for enhanced
+    inference speed and efficiency.
+  prefs: []
+  type: TYPE_NORMAL
+- en: One of the key learnings from this notebook was the seamless synergy between
+    various libraries and frameworks to achieve a streamlined workflow for ASR tasks.
+    Using the Hugging Face Transformers library to access pre-trained models and the
+    Optimum Intel library for model conversion to OpenVINO’s IR exemplified a powerful
+    approach to model deployment. This process simplified the user experience and
+    paved the way for leveraging hardware acceleration capabilities offered by Intel
+    architectures.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The notebook further delved into the practical aspects of model quantization
+    using NNCF. This step was crucial for optimizing model performance without significantly
+    compromising accuracy. The detailed walkthrough of preparing calibration datasets,
+    running quantization, and comparing the performance and accuracy of the original
+    and quantized models provided invaluable insights into the nuances of model optimization.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Another significant aspect highlighted in the notebook was the use of Gradio
+    to create interactive demos. This demonstrated the practical application of the
+    Distil-Whisper model in real-world scenarios, allowing users to test the model’s
+    capabilities on their audio data. Including such a demo underscored the importance
+    of accessibility and user engagement in developing and deploying AI models.
+  prefs: []
+  type: TYPE_NORMAL
+- en: You should seek ways to apply the learnings from this notebook directly to your
+    experimental or production ASR tasks. They extend to the broader field of AI model
+    deployment and optimization, highlighting the evolving landscape of AI technologies
+    and their practical applications.
+  prefs: []
+  type: TYPE_NORMAL
+- en: While quantization has proven to be a powerful technique for optimizing Whisper’s
+    performance and enabling efficient deployment, another exciting frontier lies
+    in exploring the challenges and opportunities of real-time speech recognition
+    with Whisper. Real-time transcription opens up possibilities, from enhancing accessibility
+    to facilitating instant communication. However, it also presents unique technical
+    hurdles that must be overcome. In the following section, we will delve into the
+    current limitations and ongoing research efforts to make real-time transcription
+    with Whisper a reality. By understanding these challenges and the potential solutions
+    on the horizon, we can appreciate the immense potential of Whisper in reshaping
+    how we interact with spoken language in real-time scenarios.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Facing the challenges and opportunities of real-time speech recognition
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Pursuing real-time transcription with Whisper opens up many applications that
+    can benefit various sectors, including education, healthcare, and customer service.
+    Real-time transcription can enhance accessibility for individuals with hearing
+    impairments, facilitate instant communication in multilingual contexts, and provide
+    immediate documentation of verbal exchanges. As Whisper’s capabilities evolve,
+    its potential to serve as a universal translator and accessibility tool becomes
+    increasingly apparent.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'At present, however, more limitations and challenges are preventing real-time
+    transcription. Let’s delve into these aspects, focusing on the technical intricacies
+    and prospects of performing real-time transcription with Whisper:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Processing time and latency**: One of the primary challenges in achieving
+    real-time transcription with Whisper is its operation’s inherent latency and processing
+    time. As discussions on platforms such as GitHub and Hugging Face reveal, Whisper
+    is not inherently designed for real-time STT conversion. While robust for processing
+    audio files of unlimited length, the system’s architecture encounters hurdles
+    in delivering instantaneous transcription results. This latency stems from the
+    complex neural network models that underpin Whisper, which require significant
+    computational resources to analyze and transcribe speech accurately.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Increasing accuracy and contextual understanding**: Another limitation lies
+    in Whisper’s transcriptions’ accuracy and contextual knowledge. While Whisper
+    has demonstrated remarkable proficiency in transcribing diverse languages and
+    accents, real-time applications pose unique challenges. The system must recognize
+    speech accurately and understand context, idioms, and colloquial expressions in
+    the flow of conversation. This demands a level of linguistic and cultural nuance
+    that current models are still striving to perfect.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Despite these limitations, the potential for Whisper to transform real-time
+    transcription is immense. The technology’s current capabilities and ongoing advancements
+    offer a glimpse into a future where these challenges are surmountable:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Advancing model efficiency**: Recent research efforts have focused on enhancing
+    Whisper’s efficiency and reducing latency, making real-time transcription a tangible
+    goal. For instance, a study on arXiv, *Turning Whisper into Real-Time Transcription
+    System* ([https://arxiv.org/abs/2307.14743](https://arxiv.org/abs/2307.14743)),
+    discusses methods for turning Whisper into a real-time transcription system. These
+    include optimizing the model’s architecture and leveraging more powerful computational
+    resources. As these advancements continue, we can anticipate significant reductions
+    in processing time, bringing Whisper closer to delivering seamless real-time transcription.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Integrating with edge computing**: The integration of Whisper with edge computing
+    presents a promising avenue for overcoming latency issues. By processing data
+    closer to the source of data generation, edge computing can drastically reduce
+    the time it takes for audio to be transcribed. This approach accelerates transcription
+    and alleviates bandwidth constraints, making real-time transcription more feasible
+    and efficient.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: While the journey toward flawless real-time transcription with Whisper is fraught
+    with technical challenges, the opportunities it presents are undeniably compelling.
+    The latency, processing time, and contextual accuracy limitations are significant
+    yet manageable. Through ongoing research, technological advancements, and innovative
+    applications, Whisper stands on the cusp of redefining real-time transcription.
+    As we look to the future, the integration of Whisper into our daily lives promises
+    not only to enhance communication and accessibility but also to push the boundaries
+    of what is possible with AI. The road ahead is challenging and exciting, underscoring
+    the importance of continued exploration and development in this dynamic field.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To better understand the challenges and potential of real-time speech recognition
+    with Whisper, let’s dive into a practical example. In the following section, we
+    will build an interactive real-time ASR demo using Hugging Face’s implementation
+    of Whisper and the user-friendly Gradio library.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Building a real-time ASR demo with Hugging Face Whisper
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'In this section, we will leverage the power of Gradio, a user interface library,
+    to rapidly construct an interactive demo of the Whisper model. This demo will
+    allow you or others to test the model’s performance by speaking into the microphone
+    on your device. Let’s find and run the `LOAIW_ch07_3_Building_real_time_ASR_with_HF_Whisper.ipynb`
+    notebook ([https://github.com/PacktPublishing/Learn-OpenAI-Whisper/blob/main/Chapter07/LOAIW_ch07_3_Building_real_time_ASR_with_HF_Whisper.ipynb](https://github.com/PacktPublishing/Learn-OpenAI-Whisper/blob/main/Chapter07/LOAIW_ch07_3_Building_real_time_ASR_with_HF_Whisper.ipynb)).
+    The notebook is structured into three main sections:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`transformers` library to prepare the ASR model for our demo'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Creating a full-context ASR demo**: We will build a demo in which the user
+    speaks the entire audio before the ASR model processes it and generates the transcription'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Creating a streaming ASR demo**: We will extend the previous demo to support
+    real-time streaming, allowing the ASR model to transcribe the audio as the user
+    speaks, providing a more interactive experience'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: By the end of this notebook, you will have a solid understanding of creating
+    engaging demos for speech recognition models using Gradio and the Hugging Face
+    Transformers library.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Preparing the development environment
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'Before diving into building the speech recognition demos, it’s crucial to set
+    up our development environment with the necessary dependencies. In this section,
+    we will do the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Install the required libraries, such as Gradio, to ensure a smooth development
+    process.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Configure the environment to work seamlessly with the Hugging Face Transformers
+    library, allowing us to leverage pre-trained models and powerful NLP tools.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: By properly setting up our environment, we lay the foundation for an efficient
+    and hassle-free coding experience throughout the notebook.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To bring our exploration of real-time ASR with Whisper to life, we’ll first
+    need to set up our development environment. Let’s walk through the installation
+    of the necessary libraries and configuration of our setup to work seamlessly with
+    the Hugging Face Transformers library.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs: []
+  type: TYPE_PRE
+- en: Setting up your Hugging Face token is essential to ensure a seamless experience
+    while working with this notebook. The notebook will load transformer classes and
+    models from the Hugging Face repository, which requires valid token authentication.
+  prefs: []
+  type: TYPE_NORMAL
+- en: If you haven’t created a Hugging Face token yet or need a refresher on the process,
+    please refer to [https://github.com/PacktPublishing/Learn-OpenAI-Whisper/blob/main/Chapter03/LOAIW_ch03_working_with_audio_data_via_Hugging_Face.ipynb](https://github.com/PacktPublishing/Learn-OpenAI-Whisper/blob/main/Chapter03/LOAIW_ch03_working_with_audio_data_via_Hugging_Face.ipynb).
+    This resource provides step-by-step instructions on how to create and configure
+    your Hugging Face token.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'By setting up your token correctly, you’ll be able to easily access the full
+    range of features and models available in the Hugging Face ecosystem, enabling
+    you to build powerful speech recognition demos:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs: []
+  type: TYPE_PRE
+- en: With our development environment set up, let’s begin by loading the transformers
+    ASR model, which will serve as the foundation for our interactive application.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Step 1 – Loading the transformers ASR model
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'We first need an ASR model to begin building our speech recognition demo. You
+    can either train your model or use a pre-trained one. Loading the `"whisper"`
+    model from the Hugging Face `transformers` library is straightforward. Here’s
+    the code snippet to accomplish this:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs: []
+  type: TYPE_PRE
+- en: With just these two lines of code, we initialize a pipeline for automatic speech
+    recognition using the `"openai/whisper-base.en"` model. The pipeline abstracts
+    away the complexities of working with the model directly, providing a high-level
+    interface for performing ASR tasks.
+  prefs: []
+  type: TYPE_NORMAL
+- en: By utilizing a pre-trained model such as `"whisper"`, we can quickly start building
+    our demo without the need for extensive model training. This allows us to focus
+    on integrating the model into our application and creating an engaging user experience.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Step 2 – Building a full-context ASR demo with transformers
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'Our first step in creating the speech recognition demo is to build a *full-context*
+    ASR demo. In this demo, the user will speak the entire audio before the ASR model
+    processes it and generates the transcription. Thanks to Gradio’s intuitive interface,
+    building this demo is a breeze:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the preceding snippet, we start by creating a function that wraps around
+    the `pipeline` object we initialized earlier. This function serves as the core
+    of our demo, handling the audio input and generating the transcription.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We then utilize Gradio’s built-in `Audio` component to capture the user’s audio
+    input. This component will be configured to accept input from the user’s microphone
+    and return the file path of the recorded audio. We’ll use a simple `Textbox` component
+    to display the transcribed text.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The `transcribe` function, the heart of our demo, takes a single parameter called
+    `audio`. This parameter represents the audio data recorded by the user, stored
+    as a `numpy` array. However, the `pipeline` object expects the audio data to be
+    in the `float32` format. To ensure compatibility, we first convert the audio data
+    to `float32` and then normalize it by dividing it by its maximum absolute value.
+    Finally, we pass the processed audio data to the `pipeline` object to obtain the
+    transcribed text.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Step 3 – Enhancing the demo with real-time streaming capabilities
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'To create a streaming ASR demo, we need to make the following changes in the
+    Python Gradio script:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Set `streaming=True` in the `Audio` component to enable continuous audio capture
+    from the user’s microphone.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Set `live=True` in the `Interface` component to ensure the interface updates
+    dynamically as new audio data is received.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Add a `state` variable to the interface to store the recorded audio and the
+    previous transcription.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'All these changes are already applied in the script:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the streaming demo, we use a `state` variable to keep track of the audio
+    history and the previous transcription. The `transcribe` function is called whenever
+    a new small chunk of audio is received, and it needs to process the new chunk
+    along with the previously recorded audio.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To improve the accuracy and coherence of the transcription, we introduce a
+    dynamic window size based on the duration of the new audio chunk and a slight
+    overlap between consecutive windows. Here’s how the `transcribe` function works:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: If the `state` is `None`, initialize an empty `numpy` array (`stream`) to store
+    the audio and an empty string (`previous_text`) to store the previous transcription.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Extract `new_chunk`’s sampling rate (`sr`) and audio data (`y`) from `new_chunk`.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Calculate the duration of the new audio chunk and normalize the audio data.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Introduce an overlap of half a second between consecutive windows to ensure
+    continuity in the transcription.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Concatenate the new audio chunk to the existing stream, considering the overlap.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Transcribe the entire stream using the `transcriber` object.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Update `previous_text` by removing the overlap from the end of the previous
+    transcription and concatenating it with the new transcription.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Return the updated `stream` and `combined_text` values as the state and the
+    `combined_text` value as the transcription output.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: By using a dynamic window size and introducing an overlap between consecutive
+    windows, we can improve the accuracy and coherence of the streaming transcription.
+    The small overlap helps maintain continuity in the transcription and reduces the
+    occurrence of overlapping or missing words.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Of course, this is a straightforward demo. It is designed to show that real-time
+    with Whisper is not as far away from reality as it might appear. I encourage you
+    to enhance and experiment with that demo and have fun!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this chapter, we embarked on an exciting exploration of OpenAI’s Whisper’s
+    advanced voice capabilities. We delved into powerful techniques that enhance Whisper’s
+    performance, such as quantization, and uncovered its potential for real-time speech
+    recognition.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We began by examining the power of quantization, which reduces the model’s size
+    and computational requirements while maintaining accuracy. We learned how to apply
+    quantization to Whisper using frameworks such as CTranslate2 and OpenVINO, enabling
+    efficient deployment on resource-constrained devices. The hands-on experience
+    quantizing Whisper using CTranslate2 and Distil-Whisper with OpenVINO provided
+    practical insights into optimizing the model for various deployment scenarios.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Furthermore, we tackled the challenges and opportunities of real-time speech
+    recognition with Whisper. We gained insights into the current limitations, such
+    as processing time and latency, and explored ongoing research efforts to make
+    real-time transcription a reality. The experimental approach to building a streaming
+    ASR demo using Whisper and Gradio provided a glimpse into the future possibilities
+    of real-time speech recognition.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Throughout the chapter, we acquired a solid understanding of advanced techniques
+    to optimize Whisper’s performance and appreciate the potential and challenges
+    of real-time speech recognition. The hands-on coding examples and practical insights
+    equipped us with the knowledge and skills to apply these techniques in our projects,
+    pushing the boundaries of what is possible with Whisper.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As we conclude this chapter, we look ahead to [*Chapter 8*](B21020_08.xhtml#_idTextAnchor186),
+    *Diarizing Speech with WhisperX and NVIDIA’s NeMo*. While Whisper has proven to
+    be a powerful tool for transcribing speech, there’s another crucial aspect of
+    speech analysis that can significantly enhance its utility: speaker diarization.
+    By augmenting Whisper with the ability to identify and attribute speech segments
+    to different speakers, we open a new realm of possibilities for analyzing multispeaker
+    conversations. Join me in the next chapter, and let’s explore how Whisper can
+    be integrated with cutting-edge diarization techniques to unlock these capabilities.'
+  prefs: []
+  type: TYPE_NORMAL

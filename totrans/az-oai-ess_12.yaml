@@ -1,0 +1,1285 @@
+- en: '12'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Operationalizing Azure OpenAI
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the preceding chapters, we’ve demonstrated how you can use **Azure OpenAI**
+    (**AOAI**) while your data is secure and private. In this chapter, our focus will
+    shift to operationalizing Azure OpenAI. This means we will explore how to effectively
+    deploy, manage, and optimize Azure OpenAI services. We will discuss best practices
+    for logging and monitoring, ensuring you can track and analyze the performance
+    of your AOAI service. Additionally, we will cover the various service quotas and
+    limits, helping you to understand how to manage and allocate resources efficiently.
+    We will also look at quota management and how you can request increases to support
+    larger workloads. Furthermore, we will explain how to provision throughput units
+    to ensure your AI services can handle the required load. Finally, we will examine
+    strategies for scaling Azure OpenAI services to meet growing demands.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter we’re going to cover the following main topics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Azure OpenAI default Logging and Monitoring
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Azure OpenAI Service Quotas and Limits
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Azure OpenAI Quota Management
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Azure OpenAI Provision Throughput Unit
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Azure OpenAI Scaling
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Azure OpenAI default Logging and Monitoring
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Azure OpenAI service gathers monitoring data much like other Azure resources.
+    You can set up Azure Monitor to collect data in activity logs, resource logs,
+    virtual machine logs, and platform metrics.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Both platform metrics and the Azure Monitor activity log are automatically gathered
+    and stored. To direct this data to other destinations, you can use a diagnostic
+    setting. However, Azure Monitor resource logs are only collected and stored when
+    you create a diagnostic setting and route the logs to one or more designated locations.
+    During the configuration of a diagnostic setting, you decide which types of logs
+    to collect. It’s important to note that using diagnostic settings and sending
+    data to Azure Monitor Logs can incur additional costs. The following sections
+    provide details on the metrics and logs that can be collected.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Azure OpenAI metrics
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: You can use Azure Monitor tools in the Azure portal to examine metrics for your
+    Azure OpenAI Service resources.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Login to Azure Portal.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Go to the **Overview** page of your Azure OpenAI resource
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Choose **Metrics** from the **Monitoring** section on the left side as shown
+    in *Figure 12**.1*:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 12.1: AOAI metrics portal view](img/B21019_12_1.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.1: AOAI metrics portal view'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Azure OpenAI has commonality with a subset of Azure AI services. The Azure OpenAI
+    Service provides several key metrics to help users monitor and optimize their
+    usage. **Azure OpenAI Requests** is a fundamental metric that tracks the number
+    of API calls made to the service. This helps users understand their usage patterns
+    and can be crucial for managing costs and ensuring efficient use of resources.
+    **Time to Response** measures the time taken to process requests, which is vital
+    for assessing the performance and responsiveness of the service. High latency
+    can indicate potential bottlenecks or issues that need to be addressed to maintain
+    a smooth user experience.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Another important metric is **Prompt Token Cache Match Rate** which monitors
+    the KV cache hits in PTU-M. **Key-Value** (**KV**) caching is a technique used
+    in generative transformer models, including **large language models** (**LLMs**),
+    to enhance the efficiency of the inference process. The main features of KV caching
+    include:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Reducing Computational Overhead**: It eliminates the need to recompute key
+    and value tensors for previous tokens at each step of generation, thereby speeding
+    up the process.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Memory-Compute Balance**: By storing these tensors in GPU memory, KV caching
+    optimizes the trade-off between memory usage and computational performance.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'To make the most of KV caching in your prompts, apply these optimization strategies:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Position Dynamic Elements Strategically**: Place dynamic components—such
+    as grounding data, date and time, or chat history—toward the end of your prompt.
+    This ensures that frequently changing parts don’t disrupt caching for the static
+    portions.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Keep Static Elements Consistent**: Arrange static components like safety
+    guidelines, examples, and tool or function definitions at the beginning of the
+    prompt in a consistent order. This maximizes reusability and caching efficiency
+    for these parts.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Dedicate Your Deployment**: Focus your Prompt-Tuned Use (PTU) deployment
+    on a limited number of use cases. This increases the uniformity of requests, enhancing
+    cache hit rates and overall performance.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Processed Inference Tokens**, which tracks the number of tokens processed
+    in both requests and responses. This is particularly useful for understanding
+    the complexity and length of interactions with the service. Monitoring token usage
+    can help in optimizing prompts and managing costs effectively. Lastly, the **Provisioned-managed
+    Utilization V2** metric monitors the utilization % of the PTU-M. Utilization percentage
+    for a provisioned-managed deployment is calculated using the formula: (PTUs consumed
+    / PTUs deployed) x 100\. When this utilization reaches or exceeds 100%, calls
+    are throttled, and error code 429 is returned. Together, these metrics provide
+    a comprehensive view of the service’s performance, helping users to identify areas
+    for improvement and ensure optimal operation.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'For a list of all platform metrics collected for Azure OpenAI and similar Azure
+    AI services by Azure Monitor follow the link given: [https://learn.microsoft.com/en-us/azure/ai-services/openai/monitor-openai-reference](https://learn.microsoft.com/en-us/azure/ai-services/openai/monitor-openai-reference).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can export all metrics using diagnostic settings in Azure Monitor. To examine
+    logs and metric data using queries in Azure Monitor Log Analytics, it’s necessary
+    to set up diagnostic settings for both your Azure OpenAI resource and your Log
+    Analytics workspace. Now, let’s set up the diagnostic settings.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Go to your Azure OpenAI resource page and choose **Diagnostic settings** under
+    **Monitoring** on the left side. On the **Diagnostic settings** page, pick **Add**
+    **diagnostic setting**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 12.2: Adding diagnostic settings](img/B21019_12_2.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.2: Adding diagnostic settings'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'On the **Diagnostic settings** page, do the following steps:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select **Send to Log** **Analytics** workspace.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Pick your Azure account subscription.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Pick your **Log** **Analytics** workspace.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Under **Logs**, choose **allLogs**.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Under **Metrics**, choose **AllMetrics**.
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: "![Figure 12.3: Configuring diagnostic setting\uFEFF.](img/B21019_12_3.jpg)"
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.3: Configuring diagnostic setting.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Choose a name for the **Diagnostic setting** to store the configuration.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click on **Save**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Once the diagnostic settings are set up, you can use metrics and log data for
+    your Azure OpenAI resource in your Log Analytics workspace.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, we will learn how to use Kusto queries to track the logs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Monitoring logs using Kusto queries
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: To create the logs that we will monitor, we need to make API calls first. Do
+    the following steps to produce the logs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Go to chat completion inside Azure AI Foundry portal
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Ask any questions in the portal
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: "![Figure 12.4: \uFEFFIssuing API call to generate logs\uFEFF](img/B21019_12_4.jpg)"
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.4: Issuing API call to generate logs'
+  prefs: []
+  type: TYPE_NORMAL
+- en: When you use the **Chat completions playground** to enter any text, it produces
+    metrics and log data for your Azure OpenAI resource. You can use the Kusto query
+    language to query the monitoring data in the Log Analytics workspace for your
+    resource.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, we will use Kusto to search for logs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: On your Azure OpenAI resource page, choose **Logs** from the Monitoring section
+    on the left side of the screen.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Choose the **Log Analytics** workspace where you set up diagnostics for your
+    Azure OpenAI resource.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: From the left pane of the **Log Analytics** workspace page, choose **Logs**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: By default, the Azure portal shows a window with sample queries and suggestions.
+    You can exit this window.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: To run the following examples, type the Kusto query in the editor area at the
+    top of the **Query** window, and then choose **Run**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: This query shows a sample of 100 audit records. Audit logs in Azure Monitor
+    capture detailed telemetry about log queries executed within the system. They
+    provide information such as the time a query was run, the identity of the user
+    who executed it, the tool used to run the query, the query text itself, and performance
+    metrics related to the query’s execution
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: "![Figure 12.5: \uFEFFAnalyzing logs using Kusto queries\uFEFF](img/B21019_12_5.jpg)"
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.5: Analyzing logs using Kusto queries'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, you have learned how to check AOAI logs, the next section will cover the
+    AOAI service limits and Quota that are important for designing the GenAI solution.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Azure OpenAI Service quotas and limits
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Azure OpenAI Pay-as-you-go model is a shared tenant GPU infrastructure for inferencing.
+    Therefore, AOAI service has some service limit on how you can use this resource.
+    In this section we will describe the various limits and quotas for different AOAI
+    model and how to prevent throttling by following some best practices.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'At this time of writing, each Azure subscription can access up to 30 OpenAI
+    resources per region. For DALL-E models, the default quota limits are 2 concurrent
+    requests for DALL-E 2 and 2 capacity units (equivalent to 6 requests per minute)
+    for DALL-E 3\. Whisper, another model, has a limit of 3 requests per minute. The
+    maximum number of prompt tokens per request varies by model, and more detailed
+    information can be found in the Azure OpenAI Service models documentation in the
+    given link: [https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models?tabs=python-secure%2Cglobal-standard%2Cstandard-chat-completions#gpt-4-and-gpt-4-turbo-models](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models?tabs=python-secure%2Cglobal-standard%2Cstandard-chat-completions#gpt-4-and-gpt-4-turbo-models).
+    Fine-tuning capabilities are capped at 5 model deployments, with a total of 100
+    training jobs per resource. However, only one training job can run simultaneously
+    per resource, and up to 20 jobs can be queued. Each resource can contain up to
+    50 files for fine-tuning, with a total size limit of 1 GB, and each training job
+    must not exceed 720 hours or contain more than 2 billion tokens.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Additional constraints include a maximum upload size of 16 MB for all files
+    in Azure OpenAI on your data, with a limit of 2048 inputs in an array for embeddings
+    and 2048 messages for chat completions. The maximum number of functions and tools
+    for chat completions is set at 128 each. Provisioned throughput units per deployment
+    are capped at 100,000\. When using the API or AI Studio, each Assistant or thread
+    can handle up to 10,000 files, but this is reduced to 20 files when using Azure
+    AI Foundry. The file size limit for Assistants and fine-tuning is 512 MB, and
+    the token limit for Assistants is 2,000,000 tokens. GPT-4o can handle up to 10
+    images per request, GPT-4 turbo have a default maximum token limit of 16,384,
+    which can be increased to avoid truncated responses. Lastly, API requests can
+    include up to 10 custom headers.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The quota limits for different Azure OpenAI models vary by region. These limits
+    are determined per Azure Subscription, per region, and per model. Azure OpenAI
+    offers two distinct deployment types for newer models like GPT-4 Turbo, GPT-4o,
+    and GPT-4o-mini: “Standard” and “Global Standard.” The “Standard” deployment is
+    region-specific, resulting in fewer **Tokens per Minute** (**TPM**) compared to
+    the “Global Standard” deployment, which operates globally. Customers with an “Enterprise
+    Agreement” with Microsoft receive higher quotas for both deployment types. In
+    the “Global Standard” deployment, inference can occur anywhere worldwide. Customers
+    requiring **General Data Protection Regulation** (**GDPR**), an EU data privacy
+    law that protects personal data, grants individuals control over their information,
+    and imposes strict compliance, requirements on organizations, with significant
+    penalties for non-compliance. may prefer the “Standard” or “Data Zone” deployment,
+    whereas those prioritizing maximum throughput might opt for the “Global Standard”
+    deployment. The “Global Standard” deployment is inherently highly available, eliminating
+    the need for a separate load balancing mechanism. However, if you choose the “Standard”
+    deployment and require high availability, you will need to set up load balancing
+    using the Azure API Management service. For the latest quota limits for Azure
+    OpenAI models, visit: [https://learn.microsoft.com/en-us/azure/ai-services/openai/quotas-limits](https://learn.microsoft.com/en-us/azure/ai-services/openai/quotas-limits).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In summary, Azure OpenAI provides flexible deployment options tailored to different
+    needs, ensuring that you can select the best configuration for your specific requirements,
+    whether they are compliance-related or performance-driven.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Best Practices to prevent throttling
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: To understand the best practice to avoid throttling, we need to know how these
+    rate limits are calculated in the background.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'TPM rate limits are calculated from the highest number of tokens that a request
+    is expected to process when the request is accepted. It’s different from the token
+    count used for billing, which is determined after all processing is done. When
+    Azure OpenAI gets a request, it calculates an approximate max processed-token
+    count that covers the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Prompt text and count
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `max_tokens` parameter setting
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The `best_of` parameter setting
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The AOAI model deployment endpoint keeps track of a token count for all requests
+    that is reset every minute, based on the estimated max-processed-token count for
+    each request. If the token count reaches the TPM rate limit value at any point
+    during that minute, then subsequent requests will get a 429-error response code
+    until the counter resets.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The **Request-Per-Minute** (**RPM**) rate limit determines the number of requests
+    your organization can make to the OpenAI API within a one-minute timeframe. This
+    limit helps prevent server overload and ensures equitable usage among all users.
+    The specific RPM limit varies based on the endpoint and the type of account you
+    possess. RPM limits assume that requests are evenly spread out over the minute.
+    If this even distribution is not maintained, requests may receive a 429-error
+    response even if the overall limit has not been breached within the minute.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To enforce this, the Azure OpenAI Service monitors the rate of incoming requests
+    over shorter intervals, typically 1 or 10 seconds. If the request count during
+    these brief intervals surpasses what is allowed by the RPM limit, subsequent requests
+    will receive a 429-error code until the next interval check. For instance, if
+    the service checks request rates in 1-second intervals, a deployment with a 600-RPM
+    limit will be rate-limited if more than 10 requests are sent in any 1-second period
+    (since 600 requests per minute translates to 10 requests per second).
+  prefs: []
+  type: TYPE_NORMAL
+- en: In summary, understanding and adhering to the RPM rate limits is crucial for
+    optimizing API usage and avoiding disruptions. This mechanism ensures both system
+    stability and fair access for all users.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To reduce problems caused by rate limits, it’s advisable to apply the following
+    methods:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Add retry logic to your application. This approach can help you when you face
+    request rate limits, since these limits change after every 10-second interval.
+    Depending on your quota, the change time could be even quicker.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Do not make the workload change abruptly. Make the workload higher slowly.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Experiment with various ways of raising the load.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: To improve performance, raise the quota for your model or split the load among
+    different subscriptions or regions. When you reach the quota limits of turbo or
+    gpt-4-8k, think about using other options like turbo-16k or gpt-4-32k. These are
+    separate quota buckets within the Azure OpenAI Service.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Keep the max_tokens parameter as low as possible while making sure it meets
+    your needs.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Next, we will discuss how to manage the quota from the AOAI portal.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Azure OpenAI quota management
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Quota lets you control how the rate limits are distributed among the deployments
+    in your subscription. In this section we will show you how to manage your Azure
+    OpenAI quota.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Azure OpenAI’s quota feature allows you to allocate rate limits to your deployments,
+    up to an overall limit known as your “quota.” This quota is assigned to your subscription
+    on a per-region, per-model basis and is measured in **Tokens-per-Minute** (**TPM**).
+    When you create Azure OpenAI service, you receive a default quota for most of
+    the available models (refer to the previous section for default quotas for each
+    model).
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you create deployments, you’ll assign TPM to each one, and the available
+    quota for that model will decrease by the assigned amount. You can continue to
+    create and assign TPM to deployments until you reach your quota limit. Once the
+    quota is reached, you can only create new deployments of that model by reallocating
+    TPM from existing deployments of the same model or by requesting and receiving
+    approval for a quota increase in the desired region. For instance, a customer
+    with a quota of 240,000 TPM for the GPT-35-Turbo model in the East US region can
+    utilize this quota in various configurations. They could opt for a single GPT-35-Turbo
+    deployment with a 240K TPM limit, or they might choose to have two separate deployments,
+    each with 120K TPM. Alternatively, they can distribute their quota across multiple
+    deployments in any combination, as long as the total TPM does not exceed 240K
+    within the East US region.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In essence, Azure OpenAI’s quota management system helps you efficiently allocate
+    and manage your API usage, ensuring that you can maximize the utility of your
+    deployments while staying within your allotted limits.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The inferencing requests for AOAI model deployment will have a rate limit based
+    on how much TPM the deployment is assigned. The TPM assignment also determines
+    the value of the **Requests-Per-Minute (RPM)** rate limit, which follows this
+    ratio: 6 RPM per 1000 TPM.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, we will discuss how to allocate the quota from AOAI portal.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Assign Quota
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: You can choose how many TPM you want to allocate to your AOAI model deployment
+    when you create it. TPM can be changed by 1,000 at a time and will determine the
+    TPM and RPM rate limits that apply to your deployment, as explained in the previous
+    section.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To allocate the quote, do the following steps.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Login to Azure OpenAI Portal
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click on **Deployments** under **Shared resources**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select the existing deployment
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click on **Edit deployment**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Set the desired TPM
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click **Save** **and close.**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: "![Figure 12.6: \uFEFFAssigning quota to AOAI deployment\uFEFF](img/B21019_12_6.jpg)"
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.6: Assigning quota to AOAI deployment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Based on the type of deployment you select for your model; you can navigate
+    to either the “**Azure OpenAI Standard**” or “**Azure OpenAI Global-Standard**”
+    tab. Once you’ve configured the quota for various deployments, you can view how
+    your quota is allocated across different regional or global deployments by visiting
+    the **Quotas** page under **Shared Resources**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: "![Figure 12.7: Overall quota assignment for AOAI deployments\uFEFF](img/B21019_12_7.jpg)"
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.7: Overall quota assignment for AOAI deployments'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This Quotas page has four fields:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Quota Name**: Each model type has a quota value for each region. The quota
+    applies to all versions of that model. The quota name can be made larger in the
+    UI to display the deployments that are using the quota.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Deployment**: Model deployments grouped by a model class.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Usage/Limit:** This shows the amount of quota consumed by deployments and
+    the amount of quota allocated for this subscription and region, under the quota
+    name.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Request quota**: The link in this field leads to a form where requests for
+    more quota for a specific AOAI model.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Now, you have learned how to manage quota in APOAI resource, next section we
+    will explore Provisioned Throughput Unit concept.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Azure OpenAI Provisioned Throughput Unit
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The **Provisioned Throughput Unit** (**PTU**) feature lets you set the throughput
+    you want for your application. It gives you more control over how you use and
+    configure OpenAI’s large language models at a scale. It provides a dedicated compute
+    to OpenAI models with a guaranteed throughput. You can set the total number of
+    throughput units (PTU) you want and have the ability and control to distribute
+    your commitment to OpenAI model you prefer. Each model needs a different amount
+    of PTUs to run, for example GPT-3.5 needs less amount of PTUs compared to GPT4\.
+    You can select from various commitment options. With a 1-month or 1-year commitment,
+    you can secure provisioned throughput and get savings in pricing. The provisioned
+    throughput model offers more control and flexibility over workload needs, ensuring
+    that the system is ready when higher workloads arise.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This feature enables:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Consistent performance**: reliable peak latency and capacity for steady workloads.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Fixed performance capacity**: A deployment sets the level of throughput.
+    After deployment, the throughput is ready to use regardless of actual demand.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Cost savings**: High throughput workloads may lower costs vs token-based
+    usage.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'AOAI provides two kinds of PTUs:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Classic PTU**: This particular type of PTU has a high entry threshold due
+    to the minimum PTU requirements for specific models, leading to substantial initial
+    costs. Additionally, future cost increments are also significant. New customers
+    can no longer purchase this kind of PTU. Microsoft advises existing customers
+    to migrate from this PTU to PTU Managed.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**PTU Managed**: This kind of PTU is also known as fractional PTU. It means
+    that the minimum PTU needed for a certain model is low at the start. So, the initial
+    cost is lower than Classic PTU. And future increments are also smaller.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**PTU Managed** (**PTU-M**) is recommended for most of the customers as it
+    provides lower entry point cost with smaller increments and better monitoring
+    metric compared to classic PTU.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The process for purchasing PTU-M is entirely self-service, eliminating the need
+    to contact Microsoft’s account team. You can purchase PTU-M through Azure’s **Reserved
+    Instance** (**RI**) purchasing mechanism. At this time of writing this book, when
+    opting for PTU-M, you have the choice between a monthly RI at $260 per PTU-M or
+    an annual RI at $221 per PTU-M within a specific region. Additionally, there is
+    an option to purchase PTU-M on an hourly basis at a rate of $2 per PTU-M, with
+    no long-term commitment required. For detailed pricing information for each PTU-M
+    model, refer to Chapter 2\. You are free to discontinue the hourly PTU at any
+    time. However, it’s important to note that PTU-M availability is contingent on
+    the capacity available in each region for the specified model.
+  prefs: []
+  type: TYPE_NORMAL
+- en: After purchasing PTU-M via the RI mechanism, you are not restricted to a specific
+    model. You have the flexibility to switch to any model, provided it meets the
+    minimum PTU-M requirements for the chosen region. For detailed information on
+    the minimum PTU-M and scaling requirements for each model, please refer to *Figure
+    12**.8.*
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 12.8: Minimum PTU-M for each model](img/B21019_12_8.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.8: Minimum PTU-M for each model'
+  prefs: []
+  type: TYPE_NORMAL
+- en: For instance, if you acquire a 200-unit RI of PTU-M with a monthly commitment
+    in the East US region, you could allocate 100 units to GPT-4-Turbo, 50 units to
+    GPT4-o, and another 50 units to GPT4-o-mini. The allocation can be adjusted as
+    needed the very next day without waiting for the renewal period. However, once
+    you have made the PTU-M reservation for a specific region, you cannot increase,
+    decrease, or exchange it. To modify the reservation, you would need to either
+    purchase an additional reservation or cancel the existing one, which may result
+    in early termination fees.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'AOAI PTU provides three deployment options:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Global Deployment**: Data processing can occur in any Azure region worldwide
+    and includes built-in data plane high availability (HA).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Data Zone Deployment**: Currently limited to EU and US zones, where data
+    processing is confined to the selected region, either the US or the EU. This deployment
+    also offers by design data plane HA'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Regional Deployment**: Data processing is confined to the specific Azure
+    region where the AOAI service is hosted, and it does not come with built-in data
+    plane **high availability** (**HA**). However, you can implement HA using **Azure
+    API Management** (**APIM**), which will be covered in later sections.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In all deployment types, your data residency remains within the region where
+    your AOAI service is hosted.
+  prefs: []
+  type: TYPE_NORMAL
+- en: So far, you have explored various AOAI PTU options and their purchasing and
+    deployment options. Next, we will discuss how to appropriately size the PTU before
+    committing to a reservation for PTU-M.
+  prefs: []
+  type: TYPE_NORMAL
+- en: PTU-M Sizing
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: PTU-M is a commitment-based pricing model, and it doesn’t have auto scaling
+    features as of now. So, if your workload demands additional computing resources,
+    you must acquire them in advance before utilization. Therefore, accurately sizing
+    the PTU is essential prior to purchase. AOAI provides a PTU-M calculator within
+    Azure AI Foundry to help estimate the appropriate PTU-M size for your specific
+    workload.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To use the calculator, follow the below steps:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Loging to your Azure portal
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Pick the AOAI resource for the given region where you will be requesting the
+    PTU-M
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Open Azure AI Foundry.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Navigate to **Quotas** under **Management**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select the **Azure OpenAI** **Provisioned** tab
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Choose the **Capacity calculator**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select the model you want to use
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Choose the model version
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Provide your workload name, Peaks calls per min
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: For multimodal use cases (only applicable for GPT4-o and GPT4-o-mini), specify
+    the number of tokens used in prompt calls for both text and image inputs separately.
+    This typically includes the total token count for your input question and the
+    context size for text. Additionally, indicate the number of tokens used in the
+    response.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click **Calculate** to calculate how much PTU you need for each kind of workload.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: "![Figure 12.9: PTU-M sizing Calculation\uFEFF](img/B21019_12_9.jpg)"
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.9: PTU-M sizing Calculation'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Once you have identified the PTU-M requirements for your application, you can
+    proceed to purchase them through Azure reservations or hourly on demand PTU options.
+    We will discuss this process in detail in the following section.
+  prefs: []
+  type: TYPE_NORMAL
+- en: PTU-M Purchase model
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: AOAI offers two distinct purchasing models for PTU-M.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**On-Demand Hourly PTU**: This hourly payments for provisioned deployments
+    is perfect for short-term scenarios. This includes tasks like benchmarking the
+    quality and performance of new models or temporarily boosting PTU capacity for
+    events such as hackathons. Under this model it charges $2/PUT/HR. For instance,
+    if you deploy 300 PTUs, you’ll incur costs at the hourly rate multiplied by 300\.
+    Which is 2*300 = $600/hr. If a deployment runs for part of an hour, you’ll be
+    charged proportionally based on the deployment duration in minutes. if a deployment
+    runs for 15 minutes within an hour, the cost would be one-quarter of the hourly
+    rate. For example, with an hourly rate of $600, the charge for 15 minutes would
+    be $150.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: By default, customer will have some quota (typically 100 unit) for PTU to deploy
+    the model. That you can utilize to deploy the hourly PTU. Here are the steps you
+    can follow to deploy the hourly PTU.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Log in to your Azure portal
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Pick the AOAI resource for the given region where you will be requesting the
+    hourly PTU-M.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Open Azure AI Foundry.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click on **Deployments** under **Shared resources**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click on **Deploy model**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Choose **Deploy** **base model**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select the desired model
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click on **Confirm**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Set the **Deployment Name** and **model version**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Choose the **Deployment Type** as **Provisioned-managed**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Set the **Provisioned throughput** **units (PTUs).**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: If you have custom content filter, then choose that one or else select the **DefaultV2**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click on**Confirm purchasing**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 12.10: Hourly PTU-M deployment](img/B21019_12_10.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.10: Hourly PTU-M deployment'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Acknowledge the hourly pricing for the deployment and select **Deploy**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Important note
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'If your current quota for deploying a model on PTU in the specified region
+    is exhausted, you’ll need to submit a request using the form available at: [https://aka.ms/oai/ptueaquotarequest](https://aka.ms/oai/ptueaquotarequest).
+    Requests for less than 1000 PTU will typically be automatically approved within
+    one business day. For requests exceeding 1000 PTU, you’ll need to get in touch
+    with your Microsoft account representative to secure the necessary allocation.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Allocating the quota alone does not ensure the availability of model capacity.
+    Therefore, it is essential to have both quota and capacity to deploy the model
+    in a particular region. If you possess the quota but Microsoft lacks the capacity
+    to deploy the model, you will receive a notification (as shown in *Figure 12**.11*)
+    indicating that the chosen region currently does not have sufficient capacity.
+    The message will then prompt you to select another region that might have the
+    required capacity.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 12.11: Capacity unavailability](img/B21019_12_11.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.11: Capacity unavailability'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To remove the hourly PTU after deployment, you can simply delete it from Azure
+    AI Foundry by following these steps, as illustrated in *Figure 12**.*12:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Sign in to your Azure portal.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Choose the AOAI resource in the specific region where the hourly PTU-M is deployed.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Open Azure AI Foundry.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Navigate to **Deployments** under Shared resources.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Locate and select the hourly PTU deployment.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Press **Delete** to remove it.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 12.12: Hourly PTU deployment removal](img/B21019_12_12.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.12: Hourly PTU deployment removal'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Running PTUs continuously (24x7) can be costly. To address this, AOAI provides
+    an alternative PTU purchase option called Azure Reservations, offering significant
+    discounts for long-term use. We’ll explore this next.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Azure Reservations:** This purchasing option is most economical for extended
+    use. With Azure OpenAI Provisioned reservation, you receive a discount by committing
+    to a set number of PTUs for either a month or a year. You can purchase the same
+    from Azure reservation portal. There are few points you need to consider before
+    buying AOAI PTU reservation'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Reservations are purchased on a regional basis and can be tailored to cover
+    usage across multiple model deployments as long as model minimum PTU requirements
+    meets (refer Fig: 12.8). The scope of reservations can include:'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Specific resource groups or subscriptions
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: A collection of subscriptions within a Management Group
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: All subscriptions under a billing account
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: You can purchase new reservations to apply discounts to newly provisioned deployments
+    within the same scope as existing ones. Additionally, the scope of current reservations
+    can be adjusted at any time without any penalties
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: You can’t exchange the AOAI reservations.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: You cannot add or remove units on a reservation. You can either purchase a new
+    reservation or cancel the existing reservation. However, cancellations have limits.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: If the provisioned deployments exceed the reserved amount, the excess is billed
+    at the hourly rate. For instance, if your deployments total 400 PTUs within a
+    300 PTU reservation, the additional 100 PTUs will incur hourly charges until you
+    either reduce deployment sizes to 300 PTUs or acquire a new reservation for the
+    extra 100.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Reservations ensure a lower price for the chosen term but do not secure service
+    capacity or guarantee availability until a deployment created. So, it’s recommended
+    for customers to set up deployments before buying a PTU reservation to avoid over
+    purchase. To establish the deployment, you can initially opt for the hourly deployment
+    process (as described before) to ensure capacity for the desired region. Then,
+    purchase the AOAI reservation to cover the hourly PTU costs through reservation.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Let’s walk through the step-by-step process for purchasing an AOAI PTU reservation
+    via the Azure Portal.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: Log in to your Azure portal
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Search for Reservations
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click on **Add**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Search **Azure** **OpenAI Service**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Select the **Scope, Billing Subscription, Region, and specific product**. You
+    have three product options: a 1-year reservation with upfront payments, a 1-year
+    reservation with monthly payments, or month-to-month payments. After choosing
+    the appropriate product, the price per PTU will be displayed, as illustrated in
+    *Figure 12**.13*.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select **Add** **to cart**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Important note
+  prefs: []
+  type: TYPE_NORMAL
+- en: An AOAI PTU reservation allows flexibility in selecting any model that meets
+    the minimum PTU requirements, but it is region-specific. Therefore, when purchasing
+    an AOAI PTU reservation, it’s crucial to select the correct region.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 12.13: AOAI reservation purchase](img/B21019_12_13.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.13: AOAI reservation purchase'
+  prefs: []
+  type: TYPE_NORMAL
+- en: On the following screen, as shown in *Figure 12**.14,* specify the desired PTU
+    quantity you wish to purchase for the reservation.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 12.14: Setting AOAI reservation PTU quantity](img/B21019_12_14.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.14: Setting AOAI reservation PTU quantity'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Click on **Next: Review +** **buy**'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: After purchasing the reservation, it might take up to 12 hours for the reservation
+    utilization to be reported in the reservation portal.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'After purchasing a PTU-M, if you wish to evaluate its performance and determine
+    metrics like average latency, maximum TPM, or RPM, you can utilize the benchmark
+    script provided by Microsoft for precise throughput calculations. The benchmark
+    scripts are available at this link: [https://aka.ms/aoai/benchmarking](https://aka.ms/aoai/benchmarking).'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'AOAI guarantees a PTU uptime SLA of 99.9% and a token generation latency SLA
+    of 99%, ensuring consistent and predictable throughput. The gpt-4o models support
+    50 deployable increments (Regional Deployment), with a maximum input throughput
+    of 2,500 TPM and an output limit of 833 TPM per PTU, alongside a latency target
+    of 25 tokens per second. In comparison, the gpt-4o-mini model offers 25 deployable
+    (Regional Deployment) increments but delivers significantly higher maximum input
+    and output rates of 37,000 TPM and 12,333 TPM per PTU, with a latency target of
+    33 tokens per second. These performance metrics apply uniformly across the three
+    available deployment options. For detailed information on throughput and token
+    latency for each model, visit: [https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/provisioned-throughput#how-much-throughput-per-ptu-you-get-for-each-model](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/provisioned-throughput#how-much-throughput-per-ptu-you-get-for-each-model)'
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can also use the Azure OpenAI “provisioned-managed Utilization V2” metric
+    to track the PTU usage when you perform a load test or run your PTU in production.
+    This metric is only available in PTU-M and not in Classic PTU.
+  prefs: []
+  type: TYPE_NORMAL
+- en: If you decide not to continue with the AOAI PTU reservation, simply switch off
+    the reservation’s auto renew option as referred in the *Figure 12**.15.* and ensure
+    you delete the PTU deployment, as explained earlier. If the reservation isn’t
+    auto renewed and you forget to remove the PTU deployment, you will incur hourly
+    charges. Here’s how you can avoid renewing a reservation after making a purchase.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Log in to your Azure portal
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Search for Reservations
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select the specific reservation you wish to prevent from auto-renewing.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Navigate to the settings menu and select the **Renewal** options.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select **Do** **not renew**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click on **Save**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 12.15: Turning off AOAI PTU reservation renewal](img/B21019_12_15.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.15: Turning off AOAI PTU reservation renewal'
+  prefs: []
+  type: TYPE_NORMAL
+- en: We have discussed various components of AOAI that enterprises require for their
+    business production applications. Next, we will explore some scaling technique
+    of AOAI to overcome throughput limitations.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Azure OpenAI Scaling
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: AOAI typically imposes constraints on the volume of calls permitted. With Azure
+    OpenAI, these limitations manifest as token limits (TPM, Tokens Per Minute) and
+    restrictions on the number of requests per minute (RPM). Nevertheless, these quotas
+    are confined to individual subscriptions, regions, and specific models. As a result,
+    numerous customers opt for multiple Azure OpenAI (AOAI) resources across various
+    regions to achieve maximum throughput. Although this configuration in a “PAUG”
+    setup does not address latency issues, the subsequent section will delve into
+    resolving latency problems using PTU.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In PAUG when the capacity limits are reached, The AOAI returns a 429 or TooManyRequests
+    HTTP status code, along with a Retry-After response header specifying the duration
+    of second you should wait before attempting the next request. Handling these errors
+    is typically managed on the client-side by SDKs, which is effective when dealing
+    with a single API endpoint. However, when utilizing multiple OpenAI endpoints
+    to get the maximum throughputs, managing the list of URLs on the client-side becomes
+    necessary, which may not be ideal. To address this, a sophisticated load balancing
+    mechanism is required, capable of intelligently determining when and which AOAI
+    endpoint the traffic should be routed to.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'APIM offers a robust solution for developers to securely expose their APIs
+    to both external and internal users. With this platform, you can implement a smart
+    load balancing strategy that takes into account the “Retry-After” and 429 error
+    responses, dynamically rerouting traffic to alternate OpenAI backends that are
+    not currently experiencing throttling. Additionally, you have the flexibility
+    to establish a priority order for your AOAI endpoints, ensuring that higher priority
+    endpoints are utilized first when they are not throttled. In the event of throttling,
+    API Management automatically switches to lower priority backends while the higher
+    priority ones recover. This approach optimizes resource utilization and minimizes
+    disruptions in service delivery. Let me explain this with an example:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Suppose you’ve established multiple AOAI endpoints across various regions, each
+    assigned to different priority groups based on your business requirements. For
+    instance, endpoints in US East and US East2 are grouped under priority group 1,
+    while those in North Central and South Central are categorized under priority
+    group 2, and West US and West US3 fall into priority group 3.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Normal Case**: Under typical conditions, AOAI backends in priority group
+    1 receive all incoming traffic from Azure API Management (APIM), while those in
+    priority groups 2 and 3 remain inactive as standby options.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![Figure 12.16: APIM load balancing in normal scenario](img/B21019_12_16.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.16: APIM load balancing in normal scenario'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Throttling Case**: In the event of workload throttling from priority group
+    1, resulting in a 429 error code sent to APIM, the traffic will be rerouted to
+    priority group 2 by APIM. This redirection ensures continued service delivery
+    until priority group 1 becomes healthy again. Typically, priority group 1 will
+    be reactivated after the duration specified in the “Retry-After” HTTP header received
+    from AOAI.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![Figure 12.17: APIM load balancing in throttling scenario](img/B21019_12_17.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.17: APIM load balancing in throttling scenario'
+  prefs: []
+  type: TYPE_NORMAL
+- en: When defining priority groups, you have the flexibility to choose a strategy
+    that aligns with your business needs. For instance, you can implement a geo-based
+    priority group approach where all AOAI resources deployed across US regions are
+    combined into priority group 1, and similarly, all AOAI resources deployed across
+    Canadian regions are grouped into priority group 2\. In the event that priority
+    group 1, consisting of US resources, experiences throttling, traffic can be routed
+    to the Canadian region as an alternative. This strategy ensures efficient resource
+    utilization and maintains service availability across different geographical locations.
+  prefs: []
+  type: TYPE_NORMAL
+- en: When addressing latency concerns, PTU emerges as the appropriate solution and
+    is typically recommended for production use cases. However, due to its high cost
+    and restriction to specific subscriptions, careful sizing is crucial. While a
+    PTU sizing calculator is available in the AOAI portal, many customers opt to size
+    PTU based on baseline average utilization, offloading peak traffic to PAUG instances.
+    This approach allows for a balance between cost, throughput, and latency. Consequently,
+    a hybrid approach is adopted where PTU and PAUG instances coexist side by side.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Presented below is a reference architecture tailored for deploying both PTU
+    and PAUG instances within a single region. In this setup, designate the AOAI PTU
+    instance as priority group 1, and the AOAI PAUG instance as priority group 2\.
+    Such architecture serves as a reliable HA setup for AOAI.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 12.18: Single Region Scaling with HA](img/B21019_12_18.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.18: Single Region Scaling with HA'
+  prefs: []
+  type: TYPE_NORMAL
+- en: At times, customers may require a **disaster recovery** (**DR**) solution alongside
+    HA for their business applications utilizing AOAI. In such scenarios, deploying
+    AOAI PTU and PAUG instances across different regions is recommended. Assign region-specific
+    AOAI resources to distinct priority groups based on their respective regions.
+    Below is the architecture presented for this kind of setup.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 12.19: Multi Region Scaling with HA & DR](img/B21019_12_19.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: 'Figure 12.19: Multi Region Scaling with HA & DR'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the provided reference architecture, the focus is on an active-standby DR
+    strategy, where only the primary region’s priority group 1 is active. In the event
+    of failure in that region, the standby region’s priority group 2 becomes active.
+    However, for a more active-active DR setup, both region PTU instances can be designated
+    as priority group 1, and both PAUG instances assigned to priority group 2\. This
+    configuration ensures that PTUs are effectively utilized while PAUG instances
+    handle any additional offloaded traffic.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: This chapter encompasses crucial aspects of operationalizing AOAI, including
+    monitoring various metrics such as the number of API calls, latency, sum of prompt
+    tokens, and completion tokens etc. Additionally, it discusses AOAI resource quotas,
+    outlining different limits across resources and how to manage and allocate quotas
+    effectively. Furthermore, the chapter delves into the reserved instance concept
+    of AOAI, known as PTU, which is vital for any production workload. Lastly, it
+    explores scaling AOAI using multiple endpoints, along with HA and DR strategies,
+    all essential components for building enterprise-level generative AI applications.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In the upcoming chapter, we will discuss the concept of prompt engineering,
+    an essential cornerstone in the development and optimization of generative AI
+    models. Prompt engineering encompasses a diverse array of techniques aimed at
+    refining and tailoring the input prompts provided to these models, thereby influencing
+    the quality, coherence, and relevance of their generated outputs. Throughout this
+    chapter, we will explore the most popular techniques and impactful strategies
+    within prompt engineering. By delving into these techniques, we aim to provide
+    you with comprehensive insights and practical knowledge essential for effectively
+    harnessing the capabilities of generative AI models in various applications and
+    domains.
+  prefs: []
+  type: TYPE_NORMAL

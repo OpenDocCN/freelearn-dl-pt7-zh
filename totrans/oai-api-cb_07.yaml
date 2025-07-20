@@ -1,0 +1,1156 @@
+- en: '7'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Building Assistants with the OpenAI API
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The primary reason that ChatGPT changed the Generative AI landscape is that
+    it marketed itself as an easy-to-use all-in-one digital assistant. This approach
+    has made it highly accessible to a broad range of users, from developers and businesses
+    to educators and creative professionals.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The versatility of the OpenAI API lies in its ability to understand and generate
+    human-like text, enabling the creation of sophisticated digital assistants tailored
+    to various needs. Whether it’s automating customer service, providing educational
+    support, assisting in content creation, or enabling interactive storytelling,
+    the API’s robust features allow for endless possibilities.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As a result, we can use the API, along with the other elements that we learned
+    about in previous chapters, to create powerful knowledge assistants. How will
+    the assistant that we create differ from the ChatGPT product itself? The answer
+    lies in the knowledge or information to which the assistant has access.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'OpenAI has trained ChatGPT on a variety of different sources on the internet,
+    but the model itself is data-limited. This has two implications:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Information is out of date*: The model (without any extensions or plugins)
+    cannot provide current or up-to-date information. For example, you cannot ask
+    it **what was the score in yesterday''s** **basketball game**.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Knowledge retrieval is messy*: You cannot restrict the model to only look
+    at specific sources when answering questions. Because of this and since the data
+    has been trained on various sources from the internet (and certainly not everything
+    online is correct), this means that the answers you get may not always be correct.
+    This can also occur due to hallucinations.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: How do we fix this? We can build our own assistants that use both the OpenAI
+    API and a trusted knowledge source that we specify. This can be in the form of
+    a PDF file that the user can upload or a web link that we know has the most up-to-date
+    information.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this chapter, we will build knowledge-based assistants. We will use ChatGPT’s
+    ability to understand human-like text and respond accordingly, as well as a trusted
+    up-to-date knowledge source. Similar to the previous chapter, the application
+    architecture will contain the frontend and backend that access the OpenAI API.
+    However, we will add an intermediary step to account for the knowledge source.
+    If you don’t recall the architecture, *Figure 7**.1* demonstrates the layers within
+    any application.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.1 – Demonstration of a typical application architecture using the
+    OpenAI API with the Knowledge Source](img/B21007_07_1.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.1 – Demonstration of a typical application architecture using the OpenAI
+    API with the Knowledge Source
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, we will cover the following recipes:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating a knowledge-retrieval assistant application
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Creating a knowledge-retrieval assistant through the Assistants API
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: All the recipes in this chapter require you to have access to the OpenAI API
+    (via a generated API key) and have an API client installed. You can refer to the
+    [*Chapter 1*](B21007_01.xhtml#_idTextAnchor021) recipe *Making OpenAI API requests
+    with Postman* for more information on how to obtain your API key. This will also
+    require knowledge of Python and the Python OpenAI library, which we covered in
+    the first recipe within [*Chapter 4*](B21007_04.xhtml#_idTextAnchor074).
+  prefs: []
+  type: TYPE_NORMAL
+- en: We will also use the **Google Cloud Platform** (**GCP**) to host our public
+    endpoint. GCP is a suite of cloud computing services offered by Google. It provides
+    a range of hosting and computing services for databases, data storage, data analytics,
+    machine learning, and more, all hosted on Google’s infrastructure. You can refer
+    to the [*Chapter 5*](B21007_05.xhtml#_idTextAnchor090) recipe *Creating a public
+    endpoint server that calls the OpenAI API* for more information.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Finally, you need to be familiar with *Bubble*, which is a visual programming
+    platform that allows users to create web applications without needing to write
+    code. You can refer to the [*Chapter 5*](B21007_05.xhtml#_idTextAnchor090) recipe
+    *Calling the user-created* *endpoint* *from no-code applications* for more information
+    on how to set up Bubble.
+  prefs: []
+  type: TYPE_NORMAL
+- en: It is also recommended that you complete the recipes in [*Chapter 6*](B21007_06.xhtml#_idTextAnchor106),
+    as this chapter’s recipes will cover concepts that we learned in that chapter.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating a knowledge-retrieval assistant application
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this first recipe, we will build an intelligent application that analyzes
+    an uploaded PDF document and answers questions about it that the user poses. This
+    can have several use cases, such as aiding in academic research by quickly summarizing
+    key points, assisting legal professionals in extracting specific information from
+    lengthy documents, or aiding businesses in understanding technical reports.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The application will leverage the OpenAI API’s NLP capabilities to interpret
+    the content of the PDF and provide accurate, context-aware responses. This not
+    only streamlines the process of information retrieval but also enhances user engagement
+    by offering interactive, AI-driven insights.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The example that we will follow is one where we upload the following instructional
+    manual about a drone, and we want to ask questions such as `what is the maximum
+    height I can fly this drone?` and `How do I recharge the drone battery?`. The
+    PDF of the drone instructional manual can be found here: [https://bookpackt67.blob.core.windows.net/test/XDroneManual.pdf?sp=r&st=2024-01-12T00:52:16Z&se=2024-12-31T08:52:16Z&spr=https&sv=2022-11-02&sr=b&sig=IEXLlGXVXCilEg0ffqW8ItXc4LX2YkbRWuZIpSxfP8Y%3D](https://bookpackt67.blob.core.windows.net/test/XDroneManual.pdf?sp=r&st=2024-01-12T00:52:16Z&se=2024-12-31T08:52:16Z&spr=https&sv=2022-11-02&sr=b&sig=IEXLlGXVXCilEg0ffqW8ItXc4LX2YkbRWuZIpSxfP8Y%3D).
+    We should download the file to our computer before starting the recipe. A screenshot
+    of the file can be seen in *Figure 7**.2*.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.2 – PDF of the drone manual](img/B21007_07_2.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.2 – PDF of the drone manual
+  prefs: []
+  type: TYPE_NORMAL
+- en: Getting ready
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Ensure you have an OpenAI Platform account with available usage credits. If
+    you don’t, please follow the *Setting up your OpenAI Playground environment* recipe
+    in [*Chapter 1*](B21007_01.xhtml#_idTextAnchor021).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Furthermore, ensure you have created a GCP account. You may need to provide
+    a billing profile as well to create any GCP resources. Note that GCP does have
+    a free tier, and in this recipe, we will not go above the free tier (so, essentially,
+    you should not be billed for anything).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Finally, ensure that you have created a Bubble account, which you can do for
+    free at [http://bubble.io](http://bubble.io).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Both the recipes in this chapter will have this same requirement.
+  prefs: []
+  type: TYPE_NORMAL
+- en: How to do it…
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Google Cloud Functions
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: In a new browser tab, navigate to [https://cloud.google.com](https://cloud.google.com)
+    and log in with your Google credentials.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select **Console** in the top right.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Create a new Google cloud function. In the search bar, type in **function**,
+    select **Cloud Functions**, and then select **Create Function**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Name the function a descriptive name. Since this function will return answers
+    based on a file, we are going to aptly name it **get_answer_from_file**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In the **Authentication** menu, ensure that you select **Allow unauthenticated
+    invocations** as the authentication method. This will enable the frontend application
+    to make calls to the backend layer.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select the **Runtime, build, connections and security settings** drop-down menu
+    to expand the options. Change **Timeout** from 60 seconds to 300 seconds. This
+    will make sure that the timeout for the Google cloud function is not 1 minute
+    but 5 minutes instead. This is important in multi-modal applications, as several
+    API requests will be made.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: "![Figure 7.3 – Google \uFEFFcloud \uFEFFfunction configuration settings](img/B21007_07_3.jpg)"
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.3 – Google cloud function configuration settings
+  prefs: []
+  type: TYPE_NORMAL
+- en: Select **Next** to move on to function development. In the **Runtime** drop-down
+    menu, select **Python 3.12**. For **entry point**, select or type in **get_answer_from_pdf**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Go to **Requirements.txt** in the left-hand menu and type the following Python
+    packages in as these libraries will be used in the backend function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'For the actual *code block*, type in the following. This function takes in
+    two inputs (**pdf_url** and **question**) and returns the relevant **answer**
+    based on information found in the PDF:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Select **Deploy**. You might need to wait five minutes for the deployment to
+    fully complete. When you see the green checkmark on the cloud function screen,
+    your function has been successfully deployed.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Similar to the previous chapter, we will now use Postman to test the cloud function
+    that we have just deployed. Open Postman. Select **New** in the top left and select
+    **HTTP**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: On the Postman request, select **Headers** and type in a new header, with **Key**
+    equal to **Content-Type** and **Value** equal to **application/json**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Change the request from **Get** to **Post** in the left-hand drop-down menu.
+    Copy the endpoint URL from the **Cloud Function** page and paste it into Postman.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Select **Body**, then select **Raw**, and copy and paste the following JSON
+    request:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Select **Send** to make the call to your cloud function. If all goes well, you
+    should see a similar response to the one shown in *Figure 7**.4*, which contains
+    several objects embedded in the JSON response.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 7.4 – Postman output](img/B21007_07_4.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.4 – Postman output
+  prefs: []
+  type: TYPE_NORMAL
+- en: Bubble
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Next, navigate to [http://bubble.io](http://bubble.io) and log in. Select **Create
+    an app** and give your app a relevant name. Select **Get started** and then select
+    **Start with basic features**. You can also select the **Skip the application
+    assistant** prompt if you encounter it.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: On the Canvas page, we are going to add a few elements that are required for
+    our application. Select **Input** from the left-hand menu and then draw a rectangle
+    at the top of the page. Double-click the element and, in the property menu, replace
+    the **Placeholder** with **Question**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![](img/B21007_07_5.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.5 – Bubble input configuration
+  prefs: []
+  type: TYPE_NORMAL
+- en: Add a **File Uploader** element by selecting it from the left-hand menu and
+    then drawing a rectangle directly below the previous element.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Next, create a text element by selecting it from the left-hand menu and drawing
+    a rectangle (make it multiple lines) directly below the previous elements. Double-click
+    the text element to get the property menu. Then, click **Insert dynamic data**
+    on the actual text field, then select **Text A** and **create a new custom state**.
+    You will be prompted for a name and type. For the name, type in **answer**. For
+    the type, ensure **text** is selected. This will create a unique custom state
+    for the text box, which is required to show the values in the application.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 7.6 – Inserting dynamic data](img/B21007_07_6.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.6 – Inserting dynamic data
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.7 – Creating a custom state](img/B21007_07_7.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.7 – Creating a custom state
+  prefs: []
+  type: TYPE_NORMAL
+- en: The next thing we need to do is load the cloud function that we created into
+    Bubble. Select **Plugins** from the left-hand menu and then select **Add Plugins**.
+    Select the **API Connector**, then select **Install**, and then **Done**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 7.8 – Bubble.io UI configuration](img/B21007_07_8.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.8 – Bubble.io UI configuration
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Select **API Connector** from the list of plugins. Select **Add Another API**.
+    For the **API name**, type in **answer_from_file**. Scroll down to **Create a
+    New API** and click **Expand**. Leave the name of this API as **API call**. For
+    the API, configure the following settings:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: From the **Use as** dropdown menu, select **Action**.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Change the request from **GET** to **POST**.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Create a new header by clicking on **New Header**. Select **Add Header**. For
+    **key**, type in **Content-Type**, and for **value**, type in **application/json**.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Add a parameter by clicking **Parameter**. For **key**, type in **pdf_url**.
+    For **value**, type in **https://bookpackt67.blob.core.windows.net/test/XDroneManual.pdf?sp=r&st=2024-01-12T00:52:16Z&se=2024-12-31T08:52:16Z&spr=https&sv=2022-11-02&sr=b&sig=IEXLlGXVXCilEg0ffqW8ItXc4LX2YkbRWuZIpSxfP8Y%3D**.
+    Do not include any quotes. Ensure that the **private** box is *unchecked*.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Click on **Parameter** again. For **key**, type in **question**. For **value**,
+    type in **for safety, what's the highest you should fly the drone?**. Do not include
+    any quotes. Ensure that the **private** box is *unchecked*.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Select **Initialize Call** to test the API call. If you see the screen shown
+    in *Figure 7**.9*, then the call has been successful. Ensure that for each choice,
+    the **text** type has been selected, and click **Save**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: "![Figure 7.9 – A successful UI \uFEFFconfiguration](img/B21007_07_9.jpg)"
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.9 – A successful UI configuration
+  prefs: []
+  type: TYPE_NORMAL
+- en: Select **Design** from the left-hand menu. Create a Button element by selecting
+    **Button** and then drawing a box below the **File** **Uploader** element.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Double-click the Button element that you have created. In the property menu
+    that appears, select **Add Workflow**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 7.10 – Visual layout of page and adding a workflow](img/B21007_07_10.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.10 – Visual layout of page and adding a workflow
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Select **Click here to add an action**. Go to **Plugins**, find the API you
+    have just created (**answer_from_file - API call**), and select it. Do the following
+    in the property menu that appears:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Delete the content of **(param) pdf_url**. Type in **http:** and then select
+    **Insert dynamic data**. Scroll down and select **File Uploader A**, and then
+    select **value**.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Delete the content of **(param) question**. Select **Insert dynamic data**.
+    Scroll down and select **Input Question**, and then select **value**.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Next, select **Click here to add an action** again, scroll down to **Element
+    Actions**, and then select **Set State**. For the **Element** drop-down menu,
+    select **Text A**. For the **Custom state** drop-down menu, select **answer**.
+    For **Value**, select **Results of step 1** and then select **answer**. This will
+    make the value of **Text A** equal to the answer from the API call to the cloud
+    function that you have created.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 7.11 – Setting the state in an element](img/B21007_07_11.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.11 – Setting the state in an element
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.12 – Setting the value to a custom state](img/B21007_07_12.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.12 – Setting the value to a custom state
+  prefs: []
+  type: TYPE_NORMAL
+- en: We have completed everything we need for our Bubble application. Let’s test
+    if the application works. Select **Preview** on the right and a new page will
+    appear, with your application. In the **Question** text box, type in **for safety,
+    what's the highest you should fly the drone?**. Select the **File Uploader** input
+    and upload the PDF file of the drone manual that you downloaded earlier.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Click the **Submit** button. If all goes well, you should get a screen like
+    the one shown in *Figure 7**.13*, which contains the answer to the user’s question
+    directly from content in the PDF file.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 7.13 – Output from the Bubble application](img/B21007_07_13.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.13 – Output from the Bubble application
+  prefs: []
+  type: TYPE_NORMAL
+- en: After you’ve done this, try typing other questions that are relevant to the
+    PDF file, such as `How do I charge the battery?` or `How do I do a` `360 flip?`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: How it works…
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In this recipe, we created a knowledge-based assistant that can read any PDF
+    file and provide answers to questions based on that file.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This is very similar to the recipes in the previous chapter but with one key
+    difference: the knowledge that is used to answer questions does not come from
+    ChatGPT but instead from a PDF file that was provided.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Code walkthrough
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: The code that we used in the Google cloud function contains instructions to
+    read the PDF URL, extract the content, and pass it to the OpenAI API, which is
+    what makes this different than previous recipes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To do this, we had to import two additional Python packages:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Requests**: This package enables us to send HTTP requests easily. This is
+    essential for fetching the PDF file from the provided URL. By using the **requests.get()**
+    function, we can retrieve the content of any online document, in this case, a
+    PDF file.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**PyPDF2**: This package enables us to interact with and manipulate PDF files
+    directly within Python. Once the PDF is fetched, **PyPDF2** provides the tools
+    to read the PDF file, extract text, and even handle different aspects of PDF manipulation,
+    if necessary. In our application, it primarily serves to convert the PDF content
+    into a text format that can be processed by the OpenAI API.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'We first make a request to the URL of the PDF that is provided to us by the
+    user from the `pdf_url` object. We then convert that into bytes:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We then use the `PdfReader` class of `PyPDF2` to read the bytes and read the
+    contents of the PDF file page by page. We save the entire string content of the
+    PDF file to the `text` variable:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Finally, when we call the OpenAI Chat API, our instructions are for the LLM
+    to read through the text and the user’s question, and then to answer the user’s
+    question based on the text provided. We then provided the text of the entire PDF
+    file and the user’s question:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: This is the same as if you were to go to ChatGPT, copy and paste the content
+    of the entire PDF file, and then ask the user’s question. However, in this way,
+    you’ve built an application around it that makes it far easier for the user –
+    all they need to do is upload the PDF and put their question in a text box.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Limitations of this approach
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'We have already discussed the benefits: namely that since ChatGPT’s internal
+    knowledge may be out of date and it’s impossible to track the source of any information
+    provided by ChatGPT, having an architecture that forces the Open API to use only
+    the knowledge provided by the user alleviates this issue.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'There are, however, also a few limitations to this approach. It’s key to have
+    an understanding of them so you can make the most out of the approach. They are
+    as follows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Dependency on PDF quality*: The accuracy of the assistant is heavily dependent
+    on the quality and clarity of the PDF content. Poorly structured documents or
+    complex formats can lead to incomplete or incorrect responses. Additionally, this
+    method will not work for information embedded within images, as the Open AI API
+    cannot read images.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Resource intensity for large documents*: The assistant needs to process and
+    understand the entire document for each query, which can be resource-intensive
+    and result in slow response times, especially for large documents.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Limited knowledge scope*: The assistant’s knowledge is limited to the specific
+    subject matter of the PDF, lacking the comprehensive coverage found in ChatGPT’s
+    built-in database.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Maintenance of the knowledge base*: Keeping the information current requires
+    constant updates to the PDF files, which can be time-consuming, especially with
+    frequently changing information.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Context window limitation*: The content in the PDF must be within the context
+    window of the ChatGPT model. This approach is not feasible for very long PDFs
+    as the model cannot process content that exceeds its context window (which is
+    the maximum number of words that can be processed by the API), limiting the amount
+    of information that can be used for responses.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: As a result, users can adopt another approach that is contained within a special
+    subset of the OpenAI API, called the Assistants API, which we will discuss in
+    the subsequent recipe.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating a knowledge-retrieval assistant through the Assistants API
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: OpenAI has recently released the Assistants API, wherein you can create knowledge-based
+    assistants with minimal coding and complexity. A big advantage is that you can
+    incorporate tools into your assistants that OpenAI has built, such as *Code Interpreter*
+    and *Knowledge Retrieval*. These augmentations essentially give your assistant
+    application superpowers. For this recipe, we will focus on the Knowledge Retrieval
+    tool.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Knowledge** **R****etrieval** enhances your assistants by incorporating external
+    knowledge (such as the drone manual PDF file from the previous recipe). OpenAI
+    automatically and efficiently segments any uploaded documents while creating indices
+    of embeddings. These embeddings are stored in OpenAI’s database.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Recall in [*Chapter 4*](B21007_04.xhtml#_idTextAnchor074) we discussed how embeddings
+    can be used to compare text similarity and to search for segments of texts. With
+    Knowledge Retrieval, OpenAI does this automatically for you. When a user asks
+    the Assistants API a question that is augmented by Knowledge Retrieval, it employs
+    a vector search to extract pertinent information from the uploaded documents,
+    responding effectively to user inquiries.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this way, the knowledge source can be infinite in length, as the knowledge
+    source itself is not passed to the Chat API, but instead is vectorized and only
+    small relevant segments of text are passed to the Chat API based on a user’s question.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In other words, using the Assistants API with Knowledge Retrieval means that
+    you can upload large PDFs and as many PDFs as you want, and there is effectively
+    no context window limitation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This is useful for creating highly specialized assistants that need to draw
+    on vast amounts of specific information. For instance, if you’re building an assistant
+    for legal professionals, you can upload numerous legal texts, case studies, and
+    statutes. The Assistants API, powered by Knowledge Retrieval, can then provide
+    precise legal references and interpretations in response to complex queries. Similarly,
+    for medical professionals, uploading extensive medical literature and research
+    papers enables the Assistants API to offer detailed medical insights. This makes
+    the Assistants API not just a conversational tool, but a robust, information-rich
+    resource.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this recipe, we will use the Assistants API to create a *Legal Constitution
+    Helper* assistant that gets its knowledge directly from the US Constitution document.
+  prefs: []
+  type: TYPE_NORMAL
+- en: How to do it…
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Playground
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Navigate to [https://openai.com](https://openai.com). Select **Playground**
+    from the left-hand menu. In the top menu, ensure that **Assistants** is selected
+    from the drop-down menu. Select the dropdown near the top and select **Create
+    assistant** to create a new assistant.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Enter the following configuration details for **Assistant**:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**Name**: **US** **Constitution Expert.**'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Instructions**: **You are a helpful assistant that helps answer legal constitution
+    related questions from reading the US constitution. Reference specific parts of
+    the document where you found the information required to answer** **the question.**'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Model**: **gpt-4-1106-preview**.'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Toggle the **Retrieval** tool *on.*
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Under **Files**, select **Add**, and upload the following file ([https://bookpackt67.blob.core.windows.net/test/us_constitution.pdf?sp=r&st=2024-01-15T07:51:23Z&se=2024-12-31T15:51:23Z&spr=https&sv=2022-11-02&sr=b&sig=C9hFIvrI3FHogBumPTRaL1hrwS8C1B0t3hnlzS9t6Ew%3D](https://bookpackt67.blob.core.windows.net/test/us_constitution.pdf?sp=r&st=2024-01-15T07:51:23Z&se=2024-12-31T15:51:23Z&spr=https&sv=2022-11-02&sr=b&sig=C9hFIvrI3FHogBumPTRaL1hrwS8C1B0t3hnlzS9t6Ew%3D)).
+    This file is the US Constitution.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: You will need to download the file locally to then upload it to OpenAI.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.14 – Assistant Playground configuration](img/B21007_07_14.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.14 – Assistant Playground configuration
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Select the **Save** button at the bottom. After you do this, an assistant ID
+    will appear directly below the **Name** field. It will be in the following format:
+    *asst_XXXXXXXXXXXXXXXXXXXXX*. Note this down, as this is the unique ID for your
+    assistant, and we will need to reference this in the backend function that we
+    create.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Google Cloud Functions
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: In a new tab, navigate to [https://cloud.google.com](https://cloud.google.com)
+    and log in with your Google credentials.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select **Console** in the top right.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Create a new Google cloud function. In the search bar, type in **function**,
+    select **Cloud Functions**, and then select **Create Function**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Name the function a descriptive name. We are going to aptly name it **get_answer**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In the **Authentication** menu, ensure that you select **Allow unauthenticated
+    invocations** as the authentication method. This will enable the frontend application
+    to make calls to the backend layer.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select the **Runtime, build, connections and security settings** drop-down menu
+    to expand the options. Change **timeout** from 60 seconds to 300 seconds. This
+    will make sure that the timeout for the Google cloud function is not 1 minute
+    but five minutes instead.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: "![Figure 7.15 – Google \uFEFFcloud \uFEFFfunction configuration settings](img/B21007_07_15.jpg)"
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.15 – Google cloud function configuration settings
+  prefs: []
+  type: TYPE_NORMAL
+- en: Select **Next** to move on to function development. In the **Runtime** dropdown
+    menu, select **Python 3.12**. For **entry point**, select or type in **get_answer**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Go to **Requirements.txt** in the left-hand menu and type the following Python
+    package in as this library will be used in the backend function:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'For the actual code block, type in the following. This function takes in one
+    input (**question**) and returns the relevant **answer** through the Assistants
+    API. The code walkthrough will be discussed in the *Using the assistant* sub-section.
+    Replace the **<assistant-id-here>** with the assistant ID you noted down in *step
+    3* of the *Playground* section:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Select **Deploy**. You might need to wait five minutes for the deployment to
+    fully complete. When you see the green checkmark on the cloud function screen,
+    your function has been successfully deployed.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Similar to the previous recipe, we will now use Postman to test the cloud function
+    that we have just deployed. Open **Postman**. Select **New** on the top left,
+    select **HTTP**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In the Postman request, select **Headers** and type in a new header, with the
+    **Key** equal to **Content-Type** and the **value** equal to **application/json**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Change the request from **Get** to **Post** from the left-hand drop-down menu.
+    Copy the endpoint URL from the **Cloud Function** page and paste it into Postman.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Select **Body**, then select **Raw**, and copy and paste the following JSON
+    request:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Select **Send** to make the call to your cloud function. If all goes well,
+    you should see an answer such as this:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Bubble
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Navigate to w and log in. Select **Create an app** and give your app a relevant
+    name. Select **Get started** and then select **Start with basic features**. You
+    can also click the **Skip the Application Assistant** prompt if you encounter
+    it.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: On the Canvas page, we are going to add a few elements that are required for
+    our application. Select **Input** from the left-hand menu and then draw a rectangle
+    at the top of the page. Double-click the element and on the property menu, replace
+    **Placeholder** with **question**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 7.16 – Bubble input configuration](img/B21007_07_16.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.16 – Bubble input configuration
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, create a text element by selecting it from the left-hand menu and drawing
+    a rectangle (make it multiple lines) directly below the previous elements. Double-click
+    the text element to show the property. Then, click **insert dynamic data** on
+    the actual text field, select **Text A**, and select **create a new custom state**.
+    You will be prompted for a name and type. For the name, type in **answer**. For
+    the type, ensure **text** is selected. This will create a unique custom state
+    for the text box, which is required to show the values in the application.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 7.17 – Adding a text element to Bubble](img/B21007_07_17.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.17 – Adding a text element to Bubble
+  prefs: []
+  type: TYPE_NORMAL
+- en: The next thing we need to do is to load the cloud function that we created into
+    Bubble. Select **Plugins** from the left-hand menu, and then select **Add Plugins**.
+    Select the **API Connector**, and then select **Install**, and then **Done**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 7.18 – Bubble.io UI configuration](img/B21007_07_18.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.18 – Bubble.io UI configuration
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Select **API Connector** from the list of plugins. Select **Add Another API**.
+    For the **API name**, type in **get_answer**. Scroll down to **Create a New API**,
+    and click **Expand**. Leave the name of this API to **API call**. For the API,
+    configure the settings to the following:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: From the **Use as** drop-down menu, select **Action**.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Change request from **GET** to **POST**.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Create a new header using **New Header**. Select **Add Header.** For **key**
+    type in **Content-Type** for **value** type in **application/json**.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Click on **Parameter** to add a parameter. For **key**, type in **question**.
+    For **value**, type in **How many senators are there?**. Do not include any quotes.
+    Ensure that the **private** box is *unchecked*.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Select **Initialize Call** to test the API call. Ensure that for each **choice**,
+    the **text** type has been selected, and click **Save**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select **Design** from left-hand menu. Create a Button element by selecting
+    **Button** and then drawing a box to the right of the Input element.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Double-click the **Button** element that you had created. In the property menu
+    that appears, select **Add Workflow**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 7.19 – Visual layout of page and adding a button and a workflow](img/B21007_07_19.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.19 – Visual layout of page and adding a button and a workflow
+  prefs: []
+  type: TYPE_NORMAL
+- en: Select **Click here to add an action**. Go to **Plugins** and find the API you
+    had just created (**get_answer - API call**) and select it. In the property menu
+    that appears, delete the content of **(param) question**. Select **Insert dynamic
+    data**. Scroll down, select **Input Question**, and then select **value**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Next, select **Click here to add an action** again, scroll down to **Element
+    Actions**, and then select **Set State**. For the **Element** drop-down menu,
+    select **Text A**. For the **Custom state** drop-down menu, select **answer**.
+    For **Value**, select **Results of step 1** and then select **answer**. This will
+    make the value of **Text A** equal to the answer from the API call to the cloud
+    function that you created.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We have completed everything we need for our Bubble application. Let’s test
+    whether the application works. Select **Preview** on the right and a new page
+    will appear, with your application. In the **Question** text box, type in **How
+    many senators** **are there?**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select the **Submit** button. If all goes well, you should get an answer similar
+    to the one you saw before in Postman, which answers the question with text from
+    the *US Constitution document* that we uploaded earlier.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 7.20 – Bubble application example question](img/B21007_07_20.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.20 – Bubble application example question
+  prefs: []
+  type: TYPE_NORMAL
+- en: The best part about this is that you can ask *any* related question and it will
+    answer based on the US Constitution document that you uploaded, even if it was
+    several hundred pages. The answers are also document-specific. For example, you
+    can ask `How old must a person be to become a Senator?` and it’ll generate a response,
+    as shown in *Figure 7**.21*.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.21 – Bubble application example question](img/B21007_07_21.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.21 – Bubble application example question
+  prefs: []
+  type: TYPE_NORMAL
+- en: You can see in *Figure 7**.22* that the PDF uses different language, but the
+    assistant has reworked it to match the format of the question that we asked.
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 7.22 – Document excerpt from where the answer is retrieved](img/B21007_07_22.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 7.22 – Document excerpt from where the answer is retrieved
+  prefs: []
+  type: TYPE_NORMAL
+- en: How it works…
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In this recipe, we created an assistant that answers questions from a PDF that
+    we loaded in.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The handbook is 85 pages long and contains over 35,000 words, and yet the API
+    has no issues with finding the right information from the handbook. It is worth
+    noting that this could have been done with a knowledge source that is a million
+    words, or several large PDF files. That is the beauty of the Retrieval tool within
+    the Assistants API – it can scale very easily.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating the assistant
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'We created the assistant using the **OpenAI Playground** instead of through
+    the OpenAI API. The OpenAI Playground provides a nice UI for creating our initial
+    assistant instead of having to build using code. We defined the following parameters
+    when building our assistant:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Name**: The name of the assistant.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Instructions**: The system instructions that the assistant uses. This is
+    very similar to the System Message that was used in the Chat API.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Model**: The Chat model to use when constructing answers. For assistants,
+    GPT-4 is always recommended due to its ability to understand and answer nuanced
+    information, a critical element in any knowledge-retrieval application.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Tools**: Superpowers that can be added to your assistant. We added the Retrieval
+    tool, which again enables OpenAI to read through and search knowledge bases that
+    the user uploads.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Files**: A set of files to upload that will be used as the knowledge source.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Using the assistant
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'In the **Google** cloud function, we first create a message thread with the
+    user’s question:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: We then run the assistant, providing the unique *assistant ID* that is generated
+    when we create the assistant in the OpenAI playground, and the *thread ID* of
+    the message thread that contains that user question.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Note that after running the assistant, we force our function to sleep for 30
+    seconds. We do this because we need to give the assistant time to fully process
+    the message thread. Another way to do this would be to poll the assistant in a
+    loop and progress only once the poll shows a successful completion. If you’d like
+    to know more about this method, you can go to [https://pypi.org/project/polling2/](https://pypi.org/project/polling2/):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'We then extract the assistant’s reply and return the message as the `answer`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: Other use cases
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: 'The combination of the Assistants API and the Retrieval tool offers a wide
+    array of potential applications across various industries and domains. Here are
+    some examples:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '*Customer support chatbots*: Develop chatbots that can provide detailed and
+    specific answers to customer queries by accessing a company’s extensive knowledge
+    base or product manuals'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Healthcare information systems*: Build systems that can retrieve and provide
+    specific medical information, guidelines, or research papers to healthcare professionals,
+    aiding in diagnosis or treatment decisions'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Legal research assistants*: Create tools that can sift through large volumes
+    of legal documents, cases, and precedents to assist lawyers in preparing for cases
+    or conducting legal research'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Educational platforms*: Develop educational aids that can pull information
+    from textbooks, research papers, or educational materials to assist students in
+    learning or researching various topics'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Financial advisory tools*: Build applications that can access and analyze
+    financial reports, market trends, and economic research to provide investment
+    advice or market insights'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Technical support and troubleshooting*: Implement systems that can access
+    technical manuals and user guides to provide step-by-step troubleshooting assistance
+    or technical guidance'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Content curation and recommendation systems*: Create platforms that can analyze
+    and retrieve articles, news, or multimedia content based on user preferences or
+    queries'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Corporate data retrieval systems*: Develop internal tools for businesses that
+    can search through corporate documents, reports, and databases to provide employees
+    with quick access to the information they need'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Travel and hospitality assistants*: Build travel assistants that can access
+    and provide information on travel destinations, accommodations, local customs,
+    or points of interest'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*E-commerce personal shopping assistants*: Create tools that can recommend
+    products based on user queries by searching through product catalogs and reviews'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Each of these applications uses the capabilities of the Assistants API to understand
+    and process natural language queries and the Retrieval tool’s ability to access
+    and extract relevant information from a vast array of documents and data sources.
+    This combination enables the creation of powerful, context-aware, and highly informative
+    applications.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As we wrap up our journey through the expansive world of the OpenAI API, I hope
+    you feel empowered to harness its capabilities to fuel your innovative projects.
+    From taking those initial steps in setting up your API environment to exploring
+    the intricate details of endpoints and key parameters, we’ve traversed a path
+    that has prepared you to not just understand but to also apply the OpenAI API
+    in creating applications that can transform the way we interact with technology.
+    The exploration of additional features and the process of staging and hosting
+    for application development have laid down the foundation for you to build intelligent
+    solutions that can make a difference.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Whether it’s designing versatile intelligent applications or crafting knowledge-based
+    assistants, the skills you’ve garnered are a testament to the potential that lies
+    in your hands. Remember, the journey doesn’t end here. Each application you build
+    is a step towards innovation, a bridge to solving complex problems, and a contribution
+    to a future where technology and human creativity converge in harmony. Embrace
+    the challenges and opportunities that come your way, for you are now equipped
+    to make a significant impact in the world of technology.
+  prefs: []
+  type: TYPE_NORMAL

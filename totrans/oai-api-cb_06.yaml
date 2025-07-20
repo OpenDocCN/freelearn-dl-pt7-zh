@@ -1,0 +1,1141 @@
+- en: '6'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Building Intelligent Applications with the OpenAI API
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: This chapter will bring together all the key concepts that we have learned about
+    in the previous chapters. It’s all about creating real intelligent applications
+    using the OpenAI API. It’s important to note that an application is not simply
+    just the OpenAI API, but several layers around it, such as the frontend and backend
+    layers.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, we will make use of the application architecture that we learned
+    in the previous chapter. In particular, we will use *Google Cloud Functions* as
+    the backend layer and *Bubble* as the frontend layer. In case you don’t recall
+    the architecture, *Figure 6**.1* demonstrates the layers within any application:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.1 - Demonstration of a typical application architecture using the
+    OpenAI API](img/B21007_06_1.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.1 - Demonstration of a typical application architecture using the OpenAI
+    API
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, we will cover the following recipes:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating a wrapper application that generates replies to your emails
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Creating a multi-modal application that generates travel itineraries
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: All the recipes in this chapter require you to have access to the OpenAI API
+    (via a generated API key) and have an API client installed. Please refer to the
+    *Making OpenAI API requests with Postman* recipe in [*Chapter 1*](B21007_01.xhtml#_idTextAnchor021)
+    for more information on how to obtain your API key. You will also require knowledge
+    of Python and the Python OpenAI library, which we covered in the first recipe
+    within [*Chapter 4*](B21007_04.xhtml#_idTextAnchor074).
+  prefs: []
+  type: TYPE_NORMAL
+- en: We will also use GCP to host our public endpoint. GCP is a suite of cloud computing
+    services offered by Google. It offers a range of hosting and computing services
+    for databases, data storage, data analytics, machine learning, and more, all hosted
+    on Google’s infrastructure. You can refer to the *Creating a public endpoint server
+    that calls the OpenAI API* recipe in [*Chapter 5*](B21007_05.xhtml#_idTextAnchor090)
+    for more information.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Finally, you need to be familiar with Bubble, which is a visual programming
+    platform that allows users to create web applications without needing to write
+    code. You can refer to the *Calling the user-created endpoint from no-code applications*
+    recipe in [*Chapter 5*](B21007_05.xhtml#_idTextAnchor090) for more information
+    on how to set up Bubble.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating a wrapper application that generates replies to your emails
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this recipe, we will build an intelligent application that helps you reply
+    to emails from your manager, who has asked you to perform a specific task. I always
+    have a hard time politely saying no to my manager when I’m overburdened with tasks,
+    so this could be a great application for me (and I use a variant of this every
+    day).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Technically, everything that you do with this application you could do with
+    the ChatGPT service directly. So, why take the time and build it with the API,
+    backend, frontend approach? When learning any new skill, it is useful to learn
+    concepts in manageable steps. Here, the first step when building an intelligent
+    application is to start with a simple wrapper application. This will enable you
+    to master the underlying workflow of building an intelligent application. Afterward,
+    we will add new concepts to this workflow that will enable you to build an application,
+    which cannot be done with the ChatGPT service.
+  prefs: []
+  type: TYPE_NORMAL
+- en: A **wrapper application** for the OpenAI API is essentially a software layer
+    that facilitates easier and more efficient interaction with the OpenAI API. The
+    term **wrapper** in programming generally refers to a type of software that acts
+    as an intermediary or interface to another software component or API, making it
+    more accessible or simpler to use. Wrappers are very useful as they simplify API
+    interactions, and they are also easier to make compared to more complex multi-modal
+    applications.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this recipe, we will build the application in three phases: *OpenAI Playground*,
+    *Google Cloud Function*, and *Bubble*.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Getting ready
+  prefs: []
+  type: TYPE_NORMAL
+- en: Ensure you have an OpenAI platform account with available usage credits. If
+    you don’t, please follow the *Setting up your OpenAI Playground environment* recipe
+    in [*Chapter 1*](B21007_01.xhtml#_idTextAnchor021).
+  prefs: []
+  type: TYPE_NORMAL
+- en: Furthermore, ensure you have created a GCP account. You may need to provide
+    a billing profile as well to create any GCP resources. Note that GCP does have
+    a free tier, and in this recipe, we will *not* go above the free tier so, essentially,
+    you should not be billed for anything.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Finally, ensure that you have created a Bubble account, which you can do for
+    free at [http://bubble.io](http://bubble.io).
+  prefs: []
+  type: TYPE_NORMAL
+- en: All the recipes in this chapter will have this same requirement.
+  prefs: []
+  type: TYPE_NORMAL
+- en: How to do it…
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: OpenAI Playground
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Navigate to [https://openai.com](https://openai.com). Select **Playground**
+    from the left-hand side menu. From the top menu, switch Playground mode from **Assistant**
+    to **Chat**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In the **System** message, type **You are a helpful assistant that creates replies
+    to emails that politely say no to the task you have been asked to perform. Only
+    return the reply to the email,** **nothing else.**
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: On the `Hi Henry,`
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '`Since Dave is out, could you please pick up the Henderson proposal and have
+    it on my desk by` `tomorrow morning?`'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '`Best,`'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '`Rick`'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Over on the right-hand side, make the following changes to the Playground properties:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Switch **Model** from **gpt-3.5** to **gpt-4**
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Increase **Temperature** to **1.4**
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Set **Maximum length** to around **1000**:'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![Figure 6.2 – ChatGPT Playground configuration](img/B21007_06_2.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.2 – ChatGPT Playground configuration
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, select **Submit**. OpenAI will create a response for you. In this case,
+    it will create a reply to the sample email you sent, with the condition that it
+    *politely* says no to the task you have been asked to perform.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Google Cloud Function
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: In a new tab, navigate to [https://cloud.google.com](https://cloud.google.com)
+    and log in with your Google account.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select **Console** at the top right.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Create a new Google cloud function. To do so, in the search bar, type **function**,
+    select **Cloud Functions**, and then select **Create Function**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Give the function a descriptive name. Since this function will return a polite
+    email for us, we are going to aptly name it **generatepoliteemail**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In the **Authentication** menu, ensure that you select **Allow unauthenticated
+    invocations** as the authentication method. This will enable the frontend application
+    to make calls to the backend layer.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select **Next** to move on to function development. In the **Runtime** drop-down
+    menu, select **Python 3.12**. For the **entry point** value, select or type **get_message**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'For the actual *code block*, type the following:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Go to **Requirements.txt** in the left-hand side menu, type in a new line, and
+    type **openai**. This is to ensure that the OpenAI library will be downloaded
+    as part of this function.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Go back to **Open AI Playground**. Remove the **Assistant** message that was
+    produced as part of *step 4*. Ensure that the only messages that are populated
+    are **System** and **User**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Select **View code**, copy the response (*Figure 6**.3*), and then paste it
+    into the Google Cloud console code block under where it says **### Playground
+    Code Here ###** (*Figure 6**.4*):'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 6.3 – Code from Playground to be ingested into Google Cloud Functions](img/B21007_06_3.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.3 – Code from Playground to be ingested into Google Cloud Functions
+  prefs: []
+  type: TYPE_NORMAL
+- en: "![Figure 6.4 – Pasting the code into the Google Cloud \uFEFFconsole](img/B21007_06_4.jpg)"
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.4 – Pasting the code into the Google Cloud console
+  prefs: []
+  type: TYPE_NORMAL
+- en: The key part to change about the code is that the `Hi Henry, since Dave is out…`).
+    We want to replace this with the `email` variable that is part of the function.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Additionally, since we want three email replies (and therefore three answers
+    from the OpenAI API), we need to put in another argument in the OpenAI request
+    that says *n=3*. This will ensure that we get *n* or *three* emails from the actual
+    API.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'After making these changes, the code block in **Google Cloud Functions** should
+    look like this:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Select **Deploy**. You might need to wait 5 minutes for the deployment to fully
+    complete. When you see the *green checkmark* on the **Cloud Functions** screen,
+    your function has been successfully deployed:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 6.5 – Cloudless function deployment snapshot](img/B21007_06_5.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.5 – Cloudless function deployment snapshot
+  prefs: []
+  type: TYPE_NORMAL
+- en: We will now use Postman to test the cloud function that we have just deployed.
+    To do so, open Postman, select **New** at the top left, and then select **HTTP**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'On the Postman request, select **Headers** and type in a new header, with **Key**
+    equal to **Content-Type** and **Value** equal to **application/json**:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 6.6 – Cloud Functions test configuration](img/B21007_06_6.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.6 – Cloud Functions test configuration
+  prefs: []
+  type: TYPE_NORMAL
+- en: Change the request from **Get** to **Post** from the left-hand side drop-down
+    menu. Copy the endpoint URL from the **Cloud Functions** page and paste it into
+    Postman.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Select **Body**, then select **Raw**, and copy and paste the following JSON
+    request:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: 'Select **Send** to make the call to your cloud function. If all goes well,
+    you should see a response similar to what’s shown in *Figure 6**.7*:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: "![Figure 6.7 – \uFEFFA successful cloud function test](img/B21007_06_7.jpg)"
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.7 – A successful cloud function test
+  prefs: []
+  type: TYPE_NORMAL
+- en: Bubble
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Navigate to [http://bubble.io](http://bubble.io) and log in. Select **Create
+    an app** and give your app a relevant name. Select **Get started** and then select
+    **Start with basic features**. You can also click on the **Skip application assistant**
+    prompt if you encounter it.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'On the **Canvas** page, we are going to add a few elements that are required
+    for our application. Select **Multiline Input** from the left-hand side menu and
+    then draw a rectangle at the top of the page. Double-click the element from the
+    property menu and replace **Placeholder** with **Type** **email here**:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 6.8 – Bubble.io UI configuration](img/B21007_06_8.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.8 – Bubble.io UI configuration
+  prefs: []
+  type: TYPE_NORMAL
+- en: Create a **Button** element by selecting **Button** and then drawing a box to
+    the right of the first element you created.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The final set of elements to create is three **Text** elements. Select **Text**
+    from the left-hand side menu and draw a box to the bottom of **Multiline Input**,
+    about 1/3 the width of the page. Repeat this for the other two text boxes and
+    put them adjacent to the other **Text** elements. Name these elements **Text A**,
+    **Text B**, and **Text C** by double-clicking each element and replacing the **Placeholder**
+    element with **Text A**, **Text B**, and **Text** **C**, respectively:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 6.9 – Bubble.io UI configuration](img/B21007_06_9.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.9 – Bubble.io UI configuration
+  prefs: []
+  type: TYPE_NORMAL
+- en: For each text box, double-click the **Text** element to show the property. Then,
+    click **Insert dynamic data** on the actual text field, select **Text A**, and
+    then **Create a new custom state**. You will be prompted for a name and type.
+    For the name, type **email_ reply**. For **Type**, ensure **Text** is selected.
+    This will create a unique custom state for the text box, which is required to
+    show the values in the application.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The next thing we need to do is load the cloud function that we created into
+    Bubble. Select **Plugins** from the left-hand side menu, and then select **Add
+    Plugins**. Select **API Connector**, then select **Install**, and then **Done**:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 6.10 – Bubble.io UI configuration](img/B21007_06_10.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.10 – Bubble.io UI configuration
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Select **API Connector** from the list of plugins. Then, select **Add Another
+    API**. For **API name**, type **get_replies**. Scroll down until you get to the
+    **Name** field and click **Expand**. Change the name of this API to **get_replies**.
+    For the API, configure its settings like so:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: From the **Use as** drop-down menu, select **Action**.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Change the request from **GET** to **POST**.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Directly adjacent to the **POST** request is a place to enter your **Endpoint
+    URL**. Enter the URL you copied from the Google cloud function.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Create a new header by clicking **New Header**. Select **Add Header.** For **key**
+    type in **Content-Type**, for **value** type in **application/json**.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Click **Parameter** to add a new parameter. For **key**, type in **email**.
+    For **value**, copy the same JSON text that was used in the Postman call in *step
+    17*, which is also written as follows. Do *not* include the quotes. Ensure that
+    the **private** box is *unchecked*. This is important because we need to make
+    sure that we have this argument available within Bubble:'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_PRE
+- en: Select **Initialize Call** to test the API call. If you see the screen shown
+    in *Figure 6**.11*, then the call has been successful. Ensure that for each **choice**
+    field, the **text** type has been selected, and click **Save**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: "![Figure 6.11 \uFEFF– A successful UI \uFEFFconfiguration](img/B21007_06_11.jpg)"
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.11 – A successful UI configuration
+  prefs: []
+  type: TYPE_NORMAL
+- en: Select **Design** from the left-hand side menu. Double-click the **Button**
+    element that you had created. In the property menu that appears, select **Add
+    Workflow**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select **Click here to add an action**. Go to **Plugins** and find the API you
+    had just created (**get_replies – get_replies**) and select it. On the property
+    menu that appears, delete the content of **(param.) email** and then select **Insert
+    dynamic data**. Scroll down and select **Multiline Input Type email here**, and
+    then select **value**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: "![Figure 6.12 \uFEFF– Bubble workflow](img/B21007_06_12.jpg)"
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.12 – Bubble workflow
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, select **Click here to add an action** again, scroll down to **Element
+    Actions**, and then select **Set State**. For the **Element** drop-down menu,
+    select **Text A**. For the **Custom state** drop-down menu, select **email_reply**.
+    For **Value**, select **Results of step 1** and then select **Choice 1**. This
+    will make the value of **Text A** equal to the first choice is the result of the
+    API call to the cloud function that you had created.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Repeat *step 33* two more times for the **Text B** and **Text C** elements,
+    choosing **Choice 2** and **Choice** **3**, respectively.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We have completed everything we need for our Bubble intelligent application.
+    To test whether the application works, select `Hi Henry,`
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '`Since Dave is out, could you please pick up the Henderson proposal and have
+    it on my desk by` `tomorrow morning?`'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '`Best,`'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '`Rick`'
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: 'Select **Generate Replies**. If all goes well, you should get a screen like
+    the one shown in *Figure 6**.13*, which shows the user three possible ways to
+    reply to their manager and politely say no to an upcoming task:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 6.13 – A successful application configuration](img/B21007_06_13.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.13 – A successful application configuration
+  prefs: []
+  type: TYPE_NORMAL
+- en: How it works…
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In this recipe, we created a simple wrapper web application that produces sample
+    responses to emails. By using the OpenAI API, our web application leveraged the
+    power of LLMs to solve a particular problem. In this case, it was finding ways
+    to politely say no to common tasks on email.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The steps that we followed in this recipe are like what we have covered previously:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, we tested our prompts in the *Playground*, an environment where users
+    can test different configurations and observe the impact on generated responses.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Then, we created the Google cloud function, which is the backend layer. In this
+    layer, we added the code from the Playground that calls the OpenAI Chat API.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Then, we tested our backend layer using Postman to ensure that the calls were
+    working properly, and then we received a suitable response from our backend API.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Next, we created a simple frontend using Bubble.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Finally, we connected the frontend and backend layers using Bubble workflows
+    and the API connector plugin.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: By performing these steps, we can create any intelligent application in less
+    than an hour. It is worth zooming in on *step 1* as it is a critical step in creating
+    any new application.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We started this recipe with the OpenAI Playground, where we tested the **System**
+    prompt in an environment where we could quickly iterate to ensure that we received
+    the right response. The Playground provided a user-friendly interface, allowing
+    us to experiment with different prompts and parameters. This experimentation was
+    crucial for understanding how the AI model responds to various inputs, which,
+    in turn, helped us fine-tune the prompts for our application.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In the Playground and in the Python script where we made the OpenAI API request,
+    we purposely set the following settings:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Model** to **gpt-4**: For an email response application, GPT-4’s advanced
+    understanding of context and nuance is crucial. Emails can cover a wide range
+    of topics and styles, from formal business communications to casual conversations.
+    GPT-4’s robust language model can adapt to these varying styles and provide responses
+    that are more accurate and contextually relevant.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Temperature** to **1.4**: Since the purpose of this app is to create several
+    varied responses, the temperature has been set higher than the standard value
+    (1.0) to ensure there’s some randomness in the responses. A higher temperature
+    helps in generating responses that are not too generic and can adapt to the unique
+    content and tone of each email.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Maximum length** to **1000**: The maximum token length setting determines
+    how long the generated responses can be. Setting this to 1,000 allows for sufficiently
+    lengthy responses.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**N** to **3**: The **N** parameter dictates the number of different responses
+    the model will generate for each prompt. Setting **N** to **3** means the app
+    will generate three different responses for each email, which is what we want
+    for the web application.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: The other benefit of the Playground is that it produces Python-ready code for
+    you; this is what we did in *step 15* of this recipe. After configuring all the
+    settings and after we were happy with the responses from the Playground, all we
+    needed to do was click **View Code** to then produce the exact code that we needed.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this recipe, we created a simple application. However, because it was a
+    wrapper application, it technically could have been done within ChatGPT itself,
+    without the need to set up a complex backend layer or frontend layer. For example,
+    I can go to ChatGPT ([https://chat.openai.com/](https://chat.openai.com/)) and
+    type in the following prompt, at which point it will give me similar answers:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.14 – Using ChatGPT to create email responses](img/B21007_06_14.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.14 – Using ChatGPT to create email responses
+  prefs: []
+  type: TYPE_NORMAL
+- en: So, you may be wondering, what’s the point of creating the application through
+    the OpenAI API? Well, there are some examples of applications that are not wrappers
+    and can only be created through the API. This is what we will cover in the next
+    recipe.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Creating a multi-modal application that generates travel itineraries
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In the previous recipe, we successfully created an intelligent application that
+    produced replies to emails. We also discussed how this is technically a wrapper
+    application, something that could be easily done through ChatGPT or the Playground
+    itself.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In this recipe, we will take the next step and create a multi-modal application.
+    A **multi-modal application** is an advanced type of software that integrates
+    various forms of media and interaction methods into a single *cohesive* experience.
+    This integration allows for a richer and more engaging user interface, one that
+    can cater to a wider range of user preferences and needs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The core idea behind a multi-modal application is to combine text, voice, images,
+    and possibly even video, to create a more dynamic and interactive environment.
+    For instance, consider an application that not only responds to text queries but
+    also understands voice commands, can analyze images, and perhaps even respond
+    with video content. Such an application would be tremendously useful in fields
+    such as education, where different learning styles could be accommodated, or in
+    customer service, where it could provide a more personalized and efficient experience.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In our case, we will combine the **Chat API** and **Images API** to create travel
+    itineraries. A user can go to the application, type in the city to which they
+    will be traveling, and receive a full-day itinerary with images of the items mentioned
+    specifically in the created itinerary.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This is an example of an application that could *not* easily be created through
+    ChatGPT or the Playground, and as such provides real value.
+  prefs: []
+  type: TYPE_NORMAL
+- en: How to do it…
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In a new tab, navigate to [https://cloud.google.com](https://cloud.google.com)
+    and log in with your Google account.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Select **Console** at the top right.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Create a new Google cloud function. In the search bar, type **function**, select
+    **Cloud Functions**, and then select **Create Function**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Give the function a descriptive name. Since this function will return an itinerary
+    and images for us, we are going to aptly name it **get_itinerary_and_images**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In the **Authentication** menu, ensure that you select **Allow unauthenticated
+    invocations** as the authentication method. This will enable the frontend application
+    to make calls to the backend layer.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Select the **Runtime, build, connections and security settings** drop-down
+    menu to expand the options. Change **Timeout** from **60 seconds** to **300 seconds**.
+    This will ensure that the timeout for the Google cloud function is not 1 minute
+    but 5 minutes instead. This is important in multi-modal applications as several
+    API requests will be made:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 6.15 – Google Cloud Functions configuration settings](img/B21007_06_15.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.15 – Google Cloud Functions configuration settings
+  prefs: []
+  type: TYPE_NORMAL
+- en: Select **Next** to move on to function development. In the **Runtime** drop-down
+    menu, select **Python 3.12**. For **Entry point**, select or type in **get_travel_details**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Go to **Requirements.txt** in the left-hand side menu, type in a new line, and
+    type in **openai**. This is to ensure that the OpenAI library will be downloaded
+    as part of this function.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'For the actual *code block*, type in the following. This function takes in
+    a city as an input and returns the itinerary in a morning-afternoon-evening format
+    and three relevant images, one each for morning, afternoon, and evening, respectively:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Select **Deploy**. You might need to wait 5 minutes for the deployment to fully
+    complete. When you see the green checkmark on the **Cloud Functions** screen,
+    your function has been successfully deployed.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Similar to the previous recipe, we will now use Postman to test the cloud function
+    that we have just deployed. To do so, open Postman, select **New** at the top
+    left, and then select **HTTP**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: On the Postman request, select **Headers** and type in a new header, with **Key**
+    equal to **Content-Type** and **Value** equal to **application/json**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Change the request from **Get** to **Post** from the left-hand side drop-down
+    menu. Copy the endpoint URL from the **Cloud Functions** page and paste it into
+    Postman.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Select **Body**, then **Raw**, and copy and paste the following JSON request:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: '![Figure 6.16 – Postman body](img/B21007_06_16.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.16 – Postman body
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note that because this is a long cloud function that makes several calls to
+    OpenAI (for both text and images), this may take several minutes to complete.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Select **Send** to make the call to your cloud function. If all goes well,
+    you should see a similar response to the one shown in *Figure 6**.17*, which contains
+    several objects embedded in the JSON response:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 6.17 – Postman output](img/B21007_06_17.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.17 – Postman output
+  prefs: []
+  type: TYPE_NORMAL
+- en: Navigate to [http://bubble.io](http://bubble.io) and log in. Select **Create
+    an App** and give your app a relevant name. Select **Get Started** and then select
+    **Start with Basic Features**. You can also click **Skip the application assistant**
+    if you encounter the prompt.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'On the **Canvas** page, we are going to add a few elements that are required
+    for our application. Add in an input by selecting **Input** from the left-hand
+    side menu and then drawing a rectangle at the top left of the page. Then, add
+    a button adjacent to it by selecting **Button** from the left-hand side menu and
+    drawing it next to **Input**:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 6.18 – Adding a button in Bubble](img/B21007_06_18.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.18 – Adding a button in Bubble
+  prefs: []
+  type: TYPE_NORMAL
+- en: Double-click the **Input** element and in the property menu, replace **Placeholder**
+    with **City**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Double-click the **Button** element and in the property menu, replace **Text**
+    with **Plan Itinerary**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Create a **Text** element and place it on the left-hand side of the page.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Next, we need to create three images. Select **Image** and put it on the right-hand
+    side. Do this *three* times, creating *Image A*, *Image B*, and *Image C*. Verify
+    that they are around the same size. You may need to drag and move the images around
+    to verify this:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 6.19 – Adding images in Bubble](img/B21007_06_19.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.19 – Adding images in Bubble
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, create **Custom states** for the **Text** and **Image** elements.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: For each **Text** element, double-click the element to show the property menu.
+    Then, click **Insert dynamic data** on the actual text field, select **Text**,
+    and then **Create a new custom state**. You will be prompted for a name and type.
+    For the name, type **itinerary_details**. For **Type**, ensure **Text** is selected.
+    This will create a unique custom state for the text box, which is required to
+    show the values in the application. The box will contain the itinerary details
+    from the application.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: For each of the **Image** elements, double-click the element to show the property
+    menu. Then, click **Insert dynamic data** where it says **Dynamic image**. Select
+    **Image X**, then **Create a new custom state**. You will be prompted for a name
+    and type. For the name, type in **img_url**. For **Type**, ensure **Text** is
+    selected.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The next thing we need to do is load the cloud function that we created into
+    Bubble. Select **Plugins** from the left-hand side menu, and then select **Add
+    Plugins**. Select **API Connector**, then **Install**, and then **Done**:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 6.20 - Bubble.io UI configuration](img/B21007_06_20.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.20 - Bubble.io UI configuration
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Select **API Connector** from the list of plugins. Select **Add Another API**.
+    For **API name**, type in **travel**. Scroll down until you get to the **Name**
+    field and click **Expand**. Change the name of this API to **travel**. For the
+    API, configure its settings like so:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: From the **Use as** drop-down menu, select **Action**.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Change the request from **GET** to **POST**.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Directly adjacent to the **POST** request is a place to enter your **Endpoint
+    URL**. Enter the URL you copied from the Google cloud function.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Create a **New Header** value. Select **Add Header**. Then, for **Key**, type
+    **Content-Type**, and for **Value**, type **application/json**.
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Add a parameter by clicking **Parameter**. For **Key**, type **city**. For
+    **Value**, copy the same JSON text that was used in the Postman call, which was
+    **Toronto, Canada**. Ensure that the **Private** box is *unchecked*:'
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '![Figure 6.21 – Bubble API configurations](img/B21007_06_21.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.21 – Bubble API configurations
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Select **Initialize Call** to test the API call. If you see the screen depicted
+    in *Figure 6**.22*, then the call has been successful. Ensure that for each return
+    object, the **Text** type has been selected. Then, click **Save**:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 6.22 –  A successful UI configuration](img/B21007_06_22.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.22 – A successful UI configuration
+  prefs: []
+  type: TYPE_NORMAL
+- en: Select **Design** from the left-hand side menu. Double-click the **Button**
+    element that you created. In the property menu that appears, select **Add Workflow**.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Select **Click here to add an action**. Then, go to **Plugins**, find the API
+    you just created (**travel-travel**), and select it. From the property menu that
+    appears, delete the content of **(param.) city** and then select **Insert dynamic
+    data**. Scroll down, select **Input City here**, and then select **Value**:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 6.23 – Adding dynamic data to an API call (1)](img/B21007_06_23.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.23 – Adding dynamic data to an API call (1)
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 6.24 – Adding dynamic data to an API call (2)](img/B21007_06_24.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.24 – Adding dynamic data to an API call (2)
+  prefs: []
+  type: TYPE_NORMAL
+- en: Next, select **Click here to add an action** again, scroll down to **Element
+    Actions**, and then select **Set State**. From the **Element** drop-down menu,
+    select **Text A**. From the **Custom state** drop-down menu, select **itinerary_details**.
+    For **Value**, select **Results of step 1** and then select **itinerary**. This
+    will make the value of **Text A** equal to the itinerary value in the JSON object
+    result of the API call to the cloud function that you created.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'Next, select **Click here to add an action** again. Then scroll down to **Element
+    Actions**, and then select **Set State**. From the **Element** drop-down menu,
+    select **Image A**. From the **Custom state** drop-down menu, select **img_url**.
+    For **Value**, select **Results of step 1** and then select **morning_image**.
+    This will make **Image A** equal to the picture of **Morning Image**, which was
+    returned in the cloud function, which was, in turn, returned from the OpenAI Images
+    API:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 6.25 – Assigning a custom state in Bubble](img/B21007_06_25.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.25 – Assigning a custom state in Bubble
+  prefs: []
+  type: TYPE_NORMAL
+- en: Repeat *step 31* two more times for the **Image B** and **Image C** elements,
+    choosing **afternoon_image** and **evening_image**, respectively.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: We have completed everything we need for our Bubble intelligent application.
+    To test if the application works, select **Preview** on the right; a new page
+    will appear that contains your application.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: In the **City** text box, type in any city you want (I have typed in Toronto,
+    Canada). Then, select the **Plan Itinerary** button; this will start the Bubble
+    workflow and call the cloud function.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'If all goes well, you should get a screen like what’s shown in *Figure 6**.26*,
+    which shows the travel itinerary, along with three images that correspond directly
+    to what is stated in the itinerary:'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '![Figure 6.26 – Output of the completed Bubble application](img/B21007_06_26.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 6.26 – Output of the completed Bubble application
+  prefs: []
+  type: TYPE_NORMAL
+- en: How it works…
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: In this recipe, we created a travel itinerary app where a user can type in any
+    location and the application will create a 1-day itinerary specific to that location,
+    along with AI-generated photos that correspond to that itinerary. As mentioned
+    previously, this is a *multi-modal* application as both the OpenAI Chat API and
+    Images API were used to construct this application.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Configuring settings for a multi-modal application
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: Since this was a multi-modal application, there was one key difference when
+    creating the backend Google cloud function. In particular, we set **Function Timeout**
+    to 300 seconds (which is the max possible – by default, at the time of writing,
+    it is 60 seconds). This timeout is crucial for ensuring the application can process
+    and handle more complex or time-consuming tasks without prematurely terminating.
+    Given the intricate nature of the multi-modal data being processed – combining
+    text, images, and possibly even video content – the extended timeout allows for
+    sufficient data parsing, analysis, and response generation. This adjustment also
+    means that the backend can comfortably accommodate the occasional spikes in data
+    volume or complexity, which is typical in a multi-modal setup, without compromising
+    on performance or reliability.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Code walk-through for the three OpenAI API calls
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+- en: The backend layer contains three interweaving OpenAI API calls, and it is worth
+    going through each so that we can discuss exactly what is occurring in each step.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Call 1
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This is the standard GPT-4 chat call that we have made in previous recipes,
+    but note that we have included a long *Chat Log* as part of the call. In particular,
+    we gave OpenAI two examples of the input and output to effectively *fine-tune*
+    the model:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '| **Input** | **Output** |'
+  prefs: []
+  type: TYPE_TB
+- en: '| --- | --- |'
+  prefs: []
+  type: TYPE_TB
+- en: '| `Rome, Italy` |'
+  prefs: []
+  type: TYPE_TB
+- en: '[PRE7]'
+  prefs: []
+  type: TYPE_PRE
+- en: '[PRE8]'
+  prefs: []
+  type: TYPE_PRE
+- en: '[PRE9]'
+  prefs: []
+  type: TYPE_PRE
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: '|'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '| `Lisbon, Portugal` |'
+  prefs: []
+  type: TYPE_TB
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: '|'
+  prefs: []
+  type: TYPE_NORMAL
+- en: In [*Chapter 1*](B21007_01.xhtml#_idTextAnchor021), [*Chapter 2*](B21007_02.xhtml#_idTextAnchor044),
+    and [*Chapter 4*](B21007_04.xhtml#_idTextAnchor074), we learned how `itinerary`
+    variable.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Call 2
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+- en: 'In the second call, we request the OpenAI API to create image-generating (DALL-E)
+    prompts based on the itinerary that was produced by the previous call. Specifically,
+    three DALL-E prompts are produced (one for morning, one for afternoon, and one
+    for evening) that are separated by a pipe (`|`):'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: Note that, in this case, we have changed the model from `gpt-4` to `gpt-3.5-turbo-1106`.
+    We discussed when to use what model in [*Chapter 3*](B21007_03.xhtml#_idTextAnchor060),
+    and in this case, GPT-3.5 is perfect as the instruction itself is simple and not-nuanced
+    and it’s far cheaper. Additionally, even if it does hallucinate, the user never
+    sees the output of this call – they just see the resulting image generation for
+    DALL-E.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Call 3
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: In the last call, we cycle through each of the three DALL-E prompts that were
+    generated in the previous call and pass them to the OpenAI Images API. We do this
+    through a **for loop**. In Python, a for loop is a programming structure that
+    allows us to execute a block of code multiple times, usually with some variation
+    in each iteration. In this context, we systematically process each DALL-E prompt.
+    With each iteration, the loop takes a prompt from the list, sends it to the OpenAI
+    Images API, and then moves to the next prompt until all prompts have been processed.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Note that instead of using the `client.chat` library, we are using the `client.images`
+    library as we need to use DALL-E to generate images. We store each output in a
+    list variable called `image_urls`. This is then returned by our Google cloud function,
+    with the following JSON structure:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: In this recipe, we created an intelligent application that combines multiple
+    models, multiple API calls, and fine-tuning concepts. Overall, in this chapter,
+    we built two impactful applications in less than a few hours.
+  prefs: []
+  type: TYPE_NORMAL

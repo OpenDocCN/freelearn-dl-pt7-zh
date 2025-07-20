@@ -1,0 +1,1436 @@
+- en: '4'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Fine-Tuning Whisper for Domain and Language Specificity
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: OpenAI’s Whisper represents a groundbreaking innovation in ASR through its ability
+    to transcribe speech into text with unprecedented accuracy. However, as with any
+    machine learning model, Whisper’s out-of-the-box performance still exhibits limitations
+    in niche contexts. For example, during the onset of COVID-19, Whisper could not
+    recognize the term for several months. Similarly, the model needed to accurately
+    transcribe the names of key figures and places associated with the Russia–Ukraine
+    conflict, which required prior training data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Thus, to fully tap into this model’s potential, we must customize it for specific
+    situations. This chapter will uncover techniques for adapting Whisper’s skills
+    to handle unique business problems. Our adventure will stretch several milestones,
+    from setting up systems to evaluating improvements.
+  prefs: []
+  type: TYPE_NORMAL
+- en: First, we’ll establish and configure Python resources to power our coming work,
+    incorporating datasets/modeling/experimentation libraries that form a solid base
+    on which to build. Next, we’ll smartly pick multilingual speech data sources such
+    as **Common Voice** to diversify Whisper’s knowledge further for specific niches.
+    More focused data improves the quality of training.
+  prefs: []
+  type: TYPE_NORMAL
+- en: With the stage now set through tools and augmented data, we can tailor Whisper’s
+    predictions to make them ideal for target applications. For example, we’ll explore
+    how adjusting confidence levels, output classes, and time limits can match the
+    expected results in our specific use cases. We’ll also unlock tools for radically
+    fine-tuning Whisper using standard equipment.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Tracking progress relies on straightforward testing. We’ll set up fixed benchmarks
+    to objectively gauge gains in our fine-tuning. Setting high evaluation integrity
+    builds trust in results. We’ll ultimately cycle between improving Whisper and
+    double-checking how sound adaptations transfer into the real world by building
+    and testing a lightweight demo.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We’ll commit to bringing everyone together by fine-tuning low-resource languages
+    rather than inadvertently forgetting groups with fewer advantages.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'In this chapter, we will cover the following topics:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Preparing the environment and data for fine-tuning
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Preparing the feature extractor, tokenizer, and data
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Training and evaluating metrics
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Evaluating performance across datasets
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Through advanced fine-tuning methodologies covered in this chapter and the companion
+    GitHub repository, we will learn the foundational process of fine-tuning Whisper’s
+    performance on industry-specific vocabulary, regional accents, and the integration
+    of real-time learning for unfamiliar emerging terminology. Let’s get started on
+    this hands-on adventure!
+  prefs: []
+  type: TYPE_NORMAL
+- en: Technical requirements
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: For this chapter, we will leverage Google Colaboratory. We’ll try to secure
+    the best GPU we can afford, with a minimum of 12 GB of GPU memory.
+  prefs: []
+  type: TYPE_NORMAL
+- en: To get a GPU, within Google Colab’s main menu, click **Runtime** | **Change
+    runtime type**, then change the **Hardware accelerator** from **None** to **GPU**.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Keep in mind that fine-tuning Whisper will take several hours. Thus, you must
+    monitor your running notebook in Colab regularly.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This chapter teaches you how to fine-tune the Whisper model so that it can recognize
+    speech in multiple languages using tools such as Hugging Face Datasets, Transformers,
+    and the Hugging Face Hub. Check out the Google Colab Python notebook in this book’s
+    GitHub repository ([https://github.com/PacktPublishing/Learn-OpenAI-Whisper/tree/main/Chapter04](https://github.com/PacktPublishing/Learn-OpenAI-Whisper/tree/main/Chapter04))
+    and try fine-tuning yourself.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The general recommendation is to follow the Colab notebook and upload model
+    checkpoints directly to the Hugging Face Hub while training. The Hub provides
+    the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Integrated version control**: You can be sure that no model checkpoint is
+    lost during training'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**TensorBoard logs**: Track important metrics throughout training'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Model cards**: Document what a model does and its intended use cases'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Community**: An easy way to share and collaborate with the community!'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Linking the notebook to the Hub is straightforward – you must enter your Hub
+    authentication token when prompted. The Colab notebook has specific instructions.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Introducing the fine-tuning process for Whisper
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Realizing Whisper’s full potential requires moving beyond out-of-the-box offerings
+    through purposeful fine-tuning – configuring and enhancing the model to capture
+    precise niche needs. This specialized optimization journey traverses nine key
+    milestones:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Preparing robust Python environments with essential libraries such as Transformers
+    and datasets that empower rigorous experimentation.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Incorporating diverse, multilingual datasets, including Common Voice, for expanding
+    linguistic breadth.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Setting up Whisper pipeline components such as tokenizers for easier pre/post-processing.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Transforming raw speech data into model-digestible log-Mel spectrogram features.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Defining training parameters and hardware configurations aligned to target model
+    size.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Establishing standardized test sets and metrics for reliable performance benchmarking.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Executing training loops that meld configured hyperparameters, data, and hardware.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Evaluating fine-tuned models against test corpus and benchmark leaderboards.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: Building applications demonstrating customized speech recognition efficacy.
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: 'The end objective remains as we traverse techniques for enhancing Whisper across
+    these milestones: matching model capabilities to unique production needs through
+    specialized optimization.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: With this overview of the fine-tuning process, the next section will cover leveraging
+    Whisper checkpoints. To be clear, Whisper checkpoints are pre-trained models tailored
+    to various computational and linguistic requirements. For our demonstration, we
+    opted for the **small** checkpoint, owing to its balance between size and performance
+    – offering a practical option for us to efficiently fine-tune Whisper on specialized
+    training data, even with constraints on computational capacity, ensuring that
+    we can still achieve remarkable results in speech recognition for languages not
+    widely spoken.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Leveraging the Whisper checkpoints
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Whisper checkpoints come in five configurations of varying model sizes (Tiny,
+    Base, Small, Medium, and Large). The checkpoints with the smallest four sizes
+    are trained on either English-only or multilingual data. The largest checkpoints
+    are multilingual only. All 11 pre-trained checkpoints are available on the Hugging
+    Face Hub ([https://huggingface.co/models?search=openai/whisper](https://huggingface.co/models?search=openai/whisper)).
+    The checkpoints are summarized in the following table with links to the models
+    on the Hub:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '| **Size** | **Layers** | **Width** | **Heads** | **Parameters** | **English-Only**
+    | **Multilingual** |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Tiny | 4 | 384 | 6 | 39M | ✓ | ✓ |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Base | 6 | 512 | 8 | 74M | ✓ | ✓ |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Small | 12 | 768 | 12 | 244M | ✓ | ✓ |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Medium | 24 | 1,024 | 16 | 769M | ✓ | ✓ |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Large-v1 | 32 | 1,280 | 20 | 1550M | x | ✓ |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Large-v2 | 32 | 1,280 | 20 | 1550M | x | ✓ |'
+  prefs: []
+  type: TYPE_TB
+- en: '| Large-v3 | 32 | 1,280 | 20 | 1550M | x | ✓ |'
+  prefs: []
+  type: TYPE_TB
+- en: Table 4.1 – Whisper checkpoints
+  prefs: []
+  type: TYPE_NORMAL
+- en: We’ll fine-tune the multilingual version of the small checkpoint with 244M params
+    (~= 1 GB) for demonstration purposes. We’ll use a language that’s not widely spoken,
+    taken from the Common Voice dataset, to train and test our system. We’ll demonstrate
+    that we can get good results in this language even with ~=8 hours of specialized
+    training data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now that we’ve covered the strategic use of Whisper’s checkpoints, we’ll prepare
+    the environment and data for fine-tuning. This crucial next step invites us to
+    meticulously set up our working environment and curate our data, ensuring our
+    foundation is robust for the fine-tuning process ahead. This transition is guided
+    by the principle of moving from understanding to action, setting the stage for
+    practical application and innovation with Whisper.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Milestone 1 – Preparing the environment and data for fine-tuning
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Training a cutting-edge speech recognition model such as Whisper poses intense
+    computational demands - specialized hardware configurations are vital for viable
+    fine-tuning. This section demands reasonable programming familiarity – we’ll get
+    our hands dirty with low-level APIs. But fret not if tweaking parameters is not
+    your forte! We will structure explanations and unpack concepts without plunging
+    straight into the depths. You need not actively code along – instead, the insights
+    revealed here seek to empower you to apply these processes for your unique Whisper
+    fine-tuning needs.
+  prefs: []
+  type: TYPE_NORMAL
+- en: If you do crave getting hands-on, this book’s GitHub repository at [https://github.com/PacktPublishing/Learn-OpenAI-Whisper/tree/main/Chapter04](https://github.com/PacktPublishing/Learn-OpenAI-Whisper/tree/main/Chapter04)
+    contains a complementary notebook with annotated code blocks aligned to chapter
+    content. Open the notebook and traverse alongside chapters to experiment with
+    parameter tweaking concepts directly.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Leveraging GPU acceleration
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: While Whisper can be trained on CPUs, convergence is prohibitive at around 100
+    hours, even for tiny checkpoints. Thus, **GPU acceleration** is critical for feasible
+    iteration cycles.
+  prefs: []
+  type: TYPE_NORMAL
+- en: GPUs provide massively parallel computation, delivering 100x faster training
+    through thousands of processing cores on specialized tensors. Models with over
+    a billion parameters, such as Whisper, particularly benefit from additional throughput.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'As we proceed with fine-tuning Whisper, I will use excerpts from the Python
+    notebook available in this book’s GitHub repository. The code listed here is for
+    illustration and explanation purposes. If you want to see the entire code sequence,
+    please refer to the Python notebook for this chapter. The following code excerpt
+    shows how we can track and confirm GPU availability:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE0]'
+  prefs: []
+  type: TYPE_PRE
+- en: Most cloud computing instance types feature attached GPUs – selecting appropriately
+    sized resources is pivotal.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Installing the appropriate Python libraries
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'We will use a few well-known Python packages to adjust the Whisper model:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE1]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let’s take a closer look:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`datasets` and `transformers` provide structured access to speech data and
+    state-of-the-art models'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`accelerate` and `tensorboard` enable optimized model training using available
+    **GPU/TPU** hardware and tracking experiment results'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`librosa` and `soundfile` preprocess audio files, which is a crucial step before
+    feeding the data into Whisper'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`jiwer` and `evaluate` support quantifying speech recognition efficacy'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`gradio` will help us create an impressive demo of our refined model'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'We’ll also link this environment to the Hugging Face Hub so that we can easily
+    share fine-tuned models with the community:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE2]'
+  prefs: []
+  type: TYPE_PRE
+- en: Hugging Face provides version control, model documentation, and public access,
+    thus ensuring full reproducibility while allowing us to build on each other’s
+    work.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Hugging Face and Whisper
+  prefs: []
+  type: TYPE_NORMAL
+- en: Hugging Face is a data science company that provides a platform for sharing
+    and collaborating on machine learning models, particularly NLP. It is widely recognized
+    for its Transformers library, which offers a collection of pre-trained models
+    and tools for various NLP tasks, including text classification, translation, summarization,
+    and, pertinent to our discussion, ASR.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Hugging Face provides a streamlined process for fine-tuning Whisper. It allows
+    you to load and prepare your training data, execute the data preparation and fine-tuning
+    steps, and evaluate your model’s performance. It also offers integrated version
+    control, TensorBoard logs, model cards, and a community for sharing and collaboration.
+  prefs: []
+  type: TYPE_NORMAL
+- en: While Whisper already knows a lot about many languages, there’s room to grow
+    – especially when handling specific situations such as niche vocabulary. We’ll
+    walk through methods for bringing in complementary speech data to fill those gaps.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Common Voice project led by Mozilla is an ideal fit here, with its 100+
+    languages sourced straight from global volunteers. We’ll cover easy ways to tap
+    into these crowd-sourced datasets to balance Whisper’s accuracy and inclusiveness
+    for niche international uses.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Beyond Common Voice, we can create custom mixes from multiple datasets worldwide
+    to test Whisper’s boundaries. Clever blending stresses flexibility, which is vital
+    for commercial success. But we can’t just pursue giant datasets – diversity brings
+    resilience. We’ll equip ourselves with best practices for construction representatives
+    and varied combinations tailored to deployment needs across languages.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Let’s get started by plugging some Common Voice data into Whisper.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Milestone 2 – Incorporating the Common Voice 11 dataset
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: The Common Voice dataset, spearheaded by Mozilla, represents a pioneering effort
+    in democratizing speech technology through open and diverse speech corpora. A
+    **dataset** is a structured collection of data where the rows typically represent
+    individual observations or instances, and the columns represent the features or
+    variables of those instances. In the case of Common Voice, each row represents
+    an audio record, and each column represents features or characteristics applicable
+    to the audio record. As an ever-expanding, community-driven initiative across
+    100+ languages, Common Voice optimally augments multilingual speech recognition
+    systems like Whisper.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Integrating Common Voice data is straightforward with the Hugging Face `Datasets`
+    library. We load the desired language split in streaming mode to bypass extensive
+    storage requirements and expedite fine-tuning workflows:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE3]'
+  prefs: []
+  type: TYPE_PRE
+- en: When we initially loaded the Common Voice dataset, it came with much extra information,
+    such as the speaker’s accent, gender, age, and more. It also included the path
+    to the disk audio file, IDs, and votes for data quality assurance.
+  prefs: []
+  type: TYPE_NORMAL
+- en: But we don’t care about those extra metadata details for speech recognition
+    using Whisper. The only data Whisper needs to predict is the audio itself and
+    the matching text transcript. Everything else is unnecessary for our purposes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'So, this line of code creates a trimmed-down version of the Common Voice dataset
+    by removing those extra columns or features irrelevant to our speech recognition
+    task. We pare it down to just the essential *audio* and *sentence* text that Whisper
+    requires. This simplifies the data pipeline:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE4]'
+  prefs: []
+  type: TYPE_PRE
+- en: By stripping away unrelated metadata, we ensure that only meaningful features
+    get fed into Whisper. This helps the model focus on learning speech-to-text mappings
+    rather than irrelevant patterns from speaker details. The result is a cleaner
+    dataset that is more tightly aligned with our end goals.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Common Voice encapsulates notable domain diversity, recording conditions, and
+    speaker demographics. These datasets exhibit substantial audio quality and accent
+    variability as crowd-sourced collections from global contributors. The presence
+    of real-world recording imperfections makes Common Voice a challenging benchmark
+    for assessing model robustness.
+  prefs: []
+  type: TYPE_NORMAL
+- en: While expansive diversity poses difficulties, it also enables more resilient
+    speech recognition. Systems trained exclusively on pristine corpora such as LibriSpeech
+    falter when applied to noisy environments. Heterogeneous data that integrates
+    noise is thus imperative for production-ready performance.
+  prefs: []
+  type: TYPE_NORMAL
+- en: By covering data diversity, Common Voice complements Whisper’s foundations.
+    The model’s extensive multilingual pre-training provides comprehensive linguistic
+    coverage; adapting this knowledge to Common Voice’s variability and low-resource
+    languages is an optimal direction for bespoke enterprise applications.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For instance, call centers handling customer inquiries require ASR resilient
+    to accents, recording artifacts, and domain lexicon. Contact center analytics
+    currently needs help with niche terminology. Contact center agents discuss specialized
+    concepts, from telecom acronyms such as CDMA/GSM to named entities such as iPhone
+    14 Pro Max. Enhancing Whisper’s contextual mastery necessitates domain-specific
+    data. Contact centers have a particular lexicon – the model must understand that
+    specific lexicon. The model will learn the specifics of that industry by having
+    in-domain data. So, fine-tuning Whisper on Common Voice call center recordings
+    would boost its contact center efficacy.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Besides domain optimization, multilingual support remains imperative for global
+    businesses. While Whisper demonstrates impressive zero-shot cross-lingual ability,
+    adapting acoustic and linguistic knowledge to under-represented languages is vital
+    for equitable AI.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Expanding language coverage
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: While Whisper’s multilingual design provides comprehensive linguistic coverage,
+    enhancing performance in low-resource languages remains an ethical imperative
+    for inclusive speech technology. Strategically fine-tuning targeted language data
+    is critical for equitable global deployment.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Common Voice project shares these motivations for multilingual representation.
+    The initiative provides datasets for over 100 languages, including many under-resourced
+    tongues. This presents a unique opportunity to augment Whisper’s knowledge in
+    languages needing more training data.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For instance, the Lithuanian subset contains approximately 50 hours of labeled
+    speech. Building an automated Lithuanian transcriber from scratch is infeasible
+    for agile Baltic startups. However, by leveraging Whisper’s transfer learning
+    capabilities, you can rapidly construct a performant Lithuania-optimized system
+    through fine-tuning.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The implications are profound for enterprises in lower-income regions often
+    underserved by AI. Rather than building costly customized models, adapting Whisper
+    alleviates economic barriers to speech technology access.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Constructively integrating these datasets presents a means of propagating social
+    good through language technology. Strategic incorporation must balance accuracy,
+    speed, and inclusion. While augmenting with all 100+ Common Voice languages maximizes
+    coverage, convergence would be prohibitive for most applications. We must be selective.
+    For global enterprises, carefully selecting ~10 diverse languages for enhancement
+    ensures sustainable commercial viability without excluding underserved communities.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This strategic balancing act permeates all forms of algorithmic bias mitigation.
+    Prejudicial solutions, such as intentionally hampering performance in specific
+    languages, should be avoided. Instead, we can proactively improve technologies
+    for excluded groups through targeted data augmentation. Common Voice provides
+    the data resources to achieve this sustainably.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Improving translation capabilities
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Speech translation entails significant complexity – systems must map acoustic
+    signals to not just text but also text in another language. This task requires
+    multifaceted model capabilities, from source language comprehension to target
+    language fluency.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Whisper’s architecture provides strong foundations, integrating an encoder-decoder
+    structure with deep attentional fusion between audio semantics and language generation.
+    However, no organization alone can keep up with the continuous evolution of diverse
+    acoustic environments and low-resource languages.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Mozilla’s Common Voice project members are constructing accessible multilingual
+    corpora. The project’s upcoming 12th edition will include speech translation data
+    pairs in 50 languages to further democratization efforts. Integrating these datasets
+    can optimize Whisper for production translation use cases.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For instance, call centers again represent a compelling but challenging application
+    area. Agents must handle customer inquiries globally across different languages
+    – training models exclusively on individual high-resource language risks, excluding
+    underrepresented tongues and accents.
+  prefs: []
+  type: TYPE_NORMAL
+- en: So, constructively balancing languages is crucial for ethical deployment. Achieving
+    parity requires the strategic incorporation of diverse linguistic data. Sources
+    such as Common Voice, through crowdsourced global recordings, provide microcosms
+    of real-world language variability. Models trained on these datasets learn to
+    parse multifaceted accents and speech cadences.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Progress in automatic speech translation has accelerated recently through self-supervised
+    techniques. Models such as XLSR-Wav2vec2, pre-trained on 56k hours of Common Voice
+    data across 50 languages, have created breakthroughs in direct speech-to-speech
+    translation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: With our newfound strategies for enhancing Whisper’s translation capabilities,
+    we’ll embark on setting up Whisper pipeline components. This shift in focus lays
+    the groundwork for a more granular examination of the tools and processes integral
+    to Whisper’s ASR workflow. By delving into the setup of Whisper’s pipeline components,
+    we’re preparing to fine-tune our approach, ensuring our project’s success with
+    a solid, practical foundation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Milestone 3 – Setting up Whisper pipeline components
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'The process of ASR can be broken down into three main parts:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Feature extractor**: This is the initial step of processing the raw audio
+    inputs. Think of it as preparing the audio files, so the model can easily understand
+    and use them. The feature extractor turns the audio into a format that highlights
+    essential aspects of the sound, such as pitch or volume, which are crucial for
+    the model to recognize different words and sounds.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**The model**: This is the core part of the ASR process. It performs what we
+    call sequence-to-sequence mapping. In simpler terms, it takes the processed audio
+    from the feature extractor and works to convert it into a sequence of text. It’s
+    like translating the language of sounds into the language of text. This part involves
+    complex calculations and patterns to accurately determine what the audio says.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '**Tokenizer**: After the model has done its job of mapping the sounds to text,
+    the tokenizer steps in. It post-processes the model’s outputs and formats them
+    into readable text. It’s like giving the final touch to the translation, ensuring
+    that it makes sense in text form and follows the rules of the language, such as
+    proper spacing and punctuation.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: In Hugging Face Transformers, a popular toolkit for handling NLP tasks, such
+    as text classification, language translation, and speech recognition, the Whisper
+    model has a feature extractor and a tokenizer, aptly named *WhisperFeatureExtractor*
+    and *WhisperTokenizer*, respectively.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We will look deeper into the feature extractor and tokenizer specifics separately.
+    Understanding these components is critical as each plays a vital role in converting
+    spoken words into written text. We’ll explore how the feature extractor fine-tunes
+    the raw audio for the model and how the tokenizer ensures the output text is accurate
+    and coherent. This detailed look will give you a clearer picture of how the Whisper
+    model processes speech, turning the complex task of speech recognition into a
+    streamlined, efficient process.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We will return to the *WhisperFeatureExtractor*. For now, let’s first understand
+    the *WhisperTokenizer* component.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Loading WhisperTokenizer
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: The Whisper tokenizer helps translate text token sequences (numbers) into actual
+    readable text. For example, it can turn a sequence such as [1169, 3797, 3332]
+    into the sentence “the cat sat.”
+  prefs: []
+  type: TYPE_NORMAL
+- en: In traditional speech recognition models, we use a method called **connectionist
+    temporal classification** (**CTC**) to decode speech, and a specific CTC tokenizer
+    is needed for each dataset. However, the Whisper model, which uses a different
+    architecture (encoder-decoder), lets us use its pre-trained tokenizer directly.
+  prefs: []
+  type: TYPE_NORMAL
+- en: This Whisper tokenizer has been trained in many languages, making it suitable
+    for almost any multilingual speech recognition task. For instance, if you’re working
+    with Hindi, you can load the Whisper tokenizer without any changes. You need to
+    specify the language you’re working with (for example, Hindi) and the task (for
+    example, transcription). This tells the tokenizer to add particular language and
+    task tokens at the beginning of the sequences it processes.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here’s an example of how to load the Whisper tokenizer for Hindi:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE5]'
+  prefs: []
+  type: TYPE_PRE
+- en: You can also adapt this for speech translation by changing the task to `translate`
+    and setting the language to your target language. This will ensure that the tokenizer
+    adds the proper tokens for translating speech.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'To check that the tokenizer works correctly with Hindi, test it on a sample
+    from the Common Voice dataset. Of course, this does not necessarily mean the tokenizer
+    can recognize the meaning of the text. Instead, it translates sequences of text
+    tokens (numbers) into actual readable text indicating the language and other features.
+    When encoding speech, the tokenizer adds *special tokens* at the beginning and
+    end, such as tokens for the start/end of the transcript, language, and task. You
+    can ignore these unique tokens when decoding to regain a clean, original text
+    string. This ensures that the tokenizer can accurately handle the Hindi language
+    in speech recognition tasks. The following Python snippet demonstrates a basic
+    workflow for processing speech data for speech recognition tasks using a tokenizer
+    – in this case, within the context of the Common Voice 11 dataset:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE6]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Here’s a high-level explanation of each step:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Extract the** **input sentence**:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE7]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: This line retrieves the first sentence from the training set of the Common Voice
+    11 dataset. `common_voice["train"][0]["sentence"]` is a dictionary access pattern
+    where `"train"` indicates the subset of the dataset (training data in this case),
+    `[0]` selects the first record, and `["sentence"]` extracts the sentence text.
+    We want to process this sentence for speech recognition.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '**Tokenize the** **input sentence**:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE8]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: The tokenizer converts the input string into a sequence of tokens. These tokens
+    are numerical representations of the words or subwords in the sentence. `input_ids`
+    are the indices assigned to each token by the tokenizer, effectively transforming
+    the sentence into a format that a model can understand. This step is crucial for
+    preparing text data for processing with neural networks as they require numerical
+    input.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '**Decode the tokens (with and without** **special tokens)**:'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[PRE9]'
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+- en: Here, the decoded string excludes special tokens. This version is closer to
+    the original human-readable sentence, as it removes tokens not directly related
+    to the original text content.
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+- en: '`print` statements display the original input sentence, the decoded sentences
+    (with and without special tokens), and a Boolean value indicating whether the
+    original and the decoded sentence (without special tokens) are identical. This
+    comparison helps us check the fidelity of the tokenization and detokenization
+    processes. It’s a simple way to verify that the tokenizer can accurately reproduce
+    the original sentence after converting it into tokens and back, minus any special
+    tokens used for processing.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: This snippet illustrates how text data is prepared and handled in the context
+    of speech recognition and processing with the Common Voice 11 dataset. Such a
+    process is part of a larger pipeline that might include converting audio into
+    text, processing the text for training or inference with machine learning models,
+    and evaluating the models’ performance in tasks such as ASR. Understanding the
+    role of tokenizers is essential as they bridge the gap between raw text data and
+    the numerical formats required for effective model training and operation.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here is the print output you will see after the previous snippet is ran:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE10]'
+  prefs: []
+  type: TYPE_PRE
+- en: Equipped with a better understanding of the purpose and capabilities of the
+    *WhisperTokenizer*, let’s explore the *WhisperFeatureExtractor* in the next milestone.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Milestone 4 – Transforming raw speech data into Mel spectrogram features
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Speech can be considered a one-dimensional array that changes over time, with
+    each point in the array representing the loudness or amplitude of the sound. To
+    understand speech, we need to capture its frequency and acoustic features, which
+    can be done by analyzing the amplitude.
+  prefs: []
+  type: TYPE_NORMAL
+- en: However, speech is a continuous sound stream, and computers can’t handle infinite
+    data. So, we must convert this continuous stream into a series of discrete values
+    by sampling the speech at regular intervals. This sampling is measured in samples
+    per second or Hertz (Hz). The higher the sampling rate, the more accurately it
+    captures the speech, but it also means more data to store every second.
+  prefs: []
+  type: TYPE_NORMAL
+- en: It’s important to ensure that the sampling rate of the audio matches what the
+    speech recognition model expects. If the rates don’t match, it can lead to errors.
+    For example, playing a sound sampled at 16 kHz at 8 kHz will make it sound slower.
+    The Whisper model, for instance, expects a sampling rate of 16 kHz, so we need
+    to ensure our audio matches this rate. Otherwise, we might train the model on
+    distorted audio, such as slow-motion speech.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The Whisper feature extractor, a tool used in speech recognition, does two things
+    with audio samples. First, it makes sure all audio samples are precisely 30 seconds
+    long. If a sample is shorter, it adds silence to the end to reach 30 seconds.
+    If it’s longer, it cuts it down to 30 seconds. This means we don’t need an attention
+    mask for the Whisper model, which is unique. Usually, in audio models, you need
+    an attention mask to show where you’ve added silence, but Whisper can figure it
+    out itself.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The second thing the Whisper feature extractor does is turn these adjusted audio
+    samples into **log-Mel** spectrograms. These are visual charts showing the frequencies
+    in the sound over time, where different colors represent different intensities
+    of frequencies. The Whisper model uses these charts to understand and process
+    speech. They’re designed to mimic how humans hear, focusing on specific frequencies
+    that are more important for understanding speech.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In summary, ensuring your audio samples are at the proper sampling rate (16
+    kHz for Whisper) is crucial when working with speech recognition and the Whisper
+    model. The feature extractor then standardizes these samples to 30 seconds each
+    by adding silence or cutting excess. Finally, it converts these samples into log-Mel
+    spectrograms, visual representations of sound frequencies, which the Whisper model
+    uses to recognize and process speech. These steps are essential for accurate speech
+    recognition.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Luckily, the Hugging Face Transformers Whisper feature extractor performs the
+    padding and spectrogram conversion in just one line of code! Let’s go ahead and
+    load the feature extractor from the pre-trained checkpoint to have it ready for
+    our audio data:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE11]'
+  prefs: []
+  type: TYPE_PRE
+- en: Combining to create a WhisperProcessor class
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'To make it easier to work with the feature extractor and tokenizer, we can
+    combine them into a single class called `WhisperProcessor`. This processor acts
+    like both `WhisperFeatureExtractor` and `WhisperTokenizer`. It can be used on
+    audio inputs and model predictions as needed. This way, during training, we only
+    need to focus on two main components: the *processor* and the *model*. The following
+    Python snippet illustrates how to initialize `WhisperProcessor` for the `openai/whisper-small`
+    model, explicitly configured for transcribing Hindi language audio:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE12]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Let’s check out the first record from the Common Voice dataset to understand
+    the data format:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE13]'
+  prefs: []
+  type: TYPE_PRE
+- en: Here, we see a one-dimensional audio array and a matching written transcript.
+    Remember, the sampling rate of our audio must match the Whisper model’s rate (16
+    kHz). Our example audio is recorded at 48 kHz, so we must adjust it to 16 kHz
+    before using the Whisper feature extractor.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We’ll change the audio to the proper sampling rate using the dataset’s `cast_column`
+    method. It applies transformations to the data in a given column, such as resampling
+    the audio data to a different sampling rate. It is beneficial when working with
+    audio datasets in machine learning tasks. The `cast_column` method doesn’t modify
+    the original audio file; instead, it tells the dataset to change the sample rate
+    whenever the audio is first loaded:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE14]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Here’s the print output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE15]'
+  prefs: []
+  type: TYPE_PRE
+- en: When we reload the first audio sample, it will be at the 16 kHz sampling rate
+    we need.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Now, the sampling rate is down to 16 kHz. The values in the array have also
+    changed – we now have about one value for every three we had before.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Next, let’s write a function to get our data ready for the model:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE16]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'In the preceding snippet, we do the following:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: Load and resample the audio by calling `batch["audio"]`. As mentioned previously,
+    Hugging Face Datasets will automatically resample the audio.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Use the feature extractor to turn the one-dimensional audio array into log-Mel
+    spectrogram input features.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: Convert the transcripts into label IDs using the tokenizer.
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: 'Now that we have the `prepare_dataset()` function defined, we can apply this
+    data preparation function to all our training examples using the dataset’s `.``map`
+    method:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE17]'
+  prefs: []
+  type: TYPE_PRE
+- en: There we go! Our data is now fully prepped for training. Let’s move on to how
+    to use this data to fine-tune Whisper.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: The datasets currently use both `torchaudio` and `librosa` for audio handling.
+    If you want to do your own audio loading or sampling, you can use the `path` column
+    to find the audio file location and ignore the `audio` column.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As we culminate our exploration of synthesizing `WhisperProcessor`, merging
+    the feature extractor and tokenizer into a unified workflow, we transition toward
+    defining training parameters and hardware configurations. This crucial juncture
+    signifies our preparation for the intricate task of fine-tuning, emphasizing the
+    strategic selection of training parameters and hardware configurations that align
+    with our learning project’s scale and complexity.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Milestone 5 – Defining training parameters and hardware configurations
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Now that our data is ready, we can start training our model. We’ll use the
+    Hugging Face Trainer to help with most of the work. The Hugging Face `Trainer`
+    class provides a feature-complete training and evaluation loop for PyTorch models
+    optimized for Transformers. It supports distributed training on multiple GPUs/TPUs
+    and mixed precision and offers a lot of customizability for users. The `Trainer`
+    class abstracts away the complexities of the training loop, allowing users to
+    focus on providing the essential components required for training, such as a model
+    and a dataset. Here’s what we need to do:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '**Set up a data collator**: This tool takes our prepared data into PyTorch
+    tensors that the model can use.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**Choose evaluation metrics**: We want to see how well the model performs using
+    the **word error rate** (**WER**) metric. To perform this calculation, we’ll create
+    a function called compute_metrics.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**Load a pre-trained model**: We’ll start with an already-trained model and
+    set it up for further training. Training Whisper from scratch is not an option
+    due to the intense data and computing resources required for such a task.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: '**Define training arguments**: These arguments guide the Hugging Face Trainer
+    on how to train the model.'
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+- en: After fine-tuning the model, we’ll test it on new data to ensure it can accurately
+    transcribe speech in Hindi.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Setting up the data collator
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'The data collator for speech models like ours is a bit special. It handles
+    *input features* and *labels* separately: the feature extractor manages the *input
+    features*, whereas the tokenizer manages the *labels*.'
+  prefs: []
+  type: TYPE_NORMAL
+- en: The input features are set to 30 seconds and have been turned into a fixed-size
+    log-Mel spectrogram. We just need to convert them into grouped *PyTorch tensors*.
+    We can do this using the feature extractor’s `self.processor.tokenizer.pad` method
+    with `return_tensors="pt"`. Since the input features are already fixed in size,
+    we’re just changing them into *PyTorch tensors* without adding extra padding.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The labels, however, still need to be padded. First, we must pad them to the
+    longest length in our batch using the `self.processor.tokenizer.pad` method. We
+    are replacing the padding tokens with `-100` so they don’t affect the loss calculation.
+    We must also remove the start of the transcript token from the beginning of the
+    label sequence, as we’ll add it back during training.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We can use the `WhisperProcessor` class we made earlier to handle the feature
+    extractor and tokenizer tasks:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE18]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Now, let’s instantiate the data collator we’ve just defined:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE19]'
+  prefs: []
+  type: TYPE_PRE
+- en: Milestone 6 – Establishing standardized test sets and metrics for performance
+    benchmarking
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'Now, let’s learn how to check our model’s performance. We’ll use the WER metric,
+    a common way to evaluate speech recognition systems. We’ll load the WER metric
+    from Hugging Face `evaluate`:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE20]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Next, we’ll create a function called `compute_metrics` to calculate the WER:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE21]'
+  prefs: []
+  type: TYPE_PRE
+- en: This function fixes our `label_ids` (where we had replaced padding tokens with
+    `-100`). Then, it turns both the predicted and label IDs into text strings. Lastly,
+    it calculates the WER between these two.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Loading a pre-trained model checkpoint
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'We’ll start with a pre-trained Whisper model. This is easy with Hugging Face
+    Transformers:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE22]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'This model has settings that we need to adjust for training. We’ll set specific
+    tokens to `None` and make sure no tokens are suppressed:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE23]'
+  prefs: []
+  type: TYPE_PRE
+- en: Defining training arguments
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: 'We must define the training details, such as where to save the model and how
+    often to check its performance and other settings. There is a particular class
+    called `Seq2SeqTrainingArguments` for explicitly declaring training arguments.
+    A subset of the argument parameters are explained here:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '`output_dir`: The local directory in which to save the model weights. This
+    will also be the repository name on the Hugging Face Hub ([https://huggingface.co/](https://huggingface.co/)).'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`generation_max_length`: The maximum number of tokens to autoregressively generate
+    during evaluation.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`save_steps`: The intermediate checkpoints will be saved and uploaded asynchronously
+    to the Hub every `save_steps` training step during training.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`eval_steps`: During training, intermediate checkpoints will be performed every
+    `eval_steps` training step.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '`report_to`: Where to save training logs. Supported platforms are `azure_ml`,
+    `comet_ml`, `mlflow`, `neptune`, `tensorboard`, and `wand`. Pick your favorite
+    or leave it as `tensorboard` to log into the Hub.'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: For more details on the other training arguments, refer to the `Seq2SeqTrainingArguments`
+    documents ([https://huggingface.co/docs/transformers/v4.40.1/en/main_classes/trainer#trainer](https://huggingface.co/docs/transformers/v4.40.1/en/main_classes/trainer#trainer)).
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'The following code snippet illustrates the declaration of `Seq2SeqTrainingArguments`
+    with some of the parameters. You will find a complete working example in the companion
+    Python notebook in this book’s GitHub repository:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE24]'
+  prefs: []
+  type: TYPE_PRE
+- en: Note
+  prefs: []
+  type: TYPE_NORMAL
+- en: If you don’t want to upload the model to the Hub, set `push_to_hub=False`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'We’ll give these training details to the Hugging Face Trainer, along with our
+    `model`, `dataset`, `data collator`, and `compute_metrics` functions:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE25]'
+  prefs: []
+  type: TYPE_PRE
+- en: With robust metrics for evaluating model performance and a transparent process
+    defined for executing the training, we’ll now focus on a practical implementation
+    – executing optimized training loops while leveraging our configured hyperparameters,
+    datasets, and hardware.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Milestone 7 – Executing the training loops
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: 'To begin training, just run the following command:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE26]'
+  prefs: []
+  type: TYPE_PRE
+- en: '*Figure 4**.1* shows an example of the output you can expect to see from the
+    `trainer.train()` command’s execution:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 4.1 – Sample output from trainer.train() in Google Colab](img/B21020_04_1.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 4.1 – Sample output from trainer.train() in Google Colab
+  prefs: []
+  type: TYPE_NORMAL
+- en: Each training batch will have an evaluation step that calculates and displays
+    training/validation losses and WER metrics. Depending on your GPU, training could
+    take 5–10 hours. If you run into memory issues, try reducing the batch size and
+    adjusting `gradient_accumulation_steps` in the declaration of `Seq2SeqTrainingArguments`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Because of the parameters we established when declaring `Seq2SeqTrainingArguments`,
+    our model metrics and performance will be pushed to the Hugging Face Hub with
+    each training iteration. The key parameters driving that push to the Hub are shown
+    here:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE27]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'The following screenshots show how to navigate to the Hugging Face TensorBoard
+    and examples of the board with metrics from one of my fine-tuned models:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 4.2 – Within the Hugging Face repository, select “Training metrics”
+    to display the TensorBoard](img/B21020_04_2.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 4.2 – Within the Hugging Face repository, select “Training metrics” to
+    display the TensorBoard
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 4.3 – Example of some of the metrics in the Hugging Face TensorBoard](img/B21020_04_3.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 4.3 – Example of some of the metrics in the Hugging Face TensorBoard
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'After successful training, anyone can access and use your model via the Hugging
+    Face Hub. They can load it using a link from the Hub or use the `your-hugging-face-id/the-name-you-picked`
+    identifier. Here’s an example of how to load the model:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE28]'
+  prefs: []
+  type: TYPE_PRE
+- en: While the model we’ve fine-tuned works well with the Common Voice Hindi test
+    data, it’s not perfect. This guide is meant to show you how to fine-tune pre-trained
+    Whisper models on any speech recognition dataset in multiple languages. You might
+    get even better results by tweaking the training settings, such as learning rate
+    and dropout, or using a bigger pre-trained model (such as the medium or large
+    versions).
+  prefs: []
+  type: TYPE_NORMAL
+- en: With the optimized training process complete and our fine-tuned model uploaded,
+    we’ll now transition to assessing the real-world efficacy of our enhanced speech
+    recognition capabilities. We will validate how our tailored Whisper model generalizes
+    across languages, domains, and acoustic environments by benchmarking performance
+    across diverse datasets.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Milestone 8 – Evaluating performance across datasets
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: As we conclude our Whisper fine-tuning journey, validating model performance
+    across diverse real-world conditions represents a pivotal final milestone. Before
+    deploying our optimized speech recognizer into production scenarios, comprehensively
+    assessing its effectiveness across datasets, languages, accents, and acoustic
+    environments is essential for instilling confidence. This testing phase unveils
+    actual capabilities, revealing where additional tuning may be required while spotlighting
+    areas suitable for immediate application. The rigorous evaluation processes outlined
+    in this section aim to verify customized performance gains while guiding ethical
+    and inclusive rollout by covering key facets such as bias mitigation, domain optimization,
+    translation abilities, and expectation management.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Mitigating demographic biases
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Machine learning models, including those for speech recognition, can sometimes
+    detect biases against certain genders, ethnicities, or age groups. This happens
+    because the audio data they learn from can vary greatly between different groups
+    of people. To prevent this, we must train the model with a wide range of data
+    and use unique methods to check for biases.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We should carefully examine where the model might work better for certain groups
+    of people. This will help us understand which groups might need more support from
+    the model. We can also change the data the model learns from to see if it treats
+    different groups of people differently. This will help us find the real reasons
+    for any unfairness.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Finding problems is not enough. We also need to add a variety of data to the
+    model. This means getting data from many different sources, especially those that
+    haven’t been included much before. We can use methods such as web scraping to
+    find new kinds of speech data. We can also create artificial voices, but we must
+    be careful and transparent about how we do this.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We need to be careful to avoid overcorrecting and creating new problems. Our
+    goal is to improve the model for everyone. We can do this by testing it equally
+    with different groups of people to ensure it works well for everyone.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We should aim to use language technology to unite people, not separate them.
+    We should focus on making speech technology that is fair and helpful for everyone.
+    This means constantly checking and improving our models to ensure they are fair
+    and helpful for all different groups of people.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Optimizing for content domains
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: While Whisper’s extensive pre-training provides broad linguistic capabilities,
+    tailoring its knowledge toward specialized domains is pivotal for competitive
+    enterprise use cases. Contact centers, legal firms, finance brokers, telemedicine
+    providers—speech recognition permeates diverse industries, each carrying distinct
+    challenges. Beyond vocabulary, accurately modeling nonverbal cues, discourse patterns,
+    and subtle connotations underpins contextual understanding in niche domains.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Yet out-of-the-box ASR systems often stumble on niche terminology and struggle
+    to convey implicitly layered meaning. For example, a precise understanding of
+    clauses has substantive significance in legal contexts. Models trained exclusively
+    on generic datasets fail to distill these specialized connotations. Exposing systems
+    to targeted in-domain data is thus vital for infusing contextual mastery.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The nucleus of domain optimization lies in terminology mastery. Legal, medical,
+    and financial contexts involve extensive exotic lexicons that shape substantive
+    task competencies. Yet glossaries alone fail to encapsulate the layered semantics
+    encoded in specialist dictionaries.
+  prefs: []
+  type: TYPE_NORMAL
+- en: One option is to employ **explicit semantic analysis** (**ESA**), a computational
+    method for mathematically representing human notions of language meaning. ESA
+    is a high-dimensional space of concepts derived from a large text corpus, and
+    it is used in NLP and information retrieval.
+  prefs: []
+  type: TYPE_NORMAL
+- en: In simple terms, ESA is a way for computers to understand the meaning of a piece
+    of text by comparing it to a large amount of text data it has already analyzed.
+    It does this by mapping the text to a set of concepts or topics derived from a
+    large corpus of text data. This mapping is done in a high-dimensional space, where
+    each dimension represents a different concept or topic.
+  prefs: []
+  type: TYPE_NORMAL
+- en: For example, if the text is about “dogs,” ESA might map it to concepts such
+    as “animals,” “pets,” “canines,” and so on. By doing this, ESA can understand
+    the semantic meaning of the text, which can be used for tasks such as information
+    retrieval, text classification, and more. ESA is beneficial because it can capture
+    the meaning of text even when the words used are not the same. For instance, it
+    can be understood that “dogs” and “canines” refer to the same concept, even though
+    the words are different. This makes it a powerful tool for understanding and processing
+    natural language.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Managing user expectations
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+- en: Responsible use of AI speech recognition technology involves ensuring users
+    understand what the technology can and cannot do. It’s essential to be open about
+    the technology’s capabilities and limits so that people can make informed choices
+    about using it. This is especially crucial for those who might not have much digital
+    experience.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Effective communication about technology’s abilities helps build trust. This
+    can be done through easy-to-understand summaries and explanations that address
+    specific user needs without overwhelming them with too much detail. Tools such
+    as model confidence scores and visualizations can help users gauge the reliability
+    of the technology’s predictions, making it more transparent when and how it’s
+    best used.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Being upfront about what technology can’t do is just as important. Recognizing
+    limitations is not a sign of failure; it’s an opportunity for growth and improvement.
+    For example, areas where Whisper might struggle, such as real-time recognition
+    in noisy environments, should be seen as challenges to be solved through collaborative
+    effort rather than permanent flaws.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Listening to users and incorporating their feedback is critical to improving
+    speech recognition technology for everyone. Regularly checking how the technology
+    performs in real-world situations helps prevent it from drifting away from users’
+    needs. By involving users in the process via humans-in-the-loop, we can focus
+    on addressing the most pressing issues and make improvements more efficiently.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Milestone 9 – Building applications that demonstrate customized speech recognition
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: Now that our model has been fine-tuned let’s demonstrate how good it is at speech
+    recognition (ASR)! We’ll use the Hugging Face Transformers pipeline to handle
+    everything, from preparing the audio to decoding what the model thinks the audio
+    says. For our demo, we’ll use **Gradio**, a tool that makes it super easy to build
+    machine learning demos. You can create a demo with Gradio in just a few minutes!
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Here is an example of a Gradio demo. In this demo, you can record speech using
+    your computer’s microphone, after which the fine-tuned Whisper model will transcribe
+    it into text:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[PRE29]'
+  prefs: []
+  type: TYPE_PRE
+- en: 'Here’s the output:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '![Figure 4.4 – Example of Gradio’s user interface for the fine-tuned Whisper
+    model in Hugging Face](img/B21020_04_4.jpg)'
+  prefs: []
+  type: TYPE_IMG
+- en: Figure 4.4 – Example of Gradio’s user interface for the fine-tuned Whisper model
+    in Hugging Face
+  prefs: []
+  type: TYPE_NORMAL
+- en: Record the audio with the microphone to test the model directly from Google
+    Colab;, then click `Namaste`, which was then transcribed perfectly to the Hindi
+    word `नामास्ते`.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Summary
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: As we conclude our journey into the intricacies of OpenAI’s Whisper, it’s clear
+    that we’ve traversed a path rich with technical insights and practical wisdom.
+    Our exploration has been more than just a theoretical examination; it’s been a
+    hands-on experience, equipping you with the skills to fine-tune Whisper for specific
+    domain and language needs and to overcome the challenges inherent in speech recognition
+    technology.
+  prefs: []
+  type: TYPE_NORMAL
+- en: We commenced with the foundational work of setting up a robust Python environment,
+    augmenting Whisper’s knowledge by integrating diverse, multilingual datasets such
+    as Common Voice. This step was crucial as it expanded Whisper’s linguistic breadth
+    and set the stage for the subsequent fine-tuning process.
+  prefs: []
+  type: TYPE_NORMAL
+- en: The heart of this chapter revolved around tailoring Whisper’s predictions to
+    align perfectly with your target applications. You’ve learned to tweak confidence
+    levels, output classes, and time limits to match the expected results in specific
+    use cases. The knowledge you’ve gained here is invaluable, especially when dealing
+    with niche terminologies and diverse language datasets.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Much of our effort was devoted to tracking progress through straightforward
+    testing. We established fixed benchmarks to gauge gains across languages and uses
+    objectively, ensuring that our fine-tuning efforts were grounded and free from
+    data bias.
+  prefs: []
+  type: TYPE_NORMAL
+- en: One of the most critical aspects we covered was the ethical use of technology.
+    We emphasized the need to ensure equitable performance across demographics, ensuring
+    that advancements in speech technology don’t inadvertently exclude groups with
+    fewer advantages.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As you’ve seen, fine-tuning Whisper involved a deep dive into its architecture
+    and training methodologies. You’ve learned about handling different languages,
+    optimizing Whisper for various content domains, and balancing accuracy with efficiency.
+    We’ve also tackled challenges such as demographic biases, technical and linguistic
+    hurdles, and the need for rapid adaptation to new vocabulary.
+  prefs: []
+  type: TYPE_NORMAL
+- en: Moreover, we’ve discussed managing user expectations, an essential aspect of
+    deploying AI technology. It’s crucial to be transparent about what technology
+    can do and its limitations, ensuring users make informed decisions and trust it.
+  prefs: []
+  type: TYPE_NORMAL
+- en: As we look forward to this book’s next section, *Part 3 – Real-World Applications
+    and Use Cases*, we’re poised to embark on a new adventure. Here, we’ll explore
+    how to effectively apply Whisper in various industries, integrating it into real-world
+    scenarios. You’ll discover how to harness Whisper in sectors such as healthcare
+    and voice-assisted technologies, leveraging the skills and knowledge you’ve gained
+    from this chapter to make a tangible impact in ASR.
+  prefs: []
+  type: TYPE_NORMAL
+- en: So, let’s carry forward the knowledge and experience from this chapter and see
+    how we can apply Whisper in diverse and impactful ways. The journey continues,
+    and the possibilities are as exciting as they are endless.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'Part 3: Real-world Applications and Use Cases'
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+- en: In this part, you will explore the diverse real-world applications and use cases
+    of OpenAI’s Whisper, learning how to integrate this powerful tool into various
+    contexts effectively. From transcription services and voice assistants to accessibility
+    features and customer service, you will gain insights into leveraging Whisper’s
+    capabilities to enhance multiple industries. You will also delve into advanced
+    techniques such as quantization, real-time speech recognition, and speaker diarization
+    using **WhisperX** and NVIDIA’s **NeMo** framework. Furthermore, you will discover
+    how to harness Whisper for personalized voice synthesis, creating unique voice
+    models that capture the distinct characteristics of a target voice. Finally, this
+    part will provide a forward-looking perspective on the evolving landscape of ASR
+    and voice technologies, discussing anticipated trends, ethical considerations,
+    and strategies for preparing for the future.
+  prefs: []
+  type: TYPE_NORMAL
+- en: 'This part includes the following chapters:'
+  prefs: []
+  type: TYPE_NORMAL
+- en: '[*Chapter 5*](B21020_05.xhtml#_idTextAnchor142)*, Applying Whisper in Various
+    Contexts*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[*Chapter 6*](B21020_06.xhtml#_idTextAnchor160)*, Expanding Applications with
+    Whisper*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[*Chapter 7*](B21020_07.xhtml#_idTextAnchor177)*, Exploring Advanced Voice
+    Capabilities*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Chapter 8, Diarizing Speech with WhisperX and NVIDIA’s NeMo*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '[*Chapter 9*](B21020_09.xhtml#_idTextAnchor207)*, Harnessing Whisper for Personalized
+    Voice Synthesis*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+- en: '*Chapter 10, Shaping the Future with Whisper*'
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
