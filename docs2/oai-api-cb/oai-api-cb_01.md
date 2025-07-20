@@ -1,6 +1,6 @@
 
 
-# 解锁 OpenAI 并设置你的 API Playground 环境
+# 第一章：解锁 OpenAI 并设置你的 API Playground 环境
 
 ChatGPT 是由 OpenAI 开发的先进 **人工智能** (**AI**) 语言模型，是历史上增长最快的原生消费应用，仅用 2 个月就达到了 1 亿用户。相比之下，TikTok 排名第二，达到同样的用户数用了超过 9 个月（[`www.forbes.com/sites/cindygordon/2023/02/02/chatgpt-is-the-fastest-growing-ap-in-the-history-of-web-applications/?sh=3551e45d678c`](https://www.forbes.com/sites/cindygordon/2023/02/02/chatgpt-is-the-fastest-growing-ap-in-the-history-of-web-applications/?sh=3551e45d678c)）。它之所以如此受欢迎，可以归因于其使 **自然语言处理** (**NLP**) 模型对普通用户普及的能力。NLP 是 AI 中一个关注计算机与人类通过自然语言互动的领域。NLP 的终极目标是使计算机能够以既有意义又有用的方式解释、理解并响应人类语言。传统上，这个领域的任务——从情感分析到语言翻译——都需要强大的数据集和机器学习与数据科学的专业知识才能有效执行。
 

@@ -1,6 +1,6 @@
 
 
-# 使用 Azure OpenAI Assistants API 创建多模态多代理框架
+# 第十章：使用 Azure OpenAI Assistants API 创建多模态多代理框架
 
 在本章中，我们将探索如何使用 Azure OpenAI Assistants API 构建一个系统，允许多个智能代理协同工作。这些代理使用先进的语言模型来理解和生成自然语言，使它们能够独立执行任务并自主做出决策。
 

@@ -1,6 +1,6 @@
 
 
-# 深入探讨 Whisper 架构
+# 第三章：深入探讨 Whisper 架构
 
 当我们踏上深入 OpenAI Whisper 世界的第三章时，我们将进一步探讨支撑这一先进语音识别系统的架构细节。本章名为 *深入探讨 Whisper 架构*，旨在全面了解构成 Whisper 背后的 Transformer 模型。
 
